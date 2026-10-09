@@ -1,0 +1,24 @@
+# BigWigsMods packager: a tag (v0.2.0 ...) builds OpenMap.zip from the OpenMap folder and
+# uploads it (.github/workflows/release.yml). See docs/releasing.md.
+package-as: OpenMap
+
+# the addon is the OpenMap folder, not the repo root
+move-folders:
+  OpenMap/OpenMap: OpenMap
+
+ignore:
+  - tools
+  - docs
+  - .github
+  - README.md
+  - ARCHITECTURE.md
+  - CONTRIBUTING.md
+  - LICENSE
+  - art-edits
+  - CHANGELOG.md
+  - .gitignore
+  - .pkgmeta
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

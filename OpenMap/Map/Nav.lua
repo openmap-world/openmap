@@ -1,0 +1,369 @@
+--------------------------------------------------------------------------------
+-- Getting around the map:
+--   find me      a button that glides to where you are
+--   remember     the map reopens where you left it, while you're still in the
+--                same zone (somewhere new, it opens on you, as Blizzard's does)
+--   waypoints    Ctrl-click the map to drop Blizzard's map pin there (and a
+--                TomTom arrow, if TomTom is on); click the pin to clear it
+--   search       type a zone, city, dungeon or flight master and glide to it
+--   group        party and raid members as class-coloured dots, wherever they
+--                are on the stitched map (Blizzard's own only show on the map
+--                underneath)
+--------------------------------------------------------------------------------
+
+local _, ns = ...
+local S = ns.MapStitch
+local mod = ns:GetModule("worldmap")
+local Look, Safe, L = ns.Look, ns.Safe, ns.L
+
+local d = mod.defaults
+d.rememberView = true
+d.group = true
+
+local map, sc
+
+
+-- a unit's place on the world (normalized), or nil (secret, in an instance, unknown)
+local function UnitWorld(unit)
+	local best = Safe.Call(C_Map.GetBestMapForUnit, unit)
+	if not best or not S.Rect(best) then return end
+	local pos = Safe.Call(C_Map.GetPlayerMapPosition, best, unit)
+	if not pos then return end
+	local x, y = Safe.XY(pos)
+	if Safe.IsSecret(x) or Safe.IsSecret(y) or not x or not y or (x == 0 and y == 0) then return end
+	local u, v = mod.ToWorld(best, x, y)
+	return u, v, best
+end
+
+--------------------------------------------------------------------------------
+-- Find me, and reopening where you left off
+--------------------------------------------------------------------------------
+
+function mod:FindMe()
+	if not mod.IsStitched() then return end
+	local u, v, best = UnitWorld("player")
+	if not u then
+		-- the map underneath may still know (the zone you're in, shown)
+		local host = mod.HostMap()
+		local pos = host and Safe.Call(C_Map.GetPlayerMapPosition, host, "player")
+		if pos then
+			local x, y = Safe.XY(pos)
+			if not Safe.IsSecret(x) and x and y and (x ~= 0 or y ~= 0) then u, v = mod.ToWorld(host, x, y) best = host end
+		end
+	end
+	if not u then
+		ns:Print(L["You aren't on the world map here (an instance or a place it doesn't cover)."])
+		return
+	end
+	local _, _, zoom = mod.ViewNow()
+	mod.Glide(u, v, math.max(zoom, mod.FitZoom(best)))
+end
+
+local saved                     -- { u, v, zoom, zone } when the map closed
+
+function mod:OnMapHidden()
+	local u, v, zoom = mod.ViewNow()
+	if u then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player") } end
+end
+
+function mod:OnMapShown()
+	if not saved or not mod.db.rememberView then return end
+	-- after Blizzard has put its own map up (next frame)
+	C_Timer.After(0, function()
+		if not saved or not mod.IsStitched() then return end
+		if Safe.Call(C_Map.GetBestMapForUnit, "player") ~= saved[4] then return end   -- you've moved on: open on you
+		mod.ShowNow(saved[1], saved[2], saved[3])
+	end)
+end
+
+--------------------------------------------------------------------------------
+-- Waypoints
+--------------------------------------------------------------------------------
+
+local wpSet, RefreshWaypoint
+local WAYPOINT = { atlas = "Waypoint-MapPin-Tracked", texture = "Interface\\Minimap\\Ping\\ping5", size = 30 }
+
+-- Blizzard's user waypoint where the client has it (its pin, its arrow); else our own,
+-- kept per character. Either shows on the whole stitched map.
+local function BlizzardPin()
+	if not (C_Map.HasUserWaypoint and C_Map.GetUserWaypoint) then return end
+	local ok, has = pcall(C_Map.HasUserWaypoint)
+	if not ok or not has then return end
+	local point = C_Map.GetUserWaypoint()
+	if point and point.position then
+		local x, y = Safe.XY(point.position)
+		return point.uiMapID, x, y
+	end
+end
+
+local function ClearPin()
+	if C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
+	mod.char.pin = nil
+	RefreshWaypoint()
+end
+
+function RefreshWaypoint()
+	if not wpSet then return end
+	S.ClearPinSet(wpSet)
+	local mapID, x, y = BlizzardPin()
+	local own = not mapID
+	if own and mod.char.pin then mapID, x, y = mod.char.pin[1], mod.char.pin[2], mod.char.pin[3] end
+	if not mapID or not S.Rect(mapID) then return end
+	-- Blizzard draws its own pin when it's on the map underneath
+	local host = mod.HostMap()
+	if not own and host and C_Map.GetUserWaypointPositionForMap and C_Map.GetUserWaypointPositionForMap(host) then return end
+	local u, v = mod.ToWorld(mapID, x, y)
+	local pin = S.AddPin(wpSet, u, v, WAYPOINT)
+	pin:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		local info = C_Map.GetMapInfo(mapID)
+		GameTooltip:AddLine(L["Map pin"], 1, 0.82, 0)
+		GameTooltip:AddLine(("%s  %.1f, %.1f"):format(info and info.name or "", x * 100, y * 100), 1, 1, 1)
+		GameTooltip:AddLine(L["Click: remove"], 0.6, 0.6, 0.6)
+		GameTooltip:Show()
+	end)
+	pin:SetScript("OnLeave", GameTooltip_Hide)
+	pin.OnClick = ClearPin
+end
+
+-- a pin at the world point (normalized): Blizzard's if it takes it, else ours; and TomTom's
+function mod.DropWaypoint(u, v)
+	local chain = S.ChainAt(u, v)
+	local mapID = chain[#chain]
+	if mapID == S.WORLD then return end
+	local x, y = mod.FromWorld(mapID, u, v)
+	local info = C_Map.GetMapInfo(mapID)
+	local blizzard = false
+	if C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates
+		and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(mapID)) then
+		blizzard = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y)) and BlizzardPin() ~= nil
+		if blizzard and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+	end
+	mod.char.pin = not blizzard and { mapID, x, y } or nil
+	local tomtom = _G.TomTom
+	if tomtom and tomtom.AddWaypoint then
+		pcall(tomtom.AddWaypoint, tomtom, mapID, x, y, { title = info and info.name or "OpenMap", from = "OpenMap" })
+	end
+	RefreshWaypoint()
+end
+
+-- the pin button: the next click on the map drops a pin there (Ctrl-click always does)
+-- the menu's pin button: the next click on the map drops a pin there (Ctrl-click always does)
+local pinArmed = false
+function mod.PinMode() return pinArmed end
+function mod.SetPinMode(on)
+	pinArmed = on and true or false
+	if mod.OnPinMode then mod.OnPinMode(pinArmed) end
+end
+function mod.ClearPin() ClearPin() end
+
+--------------------------------------------------------------------------------
+-- Search
+--------------------------------------------------------------------------------
+
+local places                    -- { name, lower, kind, u0, v0, u1, v1 } or a point (u0 == u1)
+local box, list
+local MAX_RESULTS = 8
+
+local function Places()
+	if places then return places end
+	places = {}
+	local seen = {}
+	local function add(name, kind, u0, v0, u1, v1)
+		if not name or name == "" or not u0 then return end
+		local key = kind .. name
+		if seen[key] then return end
+		seen[key] = true
+		places[#places + 1] = { name = name, lower = name:lower(), kind = kind, u0, v0, u1 or u0, v1 or v0 }
+	end
+	for _, kind in ipairs({ Enum.UIMapType.Continent, Enum.UIMapType.Zone }) do
+		for _, info in ipairs(C_Map.GetMapChildrenInfo(S.WORLD, kind, true) or {}) do
+			local l, r, t, b = S.Rect(info.mapID)
+			if l then add(info.name, kind == Enum.UIMapType.Continent and L["Continent"] or L["Zone"], l, t, r, b) end
+		end
+	end
+	for _, g in ipairs((ns.MapPlaces or {}).instances or {}) do
+		local u, v = S.FromYards(g[1], g[2], g[3])
+		for _, inst in ipairs(g[4]) do add(S.InstanceName(inst), inst[3] and L["Raid"] or L["Dungeon"], u, v) end
+	end
+	for _, node in pairs((ns.MapFlights or {}).nodes or {}) do
+		local u, v = S.FromYards(node[2], node[3], node[4])
+		add(node[1], L["Flight master"], u, v)
+	end
+	return places
+end
+
+-- a marker on what was found, for a few seconds
+local pingSet, pingTimer
+local PING = { atlas = "Waypoint-MapPin-Untracked", texture = "Interface\\Minimap\\Ping\\ping5", size = 30 }
+local function Ping(u, v)
+	if not pingSet then return end
+	S.ClearPinSet(pingSet)
+	local pin = S.AddPin(pingSet, u, v, PING)
+	pin:EnableMouse(false)
+	if pingTimer then pingTimer:Cancel() end
+	pingTimer = C_Timer.NewTimer(5, function() S.ClearPinSet(pingSet) end)
+end
+
+local function Go(p)
+	box:ClearFocus()
+	list:Hide()
+	if p[1] == p[3] then
+		mod.Glide(p[1], p[2], math.max(14, select(3, mod.ViewNow()) or 1))
+		Ping(p[1], p[2])
+	else
+		S.GlideToRect(p[1], p[2], p[3], p[4], 0.95)
+	end
+end
+
+local function Results(text)
+	text = (text or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+	local out = {}
+	if #text < 2 then return out end
+	for _, p in ipairs(Places()) do
+		local at = p.lower:find(text, 1, true)
+		if at then out[#out + 1] = { p, at == 1 and 0 or 1 } end
+	end
+	table.sort(out, function(a, b)
+		if a[2] ~= b[2] then return a[2] < b[2] end
+		return #a[1].name < #b[1].name
+	end)
+	return out
+end
+
+local function ShowResults()
+	local found = Results(box:GetText())
+	list.rows = list.rows or {}
+	for _, row in ipairs(list.rows) do row:Hide() end
+	if #found == 0 then list:Hide() return end
+	for i = 1, math.min(#found, MAX_RESULTS) do
+		local row = list.rows[i]
+		if not row then
+			row = CreateFrame("Button", nil, list)
+			row:SetSize(220, 18)
+			row:SetPoint("TOPLEFT", 6, -4 - (i - 1) * 18)
+			row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+			row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			row.name:SetPoint("LEFT", 4, 0)
+			row.kind = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+			row.kind:SetPoint("RIGHT", -4, 0)
+			row:SetScript("OnClick", function(self) Go(self.place) end)
+			list.rows[i] = row
+		end
+		row.place = found[i][1]
+		row.name:SetText(found[i][1].name)
+		row.kind:SetText(found[i][1].kind)
+		row:Show()
+	end
+	list:SetHeight(8 + math.min(#found, MAX_RESULTS) * 18)
+	list:Show()
+	list.first = found[1][1]
+end
+
+-- the search box, on `parent` (the map's menu), `width` wide; its results drop down below it
+function mod.CreateSearch(parent, width)
+	map = map or _G.WorldMapFrame
+	box = CreateFrame("EditBox", nil, parent, "SearchBoxTemplate")
+	box:SetSize(width, 22)
+	box:SetAutoFocus(false)
+	if box.Instructions then box.Instructions:SetText(L["Find a place"]) end
+	list = CreateFrame("Frame", nil, parent)
+	list:SetPoint("TOPLEFT", box, "BOTTOMLEFT", -6, -2)
+	list:SetWidth(232)
+	list:SetFrameStrata("DIALOG")
+	list:EnableMouse(true)
+	Look:Panel(list, { inset = 0, alpha = 0.95 })
+	list:Hide()
+	box:HookScript("OnTextChanged", ShowResults)
+	box:SetScript("OnEnterPressed", function() if list:IsShown() and list.first then Go(list.first) else box:ClearFocus() end end)
+	box:HookScript("OnEscapePressed", function() list:Hide() end)
+	box:HookScript("OnEditFocusLost", function() C_Timer.After(0.2, function() if not box:HasFocus() then list:Hide() end end) end)
+	map:HookScript("OnHide", function() box:ClearFocus() list:Hide() end)
+	return box
+end
+
+--------------------------------------------------------------------------------
+-- Group members
+--------------------------------------------------------------------------------
+
+local groupSet, groupLooks = nil, {}
+local DOT = { atlas = "WhiteCircle-RaidBlips", texture = "Interface\\Minimap\\PartyRaidBlips" }
+
+local function GroupLook(unit)
+	local _, class = UnitClass(unit)
+	class = Safe.Value(class) or "PRIEST"
+	local look = groupLooks[class]
+	if not look then
+		local c = (C_ClassColor and C_ClassColor.GetClassColor(class)) or (RAID_CLASS_COLORS and RAID_CLASS_COLORS[class])
+		look = { atlas = DOT.atlas, texture = DOT.texture, size = 12, color = c and { c.r, c.g, c.b, 1 } or { 1, 1, 1, 1 } }
+		groupLooks[class] = look
+	end
+	return look
+end
+
+local function GroupEnter(pin)
+	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
+	local name = Safe.Call(UnitName, pin.unit)
+	GameTooltip:AddLine(name or "?", 1, 1, 1)
+	GameTooltip:Show()
+end
+
+local function RefreshGroup()
+	if not groupSet then return end
+	S.ClearPinSet(groupSet)
+	if not mod.db.group or not mod.IsStitched() or not IsInGroup() then return end
+	local host = mod.HostMap()
+	local raid = IsInRaid()
+	for i = 1, raid and 40 or 4 do
+		local unit = (raid and "raid" or "party") .. i
+		if UnitExists(unit) and not UnitIsUnit(unit, "player") then
+			-- Blizzard shows the ones on the map underneath; we show the rest
+			local onHost = host and Safe.Call(C_Map.GetPlayerMapPosition, host, unit)
+			if not onHost then
+				local u, v = UnitWorld(unit)
+				if u then
+					local pin = S.AddPin(groupSet, u, v, GroupLook(unit))
+					pin.unit = unit
+					pin:SetScript("OnEnter", GroupEnter)
+					pin:SetScript("OnLeave", GameTooltip_Hide)
+				end
+			end
+		end
+	end
+end
+
+--------------------------------------------------------------------------------
+
+function mod:BuildNav()
+	wpSet = S.PinSet("waypoint", 0, 5)
+	pingSet = S.PinSet("ping", 0, 5)
+	groupSet = S.PinSet("group", 0, 4)
+	RefreshWaypoint()
+end
+
+function mod:SetupNav(worldMap)
+	map, sc = worldMap, worldMap.ScrollContainer
+	ns.RegisterEvent(mod, "USER_WAYPOINT_UPDATED", RefreshWaypoint)
+	ns.RegisterEvent(mod, "SUPER_TRACKING_CHANGED", RefreshWaypoint)
+	local wait = 0
+	local ticker = CreateFrame("Frame", nil, map)
+	ticker:SetScript("OnUpdate", function(_, elapsed)
+		wait = wait - elapsed
+		if wait > 0 then return end
+		wait = 0.5
+		RefreshGroup()
+	end)
+end
+
+-- the map underneath changed: Blizzard's own pins may now cover ours, or stop to
+function mod:RefreshNav()
+	RefreshWaypoint()
+	RefreshGroup()
+end
+
+function mod:NavOptions(opts, get, set, off)
+	opts.rememberView = { type = "toggle", name = L["Reopen where you left off"], order = 11, width = "full", get = get, set = set, disabled = off,
+		desc = L["While you're still in the same zone, the map reopens on what you were looking at. Somewhere new, it opens on you."] }
+	opts.group = { type = "toggle", name = L["Party and raid members"], order = 35, get = get, set = set, disabled = off,
+		desc = L["Class-coloured dots for your group anywhere on the stitched map."] }
+end

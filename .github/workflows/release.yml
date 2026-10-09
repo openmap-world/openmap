@@ -1,0 +1,23 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write                 # the GitHub release and its zip
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_KEY: ${{ secrets.CF_API_KEY }}        # CurseForge: set in the repo's secrets (docs/releasing.md)
+      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install lupa
+      - run: python tools/offline-test/lint.py
+      - run: python tools/offline-test/run.py plain
+      - uses: BigWigsMods/packager@v2
