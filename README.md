@@ -1,12 +1,16 @@
 # OpenMap
 
-**OpenMap is an open-source, seamless world map addon for World of Warcraft: Forever that keeps the original Vanilla art style.**
+**OpenMap is an open-source, seamless world map addon for WoW Forever that keeps the original Vanilla art style.** Zoom and pan across the whole world map with a truly open-source, community-built map addon.
 
-It stitches every zone map into one continuous map. Scroll out of Elwynn and you're looking at Westfall, Duskwood and Redridge, then the whole continent, then the world, instead of clicking in and right-clicking out between zones. It lives inside Blizzard's own world map, so the quest log, the map's buttons, Questie and the rest of the standard map keep working.
+Help us build it as a community into the best world map, while staying true to the classic spirit.
+
+There are already a bunch of map addons for Forever, and some of them are great. What I couldn't find was one that's seamless (lets you zoom and pan through the entire world), open source, and keeps the map looking like Blizzard's original map.
+
+OpenMap stitches every zone map into one continuous map. Scroll out of Elwynn and you're looking at Westfall, Duskwood and Redridge, then the whole continent, then the world. No more clicking in and right-clicking out between zones. It lives inside the normal world map, so your quest log, the map's buttons, Questie and the rest of the standard map work as intended.
 
 ## What it does
 
-- **One seamless map.** Zoom from the whole world down to street level, toward your cursor. Zone detail fades in as you get closer, with the game's minimap blended in for extra detail at the closest zoom. When you stop moving, the map underneath quietly becomes the zone you're looking at, so quest areas, coordinates and the zone name match.
+- **One seamless map.** Zoom from the whole world down to street level, toward your cursor. It uses the map art from the game files, with the game's minimap blended in for extra detail at the closest zoom, without breaking the map's look.
 - **Zone borders that blend.** Neighbouring zones fade into each other, and the border mountains are colour-matched.
 - **The whole map made visible.** Land Forever has no zone map for (Gilneas, the ridges round Orgrimmar, the mountains west of Searing Gorge, the edges of Stonetalon, Feralas, Silithus and more) is drawn from Blizzard's own classic and pre-Cataclysm maps of it, which ship with the game but the game doesn't show. Land no map ever drew is left as clean parchment, like an unfinished map.
 - **Ocean and continent names rebuilt** so they zoom properly, lettered in the game's own map font.
@@ -14,21 +18,28 @@ It stitches every zone map into one continuous map. Scroll out of Elwynn and you
 - **Underground.** Zoom into a cave or a dungeon's entrance area and Blizzard's map of it appears.
 - **Flight paths.** Learned ones in colour, the rest greyed out. Click two flight masters to see the route you'd fly and roughly how long it takes.
 - **Getting around.** Search for a zone, city, dungeon or flight master; a "Find me" button; Ctrl-click to drop a map pin (and a TomTom arrow, if you use it); the map reopens where you left it; party and raid members are shown across the whole map.
-- **Vendors, spirit healers and rares** (needs Questie): repair, innkeepers, trainers, bankers, auctioneers, stable masters, spirit healers and rare mobs. These read Questie's NPC database, which isn't a public API, so they may need updating when Questie changes. Questie's quest icons can be switched on or off from OpenMap's menu too.
-- **A map that fits your screen.** No black bars at the sides: drag the title bar to move the window and the corner to resize it to any shape, or go full screen and the map fills it.
-- **Extras.** Coordinates bar, zone levels on hover, no fade while moving, unexplored areas shown, dimmed or hidden, the map art's parchment border, and a "Report a problem" button for the beta.
+- **Vendors, spirit healers and rares** (needs Questie): repair, innkeepers, trainers, bankers, auctioneers, stable masters, spirit healers and rare mobs. Questie's quest icons can be switched on or off from OpenMap's menu too. (Still working on performance here.)
+- **A map that fits your screen.** No more black bars at the sides: resize the window to any shape, or go full screen and the map fills it.
 
-Everything is in the **OpenMap** menu on the map (or type `/openmap`). Turn off other world map addons (Leatrix Maps, Mapster, Magnify ...) to avoid conflicts. OpenMap tells you at login if one is on.
+Everything is in the **OpenMap** menu on the map (or type `/openmap`). If you use another world map addon (Leatrix Maps, Mapster, Magnify ...), turn it off to avoid conflicts. OpenMap tells you at login if one is on.
 
 ## Original game art
 
-Every map and icon OpenMap uses is Blizzard's own art, loaded from the game. The few textures the addon ships are cut or masked from Blizzard's map art (the sea, blank parchment, coastlines, the border) or are plain paper grain made from noise. The zone data, dungeon entrances and levels, boat routes and flight network come from the game's data files; zone level ranges come from the Warcraft Wiki, and townsfolk and spirit healers from Questie. Nothing on the map is AI-generated.
+Every map and icon OpenMap uses is Blizzard's own art, loaded from the game. The few textures the addon ships are cut or masked from Blizzard's map art (the sea, blank parchment, coastlines, the border) or are plain paper grain made from noise. The zone data, dungeon entrances and levels, boat routes and flight network come from the game's data files; zone level ranges come from the Warcraft Wiki, and townsfolk and spirit healers from Questie.
 
-## Status
+## Help build it
 
-Beta. Built for WoW Forever (Interface 16001). See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works, [CONTRIBUTING.md](CONTRIBUTING.md) to help, [docs/testing.md](docs/testing.md) for the in-game check before a release and [docs/releasing.md](docs/releasing.md) for publishing one.
+I'd love help making this the best map addon for Forever. Bug reports, ideas, code and fixes are all welcome. The map is tricky to get looking right everywhere, so even a screenshot of a spot that looks off really helps. There's a "Report a problem" button right on the map: circle the spot, add a note, and paste the code into a GitHub issue.
 
-Bug reports, ideas, code and fixes are all welcome. Even a screenshot of a spot that looks off helps: use the "Report a problem" button on the map, circle the spot, add a note, and paste the code into a GitHub issue.
+See [CONTRIBUTING.md](CONTRIBUTING.md) to help, [ARCHITECTURE.md](ARCHITECTURE.md) for how it works, [docs/testing.md](docs/testing.md) for the in-game check before a release and [docs/releasing.md](docs/releasing.md) for publishing one.
+
+## About Claude
+
+I'm using Claude (Anthropic's AI) as a coding partner: it helps write and review code and helps me run the open-source side (reviewing pull requests and so on). It doesn't make any of the art or content. Everything you see on the map comes from Blizzard's game files.
+
+## Early days
+
+This is a first release, so expect rough edges. If something looks wrong, let me know with an issue here or the "Report a problem" button.
 
 ## Install (development)
 
