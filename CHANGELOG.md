@@ -1,6 +1,6 @@
 # OpenMap changelog
 
-## Unreleased
+## v0.1.0-beta (2026-10-09)
 
 First public beta. One seamless world map for WoW Forever: every zone stitched
 together, Blizzard's own art, with dungeon entrances and caves, flight paths,
