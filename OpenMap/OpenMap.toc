@@ -2,6 +2,7 @@
 ## Title: |cffe6b85cOpen|rMap
 ## Notes: One seamless world map: every zone stitched together, zoom out of one into the next. Blizzard's map, quest log and Questie keep working. /openmap
 ## Author: OpenMap contributors
+## IconTexture: Interface\Icons\Achievement_Zone_EasternKingdoms_01
 ## Version: @project-version@
 ## SavedVariables: OpenMapDB
 ## SavedVariablesPerCharacter: OpenMapCharDB
