@@ -180,11 +180,14 @@ function mod:SetupWindow(worldMap)
 	end)
 	handle:SetScript("OnLeave", GameTooltip_Hide)
 
-	-- the resize grip: any width and height, the top-left corner staying put
+	-- the resize grip: any width and height, the top-left corner staying put. In the window's
+	-- outer corner (clear of Blizzard's quest log button just inside it), over everything there,
+	-- and a little easier to catch than it looks
 	grip = CreateFrame("Button", nil, map)
-	grip:SetSize(16, 16)
-	grip:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", -2, 2)
-	grip:SetFrameLevel(map:GetFrameLevel() + 20)
+	grip:SetSize(18, 18)
+	grip:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", 1, -1)
+	grip:SetFrameLevel(math.min(map.ScrollContainer:GetFrameLevel() + 9500, 9990))
+	grip:SetHitRectInsets(-4, -6, -4, -6)
 	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
 	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
@@ -208,7 +211,7 @@ function mod:SetupWindow(worldMap)
 		local w = math.max(MIN_W, start.w + (x - start.x) / s)
 		local h = math.max(MIN_H, start.h - (y - start.y) / s)
 		map:ClearAllPoints()
-		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", start.left * s / UIParent:GetEffectiveScale(), start.top * s / UIParent:GetEffectiveScale())
+		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", start.left, start.top)   -- (offsets in the map's own units, as GetLeft gives)
 		map:SetSize(w, h)
 	end)
 	grip:SetScript("OnEnter", function(self)
@@ -218,8 +221,10 @@ function mod:SetupWindow(worldMap)
 	end)
 	grip:SetScript("OnLeave", GameTooltip_Hide)
 
-	-- put the saved place back whenever Blizzard lays the map out
+	-- put the saved place back whenever Blizzard lays the map out: opening shows the map first and
+	-- places it after (inside ShowUIPanel), so it's put back once that's done, not a moment later
 	map:HookScript("OnShow", Apply)
+	if ShowUIPanel then hooksecurefunc("ShowUIPanel", function(frame) if frame == map then Apply() end end) end
 	if UpdateUIPanelPositions then hooksecurefunc("UpdateUIPanelPositions", function() if map:IsShown() then Apply() end end) end
 	local function Mode()
 		local max = Maximized()

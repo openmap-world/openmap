@@ -6,6 +6,10 @@
   could push it off the right edge).
 - Going full screen and back (or resizing the window) keeps the view you were looking at,
   instead of jumping to where the map was last closed.
+- Resizing the window keeps its top-left corner (and the OpenMap menu) in place with the map
+  size option off 100%, so the corner stays under the cursor; the resize grip sits in the
+  window's outer corner, clear of the quest log button, and is easier to catch.
+- Reopening a moved or resized map shows it in its place at once (not Blizzard's first).
 - Faster panning and zooming: map icons off the view (townsfolk, flight masters ...) are
   hidden, and blank tiles of the filled-in land aren't drawn.
 - Opening the map loads only the zone art in view (and none until zone detail shows), instead
