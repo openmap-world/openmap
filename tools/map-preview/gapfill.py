@@ -536,6 +536,10 @@ for m in g["maps"]:
     lone = (lab > 0) & ~np.isin(lab, list(touched))
     lone_a = np.clip(ndimage.gaussian_filter(lone.astype(np.float32), 2) * 1.5, 0, 1) * (L > 0.2)
     if not PAINT_LONE: lone_a = lone_a * 0       # (off: the cleaned world map shows the open-sea islands itself)
+    # the continent map's own land (not trimmed by the zones' seas, which take in rivers and lakes)
+    raw = np.zeros_like(L)
+    raw[:gh, :gw] = np.asarray(Image.fromarray((g["field_img"](m)[..., 3] * 255).astype(np.uint8)).resize((gw, gh), Image.BILINEAR)).astype(np.float32) / 255
+    on_land = np.clip(ndimage.gaussian_filter(raw, 2.0) * 2, 0, 1)
     need = L * (1 - A)
     got = []
     for j in range(rows):
@@ -548,7 +552,9 @@ for m in g["maps"]:
                 Image.fromarray((crisp[ys, xs] * 255).astype(np.uint8)).resize((OUT_PX, OUT_PX), Image.LANCZOS),)).save(os.path.join(land_dir, name))
             # what's drawn over the paper: the zones' paintings of the area, the strips' carried
             # edges over those, the bare coasts' coastline over all (premultiplied, back to front)
-            pa, sa, sh_ = paint_a[ys, xs, None], strip_a[ys, xs, None], shore[ys, xs, None]
+            # (the paintings fill the continent map's land only: past it, a zone's picture of a coast
+            # that isn't where the zones have it lands in open sea, cut square at the tile's edge)
+            pa, sa, sh_ = (paint_a * on_land)[ys, xs, None], strip_a[ys, xs, None], shore[ys, xs, None]
             col, a3 = paint_rgb[ys, xs] * pa, pa
             la = lone_a[ys, xs, None]
             col, a3 = coast[ys, xs] * la + col * (1 - la), la + a3 * (1 - la)

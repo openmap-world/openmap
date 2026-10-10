@@ -660,6 +660,7 @@ def bake_edges():
 
 TERR_MARGIN = (0, 8)            # a zone's base art: full this far (its art px) past its land, gone after this much more
 SHORE = (13.0, 17.0)            # world units off a zone's coast where its own painted sea is full / gone (its islets, hatching)
+SHORE_FRAME = 70                # zone art px inside its frame over which that painted sea fades in
 LETTER_OFF = 10                 # art px off a coast before dark ink can be a sea name
 
 def own_land(m):
@@ -749,7 +750,11 @@ def bake_territory():
         tt = np.clip(1 - np.maximum(0, dout - TERR_MARGIN[0]) / TERR_MARGIN[1], 0, 1)
         terr = tt * tt * (3 - 2 * tt)
         # ... and its own painted sea off its coasts: Blizzard's hatching, shading and islets
-        terr = np.maximum(terr, shore(m))
+        # (fading out well inside its frame: where the art runs to its frame over the sea, a
+        # straight cut there shows against the open sea, Wetlands' west coast ...)
+        inside = ndimage.distance_transform_edt(edge(m) > 0.5)
+        sf = np.clip(inside / SHORE_FRAME, 0, 1)
+        terr = np.maximum(terr, shore(m) * sf * sf * (3 - 2 * sf))
         # ... and the cities inside it (Orgrimmar in Durotar ...): they're maps of their own,
         # shown only once you're close, so until then the zone's painting of them shows. (The
         # game lists cities under their continent: a city belongs to the zone whose own land
