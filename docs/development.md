@@ -62,7 +62,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 7 | `tools/map-art/import.py <db2> <tex>` | `MapArt/`, `Data/ArtEdits.lua` | `art-edits/edited/` |
 | 8 | `tools/map-preview/render.py <db2> <tex> <out> --bake-land --bake-edges --bake-territory` | `MapLand/`, `MapEdge/`, `MapTerritory/` | 5, 7 |
 | 9 | `tools/map-preview/sea.py <db2> <tex>` | the sea and coast masks | 8 |
-| 10 | `tools/map-preview/sea_world.py <db2> <tex>` | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/` | 9 |
+| 10 | `tools/map-preview/sea_world.py <db2> <tex>` | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/`, `MapSeaFieldOut` | 9 |
 | 11 | `tools/map-preview/banners.py <db2> <tex>` | `MapBanner/`, `MapBannerHole/`, `MapCityMask/`, `Data/Banners.lua` | |
 | 12 | `tools/map-preview/gapfill.py <db2> <tex> [--rerender]` | `MapGap*/`, `MapPaper`, `MapCoastArt/`, `Data/Gaps.lua` | 8, 11 |
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |

@@ -29,7 +29,7 @@ The other bakes, each a script here (run with the same `<db2 dir> <texture cache
 | Script | Writes |
 | --- | --- |
 | `sea.py` | the sea's paper and wave strokes, the coastal bands, the backdrop's land / sea masks |
-| `sea_world.py` (after `sea.py`) | the continents' sea past the world map's edges, and the world map's coastal hatching apart from its open sea |
+| `sea_world.py` (after `sea.py`) | the continents' sea past the world map's edges, the sea's colour out there (the world sea's own, carried outward), and the world map's coastal hatching apart from its open sea |
 | `gapfill.py` | the gaps: blank parchment, carried strips, bare coasts |
 | `banners.py` | city banners cut from their zone's art (Orgrimmar on Durotar's) |
 | `tone.py` | each zone's colour, for the close-up minimap's tint |

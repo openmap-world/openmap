@@ -21,9 +21,9 @@ WORLD = 947
 CONT_FADE, DETAIL_FADE, CITY_FADE, MUTE_FADE = (1.3, 2.2), (3, 4.5), (0.2, 0.4), (4, 7)
 DETAIL_HINT = (1.8, 3, 0.3)     # (the zones' hint from further out: Stitch.lua's)
 CITY_FADE_OF = {1454: (0.08, 0.25)}   # (cities that come in sooner: Stitch.lua's)
-BANNER_OUT = (0.35, 0.5)
 BORDER_OUT, BORDER_SCALE = (1.15, 1.6), 0.55   # (the border round the view: Window.lua's)
 SEA = (0.50, 0.49, 0.41)        # the sea's colour where no map paints one (MapSeaField covers the rest)
+SEA_REACH = 1.5                 # how far past the world art the sea runs (Stitch.lua's): MapSeaFieldOut over it
 BACK_MUTE = 0.92                # how far the world / continent art fades as it mutes (alpha 1 - this)
 # the ocean (Stitch.lua's sea section): Blizzard's sea paper and coastal strokes, tiled at the
 # continent art's own scale and in finer octaves as you close in, so the sea keeps its texture
@@ -308,6 +308,16 @@ def render(cu, cv, zoom, path):
     px = min(OW / W, OH / H) * zoom                      # output px per world unit
     out = np.zeros((OH, OW, 3), np.float32)
     out[:] = SEA
+    # the sea's colour past the world art (MapSeaFieldOut, sea_world.py), as Stitch.lua lays it
+    fo = tex_rgba("MapSeaFieldOut") if USE_SEA and not ZONES_ONLY else None
+    if fo is not None:
+        ys0, xs0 = np.mgrid[0:OH, 0:OW].astype(np.float32)
+        span = 1 + 2 * SEA_REACH
+        fu = ((xs0 - OW / 2) / px + cu * W) / W
+        fv = ((ys0 - OH / 2) / px + cv * H) / H
+        fx = (fu + SEA_REACH) / span * fo.shape[1] - 0.5
+        fy = (fv + SEA_REACH) / span * fo.shape[0] - 0.5
+        out[:] = np.dstack([ndimage.map_coordinates(fo[..., c], [fy, fx], order=1, mode="nearest") for c in range(3)])
     def place(m, img, alpha_mask, tint=(1, 1, 1), dsat=0.0, alpha=1.0):
         if alpha <= 0.001: return
         l, r, t, b = m["rect"]
@@ -500,9 +510,9 @@ def render(cu, cv, zoom, path):
             a_ = smooth(zf, (fade[0] * f_, fade[1] * f_))
             cut_ = os.path.join(TEXDIR, "MapCityMask", "%d.tga" % m["id"])    # (cut down to the city: banners.py)
             place(m, base, mask("MapCityMask/%d" % m["id"]) if os.path.exists(cut_) else M_ROUND, alpha=a_)
-            b_ = banner(m["id"])                          # its zone's banner for it, kept over it until close in
+            b_ = banner(m["id"])                          # its zone's banner for it: its title at every zoom
             if b_:
-                place(b_, b_["img"], None, alpha=d * (1 - smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_))))
+                place(b_, b_["img"], None, alpha=d)
     ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
     if ba > 0.003 and not ZONES_ONLY:
         c = int(round(192 * BORDER_SCALE * OH / 1024))

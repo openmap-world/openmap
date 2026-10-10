@@ -9,6 +9,10 @@
 #                    as light / dark stripes down the art, as render.py's land_of does, and
 #                    only near land, so the whirlpool's strokes stay out): it goes early, as
 #                    its strokes would grow huge; MapSeaOpen/947 is the rest, which stays.
+#   MapSeaFieldOut   the sea's colour past the world art, out to SEA_REACH (Stitch.lua's): the
+#                    world's own sea colour field (MapSeaField/947) carried outward, so the
+#                    ocean beyond the map keeps the tints of the sea near its edges (its blues,
+#                    greens and golds) instead of one flat colour
 # usage: python -P tools/map-preview/sea_world.py <db2 dir> <texture cache>
 import os, sys
 import numpy as np
@@ -72,3 +76,48 @@ for name, part in (("MapSeaCoast", sea * coast), ("MapSeaOpen", sea * (1 - coast
     a = Image.fromarray((np.clip(part, 0, 1) * 255).astype(np.uint8))
     Image.merge("RGBA", (Image.new("L", (N, N), 255),) * 3 + (a,)).save(os.path.join(TEX, name, "947.tga"))
 print("world sea: coast %.0f%% of its sea" % (100 * (sea * coast).sum() / max(1, sea.sum())))
+
+# ---- the sea's colour past the world art
+SEA_REACH = 1.5                 # world widths / heights past each edge (Stitch.lua's)
+OUT_N = 512
+OUT_EASE = (0.15, 1.0)          # world widths out where the colour starts / finishes easing to the sea's mean
+OUT_KEEP = 0.5                  # ... how much of its local tint it keeps out there
+span = 1 + 2 * SEA_REACH
+f = (np.arange(OUT_N) + 0.5) / OUT_N * span - SEA_REACH            # each canvas pixel's place (world, normalized)
+U, V = np.meshgrid(f, f)
+inside = (U >= 0) & (U < 1) & (V >= 0) & (V < 1)
+fld = np.asarray(Image.open(os.path.join(TEX, "MapSeaField", "947.tga")).convert("RGB")).astype(np.float32) / 255
+xs, ys = np.clip(U, 0, 1) * (fld.shape[1] - 1), np.clip(V, 0, 1) * (fld.shape[0] - 1)
+col = np.dstack([ndimage.map_coordinates(fld[..., c], [ys, xs], order=1) for c in range(3)])
+# trusted where the world art is (its wide feather: not its aged frame)
+wgt = ndimage.map_coordinates(feather, [np.clip(V, 0, 1) * (N - 1), np.clip(U, 0, 1) * (N - 1)], order=1) * inside
+wgt = (wgt > 0.5).astype(np.float32)
+# carried outward: nearest-first fill, then a broad blur (world-scale washes, no streaks)
+H_ = OUT_N
+ext = np.zeros_like(col)
+pp = col * wgt[..., None]
+# (push-pull, as sea.py's field: averages at halving sizes fill the empty part from what's near)
+def pushpull(c, w):
+    h, wd = w.shape
+    if min(h, wd) < 4:
+        m = (c * w[..., None]).sum((0, 1)) / max(float(w.sum()), 1e-6)
+        return np.broadcast_to(m, c.shape).astype(np.float32).copy()
+    H2, W2 = (h + 1) // 2, (wd + 1) // 2
+    cp = np.zeros((H2 * 2, W2 * 2, 3), np.float32); wp = np.zeros((H2 * 2, W2 * 2), np.float32)
+    cp[:h, :wd] = c * w[..., None]; wp[:h, :wd] = w
+    cs, ws = cp.reshape(H2, 2, W2, 2, 3).sum((1, 3)), wp.reshape(H2, 2, W2, 2).sum((1, 3))
+    low = pushpull(cs / np.maximum(ws, 1e-6)[..., None], np.minimum(ws, 1))
+    up = ndimage.zoom(low, (2, 2, 1), order=1)[:h, :wd]
+    up = np.pad(up, ((0, h - up.shape[0]), (0, wd - up.shape[1]), (0, 0)), mode="edge")
+    return c * w[..., None] + up * (1 - w[..., None])
+ext = pushpull(col, wgt)
+sig = 0.12 * OUT_N / span                                          # (0.12 world widths)
+ext = np.dstack([ndimage.gaussian_filter(ext[..., c], sig) for c in range(3)])
+mean = col[wgt > 0].mean(0)
+away = np.maximum(np.maximum(-U, U - 1), np.maximum(-V, V - 1))   # world widths past the art's edge
+t = np.clip((away - OUT_EASE[0]) / (OUT_EASE[1] - OUT_EASE[0]), 0, 1)
+t = t * t * (3 - 2 * t) * (1 - OUT_KEEP)
+ext = ext * (1 - t[..., None]) + mean * t[..., None]
+ext = np.where(wgt[..., None] > 0, col, ext)                      # (the world's own where it's trusted)
+Image.fromarray((np.clip(ext, 0, 1) * 255).astype(np.uint8)).save(os.path.join(TEX, "MapSeaFieldOut.tga"))
+print("sea past the world: mean", mean.round(3))

@@ -23,6 +23,7 @@ d.border = true                 -- the map art's parchment frame round the map, 
 local map, handle, grip, border
 local FillScreen, SetupBorder
 local blizzardSize              -- the windowed map's own size, for a reset
+local ours = false              -- OpenMap is moving / sizing the window itself (not to be undone)
 
 local function Refit()
 	local sc = map.ScrollContainer
@@ -34,11 +35,16 @@ local function Maximized()
 end
 
 local function Apply()
-	if not map or Maximized() then return end
+	if not map or Maximized() or ours then return end
+	ours = true
 	local w = mod.db.window
 	if w then
-		map:ClearAllPoints()
-		map:SetPoint(w[1], UIParent, w[2], w[3], w[4])
+		local point, rel, relPoint, x, y = map:GetPoint(1)
+		if map:GetNumPoints() ~= 1 or point ~= w[1] or rel ~= UIParent or relPoint ~= w[2]
+			or math.abs((x or 0) - w[3]) > 0.5 or math.abs((y or 0) - w[4]) > 0.5 then
+			map:ClearAllPoints()
+			map:SetPoint(w[1], UIParent, w[2], w[3], w[4])
+		end
 	end
 	if math.abs((map:GetScale() or 1) - mod.db.windowScale) > 0.001 then map:SetScale(mod.db.windowScale) end
 	local size = mod.db.windowSize
@@ -46,6 +52,7 @@ local function Apply()
 		map:SetSize(size[1], size[2])
 		Refit()
 	end
+	ours = false
 end
 
 -- maximized: Blizzard keeps the map art's shape (black bars at the sides on a wide
@@ -70,37 +77,77 @@ function mod:ResetWindow()
 	mod.db.windowScale = 1
 	mod.db.windowSize = false
 	if map then
+		ours = true
 		map:SetScale(1)
 		if blizzardSize and not Maximized() then map:SetSize(blizzardSize[1], blizzardSize[2]) Refit() end
+		ours = false
 		if map:IsShown() and not InCombatLockdown() then HideUIPanel(map) ShowUIPanel(map) end
 	end
 end
 
 --------------------------------------------------------------------------------
 -- The border: the map art's own parchment frame round the map's view, cut in nine
--- (tools/map-art/border.py): the corners as they are, the edges stretched, so it fits a
--- window of any shape. It's fixed to the view's edge (it doesn't move with the map), and
+-- (tools/map-art/border.py): the corners as they are, and each edge laid as several copies of
+-- its piece at about its own length, every other one mirrored (so the joins meet seamlessly),
+-- an odd number of them (so both ends are the piece's own, cut to meet the corners): a frame
+-- for a window of any shape without stretching the edges. It's fixed to the view's edge (it doesn't move with the map), and
 -- seen only zoomed right out: it fades as you zoom in (BORDER_FADE). It takes no clicks.
 --------------------------------------------------------------------------------
 
 local BORDER = ns.Media.path .. "Textures\\MapBorder\\"
 local CORNER, SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases (border.py)
+local EDGE_LONG, SIDE_LONG = 1024 / 192, 640 / 192   -- an edge piece's length, in corner sizes
 local BORDER_SCALE = 0.55       -- the corners' size: their own 192 px x this, per 1024 px of view height
 local BORDER_FADE = { 1.15, 1.6 }   -- zoom where it starts / finishes fading out
 
-local function Piece(name)
-	local tex = border:CreateTexture(nil, "OVERLAY")
+local function Piece(name, sub)
+	local tex = border:CreateTexture(nil, "OVERLAY", nil, sub or 0)
 	tex:SetTexture(BORDER .. name, nil, nil, "LINEAR")
 	return tex
 end
 
+-- an edge: `length` laid with copies of its piece (`natural` long each, as near as an odd count allows)
+local function LayEdge(name, length, c, natural)
+	local list = border.edges[name]
+	local n = math.max(1, math.floor(length / natural / 2 + 0.5) * 2 + 1)
+	if length / n < natural * 0.6 then n = math.max(1, n - 2) end
+	local seg = length / n
+	for i = 1, math.max(n, #list) do
+		local tex = list[i]
+		if i <= n then
+			if not tex then
+				tex = Piece(name, -1)             -- (under the corners)
+				list[i] = tex
+			end
+			local flip = i % 2 == 0
+			tex:ClearAllPoints()
+			local at = c + (i - 1) * seg
+			if name == "top" or name == "bottom" then
+				tex:SetSize(seg, c)
+				tex:SetPoint(name == "top" and "TOPLEFT" or "BOTTOMLEFT", border, name == "top" and "TOPLEFT" or "BOTTOMLEFT", at, 0)
+				if flip then tex:SetTexCoord(1, 0, 0, CORNER) else tex:SetTexCoord(0, 1, 0, CORNER) end
+			else
+				tex:SetSize(c, seg)
+				tex:SetPoint(name == "left" and "TOPLEFT" or "TOPRIGHT", border, name == "left" and "TOPLEFT" or "TOPRIGHT", 0, -at)
+				if flip then tex:SetTexCoord(0, CORNER, SIDE, 0) else tex:SetTexCoord(0, CORNER, 0, SIDE) end
+			end
+			tex:Show()
+		elseif tex then
+			tex:Hide()
+		end
+	end
+end
+
 local function SizeBorder()
-	local c = 192 * BORDER_SCALE * map.ScrollContainer:GetHeight() / 1024
+	local sc = map.ScrollContainer
+	local w, h = sc:GetWidth(), sc:GetHeight()
+	if not (w and h and w > 0 and h > 0) then return end
+	local c = 192 * BORDER_SCALE * h / 1024
 	for _, tex in ipairs(border.corners) do tex:SetSize(c, c) end
-	border.top:SetHeight(c)
-	border.bottom:SetHeight(c)
-	border.left:SetWidth(c)
-	border.right:SetWidth(c)
+	LayEdge("top", w - 2 * c, c, c * EDGE_LONG)
+	LayEdge("bottom", w - 2 * c, c, c * EDGE_LONG)
+	LayEdge("left", h - 2 * c, c, c * SIDE_LONG)
+	LayEdge("right", h - 2 * c, c, c * SIDE_LONG)
 end
 
 SetupBorder = function()
@@ -114,20 +161,8 @@ SetupBorder = function()
 	bl:SetPoint("BOTTOMLEFT")
 	br:SetPoint("BOTTOMRIGHT")
 	for _, tex in ipairs({ tl, tr, bl, br }) do tex:SetTexCoord(0, CORNER, 0, CORNER) end
-	local top, bottom, left, right = Piece("top"), Piece("bottom"), Piece("left"), Piece("right")
-	top:SetPoint("TOPLEFT", tl, "TOPRIGHT")
-	top:SetPoint("TOPRIGHT", tr, "TOPLEFT")
-	bottom:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT")
-	bottom:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
-	top:SetTexCoord(0, 1, 0, CORNER)
-	bottom:SetTexCoord(0, 1, 0, CORNER)
-	left:SetPoint("TOPLEFT", tl, "BOTTOMLEFT")
-	left:SetPoint("BOTTOMLEFT", bl, "TOPLEFT")
-	right:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT")
-	right:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
-	left:SetTexCoord(0, CORNER, 0, SIDE)
-	right:SetTexCoord(0, CORNER, 0, SIDE)
-	border.corners, border.top, border.bottom, border.left, border.right = { tl, tr, bl, br }, top, bottom, left, right
+	border.corners = { tl, tr, bl, br }
+	border.edges = { top = {}, bottom = {}, left = {}, right = {} }
 	sc:HookScript("OnSizeChanged", SizeBorder)
 	SizeBorder()
 	-- only round the stitched map (Blizzard's own maps have their frame in their art), and
@@ -210,9 +245,11 @@ function mod:SetupWindow(worldMap)
 		local s = map:GetEffectiveScale()
 		local w = math.max(MIN_W, start.w + (x - start.x) / s)
 		local h = math.max(MIN_H, start.h - (y - start.y) / s)
+		ours = true
 		map:ClearAllPoints()
 		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", start.left, start.top)   -- (offsets in the map's own units, as GetLeft gives)
 		map:SetSize(w, h)
+		ours = false
 	end)
 	grip:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -226,6 +263,19 @@ function mod:SetupWindow(worldMap)
 	map:HookScript("OnShow", Apply)
 	if ShowUIPanel then hooksecurefunc("ShowUIPanel", function(frame) if frame == map then Apply() end end) end
 	if UpdateUIPanelPositions then hooksecurefunc("UpdateUIPanelPositions", function() if map:IsShown() then Apply() end end) end
+	-- ... and the moment anything else sizes, scales or places the windowed map (Blizzard's
+	-- layout, its quest log widening it, its minimize ...), so it never shows elsewhere first.
+	-- (Not while it's being dragged: the drag places it, and the drop saves where it went.)
+	local dragging = false
+	local function Hold()
+		if ours or dragging or not map:IsShown() then return end
+		Apply()
+	end
+	for _, method in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetScale", "SetPoint" }) do
+		if map[method] then hooksecurefunc(map, method, Hold) end
+	end
+	handle:HookScript("OnDragStart", function() dragging = true end)
+	handle:HookScript("OnDragStop", function() dragging = false end)
 	local function Mode()
 		local max = Maximized()
 		handle:SetShown(not max)

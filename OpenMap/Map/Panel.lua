@@ -3,29 +3,32 @@
 -- in the classic dialog style (gold border, header plate, red buttons, check
 -- boxes): search, find me, drop a pin, report a problem, options, and the
 -- checklist of what the map shows. Drag it by its body; it remembers where it was
--- and whether it was open.
+-- and whether it was open. A row's star puts that setting on the map as a button
+-- of its own, beside the OpenMap button (favourites).
 --------------------------------------------------------------------------------
 
 local _, ns = ...
 local mod = ns:GetModule("worldmap")
 local L = ns.L
 
--- { header } or { label, get, set }
+-- { header } or { label, get, set, id = a name for it that doesn't change (favourites) }
 local function Rows()
 	local db = mod.db
 	local function opt(key) return function() return db[key] end, function(v) db[key] = v mod:Refresh() end end
+	local function row(label, id, get, set) return { label, get, set, id = id } end
+	local function optRow(label, key) local get, set = opt(key) return row(label, key, get, set) end
 	local rows = {
 		{ L["Places"] },
-		{ L["Dungeons, boats, zeppelins"], opt("icons") },
-		{ L["Flight masters"], opt("flight") },
-		{ L["Boat and zeppelin routes"], opt("routes") },
-		{ L["Party and raid members"], opt("group") },
+		optRow(L["Dungeons, boats, zeppelins"], "icons"),
+		optRow(L["Flight masters"], "flight"),
+		optRow(L["Boat and zeppelin routes"], "routes"),
+		optRow(L["Party and raid members"], "group"),
 	}
 	-- Questie's quest icons: its own "Enable Map Icons" setting, switched as its options do
 	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 	if loaded and loaded("Questie") then
 		local function profile() return _G.Questie and Questie.db and Questie.db.profile end
-		rows[#rows + 1] = { L["Questie icons"],
+		rows[#rows + 1] = row(L["Questie icons"], "questie",
 			function() local p = profile() return p and p.enableMapIcons end,
 			function(v)
 				local p = profile()
@@ -34,41 +37,41 @@ local function Rows()
 				if not p or not quests or not quests.ToggleNotes then return end
 				p.enableMapIcons = v
 				quests:ToggleNotes(v)
-			end }
+			end)
 	end
 	rows[#rows + 1] = { L["Townsfolk"] }
 	for _, k in ipairs(mod.TOWNSFOLK or {}) do
 		if not k.rare and k.key ~= "spirit" then
-			rows[#rows + 1] = { k.name, function() return db.townsfolk[k.key] end,
-				function(v) db.townsfolk[k.key] = v mod:RefreshTownsfolk() end }
+			rows[#rows + 1] = row(k.name, "townsfolk." .. k.key, function() return db.townsfolk[k.key] end,
+				function(v) db.townsfolk[k.key] = v mod:RefreshTownsfolk() end)
 		end
 	end
-	rows[#rows + 1] = { L["Spirit healers"], function() return db.townsfolk.spirit end,
-		function(v) db.townsfolk.spirit = v mod:RefreshTownsfolk() end }
+	rows[#rows + 1] = row(L["Spirit healers"], "townsfolk.spirit", function() return db.townsfolk.spirit end,
+		function(v) db.townsfolk.spirit = v mod:RefreshTownsfolk() end)
 	rows[#rows + 1] = { L["Creatures"] }
-	rows[#rows + 1] = { L["Rare mobs"], function() return db.townsfolk.rare end,
-		function(v) db.townsfolk.rare = v mod:RefreshTownsfolk() end }
+	rows[#rows + 1] = row(L["Rare mobs"], "townsfolk.rare", function() return db.townsfolk.rare end,
+		function(v) db.townsfolk.rare = v mod:RefreshTownsfolk() end)
 	rows[#rows + 1] = { L["Map"] }
-	rows[#rows + 1] = { L["Coordinates"], opt("coords") }
-	rows[#rows + 1] = { L["Zone levels"], opt("zoneLevels") }
-	rows[#rows + 1] = { L["Parchment border"], opt("border") }
-	rows[#rows + 1] = { L["Zone highlight on hover"], opt("hoverHighlight") }
-	rows[#rows + 1] = { L["Fade while moving"], function() return (db.moveFade or 0) > 0 end,
-		function(v) db.moveFade = v and 0.5 or 0 mod:Refresh() end }   -- (the amount: Options → Fade while moving)
+	rows[#rows + 1] = optRow(L["Coordinates"], "coords")
+	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels")
+	rows[#rows + 1] = optRow(L["Parchment border"], "border")
+	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight")
+	rows[#rows + 1] = row(L["Fade while moving"], "moveFade", function() return (db.moveFade or 0) > 0 end,
+		function(v) db.moveFade = v and 0.5 or 0 mod:Refresh() end)   -- (the amount: Options → Fade while moving)
 	-- unexplored areas: dim or hide (neither ticked: shown as they are)
 	for _, mode in ipairs({ { "dim", L["Fade unexplored areas"] }, { "hide", L["Hide unexplored areas"] } }) do
-		rows[#rows + 1] = { mode[2], function() return db.unexplored == mode[1] end,
-			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end }
+		rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], function() return db.unexplored == mode[1] end,
+			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
 	end
-	rows[#rows + 1] = { L["Follow the view"], opt("autoSwitch") }
-	rows[#rows + 1] = { L["Reopen where you left off"], opt("rememberView") }
+	rows[#rows + 1] = optRow(L["Follow the view"], "autoSwitch")
+	rows[#rows + 1] = optRow(L["Reopen where you left off"], "rememberView")
 	rows[#rows + 1] = { L["Up close"] }
-	rows[#rows + 1] = { L["Soften and paper grain"], opt("soften") }
-	rows[#rows + 1] = { L["Minimap in the gaps"], opt("gapMinimap") }
-	rows[#rows + 1] = { L["Caves underground"], opt("underground") }
+	rows[#rows + 1] = optRow(L["Soften and paper grain"], "soften")
+	rows[#rows + 1] = optRow(L["Minimap in the gaps"], "gapMinimap")
+	rows[#rows + 1] = optRow(L["Caves underground"], "underground")
 	if mod.TogglePaint then
 		rows[#rows + 1] = { L["Tools"] }
-		rows[#rows + 1] = { L["Paint & notes"], function() return mod:IsPainting() end, function(v) mod:TogglePaint(v) end }
+		rows[#rows + 1] = row(L["Paint & notes"], "paint", function() return mod:IsPainting() end, function(v) mod:TogglePaint(v) end)
 	end
 	return rows
 end
@@ -76,11 +79,90 @@ end
 local d = mod.defaults
 d.menuPos = false               -- { point, relPoint, x, y } on the map once dragged
 d.menuOpen = false
+d.favorites = {}                -- row ids, in the order they were starred: a button each on the map
 
-local map, sc, menu, toggle, pinButton, checks
-local W, PAD, COL = 420, 16, 186
+local map, sc, menu, toggle, pinButton, checks, favBar
+local W, PAD, COL = 460, 16, 206
+local STAR = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1"   -- (the raid marker's star: every client has it)
 
-local function Fill()
+-- a star: lit (a favourite), or grey
+local function SetStar(tex, lit)
+	tex:SetTexture(STAR)
+	tex:SetDesaturated(not lit)
+	tex:SetAlpha(lit and 1 or 0.4)
+end
+
+local function IsFavorite(id)
+	for _, f in ipairs(mod.db.favorites) do if f == id then return true end end
+end
+
+local function SetFavorite(id, on)
+	local favs = mod.db.favorites
+	for i = #favs, 1, -1 do if favs[i] == id then table.remove(favs, i) end end
+	if on then favs[#favs + 1] = id end
+end
+
+--------------------------------------------------------------------------------
+-- Favourites: a button on the map for each starred setting, in a row to the right of the
+-- OpenMap button. Lit while the setting is on; click switches it, right-click unstars it.
+--------------------------------------------------------------------------------
+
+local Fill
+local function RefreshFavorites()
+	if not favBar then return end
+	local byId = {}
+	for _, r in ipairs(Rows()) do if r.id then byId[r.id] = r end end
+	favBar.buttons = favBar.buttons or {}
+	for _, b in ipairs(favBar.buttons) do b:Hide() end
+	-- (the room to the map's right edge; before the window is laid out its edges aren't known yet:
+	-- then all of them, and the next refresh trims it)
+	local sl, tr = sc:GetLeft(), toggle:GetRight()
+	local room = (sl and tr) and (sc:GetWidth() - (tr - sl) - 12) or math.huge
+	local x, n = 0, 0
+	for _, id in ipairs(mod.db.favorites) do
+		local r = byId[id]
+		if r then
+			n = n + 1
+			local b = favBar.buttons[n]
+			if not b then
+				b = CreateFrame("Button", nil, favBar, "UIPanelButtonTemplate")
+				b:SetHeight(22)
+				b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+				b:SetScript("OnClick", function(self, button)
+					if button == "RightButton" then
+						SetFavorite(self.row.id, false)
+					else
+						self.row[3](not self.row[2]())
+					end
+					RefreshFavorites()
+					if menu and menu:IsShown() then Fill() end
+				end)
+				b:SetScript("OnEnter", function(self)
+					GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+					GameTooltip:AddLine(self.row[1], 1, 0.82, 0)
+					GameTooltip:AddLine(self.row[2]() and L["On: click to turn it off"] or L["Off: click to turn it on"], 1, 1, 1)
+					GameTooltip:AddLine(L["Right-click: take it off the map (the stars in the OpenMap menu put settings here)"], 0.6, 0.6, 0.6, true)
+					GameTooltip:Show()
+				end)
+				b:SetScript("OnLeave", GameTooltip_Hide)
+				favBar.buttons[n] = b
+			end
+			b.row = r
+			b:SetText(r[1])
+			local w = (b:GetFontString():GetStringWidth() or 60) + 24
+			b:SetWidth(w)
+			-- (lit while it's on, greyed while it's off)
+			if r[2]() then b:GetFontString():SetTextColor(1, 0.82, 0) else b:GetFontString():SetTextColor(0.55, 0.55, 0.55) end
+			b:ClearAllPoints()
+			b:SetPoint("LEFT", favBar, "LEFT", x, 0)
+			b:SetShown(x + w <= room)               -- (no further than the map's right edge)
+			x = x + w + 4
+		end
+	end
+	favBar:SetWidth(math.max(1, x))
+end
+
+Fill = function()
 	local rows = Rows()
 	-- two columns, split at the section boundary nearest the middle
 	local split, best = #rows, math.huge
@@ -115,14 +197,39 @@ local function Fill()
 					it:SetSize(24, 24)
 					it.label = it:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 					it.label:SetPoint("LEFT", it, "RIGHT", 1, 1)
-					it:SetScript("OnClick", function(self) self.row[3](self:GetChecked() and true or false) end)
+					it:SetScript("OnClick", function(self) self.row[3](self:GetChecked() and true or false) RefreshFavorites() end)
+					-- the star: this setting as a button on the map
+					it.star = CreateFrame("Button", nil, checks)
+					it.star:SetSize(15, 15)
+					it.star.icon = it.star:CreateTexture(nil, "ARTWORK")
+					it.star.icon:SetAllPoints()
+					it.star:SetScript("OnClick", function(self)
+						SetFavorite(self.row.id, not IsFavorite(self.row.id))
+						Fill()
+						RefreshFavorites()
+					end)
+					it.star:SetScript("OnEnter", function(self)
+						self.icon:SetAlpha(1)
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:AddLine(IsFavorite(self.row.id) and L["Take this button off the map"] or L["Put this on the map as a button"], 1, 1, 1)
+						GameTooltip:Show()
+					end)
+					it.star:SetScript("OnLeave", function(self)
+						if not IsFavorite(self.row.id) then self.icon:SetAlpha(0.4) end
+						GameTooltip:Hide()
+					end)
 					checks.boxes[nb] = it
 				end
 				it.row = row
+				it.star.row = row
 				it:ClearAllPoints()
 				it:SetPoint("TOPLEFT", (col - 1) * COL, y)
 				it.label:SetText(row[1])
 				it:SetChecked(row[2]() and true or false)
+				SetStar(it.star.icon, IsFavorite(row.id))
+				it.star:ClearAllPoints()
+				it.star:SetPoint("TOPLEFT", (col - 1) * COL + COL - 22, y - 5)
+				it.star:SetShown(row.id ~= nil)
 				it:Show()
 				y = y - 20
 			end
@@ -130,7 +237,11 @@ local function Fill()
 		tallest = math.max(tallest, -y)
 	end
 	checks:SetHeight(tallest)
-	menu:SetHeight(checks.top + tallest + PAD + 4)
+	checks.hint = checks.hint or checks:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+	checks.hint:ClearAllPoints()
+	checks.hint:SetPoint("TOPLEFT", 2, -tallest - 6)
+	checks.hint:SetText(L["Click a setting's star to put it on the map as a button, beside OpenMap's."])
+	menu:SetHeight(checks.top + tallest + 22 + PAD + 4)
 end
 
 local function Place()
@@ -189,6 +300,15 @@ function mod:SetupPanel(worldMap)
 	PlaceToggle()
 	map:HookScript("OnShow", PlaceToggle)
 	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", PlaceToggle) end
+
+	-- the favourites, in a row to the right of it
+	favBar = CreateFrame("Frame", nil, map)
+	favBar:SetHeight(22)
+	favBar:SetPoint("LEFT", toggle, "RIGHT", 6, 0)
+	favBar:SetFrameLevel(level)
+	map:HookScript("OnShow", function() RefreshFavorites() C_Timer.After(0, RefreshFavorites) end)   -- (and once laid out)
+	sc:HookScript("OnSizeChanged", RefreshFavorites)
+	RefreshFavorites()
 
 	-- the window's portrait (Blizzard's quest log book): OpenMap's icon, while it's stitching
 	local border = map.BorderFrame
@@ -283,7 +403,8 @@ function mod:SetupPanel(worldMap)
 	if map:IsShown() and mod.db.menuOpen then SetOpen(true) end
 end
 
--- the menu's ticks follow settings changed elsewhere
+-- the menu's ticks and the favourites follow settings changed elsewhere
 function mod:RefreshPanel()
 	if menu and menu:IsShown() then Fill() end
+	RefreshFavorites()
 end

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Favourite settings: the star by each setting in the OpenMap menu puts it on the map as a
+  button of its own, beside the OpenMap button (lit while it's on; click to switch it,
+  right-click to take it off).
+- The parchment border's edges are laid as copies of their piece at its own length, every other
+  one mirrored, instead of one piece stretched along the whole side; the corners are as they were.
+- Orgrimmar's and Undercity's titles (their zone's banner for them) stay at every zoom, over the
+  close-up layers: up close the city had no title, its own map being cut down to its plan.
+- The ocean past the world map keeps the world sea's own colours, carried outward, instead of
+  one flat grey-green. (New texture: restart the game.)
 - The OpenMap button stays in the map's top-left corner (an addon's frame across the map
   could push it off the right edge).
 - Going full screen and back (or resizing the window) keeps the view you were looking at,
