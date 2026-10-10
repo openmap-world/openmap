@@ -1310,8 +1310,25 @@ function S.Layout(mapID)
 end
 
 -- zoom: 1 = the world fits the view; scale: the host canvas's scale (host units -> view px)
+-- for /openmap status: each part of S.SetZoom's time (ms, smoothed) and its worst
+local zoomSteps = {}
+S.zoomSteps = zoomSteps
+local stepAt
+local function Step(name)
+	if not debugprofilestop then return end
+	local now = debugprofilestop()
+	if name and stepAt then
+		local ms = now - stepAt
+		local st = zoomSteps[name] or { ms = ms, worst = 0 }
+		st.ms, st.worst = st.ms * 0.9 + ms * 0.1, math.max(st.worst, ms)
+		zoomSteps[name] = st
+	end
+	stepAt = now
+end
+
 function S.SetZoom(zoom, scale)
 	if not root then return end
+	Step()
 	local function Smooth(range)
 		local t = math.max(0, math.min(1, (zoom - range[1]) / (range[2] - range[1])))
 		return t * t * (3 - 2 * t)
@@ -1327,8 +1344,10 @@ function S.SetZoom(zoom, scale)
 		Fade(n[1], a)
 		if a > 0.01 and not n.built then Letter(n[1], n[2]); n.built = true end
 	end
+	Step("names")
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
 	ApplyDetail()
+	Step("zone detail")
 	for _, c in ipairs(cities) do
 		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
 		local a = Smooth({ fade[1] * c[2], fade[2] * c[2] })
@@ -1339,6 +1358,7 @@ function S.SetZoom(zoom, scale)
 			Fade(c.banner, detailNow * (1 - Smooth({ BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2] })))
 		end
 	end
+	Step("cities")
 	local m = math.floor(Smooth(MUTE_FADE) * 20) / 20
 	local sm = math.floor(Smooth(SEA_FADE) * 20) / 20
 	-- the world map gives way to the continents' as they come in (else each name and sea
@@ -1368,13 +1388,19 @@ function S.SetZoom(zoom, scale)
 		end
 		if S.SetSea then S.SetSea() end
 	end
+	Step("world / continent art")
 	for _, tex in ipairs(landFill) do Fade(tex, math.max(m, underNow)) end
+	Step("land")
 
 	-- icons keep their size on screen: pinRoot undoes the canvas scale (and root's)
 	scaleNow = scale
-	pinRoot:SetScale(1 / (scale * host.k))
+	local ps = 1 / (scale * host.k)
+	if pinRoot.omScale ~= ps then pinRoot.omScale = ps pinRoot:SetScale(ps) end
+	Step("icons' scale")
 	ShowSets()
+	Step("icon sets")
 	S.PlacePlayer()
+	Step("player")
 end
 
 --------------------------------------------------------------------------------

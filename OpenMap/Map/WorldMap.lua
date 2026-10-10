@@ -736,6 +736,16 @@ function mod:Diag()
 		steps[i][2].worst = 0
 	end
 	if #list > 0 then ns:Print("Slowest steps, ms: %s.", table.concat(list, "; ")) end
+	-- and the zoom update's (S.SetZoom, "scale changed" when the map opens)
+	steps = {}
+	for name, st in pairs(S.zoomSteps or {}) do steps[#steps + 1] = { name, st } end
+	table.sort(steps, function(a, b) return a[2].worst > b[2].worst end)
+	list = {}
+	for i = 1, math.min(4, #steps) do
+		list[i] = ("%s %.1f (worst %.1f)"):format(steps[i][1], steps[i][2].ms, steps[i][2].worst)
+		steps[i][2].worst = 0
+	end
+	if #list > 0 then ns:Print("Zoom update, slowest parts, ms: %s.", table.concat(list, "; ")) end
 	for name, err in pairs(S.closeFailed or {}) do ns:Print("|cffff6060%s failed:|r %s", name, err) end
 end
 

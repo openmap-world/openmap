@@ -18,4 +18,5 @@ ns.MapBannerHoles = {
 -- cities whose own map is cut down to the city (Media/Textures/MapCityMask/<city>)
 ns.MapCityCuts = {
 	[1454] = true,   -- Orgrimmar
+	[1458] = true,   -- Undercity
 }
