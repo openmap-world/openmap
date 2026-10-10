@@ -322,12 +322,14 @@ end
 
 -- the view for Close.lua (minimap, grain, caves): centre, half extents (normalized), zoom
 -- (Blizzard reports a pan several times a frame: the work is done once, on the next frame)
+local live                      -- { u, v, zoom, width, height }: the view on screen, and the view's size then
 local viewFrame = CreateFrame("Frame")
 viewFrame:Hide()
 viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	self:Hide()
 	if not active or not S.SetView then return end
 	local u, v, zoom = View()
+	live = { u, v, zoom, sc:GetWidth(), sc:GetHeight() }
 	local pu, pv = PerPx(zoom)
 	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom)
 end))
@@ -398,12 +400,17 @@ end
 -- Blizzard's zoom reset (each time the map opens, after re-adding every addon's icons), done
 -- our way while the map is stitched: straight to where you left off, in one step (not the
 -- whole world and then there: every addon's icons rescaled twice); and if the map is still
--- there (closed and reopened without moving), nothing at all
+-- there (closed and reopened without moving), nothing at all. The window resized while open
+-- (full screen and back, or dragged): where you were looking, at the same framing
 local function ResetView(self)
 	userMoved = false
 	anim = nil
 	local u, v, zoom
-	if mod.SavedView then u, v, zoom = mod.SavedView() end
+	if live and map:IsShown() and (math.abs(sc:GetWidth() - live[4]) > 0.5 or math.abs(sc:GetHeight() - live[5]) > 0.5) then
+		u, v, zoom = live[1], live[2], live[3]
+	elseif mod.SavedView then
+		u, v, zoom = mod.SavedView()
+	end
 	if u then
 		zoom = Clamp(zoom, 1, MaxZoomAt(u, v))
 		local nu, nv, nz = View()
@@ -608,6 +615,7 @@ local function Setup()
 		end
 	end
 	dp.OnHide = function()
+		live = nil
 		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
 	end
