@@ -180,6 +180,20 @@ end
 --------------------------------------------------------------------------------
 
 local SHOW_CURRENT = 0                  -- HBD_PINS_WORLDMAP_SHOW_CURRENT: only on its own map
+local QUESTIE_BASE = 2015               -- the fixed frame level Questie's map icons and lines start from
+
+-- Questie fixes its icons' frame levels from QUESTIE_BASE up (it expects Blizzard's map canvas
+-- near 2000), which is under the stitched map's upper art layers: lift them above the art,
+-- keeping their order among themselves (quest finishers in front ...)
+local function Lift(icon)
+	local top = S.artTop
+	if not top or not icon.GetFrameLevel or not icon.SetFixedFrameLevel then return end
+	local level = icon:GetFrameLevel()
+	if level > top then return end
+	icon:SetFixedFrameLevel(false)
+	icon:SetFrameLevel(level - QUESTIE_BASE + top + 1)
+	icon:SetFixedFrameLevel(true)
+end
 local NEAR = 1                          -- how far round the map underneath (its widths) pins are placed
 
 local questie = { placed = 0, ours = 0, moved = 0 }   -- for /openmap status: since the map last changed
@@ -196,6 +210,7 @@ local function SetUpQuestiePins()
 		local holder = icon:GetParent()
 		local placed = holder and holder.icon == icon and holder.SetPosition and holder
 		if placed then questie.placed = questie.placed + 1 end
+		if placed and mod.IsStitched() then Lift(icon) end
 		if not mod.IsStitched() or not data.uiMapID or not data.mapX or not data.mapY then return end
 		local mapID = self:GetMap():GetMapID()
 		if mapID == S.WORLD then return end                -- (Questie's own Forever path: right there)
@@ -214,6 +229,7 @@ local function SetUpQuestiePins()
 		if profile and profile.hideIconsOnContinents and info.mapType == Enum.UIMapType.Continent then return end
 		if x < -NEAR or x > 1 + NEAR or y < -NEAR or y > 1 + NEAR then return end
 		self:GetMap():AcquirePin("HereBeDragonsPinsTemplateQuestie", icon, x, y, data.frameLevelType)
+		Lift(icon)
 		questie.ours = questie.ours + 1
 	end
 	-- (counted afresh each time the map changes: HereBeDragons rebuilds its pins then)

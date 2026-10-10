@@ -8,7 +8,8 @@
   of the whole world's; `/openmap status` shows how long the last openings took.
 - Questie's icons stay on the map when it switches to a zone: Questie's map library places
   them from world coordinates that are off on Forever's zone and continent maps, so there
-  each icon is placed (or moved) from Forever's own map positions. `/openmap status`
+  each icon is placed (or moved) from Forever's own map positions. They're also lifted above the stitched art:
+  Questie fixes its icons' frame levels, which put them under the zone art up close. `/openmap status`
   shows how many Questie icons there are and who placed them.
 - The parchment border frames the map only when zoomed right out, fading as you zoom in.
 - The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button

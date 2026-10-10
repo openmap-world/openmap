@@ -921,6 +921,7 @@ end
 -- (needs `range` levels), icons at `iconLevel`.
 function S.Build(parent, artLevel, range, iconLevel)
 	if root then return end
+	S.artTop = artLevel + range             -- (the top of the art: Extras.lua lifts Questie's icons above it)
 	W, H = ArtSize(WORLD)
 	if not W then return end
 	local function Layer(level)
