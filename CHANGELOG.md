@@ -17,6 +17,7 @@
 - No more square patches and straight bands in the sea off Stranglethorn and Wetlands: the
   gap fill's borrowed paintings of the land between zones stay on land, and a zone's painted
   sea fades out well inside its frame. (New textures: restart the game.)
+- Zone art fades in as it loads (zooming or panning fast onto new zones), instead of popping in.
 - Faster panning and zooming: map icons off the view (townsfolk, flight masters ...) are
   hidden, and blank tiles of the filled-in land aren't drawn.
 - Opening the map loads only the zone art in view (and none until zone detail shows), instead

@@ -1569,22 +1569,40 @@ end
 -- a zone's textures shown or hidden: near the view, and not an unexplored piece being hidden
 -- zones' files waiting to be set, a few each frame (LOAD_PER_FRAME), so a zone coming into
 -- view (or the map opening on one) doesn't stall a frame setting them all at once
+-- Each fades in as it gets its file (LOAD_FADE), not popping in (the file itself streams in
+-- over a few frames)
 local LOAD_PER_FRAME = 40
+local LOAD_FADE = 0.3           -- seconds
 local loadQueue, loadAt = {}, 1
+local fading, fadingN = {}, 0   -- texture -> when it got its file
 local loader = CreateFrame("Frame")
 loader:Hide()
 loader:SetScript("OnUpdate", function(self)
-	local n = 0
+	local n, now = 0, GetTime()
 	while loadAt <= #loadQueue and n < LOAD_PER_FRAME do
 		local tex = loadQueue[loadAt]
 		loadAt = loadAt + 1
 		if tex.omFile then
 			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
 			tex.omFile = nil
+			tex:SetAlpha(0)
+			fading[tex] = now
+			fadingN = fadingN + 1
 			n = n + 1
 		end
 	end
-	if loadAt > #loadQueue then wipe(loadQueue) loadAt = 1 self:Hide() end
+	if loadAt > #loadQueue then wipe(loadQueue) loadAt = 1 end
+	for tex, t0 in pairs(fading) do
+		local t = (now - t0) / LOAD_FADE
+		if t >= 1 then
+			tex:SetAlpha(1)
+			fading[tex] = nil
+			fadingN = fadingN - 1
+		else
+			tex:SetAlpha(t * t * (3 - 2 * t))
+		end
+	end
+	if loadAt == 1 and #loadQueue == 0 and fadingN == 0 then self:Hide() end
 end)
 
 ShowZone = function(mapID)
