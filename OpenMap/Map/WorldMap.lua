@@ -273,29 +273,43 @@ end)
 --------------------------------------------------------------------------------
 
 -- how long opening the map takes, to the next frame drawn (/openmap status): the game's
--- work, Questie's and ours; the first opening also builds the map
-local openStart, openTimes = nil, {}
+-- work, Questie's and ours (the first opening also builds the map); and OpenMap's own part,
+-- its handlers' time from the open until the second frame after it
+local openStart, openTimes, openOurs, openFrames = nil, {}, 0, 0
 local openTimer = CreateFrame("Frame")
 openTimer:Hide()
 openTimer:SetScript("OnUpdate", function(self)
-	self:Hide()
-	if openStart then
-		table.insert(openTimes, 1, debugprofilestop() - openStart)
+	openFrames = openFrames + 1
+	if openFrames == 1 and openStart then
+		table.insert(openTimes, 1, { debugprofilestop() - openStart, 0 })
 		openTimes[4] = nil
+	elseif openFrames >= 2 then
+		if openTimes[1] then openTimes[1][2] = openOurs end
+		openStart = nil
+		self:Hide()
 	end
 end)
+-- `fn`, with its time counted as OpenMap's part of an opening (while one is being timed)
+local function Ours(fn)
+	return function(...)
+		if not openStart or not debugprofilestop then return fn(...) end
+		local start = debugprofilestop()
+		fn(...)
+		openOurs = openOurs + debugprofilestop() - start
+	end
+end
 
 -- the view for Close.lua (minimap, grain, caves): centre, half extents (normalized), zoom
 -- (Blizzard reports a pan several times a frame: the work is done once, on the next frame)
 local viewFrame = CreateFrame("Frame")
 viewFrame:Hide()
-viewFrame:SetScript("OnUpdate", function(self)
+viewFrame:SetScript("OnUpdate", Ours(function(self)
 	self:Hide()
 	if not active or not S.SetView then return end
 	local u, v, zoom = View()
 	local pu, pv = PerPx(zoom)
 	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom)
-end)
+end))
 local function ApplyView()
 	if active then viewFrame:Show() end
 end
@@ -530,8 +544,8 @@ local function Setup()
 		GlideTo((u0 + u1) / 2, (v0 + v1) / 2, z * (fill or 1))
 	end
 	S.OpenMap = function(mapID) map:SetMapID(mapID) end
-	hooksecurefunc(sc, "CreateZoomLevels", OnCreateZoomLevels)
-	hooksecurefunc(sc, "ResetZoom", OnResetZoom)
+	hooksecurefunc(sc, "CreateZoomLevels", Ours(OnCreateZoomLevels))
+	hooksecurefunc(sc, "ResetZoom", Ours(OnResetZoom))
 	if map.RefreshDetailLayers then hooksecurefunc(map, "RefreshDetailLayers", BlizzardArt) end
 	sc.CalculateScrollExtentsAtScale = Extents(sc.CalculateScrollExtentsAtScale)
 	sc:HookScript("OnMouseWheel", OnMouseWheel)
@@ -541,10 +555,11 @@ local function Setup()
 	HookHighlight()
 
 	local dp = CreateFromMixins(MapCanvasDataProviderMixin)
-	dp.OnCanvasScaleChanged = ApplyZoom
+	dp.OnCanvasScaleChanged = Ours(ApplyZoom)
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
 		ApplyZoom()
+		if mod.RefreshPortrait then pcall(mod.RefreshPortrait) end   -- (OpenMap's icon only while stitching)
 		-- (inside Blizzard's map change: a failure here is reported, never left to break it)
 		if mod.RefreshNav then
 			local ok, err = pcall(mod.RefreshNav, mod)
@@ -555,11 +570,14 @@ local function Setup()
 		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
 	end
-	dp.OnShow = function()
-		if debugprofilestop then openStart = debugprofilestop() openTimer:Show() end
+	local shown = Ours(function()
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
 		if active then ticker:Show() end
 		if mod.OnMapShown then mod:OnMapShown() end
+	end)
+	dp.OnShow = function()
+		if debugprofilestop then openStart, openOurs, openFrames = debugprofilestop(), 0, 0 openTimer:Show() end
+		shown()
 	end
 	map:AddDataProvider(dp)
 
@@ -660,8 +678,8 @@ function mod:Diag()
 	end
 	if #openTimes > 0 then
 		local list = {}
-		for i, ms in ipairs(openTimes) do list[i] = ("%.0f"):format(ms) end
-		ns:Print("Opening the map took %s ms (latest first).", table.concat(list, ", "))
+		for i, t in ipairs(openTimes) do list[i] = ("%.0f (OpenMap %.0f)"):format(t[1], t[2]) end
+		ns:Print("Opening the map took %s ms, latest first; the rest is the game and other addons.", table.concat(list, ", "))
 	end
 	local registered, shown, placed, ours
 	if mod.QuestieStatus then registered, shown, placed, ours = mod.QuestieStatus() end

@@ -10,9 +10,10 @@
   library can't place there is placed from Forever's own map positions. `/openmap status`
   shows how many Questie icons there are and who placed them.
 - The parchment border now frames the edge of the world, zoomed right out, instead of the window.
-- The map's corner button is OpenMap's icon, in the game's round minimap-button style.
+- The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button
+  sits beside Blizzard's floor dropdown instead of under it.
 - Zone art coming into view loads over a few frames instead of stalling one; `/openmap status`
-  names the slowest steps of the close-up update.
+  names the slowest steps of the close-up update, and how much of opening the map is OpenMap's.
 - "Fade while moving" (0-90%, in Options; on / off in the map's menu) replaces "Don't fade while
   moving": the map fades smoothly while you move, never while the mouse is over it.
 

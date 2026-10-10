@@ -165,39 +165,37 @@ function mod:SetupPanel(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	local level = math.min(sc:GetFrameLevel() + 9300, 9950)
 
-	-- the corner button: OpenMap's icon (the toc's IconTexture) in the game's round minimap-button
-	-- dress: a round mask, the gold tracking ring, the round highlight
-	toggle = CreateFrame("Button", nil, map)
-	toggle:SetSize(32, 32)
-	toggle:SetPoint("TOPLEFT", sc, "TOPLEFT", 6, -6)
+	-- the corner button, beside whatever Blizzard keeps in that corner (the floor dropdown, on
+	-- maps with floors): placed again whenever Blizzard refreshes its overlay buttons
+	toggle = ClassicButton(map, "OpenMap", 84, function() SetOpen(not menu:IsShown()) end,
+		L["Search, find me, map pins, report a problem, options, and what the map shows."])
 	toggle:SetFrameLevel(level)
-	local icon = toggle:CreateTexture(nil, "ARTWORK")
-	icon:SetTexture("Interface\\Icons\\Achievement_Zone_EasternKingdoms_01")
-	icon:SetSize(21, 21)
-	icon:SetPoint("CENTER", 0, 1)
-	local round = toggle:CreateMaskTexture()
-	round:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-	round:SetAllPoints(icon)
-	icon:AddMaskTexture(round)
-	local back = toggle:CreateTexture(nil, "BACKGROUND")
-	back:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
-	back:SetSize(24, 24)
-	back:SetPoint("CENTER", 0, 1)
-	local ring = toggle:CreateTexture(nil, "OVERLAY")
-	ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-	ring:SetSize(54, 54)
-	ring:SetPoint("TOPLEFT")
-	toggle:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
-	toggle:SetScript("OnMouseDown", function() icon:SetPoint("CENTER", 1, 0) end)
-	toggle:SetScript("OnMouseUp", function() icon:SetPoint("CENTER", 0, 1) end)
-	toggle:SetScript("OnClick", function() SetOpen(not menu:IsShown()) end)
-	toggle:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine("OpenMap", 1, 0.82, 0)
-		GameTooltip:AddLine(L["Search, find me, map pins, report a problem, options, and what the map shows."], 1, 1, 1, true)
-		GameTooltip:Show()
-	end)
-	toggle:SetScript("OnLeave", GameTooltip_Hide)
+	local function PlaceToggle()
+		local x = 6
+		local left, top = sc:GetLeft(), sc:GetTop()
+		for _, f in ipairs(map.overlayFrames or {}) do
+			local fl, ft, fr = f:IsShown() and f:GetLeft(), f:GetTop(), f:GetRight()
+			if fl and left and ft and fr and fl - left < 40 and top - ft < 40 then x = math.max(x, fr - left + 4) end
+		end
+		toggle:ClearAllPoints()
+		toggle:SetPoint("TOPLEFT", sc, "TOPLEFT", x, -6)
+	end
+	PlaceToggle()
+	map:HookScript("OnShow", PlaceToggle)
+	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", PlaceToggle) end
+
+	-- the window's portrait (Blizzard's quest log book): OpenMap's icon, while it's stitching
+	local border = map.BorderFrame
+	if border and border.SetPortraitToAsset then
+		local function Portrait()
+			border:SetPortraitToAsset(mod.IsStitched() and "Interface\\Icons\\Achievement_Zone_EasternKingdoms_01"
+				or "Interface\\QuestFrame\\UI-QuestLog-BookIcon")
+		end
+		Portrait()
+		map:HookScript("OnShow", Portrait)
+		if map.Minimize then hooksecurefunc(map, "Minimize", Portrait) end
+		mod.RefreshPortrait = Portrait
+	end
 
 	-- the floating menu, in the classic dialog's dress
 	menu = CreateFrame("Frame", nil, map, "BackdropTemplate")
