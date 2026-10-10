@@ -128,7 +128,11 @@ local underNow = 0              -- how far a cave has surfaced (Close.lua)
 
 -- a region faded to `a`, and hidden once it's gone (drawn at alpha 0, a layer still costs
 -- its full size in fill; most of these are the size of the world, many masked)
+-- (only when it changes: these layers hold thousands of textures, and S.SetZoom runs several
+-- times as the map opens)
 local function Fade(region, a)
+	if region.omFade == a then return end
+	region.omFade = a
 	region:SetAlpha(a)
 	region:SetShown(a > 0.003)
 end
@@ -700,7 +704,7 @@ local function ShowSets()
 			set.build = nil
 			build(set)
 		end
-		set.frame:SetShown(shown)
+		if set.shownNow ~= shown then set.shownNow = shown set.frame:SetShown(shown) end
 	end
 end
 
@@ -1160,7 +1164,7 @@ function S.DrawnCount()
 end
 
 function S.SetShown(shown)
-	if root then root:SetShown(shown) end
+	if root and root:IsShown() ~= (shown and true or false) then root:SetShown(shown) end
 end
 
 -- the blur's copies (see S.SetBlur): offset diagonally each way by a fraction of an art pixel
@@ -1289,14 +1293,17 @@ function S.Layout(mapID)
 	local l, r, t = S.Rect(mapID)
 	if not root or not aw or not l then return false end
 	local k = aw / ((r - l) * W)
-	host.l, host.t, host.k = l * W, t * H, k
+	scaleNow = -1
+	-- the same map again (each time the map opens): nothing to move, and moving the root
+	-- would have the game lay out every texture under it again
+	if host.mapID == mapID and host.k == k then return true end
+	host.l, host.t, host.k, host.mapID = l * W, t * H, k, mapID
 	root:SetScale(k)
 	root:ClearAllPoints()
 	root:SetPoint("TOPLEFT", root:GetParent(), "TOPLEFT", -host.l, host.t)
 	namesFrame:SetScale(1 / NAME_UNITS)
 	namesFrame:ClearAllPoints()
 	namesFrame:SetPoint("TOPLEFT", labelsRoot, "TOPLEFT")
-	scaleNow = -1
 	return true
 end
 
@@ -1314,9 +1321,8 @@ function S.SetZoom(zoom, scale)
 		sea = 1 - Smooth(SEA_LABELS_OUT),
 	}
 	for _, n in ipairs(names) do
-		local a = fades[n[2].fade] or 0
-		n[1]:SetAlpha(a)
-		n[1]:SetShown(a > 0.01)
+		local a = math.floor((fades[n[2].fade] or 0) * 100 + 0.5) / 100
+		Fade(n[1], a)
 		if a > 0.01 and not n.built then Letter(n[1], n[2]); n.built = true end
 	end
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
@@ -1324,13 +1330,11 @@ function S.SetZoom(zoom, scale)
 	for _, c in ipairs(cities) do
 		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
 		local a = Smooth({ fade[1] * c[2], fade[2] * c[2] })
-		c[1]:SetAlpha(a)
+		if c.alpha ~= a then c.alpha = a c[1]:SetAlpha(a) end   -- (shown / hidden by S.Cull)
 		-- the zone's banner for it: the zone's art is drawn without it, so this is the banner,
 		-- with the zone's detail, over the city as it comes in, and gone once you're close
 		if c.banner then
-			local b = detailNow * (1 - Smooth({ BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2] }))
-			c.banner:SetAlpha(b)
-			c.banner:SetShown(b > 0.01)
+			Fade(c.banner, detailNow * (1 - Smooth({ BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2] })))
 		end
 	end
 	local m = math.floor(Smooth(MUTE_FADE) * 20) / 20
