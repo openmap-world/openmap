@@ -394,16 +394,21 @@ local function OnCreateZoomLevels(self)
 end
 
 -- Blizzard showed a map (opening, the quest log, the dropdown): show it as it would
-local function OnResetZoom(self)
-	if not active or switching then return end
+-- Blizzard's zoom reset (each time the map opens, after re-adding every addon's icons), done
+-- our way while the map is stitched: straight to where you left off, in one step (not the
+-- whole world and then there: every addon's icons rescaled twice); and if the map is still
+-- there (closed and reopened without moving), nothing at all
+local function ResetView(self)
 	userMoved = false
 	anim = nil
-	-- reopening where you left off: straight there (not the whole map and then there, which
-	-- shows and hides every zone, and rescales every addon's icons, twice)
 	local u, v, zoom
 	if mod.SavedView then u, v, zoom = mod.SavedView() end
 	if u then
-		ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v)))
+		zoom = Clamp(zoom, 1, MaxZoomAt(u, v))
+		local nu, nv, nz = View()
+		if not (nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3) then
+			ShowWorld(u, v, zoom)
+		end
 		userMoved = true
 		return
 	end
@@ -575,7 +580,11 @@ local function Setup()
 	end
 	S.OpenMap = function(mapID) map:SetMapID(mapID) end
 	hooksecurefunc(sc, "CreateZoomLevels", Ours("zoom levels", OnCreateZoomLevels))
-	hooksecurefunc(sc, "ResetZoom", Ours("reset zoom", OnResetZoom))
+	local blizzardReset, ourReset = sc.ResetZoom, Ours("reset zoom", ResetView)
+	sc.ResetZoom = function(self, ...)
+		if active and not switching then return ourReset(self) end
+		return blizzardReset(self, ...)
+	end
 	if map.RefreshDetailLayers then hooksecurefunc(map, "RefreshDetailLayers", BlizzardArt) end
 	sc.CalculateScrollExtentsAtScale = Extents(sc.CalculateScrollExtentsAtScale)
 	sc:HookScript("OnMouseWheel", OnMouseWheel)

@@ -157,7 +157,8 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 ## Things that can break with game or addon updates
 
 - **Blizzard's map**: `WorldMap.lua` replaces the scroll container's
-  `CalculateScrollExtentsAtScale` (to pan over the whole world) and sets its scale and
+  `CalculateScrollExtentsAtScale` (to pan over the whole world) and, while stitched, its
+  `ResetZoom` (each open goes straight to the remembered view: one icon rescale, or none), and sets its scale and
   scroll fields directly (`SetView`: Blizzard's own pan-and-zoom drifts). `Extras.lua`
   swaps the area label's OnUpdate (to add zone levels). Everything else is
   `hooksecurefunc` or a data provider. Map switching waits out combat; the in-game check

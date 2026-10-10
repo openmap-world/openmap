@@ -13,7 +13,8 @@
 - The parchment border frames the map only when zoomed right out, fading as you zoom in.
 - The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button
   sits beside Blizzard's floor dropdown instead of under it.
-- Opening the map sets its view once (straight to where you left off), not twice; the
+- Opening the map sets its view once (straight to where you left off), or not at all if
+  it's still there, instead of Blizzard's reset to the whole world and back; the
   close-up softening no longer recolours the whole map when it first builds a zone.
 - Zone art coming into view loads over a few frames instead of stalling one; `/openmap status`
   names the slowest steps of the close-up update, and how much of opening the map is OpenMap's.
