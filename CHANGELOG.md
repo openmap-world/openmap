@@ -19,6 +19,8 @@
   sea fades out well inside its frame. (New textures: restart the game.)
 - Zone art fades in as it loads (zooming or panning fast onto new zones), instead of popping in.
 - Over the major cities' own maps the minimap shows at half strength at most, so the city plan leads.
+- "Dim unexplored areas" is now "Fade unexplored areas": those areas fade 60% of the way to the
+  zone's blank parchment (its unexplored look) instead of darkening.
 - Faster panning and zooming: map icons off the view (townsfolk, flight masters ...) are
   hidden, and blank tiles of the filled-in land aren't drawn.
 - Opening the map loads only the zone art in view (and none until zone detail shows), instead

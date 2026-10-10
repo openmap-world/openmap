@@ -74,7 +74,8 @@ local BANNER_OUT = { 0.35, 0.5 } -- ... and where the zone's banner for it (ns.M
                                 --  zone's own art is drawn without it), over the city, goes
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
-local UNEXPLORED = 0.6          -- brightness of unexplored overlays when dimmed
+local UNEXPLORED = 0.4          -- how much of an unexplored area's art shows when faded (the zone's blank
+                                -- parchment, its unexplored look, shows through the rest)
 local SEA = { 0.50, 0.49, 0.41 } -- the sea's colour where no map paints one (MapSeaField covers the rest)
 local LAND_TINT, LAND_DESAT = { 0.96, 0.92, 0.84 }, 0.25   -- unmapped land, toward the zone art's parchment
 local GRAIN_TILE = 14           -- world units per parchment grain tile
@@ -1568,7 +1569,8 @@ end
 
 -- colour matching: the border copies move `strength` of the way to the shared
 -- palette (ns.MapGrade); `desat` takes some colour out of every zone. `unexplored`:
--- "show" the areas the player hasn't explored yet as they are, "dim" them, or "hide"
+-- "show" the areas the player hasn't explored yet as they are, "dim" them (faded most of the way
+-- to the parchment), or "hide"
 -- them (the zone's blank parchment shows there, as on Blizzard's own map)
 -- a zone's textures shown or hidden: near the view, and not an unexplored piece being hidden
 -- zones' files waiting to be set, a few each frame (LOAD_PER_FRAME), so a zone coming into
@@ -1625,11 +1627,11 @@ ShowZone = function(mapID)
 	end
 end
 
--- a zone texture's colour: unexplored ones dimmed (or not), some colour taken out
+-- a zone texture's colour: unexplored ones faded toward the parchment (or not), some colour
+-- taken out. (The fade is the vertex colour's alpha: the texture's own alpha is its load fade-in)
 GradeEntry = function(g, desat, dim)
 	local un = g[3] and g[3].unexplored
-	local c = (un and dim) and UNEXPLORED or 1
-	g[1]:SetVertexColor(c, c, c)
+	g[1]:SetVertexColor(1, 1, 1, (un and dim) and UNEXPLORED or 1)
 	g[1]:SetDesaturation(desat)
 end
 
@@ -1642,8 +1644,8 @@ function S.ApplyGrade(strength, desat, unexplored)
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
 		local un = g[3] and g[3].unexplored
-		local c = (un and dim) and UNEXPLORED or 1
-		tex:SetVertexColor((1 + (m[1] - 1) * strength) * c, (1 + (m[2] - 1) * strength) * c, (1 + (m[3] - 1) * strength) * c)
+		tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength,
+			(un and dim) and UNEXPLORED or 1)
 		tex:SetDesaturation(desat)
 	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
