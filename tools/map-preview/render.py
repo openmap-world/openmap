@@ -22,7 +22,7 @@ CONT_FADE, DETAIL_FADE, CITY_FADE, MUTE_FADE = (1.3, 2.2), (3, 4.5), (0.2, 0.4),
 DETAIL_HINT = (1.8, 3, 0.3)     # (the zones' hint from further out: Stitch.lua's)
 CITY_FADE_OF = {1454: (0.08, 0.25)}   # (cities that come in sooner: Stitch.lua's)
 BANNER_OUT = (0.35, 0.5)
-BORDER_OUT, BORDER_CORNER = (1.15, 1.6), 0.1   # (the border round the world: Stitch.lua's)
+BORDER_OUT, BORDER_SCALE = (1.15, 1.6), 0.55   # (the border round the view: Window.lua's)
 SEA = (0.50, 0.49, 0.41)        # the sea's colour where no map paints one (MapSeaField covers the rest)
 BACK_MUTE = 0.92                # how far the world / continent art fades as it mutes (alpha 1 - this)
 # the ocean (Stitch.lua's sea section): Blizzard's sea paper and coastal strokes, tiled at the
@@ -503,27 +503,20 @@ def render(cu, cv, zoom, path):
             b_ = banner(m["id"])                          # its zone's banner for it, kept over it until close in
             if b_:
                 place(b_, b_["img"], None, alpha=d * (1 - smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_))))
-    ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the world (Stitch.lua's)
+    ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
     if ba > 0.003 and not ZONES_ONLY:
-        c = BORDER_CORNER * H
-        pieces = (("tl", 0, 0, c, c, .75, .75), ("tr", W - c, 0, c, c, .75, .75), ("bl", 0, H - c, c, c, .75, .75),
-                  ("br", W - c, H - c, c, c, .75, .75), ("top", c, 0, W - 2 * c, c, 1, .75), ("bottom", c, H - c, W - 2 * c, c, 1, .75),
-                  ("left", 0, c, c, H - 2 * c, .75, 640 / 1024), ("right", W - c, c, c, H - 2 * c, .75, 640 / 1024))
+        c = int(round(192 * BORDER_SCALE * OH / 1024))
+        pieces = (("tl", 0, 0, c, c, .75, .75), ("tr", OW - c, 0, c, c, .75, .75), ("bl", 0, OH - c, c, c, .75, .75),
+                  ("br", OW - c, OH - c, c, c, .75, .75), ("top", c, 0, OW - 2 * c, c, 1, .75), ("bottom", c, OH - c, OW - 2 * c, c, 1, .75),
+                  ("left", 0, c, c, OH - 2 * c, .75, 640 / 1024), ("right", OW - c, c, c, OH - 2 * c, .75, 640 / 1024))
         for name, x, y, w, h, u1, v1 in pieces:
+            if w < 1 or h < 1: continue
             src = Image.open(os.path.join(TEXDIR, "MapBorder", name + ".tga")).convert("RGBA")
             src = src.crop((0, 0, int(src.width * u1), int(src.height * v1)))
-            X0, Y0 = (x - cu * W) * px + OW / 2, (y - cv * H) * px + OH / 2
-            pw_, ph_ = int(round(w * px)), int(round(h * px))
-            if pw_ < 1 or ph_ < 1: continue
-            piece = np.asarray(src.resize((pw_, ph_), Image.BILINEAR)).astype(np.float32) / 255
-            xa, ya = int(round(X0)), int(round(Y0))
-            xs0, ys0 = max(0, -xa), max(0, -ya)
-            xb, yb = min(OW, xa + pw_), min(OH, ya + ph_)
-            if xb <= max(0, xa) or yb <= max(0, ya): continue
-            part = piece[ys0:ys0 + (yb - max(0, ya)), xs0:xs0 + (xb - max(0, xa))]
-            a = part[..., 3:4] * ba
-            dst = out[max(0, ya):yb, max(0, xa):xb]
-            dst[:] = dst * (1 - a) + part[..., :3] * a
+            piece = np.asarray(src.resize((w, h), Image.BILINEAR)).astype(np.float32) / 255
+            a = piece[..., 3:4] * ba
+            dst = out[y:y + h, x:x + w]
+            dst[:] = dst * (1 - a) + piece[..., :3] * a
     Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8)).save(path)
     print("wrote", path, flush=True)
 

@@ -138,7 +138,7 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   search (zones, dungeons, flight masters), group members off the map underneath.
 - `Window.lua`: move (title bar) and resize (corner grip) the windowed map to any shape,
   remembered; the maximized map fills the screen's width; the parchment border (nine pieces,
-  `MapBorder`) round the view. Re-applied after Blizzard's panel layout, never by editing its
+  `MapBorder`) round the view, seen only zoomed right out. Re-applied after Blizzard's panel layout, never by editing its
   layout tables (taint).
 - `Report.lua`: beta feedback: circle the problem on the map, add a note, get a report
   code (`OM1|...`) to paste into a GitHub issue; `tools/map-preview/report.py` renders it.

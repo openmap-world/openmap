@@ -675,7 +675,6 @@ function mod:Refresh()
 		if set then S.SetPinSetOn(set, self.db[opt]) end
 	end
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
-	if S.SetBorder then S.SetBorder(self.db.border) end
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
 	if self.RefreshTownsfolk then self:RefreshTownsfolk() end

@@ -10,7 +10,7 @@
   them from world coordinates that are off on Forever's zone and continent maps, so there
   each icon is placed (or moved) from Forever's own map positions. `/openmap status`
   shows how many Questie icons there are and who placed them.
-- The parchment border now frames the edge of the world, zoomed right out, instead of the window.
+- The parchment border frames the map only when zoomed right out, fading as you zoom in.
 - The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button
   sits beside Blizzard's floor dropdown instead of under it.
 - Opening the map sets its view once (straight to where you left off), not twice; the

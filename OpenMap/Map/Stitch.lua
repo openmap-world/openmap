@@ -56,8 +56,6 @@ S.WORLD = WORLD
 local CONT_FADE = { 1.3, 2.2 }  -- zoom where each layer starts / finishes fading in
 local CONT_IN, WORLD_OUT = { 1.3, 1.7 }, { 1.7, 2.2 }   -- (the continents come in fully, then the world art's land under them goes)
 local LABELS_OUT = { 3, 4 }     -- the continents' names go as the zones (with their own names) come in
-local BORDER_OUT = { 1.15, 1.6 } -- the parchment border round the world, seen only zoomed right out
-local BORDER_CORNER = 0.1       -- its corners, in world heights
 local SEA_LABELS_OUT = { 3.5, 5 } -- ... and the seas' a little after (nothing comes in over them)
 local WORLD_SEA_OUT = { 4, 7 }  -- the world art's sea (the whirlpool, the ship ...) stays the ocean until well in (its
                                 --  lettering is hand-cleaned: tools/map-art); the sea texture takes over after
@@ -101,7 +99,6 @@ local SEA_OPEN, SEA_COAST = TEX .. "MapSeaOpen\\947", TEX .. "MapSeaCoast\\947" 
 local GAP, GAP_LAND, PAPER = TEX .. "MapGap\\", TEX .. "MapGapLand\\", TEX .. "MapPaper"
 local W, H                      -- the world map's art size (world units)
 local namesFrame                -- (the names' lettering: Letter, below)
-local PlaceBorder                -- (the border round the world: below)
 local labelsRoot, names = nil, {}   -- the lettered names (ns.MapLabels): { frame, label }, built when first shown
 local root, contRoot, tilesRoot, overlayRoot, coreRoot, blurRoot, citiesRoot, pinRoot, arrow
 local placed = {}               -- every region: { region, x, y, w, h } in world units
@@ -914,30 +911,6 @@ end
 -- Build, layout, zoom
 --------------------------------------------------------------------------------
 
--- The map art's parchment frame (art-edits/border.png, cut in nine: tools/map-art/border.py)
--- round the world's edge, as part of the map: it pans and zooms with it, so it frames the
--- world zoomed right out and fades as you zoom in (BORDER_OUT)
-local borderRoot, borderOn, borderNow = nil, true, 1
-local BORDER = TEX .. "MapBorder\\"
-local BORDER_FILL, BORDER_SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases
-PlaceBorder = function()
-	local c = BORDER_CORNER * H
-	local function Piece(name, x, y, w, h, u1, v1)
-		local tex = borderRoot:CreateTexture(nil, "OVERLAY")
-		tex:SetTexture(BORDER .. name, nil, nil, "LINEAR")
-		tex:SetTexCoord(0, u1, 0, v1)
-		Record(tex, x, y, w, h)
-	end
-	Piece("tl", 0, 0, c, c, BORDER_FILL, BORDER_FILL)
-	Piece("tr", W - c, 0, c, c, BORDER_FILL, BORDER_FILL)
-	Piece("bl", 0, H - c, c, c, BORDER_FILL, BORDER_FILL)
-	Piece("br", W - c, H - c, c, c, BORDER_FILL, BORDER_FILL)
-	Piece("top", c, 0, W - 2 * c, c, 1, BORDER_FILL)
-	Piece("bottom", c, H - c, W - 2 * c, c, 1, BORDER_FILL)
-	Piece("left", 0, c, c, H - 2 * c, BORDER_FILL, BORDER_SIDE)
-	Piece("right", W - c, c, c, H - 2 * c, BORDER_FILL, BORDER_SIDE)
-end
-
 -- Builds everything on `parent` (Blizzard's canvas): art frames from `artLevel`
 -- (needs `range` levels), icons at `iconLevel`.
 function S.Build(parent, artLevel, range, iconLevel)
@@ -967,8 +940,6 @@ function S.Build(parent, artLevel, range, iconLevel)
 	}
 	labelsRoot = Layer(artLevel + range - 3)
 	marksRoot = Layer(artLevel + range - 2)
-	borderRoot = Layer(artLevel + range - 1)
-	PlaceBorder()
 	marksRoot:Hide()
 	pinRoot = Layer(iconLevel)
 	arrow = pinRoot:CreateTexture(nil, "OVERLAY", nil, 7)
@@ -1187,12 +1158,6 @@ function S.DrawnCount()
 	return n
 end
 
--- the border round the world on or off (mod.db.border)
-function S.SetBorder(on)
-	borderOn = on and true or false
-	if borderRoot then Fade(borderRoot, borderOn and borderNow or 0) end
-end
-
 function S.SetShown(shown)
 	if root then root:SetShown(shown) end
 end
@@ -1343,8 +1308,6 @@ function S.SetZoom(zoom, scale)
 	end
 	zoomNow = zoom
 	Fade(contRoot, Smooth(CONT_IN))
-	borderNow = 1 - Smooth(BORDER_OUT)
-	Fade(borderRoot, borderOn and borderNow or 0)
 	local fades = {                                -- the names (one of each, fixed on the world)
 		land = 1 - Smooth(LABELS_OUT),
 		sea = 1 - Smooth(SEA_LABELS_OUT),
