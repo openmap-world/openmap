@@ -389,8 +389,17 @@ end
 -- with it. Its error is reported once, and /openmap status lists it.
 local failed = {}
 S.closeFailed = failed
+local stepMs = {}               -- each step's time (ms, smoothed) and its worst, for /openmap status
+S.closeSteps = stepMs
 local function Try(name, fn, ...)
+	local start = debugprofilestop and debugprofilestop()
 	local ok, a = pcall(fn, ...)
+	if start then
+		local ms = debugprofilestop() - start
+		local s = stepMs[name] or { ms = ms, worst = 0 }
+		s.ms, s.worst = s.ms * 0.9 + ms * 0.1, math.max(s.worst, ms)
+		stepMs[name] = s
+	end
 	if ok then return a end
 	if not failed[name] then
 		failed[name] = tostring(a)

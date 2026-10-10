@@ -1555,6 +1555,26 @@ end
 -- "show" the areas the player hasn't explored yet as they are, "dim" them, or "hide"
 -- them (the zone's blank parchment shows there, as on Blizzard's own map)
 -- a zone's textures shown or hidden: near the view, and not an unexplored piece being hidden
+-- zones' files waiting to be set, a few each frame (LOAD_PER_FRAME), so a zone coming into
+-- view (or the map opening on one) doesn't stall a frame setting them all at once
+local LOAD_PER_FRAME = 40
+local loadQueue, loadAt = {}, 1
+local loader = CreateFrame("Frame")
+loader:Hide()
+loader:SetScript("OnUpdate", function(self)
+	local n = 0
+	while loadAt <= #loadQueue and n < LOAD_PER_FRAME do
+		local tex = loadQueue[loadAt]
+		loadAt = loadAt + 1
+		if tex.omFile then
+			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
+			tex.omFile = nil
+			n = n + 1
+		end
+	end
+	if loadAt > #loadQueue then wipe(loadQueue) loadAt = 1 self:Hide() end
+end)
+
 ShowZone = function(mapID)
 	local here = inView[mapID] ~= false
 	local load = inView[mapID] == true and detailLive   -- (in view and drawn: its files are wanted)
@@ -1562,9 +1582,10 @@ ShowZone = function(mapID)
 	for _, e in ipairs(zoneTex[mapID] or {}) do
 		local un = e[3] and e[3].unexplored
 		local tex = e[1]
-		if load and tex.omFile then
-			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
-			tex.omFile = nil
+		if load and tex.omFile and not tex.omQueued then
+			tex.omQueued = true
+			loadQueue[#loadQueue + 1] = tex
+			loader:Show()
 		end
 		tex:SetShown(here and not (un and hide) and (not e.twin or strength > 0))
 	end

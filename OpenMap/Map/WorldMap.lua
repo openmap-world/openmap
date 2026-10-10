@@ -653,7 +653,11 @@ function mod:Diag()
 		kb = GetAddOnMemoryUsage(ns.name)
 	end
 	ns:Print("World map: %d art regions, %d live ones; addon memory %s.", fixed, live, kb and ("%.1f MB"):format(kb / 1024) or "?")
-	ns:Print("Drawing %d of the art's textures now; %.0f frames a second.", S.DrawnCount(), GetFramerate())
+	if map:IsVisible() then
+		ns:Print("Drawing %d of the art's textures now; %.0f frames a second.", S.DrawnCount(), GetFramerate())
+	else
+		ns:Print("The map is closed: open it and run this again for what it's drawing.")
+	end
 	if #openTimes > 0 then
 		local list = {}
 		for i, ms in ipairs(openTimes) do list[i] = ("%.0f"):format(ms) end
@@ -670,6 +674,16 @@ function mod:Diag()
 		cv.zoom or 0, (cv.soft or 0) * 100, (cv.mix or 0) * 100, cv.tiles or 0, cv.gapTiles or 0,
 		cv.updates or 0, cv.time and (GetTime() - cv.time) or -1, cv.ms or 0, cv.worst or 0)
 	cv.worst = 0
+	-- its slowest steps (by their worst), so a slow update says where the time went
+	local steps = {}
+	for name, s in pairs(S.closeSteps or {}) do steps[#steps + 1] = { name, s } end
+	table.sort(steps, function(a, b) return a[2].worst > b[2].worst end)
+	local list = {}
+	for i = 1, math.min(3, #steps) do
+		list[i] = ("%s %.1f (worst %.1f)"):format(steps[i][1], steps[i][2].ms, steps[i][2].worst)
+		steps[i][2].worst = 0
+	end
+	if #list > 0 then ns:Print("Slowest steps, ms: %s.", table.concat(list, "; ")) end
 	for name, err in pairs(S.closeFailed or {}) do ns:Print("|cffff6060%s failed:|r %s", name, err) end
 end
 

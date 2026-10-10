@@ -165,11 +165,39 @@ function mod:SetupPanel(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	local level = math.min(sc:GetFrameLevel() + 9300, 9950)
 
-	-- the corner button
-	toggle = ClassicButton(map, "OpenMap", 84, function() SetOpen(not menu:IsShown()) end,
-		L["Search, find me, map pins, report a problem, options, and what the map shows."])
+	-- the corner button: OpenMap's icon (the toc's IconTexture) in the game's round minimap-button
+	-- dress: a round mask, the gold tracking ring, the round highlight
+	toggle = CreateFrame("Button", nil, map)
+	toggle:SetSize(32, 32)
 	toggle:SetPoint("TOPLEFT", sc, "TOPLEFT", 6, -6)
 	toggle:SetFrameLevel(level)
+	local icon = toggle:CreateTexture(nil, "ARTWORK")
+	icon:SetTexture("Interface\\Icons\\Achievement_Zone_EasternKingdoms_01")
+	icon:SetSize(21, 21)
+	icon:SetPoint("CENTER", 0, 1)
+	local round = toggle:CreateMaskTexture()
+	round:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	round:SetAllPoints(icon)
+	icon:AddMaskTexture(round)
+	local back = toggle:CreateTexture(nil, "BACKGROUND")
+	back:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+	back:SetSize(24, 24)
+	back:SetPoint("CENTER", 0, 1)
+	local ring = toggle:CreateTexture(nil, "OVERLAY")
+	ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+	ring:SetSize(54, 54)
+	ring:SetPoint("TOPLEFT")
+	toggle:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+	toggle:SetScript("OnMouseDown", function() icon:SetPoint("CENTER", 1, 0) end)
+	toggle:SetScript("OnMouseUp", function() icon:SetPoint("CENTER", 0, 1) end)
+	toggle:SetScript("OnClick", function() SetOpen(not menu:IsShown()) end)
+	toggle:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("OpenMap", 1, 0.82, 0)
+		GameTooltip:AddLine(L["Search, find me, map pins, report a problem, options, and what the map shows."], 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	toggle:SetScript("OnLeave", GameTooltip_Hide)
 
 	-- the floating menu, in the classic dialog's dress
 	menu = CreateFrame("Frame", nil, map, "BackdropTemplate")
