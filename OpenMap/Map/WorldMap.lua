@@ -272,6 +272,19 @@ end)
 -- Hooks into Blizzard's map
 --------------------------------------------------------------------------------
 
+-- how long opening the map takes, to the next frame drawn (/openmap status): the game's
+-- work, Questie's and ours; the first opening also builds the map
+local openStart, openTimes = nil, {}
+local openTimer = CreateFrame("Frame")
+openTimer:Hide()
+openTimer:SetScript("OnUpdate", function(self)
+	self:Hide()
+	if openStart then
+		table.insert(openTimes, 1, debugprofilestop() - openStart)
+		openTimes[4] = nil
+	end
+end)
+
 -- the view for Close.lua (minimap, grain, caves): centre, half extents (normalized), zoom
 -- (Blizzard reports a pan several times a frame: the work is done once, on the next frame)
 local viewFrame = CreateFrame("Frame")
@@ -543,6 +556,7 @@ local function Setup()
 		ticker:Hide()
 	end
 	dp.OnShow = function()
+		if debugprofilestop then openStart = debugprofilestop() openTimer:Show() end
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
 		if active then ticker:Show() end
 		if mod.OnMapShown then mod:OnMapShown() end
@@ -613,6 +627,7 @@ function mod:Refresh()
 		if set then S.SetPinSetOn(set, self.db[opt]) end
 	end
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
+	if S.SetBorder then S.SetBorder(self.db.border) end
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
 	if self.RefreshTownsfolk then self:RefreshTownsfolk() end
@@ -639,6 +654,17 @@ function mod:Diag()
 	end
 	ns:Print("World map: %d art regions, %d live ones; addon memory %s.", fixed, live, kb and ("%.1f MB"):format(kb / 1024) or "?")
 	ns:Print("Drawing %d of the art's textures now; %.0f frames a second.", S.DrawnCount(), GetFramerate())
+	if #openTimes > 0 then
+		local list = {}
+		for i, ms in ipairs(openTimes) do list[i] = ("%.0f"):format(ms) end
+		ns:Print("Opening the map took %s ms (latest first).", table.concat(list, ", "))
+	end
+	local registered, shown, placed, ours
+	if mod.QuestieStatus then registered, shown, placed, ours = mod.QuestieStatus() end
+	if registered then
+		ns:Print("Questie: %d map icons, %d on this map (%d placed by Questie, %d by OpenMap), map %d.",
+			registered, shown, placed, ours, map:GetMapID() or 0)
+	end
 	local cv = S.closeView or {}
 	ns:Print("Up close: zoom %.1f, softening %.0f%%, minimap %.0f%% (%d tiles, %d in the gaps); %d view updates, the last %.1fs ago; %.2f ms each (worst %.1f).",
 		cv.zoom or 0, (cv.soft or 0) * 100, (cv.mix or 0) * 100, cv.tiles or 0, cv.gapTiles or 0,

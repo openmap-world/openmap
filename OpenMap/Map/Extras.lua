@@ -169,43 +169,61 @@ end
 --------------------------------------------------------------------------------
 
 --------------------------------------------------------------------------------
--- Questie's pins from neighbouring zones
+-- Questie's pins on the stitched map. HereBeDragons (Questie's copy) places a pin from
+-- its world coordinates; on Forever that only works on the world map, where Questie
+-- converts it through the client's own map rectangles. On a zone or continent map (the
+-- stitched map switches to the one you're looking at) it can't, and the pin is dropped;
+-- and it never shows a neighbouring zone's pins on a zone. So any pin HereBeDragons left
+-- unplaced is placed here, from the map it belongs to (`uiMapID`, `mapX`, `mapY`) through
+-- the same rectangles, following Questie's own rules for where a pin may show.
 --------------------------------------------------------------------------------
 
-local SHOW_PARENT = 1                   -- HBD_PINS_WORLDMAP_SHOW_PARENT: pins meant beyond their own zone
-local NEAR = 1                          -- how far around the shown zone (in its own widths) neighbours' pins come
+local SHOW_CURRENT = 0                  -- HBD_PINS_WORLDMAP_SHOW_CURRENT: only on its own map
+local NEAR = 1                          -- how far round the map underneath (its widths) pins are placed
 
--- true when `mapID` is `ancestor` or under it
-local function Within(mapID, ancestor)
-	for _ = 1, 8 do
-		if not mapID or mapID == 0 then return false end
-		if mapID == ancestor then return true end
-		local info = C_Map.GetMapInfo(mapID)
-		mapID = info and info.parentMapID
-	end
-	return false
-end
+local questie = { placed = 0, ours = 0 }   -- for /openmap status: pins placed since the map last changed
 
 local function SetUpQuestiePins()
 	local pins = LibStub and LibStub("HereBeDragonsQuestie-Pins-2.0", true)
 	local provider = pins and pins.worldmapProvider
-	if not provider or not provider.HandlePin or provider.openmapNeighbours then return end
-	provider.openmapNeighbours = true
+	if not provider or not provider.HandlePin or provider.openmapPins then return end
+	provider.openmapPins = true
+	questie.pins = pins
 	local HandlePin = provider.HandlePin
 	provider.HandlePin = function(self, icon, data, ...)
 		HandlePin(self, icon, data, ...)
-		if not mod.IsStitched() or not data.uiMapID or not data.mapX or (data.worldMapShowFlag or 0) < SHOW_PARENT then return end
 		local holder = icon:GetParent()
-		if holder and holder.icon == icon then return end    -- HereBeDragons placed it already
+		if holder and holder.icon == icon then questie.placed = questie.placed + 1 return end   -- placed already
+		if not mod.IsStitched() or not data.uiMapID or not data.mapX or not data.mapY then return end
 		local mapID = self:GetMap():GetMapID()
+		if (data.worldMapShowFlag or SHOW_CURRENT) == SHOW_CURRENT and data.uiMapID ~= mapID then return end
 		local info = C_Map.GetMapInfo(mapID)
-		if not info or info.mapType ~= Enum.UIMapType.Zone or Within(data.uiMapID, mapID) then return end
+		if not info then return end
+		local profile = _G.Questie and Questie.db and Questie.db.profile
+		if profile and profile.hideIconsOnContinents and (info.mapType == Enum.UIMapType.Continent or mapID == S.WORLD) then return end
 		local l, r, t, b = S.Rect(data.uiMapID)
 		if not l then return end
 		local x, y = mod.FromWorld(mapID, l + data.mapX * (r - l), t + data.mapY * (b - t))
 		if x < -NEAR or x > 1 + NEAR or y < -NEAR or y > 1 + NEAR then return end
 		self:GetMap():AcquirePin("HereBeDragonsPinsTemplateQuestie", icon, x, y, data.frameLevelType)
+		questie.ours = questie.ours + 1
 	end
+	-- (counted afresh each time the map changes: HereBeDragons rebuilds its pins then)
+	local Refresh = provider.RefreshAllData
+	provider.RefreshAllData = function(self, ...)
+		local before = self:GetMap() and self:GetMap():GetMapID()
+		if before ~= questie.mapID then questie.placed, questie.ours, questie.mapID = 0, 0, before end
+		return Refresh(self, ...)
+	end
+end
+
+-- for /openmap status: Questie's pins, and how many are on the map now
+function mod.QuestieStatus()
+	if not questie.pins then return nil end
+	local registered, shown = 0, 0
+	for _ in pairs(questie.pins.worldmapPins or {}) do registered = registered + 1 end
+	for _ in map:EnumeratePinsByTemplate("HereBeDragonsPinsTemplateQuestie") do shown = shown + 1 end
+	return registered, shown, questie.placed, questie.ours
 end
 
 local function ApplyExtras()

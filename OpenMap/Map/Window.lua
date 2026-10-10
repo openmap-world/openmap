@@ -18,10 +18,10 @@ d.fullWidth = true              -- the maximized map fills the screen's width (t
 local MIN_SCALE, MAX_SCALE = 0.5, 1.6
 local MIN_W, MIN_H = 480, 320
 
-d.border = true                 -- the map art's parchment frame round the stitched map
+d.border = true                 -- the map art's parchment frame round the world (Stitch.lua: zoomed right out)
 
-local map, handle, grip, border
-local FillScreen, SetupBorder
+local map, handle, grip
+local FillScreen
 local blizzardSize              -- the windowed map's own size, for a reset
 
 local function Refit()
@@ -74,70 +74,6 @@ function mod:ResetWindow()
 		if blizzardSize and not Maximized() then map:SetSize(blizzardSize[1], blizzardSize[2]) Refit() end
 		if map:IsShown() and not InCombatLockdown() then HideUIPanel(map) ShowUIPanel(map) end
 	end
-end
-
---------------------------------------------------------------------------------
--- The border: the map art's own parchment frame round the stitched map's view, cut in
--- nine (tools/map-art/border.py): the corners as they are, the edges stretched, so
--- the map keeps its edge whatever its shape. Sized to the view; it takes no clicks.
---------------------------------------------------------------------------------
-
-local BORDER = ns.Media.path .. "Textures\\MapBorder\\"
-local CORNER, SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases (border.py)
-local BORDER_SCALE = 0.55       -- the corners' size: their own 192 px x this, per 1024 px of view height
-
-local function Piece(name)
-	local tex = border:CreateTexture(nil, "OVERLAY")
-	tex:SetTexture(BORDER .. name, nil, nil, "LINEAR")
-	return tex
-end
-
-local function SizeBorder()
-	local c = 192 * BORDER_SCALE * map.ScrollContainer:GetHeight() / 1024
-	for _, tex in ipairs(border.corners) do tex:SetSize(c, c) end
-	border.top:SetHeight(c)
-	border.bottom:SetHeight(c)
-	border.left:SetWidth(c)
-	border.right:SetWidth(c)
-end
-
-SetupBorder = function()
-	local sc = map.ScrollContainer
-	border = CreateFrame("Frame", nil, map)
-	border:SetAllPoints(sc)
-	border:SetFrameLevel(math.min(sc:GetFrameLevel() + 9000, 9900))   -- (over the map's icons, under OpenMap's menu)
-	local tl, tr, bl, br = Piece("tl"), Piece("tr"), Piece("bl"), Piece("br")
-	tl:SetPoint("TOPLEFT")
-	tr:SetPoint("TOPRIGHT")
-	bl:SetPoint("BOTTOMLEFT")
-	br:SetPoint("BOTTOMRIGHT")
-	for _, tex in ipairs({ tl, tr, bl, br }) do tex:SetTexCoord(0, CORNER, 0, CORNER) end
-	local top, bottom, left, right = Piece("top"), Piece("bottom"), Piece("left"), Piece("right")
-	top:SetPoint("TOPLEFT", tl, "TOPRIGHT")
-	top:SetPoint("TOPRIGHT", tr, "TOPLEFT")
-	bottom:SetPoint("BOTTOMLEFT", bl, "BOTTOMRIGHT")
-	bottom:SetPoint("BOTTOMRIGHT", br, "BOTTOMLEFT")
-	top:SetTexCoord(0, 1, 0, CORNER)
-	bottom:SetTexCoord(0, 1, 0, CORNER)
-	left:SetPoint("TOPLEFT", tl, "BOTTOMLEFT")
-	left:SetPoint("BOTTOMLEFT", bl, "TOPLEFT")
-	right:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT")
-	right:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT")
-	left:SetTexCoord(0, CORNER, 0, SIDE)
-	right:SetTexCoord(0, CORNER, 0, SIDE)
-	border.corners, border.top, border.bottom, border.left, border.right = { tl, tr, bl, br }, top, bottom, left, right
-	sc:HookScript("OnSizeChanged", SizeBorder)
-	SizeBorder()
-	-- only round the stitched map (Blizzard's own maps have their frame in their art)
-	local shown
-	local watch = CreateFrame("Frame", nil, map)
-	watch:SetScript("OnUpdate", function()
-		local want = mod.db.border and mod.IsStitched() or false
-		if want ~= shown then
-			shown = want
-			border:SetShown(want)
-		end
-	end)
 end
 
 function mod:SetupWindow(worldMap)
@@ -223,8 +159,6 @@ function mod:SetupWindow(worldMap)
 	-- Blizzard re-sizes the maximized map when the screen or UI scale changes
 	if map.UpdateMaximizedSize then hooksecurefunc(map, "UpdateMaximizedSize", function() if Maximized() then FillScreen() end end) end
 	map:HookScript("OnShow", Mode)
-	SetupBorder()
-	grip:SetFrameLevel(border:GetFrameLevel() + 1)
 end
 
 function mod:WindowOptions(opts, get, set, off)
@@ -239,7 +173,7 @@ function mod:WindowOptions(opts, get, set, off)
 		end, disabled = off,
 		desc = L["When maximized, the map takes the screen's whole width instead of keeping Blizzard's shape with bars at the sides."] }
 	opts.border = { type = "toggle", name = L["Parchment border"], order = 28, get = get, set = set, disabled = off,
-		desc = L["The map art's own torn-parchment frame round the map, whatever its shape."] }
+		desc = L["The map art's own torn-parchment frame round the edge of the world, seen when you're zoomed right out."] }
 	opts.resetWindow = { type = "execute", name = L["Reset size and place"], order = 26, disabled = off,
 		func = function() mod:ResetWindow() end }
 end

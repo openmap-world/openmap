@@ -56,6 +56,8 @@ S.WORLD = WORLD
 local CONT_FADE = { 1.3, 2.2 }  -- zoom where each layer starts / finishes fading in
 local CONT_IN, WORLD_OUT = { 1.3, 1.7 }, { 1.7, 2.2 }   -- (the continents come in fully, then the world art's land under them goes)
 local LABELS_OUT = { 3, 4 }     -- the continents' names go as the zones (with their own names) come in
+local BORDER_OUT = { 1.15, 1.6 } -- the parchment border round the world, seen only zoomed right out
+local BORDER_CORNER = 0.1       -- its corners, in world heights
 local SEA_LABELS_OUT = { 3.5, 5 } -- ... and the seas' a little after (nothing comes in over them)
 local WORLD_SEA_OUT = { 4, 7 }  -- the world art's sea (the whirlpool, the ship ...) stays the ocean until well in (its
                                 --  lettering is hand-cleaned: tools/map-art); the sea texture takes over after
@@ -99,6 +101,7 @@ local SEA_OPEN, SEA_COAST = TEX .. "MapSeaOpen\\947", TEX .. "MapSeaCoast\\947" 
 local GAP, GAP_LAND, PAPER = TEX .. "MapGap\\", TEX .. "MapGapLand\\", TEX .. "MapPaper"
 local W, H                      -- the world map's art size (world units)
 local namesFrame                -- (the names' lettering: Letter, below)
+local PlaceBorder                -- (the border round the world: below)
 local labelsRoot, names = nil, {}   -- the lettered names (ns.MapLabels): { frame, label }, built when first shown
 local root, contRoot, tilesRoot, overlayRoot, coreRoot, blurRoot, citiesRoot, pinRoot, arrow
 local placed = {}               -- every region: { region, x, y, w, h } in world units
@@ -106,6 +109,8 @@ local graded = {}               -- zone art: { tex, mapID, piece } (piece: its o
 local twins = {}                -- its colour-matched copies, same shape
 local zoneTex = {}              -- mapID -> its graded and twin entries (shown / hidden with the zone)
 local inView = {}               -- mapID -> whether the zone is near the view (S.Cull)
+local detailLive = false        -- whether the zone detail is drawn at all (zoomed in far enough)
+local ShowZone                  -- (below)
 local gradeNow = { 1, 0, "show" }   -- ApplyGrade's settings
 local culled = {}               -- other regions shown only near the view: { region, l, t, r, b } (normalized)
 local backdrop = {}             -- world / continent art textures (over land)
@@ -142,6 +147,14 @@ local function ApplyDetail()
 	if d == appliedDetail then return end
 	appliedDetail = d
 	local on = d > 0.001
+	if on ~= detailLive then                     -- (zones' files load once their detail first shows)
+		detailLive = on
+		if on then
+			for mapID in pairs(zoneTex) do
+				if inView[mapID] == true then ShowZone(mapID) end
+			end
+		end
+	end
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
 	tilesRoot:SetAlpha(d)
@@ -276,9 +289,12 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 			local fw = (k < cols or not overlay) and tw or Pow2(pw)
 			if file and pw > 0 and ph > 0 then
 				local tx, ty = p.left + (x + (k - 1) * tw) * p.sx, p.top + (y + (j - 1) * th) * p.sy
+				-- a zone's textures get their file once the zone is in view (ShowZone): opening the
+				-- map loads what's there, not the whole world
+				local lazy = (band or list == graded) and not (inView[p.mapID] == true and detailLive)
 				for copy = 1, band and 2 or 1 do
 					local tex = parent:CreateTexture(nil, drawLayer, nil, sub + (copy - 1) * 2)
-					tex:SetTexture(file, nil, nil, "TRILINEAR")
+					if lazy then tex.omFile = file else tex:SetTexture(file, nil, nil, "TRILINEAR") end
 					tex:SetTexCoord(0, pw / fw, 0, ph / fh)
 					Record(tex, tx, ty, pw * p.sx, ph * p.sy)
 					if mask then tex:AddMaskTexture(mask) end
@@ -898,6 +914,30 @@ end
 -- Build, layout, zoom
 --------------------------------------------------------------------------------
 
+-- The map art's parchment frame (art-edits/border.png, cut in nine: tools/map-art/border.py)
+-- round the world's edge, as part of the map: it pans and zooms with it, so it frames the
+-- world zoomed right out and fades as you zoom in (BORDER_OUT)
+local borderRoot, borderOn, borderNow = nil, true, 1
+local BORDER = TEX .. "MapBorder\\"
+local BORDER_FILL, BORDER_SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases
+PlaceBorder = function()
+	local c = BORDER_CORNER * H
+	local function Piece(name, x, y, w, h, u1, v1)
+		local tex = borderRoot:CreateTexture(nil, "OVERLAY")
+		tex:SetTexture(BORDER .. name, nil, nil, "LINEAR")
+		tex:SetTexCoord(0, u1, 0, v1)
+		Record(tex, x, y, w, h)
+	end
+	Piece("tl", 0, 0, c, c, BORDER_FILL, BORDER_FILL)
+	Piece("tr", W - c, 0, c, c, BORDER_FILL, BORDER_FILL)
+	Piece("bl", 0, H - c, c, c, BORDER_FILL, BORDER_FILL)
+	Piece("br", W - c, H - c, c, c, BORDER_FILL, BORDER_FILL)
+	Piece("top", c, 0, W - 2 * c, c, 1, BORDER_FILL)
+	Piece("bottom", c, H - c, W - 2 * c, c, 1, BORDER_FILL)
+	Piece("left", 0, c, c, H - 2 * c, BORDER_FILL, BORDER_SIDE)
+	Piece("right", W - c, c, c, H - 2 * c, BORDER_FILL, BORDER_SIDE)
+end
+
 -- Builds everything on `parent` (Blizzard's canvas): art frames from `artLevel`
 -- (needs `range` levels), icons at `iconLevel`.
 function S.Build(parent, artLevel, range, iconLevel)
@@ -927,6 +967,8 @@ function S.Build(parent, artLevel, range, iconLevel)
 	}
 	labelsRoot = Layer(artLevel + range - 3)
 	marksRoot = Layer(artLevel + range - 2)
+	borderRoot = Layer(artLevel + range - 1)
+	PlaceBorder()
 	marksRoot:Hide()
 	pinRoot = Layer(iconLevel)
 	arrow = pinRoot:CreateTexture(nil, "OVERLAY", nil, 7)
@@ -1134,6 +1176,12 @@ function S.DrawnCount()
 	return n
 end
 
+-- the border round the world on or off (mod.db.border)
+function S.SetBorder(on)
+	borderOn = on and true or false
+	if borderRoot then Fade(borderRoot, borderOn and borderNow or 0) end
+end
+
 function S.SetShown(shown)
 	if root then root:SetShown(shown) end
 end
@@ -1284,6 +1332,8 @@ function S.SetZoom(zoom, scale)
 	end
 	zoomNow = zoom
 	Fade(contRoot, Smooth(CONT_IN))
+	borderNow = 1 - Smooth(BORDER_OUT)
+	Fade(borderRoot, borderOn and borderNow or 0)
 	local fades = {                                -- the names (one of each, fixed on the world)
 		land = 1 - Smooth(LABELS_OUT),
 		sea = 1 - Smooth(SEA_LABELS_OUT),
@@ -1505,12 +1555,18 @@ end
 -- "show" the areas the player hasn't explored yet as they are, "dim" them, or "hide"
 -- them (the zone's blank parchment shows there, as on Blizzard's own map)
 -- a zone's textures shown or hidden: near the view, and not an unexplored piece being hidden
-local function ShowZone(mapID)
+ShowZone = function(mapID)
 	local here = inView[mapID] ~= false
+	local load = inView[mapID] == true and detailLive   -- (in view and drawn: its files are wanted)
 	local hide, strength = gradeNow[3] == "hide", gradeNow[1]
 	for _, e in ipairs(zoneTex[mapID] or {}) do
 		local un = e[3] and e[3].unexplored
-		e[1]:SetShown(here and not (un and hide) and (not e.twin or strength > 0))
+		local tex = e[1]
+		if load and tex.omFile then
+			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
+			tex.omFile = nil
+		end
+		tex:SetShown(here and not (un and hide) and (not e.twin or strength > 0))
 	end
 end
 
