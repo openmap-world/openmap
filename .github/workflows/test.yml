@@ -1,14 +1,26 @@
 name: test
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read                  # tests only read the code
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   offline:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install lupa
+      - run: python -P tools/offline-test/lint.py
       - run: python tools/offline-test/run.py plain
+      - run: python tools/offline-test/run.py combat
       - run: python tools/offline-test/run.py secret
-      - run: python tools/offline-test/lint.py
+      - name: The tools at least compile
+        run: python -m compileall -q tools

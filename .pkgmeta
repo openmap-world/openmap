@@ -16,6 +16,12 @@ ignore:
   - LICENSE
   - art-edits
   - CHANGELOG.md
+  - AGENTS.md
+  - CLAUDE.md
+  - SECURITY.md
+  - CODE_OF_CONDUCT.md
+  - .gitattributes
+  - .editorconfig
   - .gitignore
   - .pkgmeta
 

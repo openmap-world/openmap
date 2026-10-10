@@ -1,5 +1,10 @@
 # OpenMap changelog
 
+## Unreleased
+
+- Faster panning and zooming: map icons off the view (townsfolk, flight masters ...) are
+  hidden, and blank tiles of the filled-in land aren't drawn.
+
 ## v0.1.0-beta (2026-10-09)
 
 First public beta. One seamless world map for WoW Forever: every zone stitched

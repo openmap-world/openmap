@@ -1,0 +1,4 @@
+# Reviews: the maintainers own everything; changes to CI and releases need a maintainer's eyes.
+*                 @jigrobbulus
+/.github/         @jigrobbulus
+/.pkgmeta         @jigrobbulus

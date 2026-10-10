@@ -2,6 +2,14 @@
 
 Thanks for helping. A few things make changes easy to review.
 
+- **How to work on it**: [docs/development.md](docs/development.md) (set up, the change /
+  check loop, regenerating data, pitfalls, performance rules).
+- **How it works**: [ARCHITECTURE.md](ARCHITECTURE.md).
+- **Using an AI coding assistant?** Point it at [AGENTS.md](AGENTS.md); its rules apply
+  to the code it writes for you, and you're responsible for that code.
+- **Be kind**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). **Security problems**: report
+  privately, see [SECURITY.md](SECURITY.md).
+
 ## Ground rules
 
 - **Only contribute what you may license under MIT.** Don't copy code, data or

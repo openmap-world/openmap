@@ -31,7 +31,12 @@ Every map and icon OpenMap uses is Blizzard's own art, loaded from the game. The
 
 I'd love help making this the best map addon for Forever. Bug reports, ideas, code and fixes are all welcome. The map is tricky to get looking right everywhere, so even a screenshot of a spot that looks off really helps. There's a "Report a problem" button right on the map: circle the spot, add a note, and paste the code into a GitHub issue.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) to help, [ARCHITECTURE.md](ARCHITECTURE.md) for how it works, [docs/testing.md](docs/testing.md) for the in-game check before a release and [docs/releasing.md](docs/releasing.md) for publishing one.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to help, and what makes a change easy to review
+- [docs/development.md](docs/development.md): setting up, the check loop, regenerating data, pitfalls
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the map works
+- [docs/testing.md](docs/testing.md): the in-game check before a release; [docs/releasing.md](docs/releasing.md): publishing one
+- [docs/maintaining.md](docs/maintaining.md): triage, reviews, repository settings
+- [SECURITY.md](SECURITY.md): reporting security problems privately; [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 ## About Claude
 

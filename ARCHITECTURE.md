@@ -33,7 +33,8 @@ tools/
   map-tuning/     align.py: measures each zone's art against the minimap (report only)
   offline-test/   loads the addon in a stubbed client (run.py, lint.py)
 art-edits/        Blizzard's map art edited by hand (names painted out; the border)
-docs/             testing.md (the in-game check), releasing.md, curseforge.md
+docs/             development.md (how to work on it), testing.md (the in-game check),
+                  releasing.md, maintaining.md, curseforge.md
 ```
 
 The game's tables come from wago.tools (`https://wago.tools/db2/<Table>/csv?build=<build>`)
