@@ -140,7 +140,7 @@ def gap_art():
         for name, rect, files in re.findall(r'\{ "([^"]+)", \d+, \{ ([-\d., ]+) \}, \{ ([\d, ]+) \} \}', src_):
             img = Image.new("RGBA", (1024, 768))
             for i, fid in enumerate(int(s_) for s_ in files.split(",")):
-                t_ = fetch(fid)
+                t_ = fetch(fid) if fid else None             # (0: not drawn)
                 if t_: img.paste(t_, ((i % 4) * 256, (i // 4) * 256))
             out_.append({"id": name, "rect": tuple(float(v_) for v_ in rect.split(",")),
                          "img": np.asarray(img.crop((0, 0, 1002, 668))).astype(np.float32) / 255,

@@ -495,7 +495,10 @@ def apply_sources(m, L, A, OW, OH):
         a = Image.fromarray((np.clip(mask, 0, 1) * 255).astype(np.uint8)).resize((SOURCE_MASK, SOURCE_MASK), Image.LANCZOS)
         key = re.sub(r"[^A-Za-z]", "", src["name"])    # (its file's name: letters only)
         Image.merge("RGBA", (Image.new("L", (SOURCE_MASK, SOURCE_MASK), 255),) * 3 + (a,)).save(os.path.join(TEX, "MapCoastArt", "%s.tga" % key))
-        source_art.append((key, src["continent"], src["rect"], src["files"]))
+        # its tiles that show anything (the rest aren't drawn: 0)
+        files = [f if np.clip(mask, 0, 1)[(i // 4) * 256:(i // 4 + 1) * 256, (i % 4) * 256:(i % 4 + 1) * 256].max() > 0.02 else 0
+                 for i, f in enumerate(src["files"])]
+        source_art.append((key, src["continent"], src["rect"], files))
         print("   coast from", src["name"], flush=True)
 
 over_dir, land_dir = os.path.join(TEX, "MapGap"), os.path.join(TEX, "MapGapLand")
@@ -579,7 +582,7 @@ with open(os.path.join(here, "..", "..", "OpenMap", "Data", "Gaps.lua"), "w", en
         f.write("\t\t[%d] = { %s },\n" % (cid, ", ".join(str(k) for k in keys)))
     f.write("\t},\n")
     f.write("\t-- finer maps the client has of land no zone covers, drawn by Stitch.lua through MapCoastArt/<name>:\n")
-    f.write("\t-- { name, continent, { l, r, t, b } (on the world, normalized), { its 12 tiles, file IDs } }\n\tart = {\n")
+    f.write("\t-- { name, continent, { l, r, t, b } (on the world, normalized), { its 12 tiles, file IDs: 0 where the\n\t-- mask leaves nothing of it } }\n\tart = {\n")
     for name, cont, rect, files in source_art:
         f.write('\t\t{ "%s", %d, { %s }, { %s } },\n' % (name, cont, ", ".join("%.6f" % x for x in rect), ", ".join(str(x) for x in files)))
     f.write("\t},\n}\n")

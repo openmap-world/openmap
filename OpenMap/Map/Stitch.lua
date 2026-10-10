@@ -576,6 +576,29 @@ S.Look = Look
 
 -- a pin at a world point (normalized); look: atlas / texture / coords / size / color.
 -- Pins are pooled per set: a reused pin keeps the fields its set's code gave it.
+-- Pins are kept in cells of the world, PIN_CELL wide: S.Cull hides the cells off the
+-- view, so a pan or zoom doesn't move (and draw) every pin on the world, only those near it
+local PIN_CELL = 0.04           -- world (normalized)
+local cullBox                   -- the last view S.Cull saw, with its margin: { u0, v0, u1, v1 }
+local function PinCell(set, u, v)
+	local i, j = math.floor(u / PIN_CELL), math.floor(v / PIN_CELL)
+	set.cells = set.cells or {}
+	local key = i * 4096 + j
+	local cell = set.cells[key]
+	if not cell then
+		cell = CreateFrame("Frame", nil, set.frame)
+		cell:SetAllPoints(set.frame)
+		cell:SetFrameLevel(set.frame:GetFrameLevel())
+		cell.u0, cell.v0 = i * PIN_CELL, j * PIN_CELL
+		set.cells[key] = cell
+		if cullBox then                         -- (until the next view change: judged against the last)
+			cell.here = cell.u0 + PIN_CELL > cullBox[1] and cell.u0 < cullBox[3] and cell.v0 + PIN_CELL > cullBox[2] and cell.v0 < cullBox[4]
+			cell:SetShown(cell.here)
+		end
+	end
+	return cell
+end
+
 function S.AddPin(set, u, v, look, data)
 	local pin = tremove(set.pinPool)
 	if not pin then
@@ -590,6 +613,7 @@ function S.AddPin(set, u, v, look, data)
 		pin:SetScript("OnMouseUp", function(self, button) if S.OnPinMouseUp then S.OnPinMouseUp(self, button) end end)
 	end
 	local size = look.size or 16
+	pin:SetParent(PinCell(set, u, v))
 	pin:SetSize(size, size)
 	pin:SetFrameLevel(set.frame:GetFrameLevel())
 	pin.anchor = Anchor(u * W, v * H)
@@ -1020,7 +1044,9 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- unexplored map of Gilneas): its own tiles, at their own resolution, through MapCoastArt
 	-- (its land and shallows, where no zone paints), under every zone, over the gaps' paper
 	for _, x in ipairs(ns.MapGaps and ns.MapGaps.art or {}) do
-		local name, _, r, files = unpack(x)
+		local name, _, r, list = unpack(x)
+		local files = {}                -- (0: a tile its mask leaves nothing of; not drawn)
+		for i, f in ipairs(list) do files[i] = f ~= 0 and f or nil end
 		local p = { left = r[1] * W, top = r[3] * H, sx = (r[2] - r[1]) * W / 1002, sy = (r[4] - r[3]) * H / 668,
 			layer = { layerWidth = 1002, layerHeight = 668, tileWidth = 256, tileHeight = 256 } }
 		local f = CreateFrame("Frame", nil, tilesRoot)
@@ -1516,6 +1542,7 @@ function S.Cull(u0, v0, u1, v1)
 	if not root then return end
 	local mu, mv = (u1 - u0) * CULL_MARGIN, (v1 - v0) * CULL_MARGIN
 	u0, v0, u1, v1 = u0 - mu, v0 - mv, u1 + mu, v1 + mv
+	cullBox = { u0, v0, u1, v1 }
 	for mapID in pairs(zoneTex) do
 		local l, r, t, b = S.Rect(mapID)
 		local here = (l and r > u0 and l < u1 and b > v0 and t < v1) and true or false
@@ -1529,6 +1556,16 @@ function S.Cull(u0, v0, u1, v1)
 		if c.here ~= here then
 			c.here = here
 			c[1]:SetShown(here)
+		end
+	end
+	-- the pins' cells (S.AddPin)
+	for _, set in pairs(sets) do
+		for _, cell in pairs(set.cells or {}) do
+			local here = cell.u0 + PIN_CELL > u0 and cell.u0 < u1 and cell.v0 + PIN_CELL > v0 and cell.v0 < v1
+			if cell.here ~= here then
+				cell.here = here
+				cell:SetShown(here)
+			end
 		end
 	end
 end
