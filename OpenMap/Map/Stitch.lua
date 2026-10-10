@@ -1121,12 +1121,23 @@ end
 
 function S.IsBuilt() return root ~= nil end
 
--- how much a city's own map covers the point (u, v) (0..1): Close.lua keeps the minimap
--- off it (the minimap shows the surface: the ruins above the Undercity, Ironforge's mountain)
+-- how much an underground city's own map covers the point (u, v) (0..1): Close.lua keeps
+-- the minimap off it, as the minimap there shows the surface (the ruins above the Undercity,
+-- Ironforge's mountain). Over the cities in the open the minimap is the city, and mixes in.
+local UNDERGROUND_CITIES = { [1458] = true, [1455] = true }   -- Undercity, Ironforge
+
+-- whether (u, v) is in a city's own map (WorldMap.lua lets you zoom further there)
+function S.InCity(u, v)
+	for _, c in ipairs(cities) do
+		local l, r, t, b = S.Rect(c.mapID)
+		if l and u > l and u < r and v > t and v < b then return true end
+	end
+	return false
+end
 function S.CityCover(u, v)
 	local cover = 0
 	for _, c in ipairs(cities) do
-		local l, r, t, b = S.Rect(c.mapID)
+		local l, r, t, b = UNDERGROUND_CITIES[c.mapID] and S.Rect(c.mapID)
 		if l and u > l and u < r and v > t and v < b then
 			-- full in the middle, easing off toward the edge of its rectangle
 			local e = math.min(u - l, r - u) / (r - l) * 2

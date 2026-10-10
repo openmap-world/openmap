@@ -6,11 +6,13 @@ local _, ns = ...
 
 ns.MapBanners = {
 	[1454] = { 1411, 276, 7, 512, 128 },   -- Orgrimmar
+	[1458] = { 1420, 484, 484, 512, 64 },   -- Undercity
 }
 
 -- zones whose own art is drawn without that banner (Media/Textures/MapBannerHole/<zone>)
 ns.MapBannerHoles = {
 	[1411] = true,   -- (Orgrimmar's banner)
+	[1420] = true,   -- (Undercity's banner)
 }
 
 -- cities whose own map is cut down to the city (Media/Textures/MapCityMask/<city>)

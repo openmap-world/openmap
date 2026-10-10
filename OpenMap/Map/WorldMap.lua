@@ -148,12 +148,19 @@ local function PerPx(zoom)
 	return 1 / (W * px), 1 / (H * px)
 end
 
+-- the deepest zoom at (u, v): further in a city, whose map is small (its own map, and outdoors
+-- the minimap, carry the detail there)
+local CITY_ZOOM = 1.5
+local function MaxZoomAt(u, v)
+	return mod.db.maxZoom * ((u and S.InCity and S.InCity(u, v)) and CITY_ZOOM or 1)
+end
+
 -- wheel: zoom about the point under the cursor
 local function ZoomAtCursor(factor)
 	local u, v, zoom = View()
-	local target = Clamp((anim and anim.mode == "anchor" and anim.target or zoom) * factor, 1, mod.db.maxZoom)
 	local sx, sy = CursorOffset()
 	local pu, pv = PerPx(zoom)
+	local target = Clamp((anim and anim.mode == "anchor" and anim.target or zoom) * factor, 1, MaxZoomAt(u + sx * pu, v + sy * pv))
 	anim = { mode = "anchor", u = u + sx * pu, v = v + sy * pv, sx = sx, sy = sy, target = target }
 	userMoved = true
 end
@@ -162,7 +169,7 @@ end
 local function GlideTo(u, v, zoom)
 	local u0, v0, z0 = View()
 	anim = { mode = "glide", u0 = u0, v0 = v0, z0 = z0, u1 = u, v1 = v,
-		z1 = Clamp(zoom, 1, mod.db.maxZoom), t = 0 }
+		z1 = Clamp(zoom, 1, MaxZoomAt(u, v)), t = 0 }
 	userMoved = true
 end
 
@@ -377,8 +384,9 @@ local function OnCreateZoomLevels(self)
 	if not active then return end
 	local levels = {}
 	local zoom = 1
-	while zoom < mod.db.maxZoom * ZOOM_STEP do
-		levels[#levels + 1] = { scale = ScaleFor(self.mapID, math.min(zoom, mod.db.maxZoom)), layerIndex = 1 }
+	local deepest = mod.db.maxZoom * CITY_ZOOM               -- (the deepest anywhere: a city's)
+	while zoom < deepest * ZOOM_STEP do
+		levels[#levels + 1] = { scale = ScaleFor(self.mapID, math.min(zoom, deepest)), layerIndex = 1 }
 		zoom = zoom * ZOOM_STEP
 	end
 	self.zoomLevels = levels
@@ -395,7 +403,7 @@ local function OnResetZoom(self)
 	local u, v, zoom
 	if mod.SavedView then u, v, zoom = mod.SavedView() end
 	if u then
-		ShowWorld(u, v, Clamp(zoom, 1, mod.db.maxZoom))
+		ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v)))
 		userMoved = true
 		return
 	end
@@ -630,7 +638,7 @@ end
 mod.ToWorld = function(mapID, x, y) return ToWorld(mapID, x, y) end
 -- for Nav.lua: glide / jump to a world point (normalized) at a zoom; the zoom where a map fits
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
-function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, 1, mod.db.maxZoom)) userMoved = true end end
+function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v))) userMoved = true end end
 function mod.FitZoom(mapID) return FitZoom(mapID) end
 function mod.HostMap() return active and map:GetMapID() or nil end
 mod.FromWorld = function(mapID, u, v) return FromWorld(mapID, u, v) end
