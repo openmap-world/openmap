@@ -33,6 +33,11 @@ local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: 
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
 local UNDER_START, UNDER_FULL = 1.5, 1.05   -- view width / cave width where a cave starts / finishes surfacing
+-- (some sooner: a landmark you look at from further out, Blackrock Mountain's inside)
+local UNDER_START_OF = { [33] = 4 }
+-- (and a mountain's deeper floors never surface by themselves: they lie under its main one,
+-- Blackrock Caverns and the way down to the Depths under Blackrock Mountain)
+local UNDER_SKIP = { [34] = true, [35] = true }
 local TILE = 1600 / 3           -- yards per minimap tile
 -- the overlay: painted * (1 - mix) + mix * tint * mini. The minimap keeps its own colours,
 -- softened (MINI_DESAT) and warmed toward the map's parchment (PAPER), with only a hint of
@@ -337,11 +342,12 @@ local function UpdateUnderground(layer, cont, u, v, hu, hv)
 	local best, bestT = nil, 0
 	if mod.db.underground and cont and ns.MapCaves then
 		for id, c in pairs(ns.MapCaves) do
-			if c[2] == cont then
+			if c[2] == cont and not UNDER_SKIP[id] then
 				local u0, v0, u1, v1 = CaveRect(c)
 				if u0 and u1 > u - hu and u0 < u + hu and v1 > v - hv and v0 < v + hv then
 					local fill = (2 * hu) / (u1 - u0)          -- view width / cave width
-					local tz = 1 - Smooth(fill, { UNDER_FULL, UNDER_START })
+					local start = UNDER_START_OF[id] or UNDER_START
+					local tz = 1 - Smooth(fill, { UNDER_FULL, start })
 					local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
 					local off = math.max(math.abs(cu - u) / hu, math.abs(cv - v) / hv)
 					local t = tz * (1 - Smooth(off, { 0.35, 0.8 }))   -- only the cave you're centred on

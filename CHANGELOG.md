@@ -25,6 +25,7 @@
   does. You can zoom 1.5x further in cities, and the minimap mixes in over the cities in the
   open. Undercity's and Ironforge's own maps are drawn over the minimap, which shows the
   surface there, wherever they are in the view.
+- Blackrock Mountain's inside (its main floor) surfaces from further out as you zoom in on it.
 - Undercity's map is cut to the city's plan (its quarters, the Ruins, the Sewers), so Tirisfal's
   painting shows round it instead of the city map's own parchment.
 - "Fade while moving" (0-90%, in Options; on / off in the map's menu) replaces "Don't fade while
