@@ -708,11 +708,11 @@ function mod:Diag()
 		for i, p in ipairs(parts) do parts[i] = ("%s %.0f"):format(p[1], p[2]) end
 		if #parts > 0 then ns:Print("  the latest, by part (ms; parts can run inside each other): %s.", table.concat(parts, ", ")) end
 	end
-	local registered, shown, placed, ours
-	if mod.QuestieStatus then registered, shown, placed, ours = mod.QuestieStatus() end
+	local registered, shown, placed, ours, moved
+	if mod.QuestieStatus then registered, shown, placed, ours, moved = mod.QuestieStatus() end
 	if registered then
-		ns:Print("Questie: %d map icons, %d on this map (%d placed by Questie, %d by OpenMap), map %d.",
-			registered, shown, placed, ours, map:GetMapID() or 0)
+		ns:Print("Questie: %d map icons, %d on this map (%d placed by Questie, %d of those moved to Forever's positions, %d placed by OpenMap), map %d.",
+			registered, shown, placed, moved, ours, map:GetMapID() or 0)
 	end
 	local cv = S.closeView or {}
 	ns:Print("Up close: zoom %.1f, softening %.0f%%, minimap %.0f%% (%d tiles, %d in the gaps); %d view updates, the last %.1fs ago; %.2f ms each (worst %.1f).",

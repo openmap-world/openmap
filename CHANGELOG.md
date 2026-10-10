@@ -6,8 +6,9 @@
   hidden, and blank tiles of the filled-in land aren't drawn.
 - Opening the map loads only the zone art in view (and none until zone detail shows), instead
   of the whole world's; `/openmap status` shows how long the last openings took.
-- Questie's icons stay on the map when it switches to a zone: any icon Questie's map
-  library can't place there is placed from Forever's own map positions. `/openmap status`
+- Questie's icons stay on the map when it switches to a zone: Questie's map library places
+  them from world coordinates that are off on Forever's zone and continent maps, so there
+  each icon is placed (or moved) from Forever's own map positions. `/openmap status`
   shows how many Questie icons there are and who placed them.
 - The parchment border now frames the edge of the world, zoomed right out, instead of the window.
 - The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button
