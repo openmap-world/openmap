@@ -508,17 +508,25 @@ local function OnMouseWheel(_, delta)
 	ZoomAtCursor(delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP)
 end
 
+-- a left click drops a pin under the cursor when the menu's pin button is on, or with Ctrl
+local function Dropping(button)
+	return active and button == "LeftButton" and mod.DropWaypoint and (IsControlKeyDown() or (mod.PinMode and mod.PinMode()))
+end
+
+local function DropAtCursor()
+	if mod.SetPinMode then mod.SetPinMode(false) end
+	mod.DropWaypoint(mod.CursorWorld())     -- (not the click position Blizzard passes: that's clamped to this map's rectangle)
+end
+
 -- clicks: in = the next map down under the cursor, out = the map above
 local function OnCanvasClick(_, button)
 	if not active then return false end
-	-- not the click position Blizzard passes: that's clamped to this map's rectangle
-	local u, v = mod.CursorWorld()
-	local _, _, zoom = View()
-	if button == "LeftButton" and (IsControlKeyDown() or (mod.PinMode and mod.PinMode())) and mod.DropWaypoint then
-		if mod.SetPinMode then mod.SetPinMode(false) end
-		mod.DropWaypoint(u, v)
+	if Dropping(button) then
+		DropAtCursor()
 		return true
 	end
+	local u, v = mod.CursorWorld()
+	local _, _, zoom = View()
 	local chain = S.ChainAt(u, v)
 	if button == "LeftButton" then
 		for _, id in ipairs(chain) do
@@ -559,7 +567,16 @@ local function OnPinMouseUp(pin, button)
 		return
 	end
 	sc.mouseButtonInfo.LeftButton.down = false
+	if Dropping(button) then DropAtCursor() return end
 	if pin.OnClick then pin:OnClick() end
+end
+
+-- a click on one of Blizzard's map icons goes to its pin handlers, not the canvas's: dropping a
+-- pin works there too (Blizzard's own only took Ctrl-clicks, never the menu's pin button)
+local function OnBlizzardPinAction(_, action, button)
+	if not Dropping(button) then return false end
+	if action == MapCanvasMixin.MouseAction.Click then DropAtCursor() end
+	return action ~= MapCanvasMixin.MouseAction.Up
 end
 
 local function Setup()
@@ -600,6 +617,13 @@ local function Setup()
 	sc:HookScript("OnMouseDown", OnGrab)
 	sc:HookScript("OnUpdate", Animate)
 	map:AddCanvasClickHandler(OnCanvasClick, 1000)
+	if map.AddGlobalPinMouseActionHandler and MapCanvasMixin and MapCanvasMixin.MouseAction then
+		map:AddGlobalPinMouseActionHandler(OnBlizzardPinAction, 1000)
+	end
+	-- Blizzard's pin cursor while the menu's pin button is on
+	if map.AddCursorHandler then
+		map:AddCursorHandler(function() if active and mod.PinMode and mod.PinMode() then return "MAP_PIN_CURSOR" end end, 1000)
+	end
 	HookHighlight()
 
 	local dp = CreateFromMixins(MapCanvasDataProviderMixin)

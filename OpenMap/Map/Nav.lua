@@ -112,16 +112,35 @@ local function ClearPin()
 	RefreshWaypoint()
 end
 
+-- our pin: a click removes it, a chat-link click (Shift) puts Blizzard's link to it in chat
+local function PinClick()
+	if IsModifiedClick and IsModifiedClick("CHATLINK") then
+		local ok, link = pcall(C_Map.GetUserWaypointHyperlink or nop)
+		if ok and link then
+			local insert = (ChatFrameUtil and ChatFrameUtil.InsertLink) or ChatEdit_InsertLink
+			if insert then insert(link) end
+		end
+		return
+	end
+	ClearPin()
+end
+
+-- On the stitched map the pin is always ours, never Blizzard's: a click on Blizzard's runs in
+-- the map's code that OpenMap changes, and its Shift-click (copying a slash command to the
+-- clipboard, which only Blizzard's UI may do) is then blocked, blaming OpenMap
+local function HideBlizzardPin()
+	if not (mod.IsStitched and mod.IsStitched()) or not map or not map.EnumeratePinsByTemplate then return end
+	for pin in map:EnumeratePinsByTemplate("WaypointLocationPinTemplate") do pin:Hide() end
+end
+
 function RefreshWaypoint()
 	if not wpSet then return end
 	S.ClearPinSet(wpSet)
 	local mapID, x, y = BlizzardPin()
 	local own = not mapID
 	if own and mod.char.pin then mapID, x, y = mod.char.pin[1], mod.char.pin[2], mod.char.pin[3] end
+	HideBlizzardPin()
 	if not mapID or not S.Rect(mapID) then return end
-	-- Blizzard draws its own pin when it's on the map underneath
-	local host = mod.HostMap()
-	if not own and host and C_Map.GetUserWaypointPositionForMap and C_Map.GetUserWaypointPositionForMap(host) then return end
 	local u, v = mod.ToWorld(mapID, x, y)
 	local pin = S.AddPin(wpSet, u, v, WAYPOINT)
 	pin:SetScript("OnEnter", function(self)
@@ -130,10 +149,11 @@ function RefreshWaypoint()
 		GameTooltip:AddLine(L["Map pin"], 1, 0.82, 0)
 		GameTooltip:AddLine(("%s  %.1f, %.1f"):format(info and info.name or "", x * 100, y * 100), 1, 1, 1)
 		GameTooltip:AddLine(L["Click: remove"], 0.6, 0.6, 0.6)
+		if not own then GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6) end
 		GameTooltip:Show()
 	end)
 	pin:SetScript("OnLeave", GameTooltip_Hide)
-	pin.OnClick = ClearPin
+	pin.OnClick = PinClick
 end
 
 -- a pin at the world point (normalized): Blizzard's if it takes it, else ours; and TomTom's
@@ -355,6 +375,14 @@ function mod:SetupNav(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	ns.RegisterEvent(mod, "USER_WAYPOINT_UPDATED", RefreshWaypoint)
 	ns.RegisterEvent(mod, "SUPER_TRACKING_CHANGED", RefreshWaypoint)
+	-- Blizzard's pin comes back each time its provider redraws (the waypoint set, the map changed)
+	-- (found by a method only it has: asking each provider its pin template errors on some, the
+	-- vignettes' takes an argument)
+	for provider in pairs(map.dataProviders or {}) do
+		if type(provider) == "table" and provider.OnWayPointLocationToggleUpdate and provider.RefreshAllData then
+			hooksecurefunc(provider, "RefreshAllData", HideBlizzardPin)
+		end
+	end
 	local wait = 0
 	local ticker = CreateFrame("Frame", nil, map)
 	ticker:SetScript("OnUpdate", function(_, elapsed)
@@ -365,7 +393,7 @@ function mod:SetupNav(worldMap)
 	end)
 end
 
--- the map underneath changed: Blizzard's own pins may now cover ours, or stop to
+-- the map underneath changed: stitched or not, and the group's places on it
 function mod:RefreshNav()
 	RefreshWaypoint()
 	RefreshGroup()
