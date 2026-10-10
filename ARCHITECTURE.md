@@ -123,7 +123,7 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 ## The rest of `Map/`
 
 - `Extras.lua`: coordinates bar, zone levels and fishing skill on the hover label
-  (`Data/Levels.lua`), no fade while moving, hidden town / city icons and filter reset
+  (`Data/Levels.lua`), its own fade while moving (`moveFade`), hidden town / city icons and filter reset
   button, and Questie's pins from neighbouring zones (HereBeDragons only shows a zone's own).
 - `Flights.lua`: flight masters from `Data/FlightData.lua`; learned ones recorded at flight
   masters per character; click two for the route and a time (measured flights override

@@ -4,7 +4,8 @@
 --                 position under the cursor (any zone, not just the one shown)
 --   zone levels   the hover label adds a zone's level range (coloured by your
 --                 level; Data/Levels.lua)
---   no fade       the map stays opaque while you move (mapFade CVar)
+--   moving fade   how far the map fades while you move (0: not at all); ours, not the
+--                 game's (its mapFade CVar is held off): smooth, never under the mouse
 -- And Questie: on a zone map its pins (HereBeDragons) only show that zone's own;
 -- the stitched map shows the neighbours too, so their pins come along.
 --------------------------------------------------------------------------------
@@ -16,7 +17,7 @@ local mod = ns:GetModule("worldmap")
 local d = mod.defaults
 d.coords = true
 d.zoneLevels = true
-d.noFade = true
+d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
 
 local map, sc, bar
 local labelProvider, labelOnUpdate      -- Blizzard's area label, and its own OnUpdate
@@ -226,21 +227,49 @@ function mod.QuestieStatus()
 	return registered, shown, questie.placed, questie.ours
 end
 
+--------------------------------------------------------------------------------
+-- Fading while you move
+--------------------------------------------------------------------------------
+
+local FADE_RATE = 6             -- the fade's approach, per second
+local fader = CreateFrame("Frame")
+fader:Hide()
+local faded = 1
+fader:SetScript("OnUpdate", function(_, elapsed)
+	local moving = false
+	if GetUnitSpeed then
+		local speed = GetUnitSpeed("player")
+		moving = not ns.Safe.IsSecret(speed) and (speed or 0) > 0
+	end
+	local want = (moving and not map:IsMouseOver()) and 1 - (mod.db.moveFade or 0) or 1
+	if math.abs(faded - want) < 0.005 then
+		if faded ~= want then faded = want map:SetAlpha(want) end
+		return
+	end
+	faded = faded + (want - faded) * math.min(1, elapsed * FADE_RATE)
+	map:SetAlpha(faded)
+end)
+
 local function ApplyExtras()
 	if not map then return end
 	SetUpCoords()
 	SetUpZoneLevels()
-	if mod.db.noFade then
-		if mod.char.mapFade == nil then mod.char.mapFade = GetCVar and GetCVar("mapFade") or "1" end
-		SetCVarSafe("mapFade", "0")
-	elseif mod.char.mapFade ~= nil then
-		SetCVarSafe("mapFade", mod.char.mapFade)          -- the player's own setting, as it was
-		mod.char.mapFade = nil
+	-- (from the old on / off setting: fading back on was the game's half-fade)
+	if mod.db.noFade ~= nil then
+		if mod.db.noFade == false and (mod.db.moveFade or 0) == 0 then mod.db.moveFade = 0.5 end
+		mod.db.noFade = nil
 	end
+	-- the game's own fade off while ours runs (the player's setting kept, put back if ours is gone)
+	if mod.char.mapFade == nil then mod.char.mapFade = GetCVar and GetCVar("mapFade") or "1" end
+	SetCVarSafe("mapFade", "0")
+	fader:SetShown(map:IsShown() and (mod.db.moveFade or 0) > 0)
+	if (mod.db.moveFade or 0) == 0 then map:SetAlpha(1) end
 end
 
 function mod:SetupExtras(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
+	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) end)
+	map:HookScript("OnHide", function() fader:Hide() faded = 1 map:SetAlpha(1) end)
 	SetUpQuestiePins()
 	ApplyExtras()
 end
@@ -254,5 +283,7 @@ function mod:ExtraOptions(opts, get, set, off)
 		desc = "A bar along the map's foot: your position, and the zone and position under the cursor." }
 	opts.zoneLevels = { type = "toggle", name = "Zone levels", order = 42, get = get, set = setApply, disabled = off,
 		desc = "Hovering a zone shows its level range, coloured for your level." }
-	opts.noFade = { type = "toggle", name = "Don't fade while moving", order = 44, get = get, set = setApply, disabled = off }
+	opts.moveFade = { type = "range", name = "Fade while moving", order = 44, min = 0, max = 0.9, step = 0.05, isPercent = true,
+		get = get, set = setApply, disabled = off,
+		desc = "How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it." }
 end

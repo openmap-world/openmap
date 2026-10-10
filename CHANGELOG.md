@@ -10,6 +10,8 @@
   library can't place there is placed from Forever's own map positions. `/openmap status`
   shows how many Questie icons there are and who placed them.
 - The parchment border now frames the edge of the world, zoomed right out, instead of the window.
+- "Fade while moving" (0-90%, in Options; on / off in the map's menu) replaces "Don't fade while
+  moving": the map fades smoothly while you move, never while the mouse is over it.
 
 ## v0.1.0-beta (2026-10-09)
 
