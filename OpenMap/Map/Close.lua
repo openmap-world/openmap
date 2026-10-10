@@ -29,6 +29,7 @@ d.gapMinimap = false            -- the minimap in land no zone map covers (exper
 
 local MINI_FADE = { 20, 34 }    -- zoom where the minimap mixes in
 local DEEP_FADE = { 30, 48 }    -- ... and where it takes over, toward minimapDeep
+local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
@@ -451,6 +452,9 @@ function S.SetView(u, v, hu, hv, zoom)
 	if base > 0 then mix = mix + (math.max(base, mod.db.minimapDeep or base) - mix) * Smooth(zoom, DEEP_FADE) end
 	-- not over a city's own map (the minimap there is the surface, not the city)
 	mix = mix * (1 - (Try("cities", S.CityCover, u, v) or 0))
+	-- and over the cities on the surface no more than CITY_MINI: their own plan leads
+	local city = Try("surface cities", S.SurfaceCityCover, u, v) or 0
+	if mix > CITY_MINI then mix = mix + (CITY_MINI - mix) * city end
 	cv.mix = mix
 	local conts = Try("continents", ContinentsInView, u, v, hu, hv) or {}
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)

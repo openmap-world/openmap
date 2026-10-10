@@ -1112,13 +1112,15 @@ function S.InCity(u, v)
 	end
 	return false
 end
-function S.CityCover(u, v)
+-- how much the cities' own maps cover (u, v): full in the middle, easing off toward the edge of
+-- each one's rectangle. `underground`: the cities under the surface (their minimap is the
+-- surface's), else the others
+local function Cover(u, v, underground)
 	local cover = 0
 	for _, c in ipairs(cities) do
 		local l, r, t, b
-		if UNDERGROUND_CITIES[c.mapID] then l, r, t, b = S.Rect(c.mapID) end
+		if (UNDERGROUND_CITIES[c.mapID] and true or false) == underground then l, r, t, b = S.Rect(c.mapID) end
 		if l and u > l and u < r and v > t and v < b then
-			-- full in the middle, easing off toward the edge of its rectangle
 			local e = math.min(u - l, r - u) / (r - l) * 2
 			e = math.min(e, math.min(v - t, b - v) / (b - t) * 2)
 			cover = math.max(cover, c[1]:GetAlpha() * math.min(1, e * 2.5))
@@ -1126,6 +1128,8 @@ function S.CityCover(u, v)
 	end
 	return cover
 end
+function S.CityCover(u, v) return Cover(u, v, true) end
+function S.SurfaceCityCover(u, v) return Cover(u, v, false) end
 
 -- for Close.lua's minimap in the gaps: the continent layer (under every zone, so what's
 -- drawn there shows only where no zone covers), and each continent's gaps as a soft mask
