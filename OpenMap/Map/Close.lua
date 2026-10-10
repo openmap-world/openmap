@@ -338,45 +338,64 @@ local function Cave(layer, id, c)
 end
 
 -- how far each cave near the view has surfaced (0..1); the deepest wins
+-- one floor per place: a cave or dungeon entrance with several floors in one spot (Tiragarde
+-- Keep ...) shows its first
+local primary
+local function Primary(id, c)
+	if not primary then
+		primary = {}
+		for k, cc in pairs(ns.MapCaves or {}) do
+			if not UNDER_SKIP[k] and (not primary[cc[1]] or k < primary[cc[1]]) then primary[cc[1]] = k end
+		end
+	end
+	return primary[c[1]] == id
+end
+
+-- Every cave map in view surfaces by the zoom alone (UNDER_START .. UNDER_FULL of its width),
+-- and stays while it's on screen. The surface above dims and softens for the one you're
+-- centred on only, so panning about doesn't darken the whole map.
 local function UpdateUnderground(layer, cont, u, v, hu, hv)
-	local best, bestT = nil, 0
+	local shown, focus = {}, 0
 	if mod.db.underground and cont and ns.MapCaves then
 		for id, c in pairs(ns.MapCaves) do
-			if c[2] == cont and not UNDER_SKIP[id] then
+			if c[2] == cont and not UNDER_SKIP[id] and Primary(id, c) then
 				local u0, v0, u1, v1 = CaveRect(c)
 				if u0 and u1 > u - hu and u0 < u + hu and v1 > v - hv and v0 < v + hv then
 					local fill = (2 * hu) / (u1 - u0)          -- view width / cave width
-					local start = UNDER_START_OF[id] or UNDER_START
-					local tz = 1 - Smooth(fill, { UNDER_FULL, start })
-					local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
-					local off = math.max(math.abs(cu - u) / hu, math.abs(cv - v) / hv)
-					local t = tz * (1 - Smooth(off, { 0.35, 0.8 }))   -- only the cave you're centred on
-					if t > bestT then best, bestT = id, t end
+					local tz = 1 - Smooth(fill, { UNDER_FULL, UNDER_START_OF[id] or UNDER_START })
+					if tz > 0.01 then
+						shown[id] = tz
+						local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
+						local off = math.max(math.abs(cu - u) / hu, math.abs(cv - v) / hv)
+						focus = math.max(focus, tz * (1 - Smooth(off, { 0.35, 0.8 })))
+					end
 				end
 			end
 		end
 	end
 	for id, cave in pairs(caves) do
-		if cave and id ~= best then cave.frame:Hide() end
+		if cave and not shown[id] then cave.frame:Hide() end
+	end
+	for id, t in pairs(shown) do
+		local cave = Cave(layer, id, ns.MapCaves[id])
+		if cave then
+			cave.frame:Show()
+			cave.frame:SetAlpha(t)
+		end
 	end
 	if not dim then
 		dim = layer:CreateTexture(nil, "BACKGROUND")
 		dim:SetColorTexture(0.05, 0.035, 0.02, 1)
 	end
-	if best and bestT > 0.01 then
-		local cave = Cave(layer, best, ns.MapCaves[best])
-		if cave then
-			cave.frame:Show()
-			cave.frame:SetAlpha(bestT)
-		end
+	if focus > 0.01 then
 		S.PlaceWorld(dim, u - hu * 1.5, v - hv * 1.5, u + hu * 1.5, v + hv * 1.5)
-		dim:SetAlpha(0.45 * bestT)
+		dim:SetAlpha(0.45 * focus)
 		dim:Show()
 	else
 		dim:Hide()
 	end
-	S.SetUnderground(best and bestT or 0)
-	return best and bestT or 0
+	S.SetUnderground(focus)
+	return focus
 end
 
 -- the cave holding a world position (yards), for the entrance icons
