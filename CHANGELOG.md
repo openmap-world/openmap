@@ -12,6 +12,8 @@
   Questie fixes its icons' frame levels, which put them under the zone art up close. `/openmap status`
   shows how many Questie icons there are and who placed them.
 - The parchment border frames the map only when zoomed right out, fading as you zoom in.
+- Blizzard's glow on the zone under the cursor is off by default on the stitched map
+  ("Zone highlight on hover" in the menu brings it back).
 - The map window's portrait is OpenMap's icon while the map is stitched; the OpenMap button
   sits beside Blizzard's floor dropdown instead of under it.
 - Opening the map sets its view once (straight to where you left off), or not at all if

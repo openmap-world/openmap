@@ -52,6 +52,7 @@ local function Rows()
 	rows[#rows + 1] = { L["Coordinates"], opt("coords") }
 	rows[#rows + 1] = { L["Zone levels"], opt("zoneLevels") }
 	rows[#rows + 1] = { L["Parchment border"], opt("border") }
+	rows[#rows + 1] = { L["Zone highlight on hover"], opt("hoverHighlight") }
 	rows[#rows + 1] = { L["Fade while moving"], function() return (db.moveFade or 0) > 0 end,
 		function(v) db.moveFade = v and 0.5 or 0 mod:Refresh() end }   -- (the amount: Options → Fade while moving)
 	-- unexplored areas: dim or hide (neither ticked: shown as they are)
