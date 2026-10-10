@@ -110,7 +110,7 @@ local twins = {}                -- its colour-matched copies, same shape
 local zoneTex = {}              -- mapID -> its graded and twin entries (shown / hidden with the zone)
 local inView = {}               -- mapID -> whether the zone is near the view (S.Cull)
 local detailLive = false        -- whether the zone detail is drawn at all (zoomed in far enough)
-local ShowZone                  -- (below)
+local ShowZone, GradeEntry      -- (below)
 local gradeNow = { 1, 0, "show" }   -- ApplyGrade's settings
 local culled = {}               -- other regions shown only near the view: { region, l, t, r, b } (normalized)
 local backdrop = {}             -- world / continent art textures (over land)
@@ -291,7 +291,7 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 				local tx, ty = p.left + (x + (k - 1) * tw) * p.sx, p.top + (y + (j - 1) * th) * p.sy
 				-- a zone's textures get their file once the zone is in view (ShowZone): opening the
 				-- map loads what's there, not the whole world
-				local lazy = (band or list == graded) and not (inView[p.mapID] == true and detailLive)
+				local lazy = band or list == graded              -- (ShowZone queues them)
 				for copy = 1, band and 2 or 1 do
 					local tex = parent:CreateTexture(nil, drawLayer, nil, sub + (copy - 1) * 2)
 					if lazy then tex.omFile = file else tex:SetTexture(file, nil, nil, "TRILINEAR") end
@@ -1407,7 +1407,7 @@ end
 local function BuildBlur(mapID)
 	local p = Place(mapID)
 	if not p or not (ns.MapGrade and ns.MapGrade[mapID]) then blurZones[mapID] = false return end
-	local frames = {}
+	local frames, from = {}, #graded + 1
 	for i, tap in ipairs(BLUR_TAPS) do
 		local f = CreateFrame("Frame", nil, blurRoot)
 		f.omShift = true
@@ -1422,7 +1422,11 @@ local function BuildBlur(mapID)
 		frames[i] = f
 	end
 	blurZones[mapID] = frames
-	if lastGrade then S.ApplyGrade(unpack(lastGrade)) end
+	-- (its own new copies graded and queued to load, not every zone's)
+	if lastGrade then
+		for i = from, #graded do GradeEntry(graded[i], lastGrade[2], lastGrade[3] == "dim") end
+	end
+	ShowZone(mapID)
 end
 
 -- amount 0..1; the view's world rectangle (normalized): zones in it get their copies
@@ -1591,17 +1595,20 @@ ShowZone = function(mapID)
 	end
 end
 
+-- a zone texture's colour: unexplored ones dimmed (or not), some colour taken out
+GradeEntry = function(g, desat, dim)
+	local un = g[3] and g[3].unexplored
+	local c = (un and dim) and UNEXPLORED or 1
+	g[1]:SetVertexColor(c, c, c)
+	g[1]:SetDesaturation(desat)
+end
+
 function S.ApplyGrade(strength, desat, unexplored)
 	lastGrade = { strength, desat, unexplored }
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
 	local dim = unexplored == "dim"
-	for _, g in ipairs(graded) do
-		local un = g[3] and g[3].unexplored
-		local c = (un and dim) and UNEXPLORED or 1
-		g[1]:SetVertexColor(c, c, c)
-		g[1]:SetDesaturation(desat)
-	end
+	for _, g in ipairs(graded) do GradeEntry(g, desat, dim) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
 		local un = g[3] and g[3].unexplored

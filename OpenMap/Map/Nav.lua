@@ -66,13 +66,23 @@ function mod:OnMapHidden()
 	if u then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player") } end
 end
 
-function mod:OnMapShown()
+-- the view to reopen on: where the map was when it closed, unless you've moved on since
+function mod.SavedView()
 	if not saved or not mod.db.rememberView then return end
-	-- after Blizzard has put its own map up (next frame)
+	if Safe.Call(C_Map.GetBestMapForUnit, "player") ~= saved[4] then return end   -- you've moved on: open on you
+	return saved[1], saved[2], saved[3]
+end
+
+function mod:OnMapShown()
+	if not mod.SavedView() then return end
+	-- (Blizzard's zoom reset on opening goes straight there, WorldMap.lua; this is for when
+	-- Blizzard puts up another map after it, on the next frame: only if it's not there yet)
 	C_Timer.After(0, function()
-		if not saved or not mod.IsStitched() then return end
-		if Safe.Call(C_Map.GetBestMapForUnit, "player") ~= saved[4] then return end   -- you've moved on: open on you
-		mod.ShowNow(saved[1], saved[2], saved[3])
+		local u, v, zoom = mod.SavedView()
+		if not u or not mod.IsStitched() then return end
+		local nu, nv, nz = mod.ViewNow()
+		if nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3 then return end
+		mod.ShowNow(u, v, zoom)
 	end)
 end
 

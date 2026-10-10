@@ -377,6 +377,15 @@ local function OnResetZoom(self)
 	if not active or switching then return end
 	userMoved = false
 	anim = nil
+	-- reopening where you left off: straight there (not the whole map and then there, which
+	-- shows and hides every zone, and rescales every addon's icons, twice)
+	local u, v, zoom
+	if mod.SavedView then u, v, zoom = mod.SavedView() end
+	if u then
+		ShowWorld(u, v, Clamp(zoom, 1, mod.db.maxZoom))
+		userMoved = true
+		return
+	end
 	local aw, ah = S.ArtSize(self.mapID)
 	SetView(math.min(self:GetWidth() / aw, self:GetHeight() / ah), 0.5, 0.5)
 end
