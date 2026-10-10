@@ -96,6 +96,8 @@ local function View()
 end
 
 -- puts the view at once (Blizzard's InstantPanAndZoom drifts the pan toward the old one)
+local openStart, Part             -- (timing an opening: below)
+
 local function SetView(scale, x, y)
 	sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
 	sc.Child:SetScale(scale)
@@ -105,7 +107,9 @@ local function SetView(scale, x, y)
 	sc.targetScrollX, sc.targetScrollY, sc.currentScrollX, sc.currentScrollY = x, y, x, y
 	sc:SetNormalizedHorizontalScroll(x)
 	sc:SetNormalizedVerticalScroll(y)
+	local start = openStart and debugprofilestop and debugprofilestop()
 	map:OnCanvasScaleChanged()
+	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
 	sc:MarkAreaTriggersDirty()
 	sc:MarkViewRectDirty()
 end
@@ -275,7 +279,8 @@ end)
 -- how long opening the map takes, to the next frame drawn (/openmap status): the game's
 -- work, Questie's and ours (the first opening also builds the map); and OpenMap's own part,
 -- its handlers' time from the open until the second frame after it
-local openStart, openTimes, openOurs, openFrames = nil, {}, 0, 0
+local openTimes, openOurs, openFrames = {}, 0, 0
+local openParts, openLast = {}, {}
 local openTimer = CreateFrame("Frame")
 openTimer:Hide()
 openTimer:SetScript("OnUpdate", function(self)
@@ -285,17 +290,25 @@ openTimer:SetScript("OnUpdate", function(self)
 		openTimes[4] = nil
 	elseif openFrames >= 2 then
 		if openTimes[1] then openTimes[1][2] = openOurs end
+		openLast, openParts = openParts, {}
 		openStart = nil
 		self:Hide()
 	end
 end)
--- `fn`, with its time counted as OpenMap's part of an opening (while one is being timed)
-local function Ours(fn)
+-- `fn`, with its time counted as OpenMap's part of an opening (while one is being timed),
+-- by part. "icons rescaled" (Blizzard telling every addon's map icons the new scale, from
+-- SetView) is timed apart: it runs inside our handlers but is mostly other addons' work.
+Part = function(name, ms)
+	openParts[name] = (openParts[name] or 0) + ms
+end
+local function Ours(name, fn)
 	return function(...)
 		if not openStart or not debugprofilestop then return fn(...) end
 		local start = debugprofilestop()
 		fn(...)
-		openOurs = openOurs + debugprofilestop() - start
+		local ms = debugprofilestop() - start
+		openOurs = openOurs + ms
+		Part(name, ms)
 	end
 end
 
@@ -303,7 +316,7 @@ end
 -- (Blizzard reports a pan several times a frame: the work is done once, on the next frame)
 local viewFrame = CreateFrame("Frame")
 viewFrame:Hide()
-viewFrame:SetScript("OnUpdate", Ours(function(self)
+viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	self:Hide()
 	if not active or not S.SetView then return end
 	local u, v, zoom = View()
@@ -553,8 +566,8 @@ local function Setup()
 		GlideTo((u0 + u1) / 2, (v0 + v1) / 2, z * (fill or 1))
 	end
 	S.OpenMap = function(mapID) map:SetMapID(mapID) end
-	hooksecurefunc(sc, "CreateZoomLevels", Ours(OnCreateZoomLevels))
-	hooksecurefunc(sc, "ResetZoom", Ours(OnResetZoom))
+	hooksecurefunc(sc, "CreateZoomLevels", Ours("zoom levels", OnCreateZoomLevels))
+	hooksecurefunc(sc, "ResetZoom", Ours("reset zoom", OnResetZoom))
 	if map.RefreshDetailLayers then hooksecurefunc(map, "RefreshDetailLayers", BlizzardArt) end
 	sc.CalculateScrollExtentsAtScale = Extents(sc.CalculateScrollExtentsAtScale)
 	sc:HookScript("OnMouseWheel", OnMouseWheel)
@@ -564,7 +577,7 @@ local function Setup()
 	HookHighlight()
 
 	local dp = CreateFromMixins(MapCanvasDataProviderMixin)
-	dp.OnCanvasScaleChanged = Ours(ApplyZoom)
+	dp.OnCanvasScaleChanged = Ours("scale changed", ApplyZoom)
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
 		ApplyZoom()
@@ -579,13 +592,13 @@ local function Setup()
 		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
 	end
-	local shown = Ours(function()
+	local shown = Ours("map shown", function()
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
 		if active then ticker:Show() end
 		if mod.OnMapShown then mod:OnMapShown() end
 	end)
 	dp.OnShow = function()
-		if debugprofilestop then openStart, openOurs, openFrames = debugprofilestop(), 0, 0 openTimer:Show() end
+		if debugprofilestop then openStart, openOurs, openFrames, openParts = debugprofilestop(), 0, 0, {} openTimer:Show() end
 		shown()
 	end
 	map:AddDataProvider(dp)
@@ -689,6 +702,11 @@ function mod:Diag()
 		local list = {}
 		for i, t in ipairs(openTimes) do list[i] = ("%.0f (OpenMap %.0f)"):format(t[1], t[2]) end
 		ns:Print("Opening the map took %s ms, latest first; the rest is the game and other addons.", table.concat(list, ", "))
+		local parts = {}
+		for name, ms in pairs(openLast) do parts[#parts + 1] = { name, ms } end
+		table.sort(parts, function(a, b) return a[2] > b[2] end)
+		for i, p in ipairs(parts) do parts[i] = ("%s %.0f"):format(p[1], p[2]) end
+		if #parts > 0 then ns:Print("  the latest, by part (ms; parts can run inside each other): %s.", table.concat(parts, ", ")) end
 	end
 	local registered, shown, placed, ours
 	if mod.QuestieStatus then registered, shown, placed, ours = mod.QuestieStatus() end
