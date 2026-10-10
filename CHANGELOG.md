@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The OpenMap button stays in the map's top-left corner (an addon's frame across the map
+  could push it off the right edge).
 - Faster panning and zooming: map icons off the view (townsfolk, flight masters ...) are
   hidden, and blank tiles of the filled-in land aren't drawn.
 - Opening the map loads only the zone art in view (and none until zone detail shows), instead

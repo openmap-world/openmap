@@ -176,8 +176,13 @@ function mod:SetupPanel(worldMap)
 		local left, top = sc:GetLeft(), sc:GetTop()
 		for _, f in ipairs(map.overlayFrames or {}) do
 			local fl, ft, fr = f:IsShown() and f:GetLeft(), f:GetTop(), f:GetRight()
-			if fl and left and ft and fr and fl - left < 40 and top - ft < 40 then x = math.max(x, fr - left + 4) end
+			-- (a button in the corner, not a frame across the map: an addon's can span its width)
+			if fl and left and ft and fr and fl - left < 40 and top - ft < 40 and fr - fl < 220 then
+				x = math.max(x, fr - left + 4)
+			end
 		end
+		local w = sc:GetWidth()
+		if w and w > 0 then x = math.min(x, w - toggle:GetWidth() - 6) end     -- (never past the map's edge)
 		toggle:ClearAllPoints()
 		toggle:SetPoint("TOPLEFT", sc, "TOPLEFT", x, -6)
 	end
