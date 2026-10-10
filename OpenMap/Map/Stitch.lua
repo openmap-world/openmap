@@ -1108,7 +1108,8 @@ end
 function S.CityCover(u, v)
 	local cover = 0
 	for _, c in ipairs(cities) do
-		local l, r, t, b = UNDERGROUND_CITIES[c.mapID] and S.Rect(c.mapID)
+		local l, r, t, b
+		if UNDERGROUND_CITIES[c.mapID] then l, r, t, b = S.Rect(c.mapID) end
 		if l and u > l and u < r and v > t and v < b then
 			-- full in the middle, easing off toward the edge of its rectangle
 			local e = math.min(u - l, r - u) / (r - l) * 2

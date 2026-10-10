@@ -104,6 +104,18 @@ def check_escapes(path):
     return found
 
 
+def check_truncation(path):
+    """`local a, b = x and f()`: Lua keeps only f's first value (b is nil). Write
+    `local a, b; if x then a, b = f() end` instead"""
+    found = []
+    pat = re.compile(r"^\s*(?:local\s+)?[A-Za-z_]\w*\s*,[^=]*=\s*[^,]*\band\s+[\w.:]+\([^,]*\)\s*$")
+    for i, line in enumerate(open(path, encoding="utf-8").read().split("\n"), 1):
+        code = strip(line)
+        if pat.match(code) and " or " not in code:
+            found.append(f"{os.path.relpath(path, ROOT)}:{i}: several values from `x and f()`: Lua keeps only the first")
+    return found
+
+
 # Blizzard's API functions the addon calls by bare name. A call to any other capitalised
 # name must be defined in its file: one that isn't (a function deleted or never written)
 # is a nil global in game, which the offline stub hides. Using a new API: add it here.
@@ -162,6 +174,7 @@ for path in sorted(glob.glob(os.path.join(ROOT, "*.lua")) + glob.glob(os.path.jo
     problems += check_values(path)
     problems += check_escapes(path)
     problems += check_calls(path)
+    problems += check_truncation(path)
     problems += check_shared(path)
 for p in problems:
     print(p)
