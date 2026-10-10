@@ -68,6 +68,8 @@ local CITY_FADE = { 0.2, 0.4 }  -- (cities: share of the zoom where they fill th
 local CITY_FADE_OF = {          -- ... sooner where the zone paints it as no more than a blur
 	[1454] = { 0.08, 0.25 },    --  (Orgrimmar, on Durotar's: a long fade, over its zone's painting of it)
 }
+local UNDERGROUND_CITIES = { [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
+                                -- shows the surface, so their own map is drawn above it (and it's kept off them)
 local BANNER_OUT = { 0.35, 0.5 } -- ... and where the zone's banner for it (ns.MapBanners, the only one: the
                                 --  zone's own art is drawn without it), over the city, goes
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
@@ -939,7 +941,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	citiesRoot = Layer(artLevel + range - 7)
 	S.closeLayers = {                       -- for Close.lua: the closest zoom's layers
 		minimap = Layer(artLevel + range - 6),
-		grain = Layer(artLevel + range - 5),
+		grain = Layer(artLevel + range - 1),   -- (over everything; range - 5 is the underground cities')
 		under = Layer(artLevel + range - 4),
 	}
 	labelsRoot = Layer(artLevel + range - 3)
@@ -1045,7 +1047,8 @@ function S.Build(parent, artLevel, range, iconLevel)
 				tinsert(S.stats.cities, info.mapID)
 				local cf = CreateFrame("Frame", nil, citiesRoot)
 				cf:SetAllPoints(root)
-				cf:SetFrameLevel(citiesRoot:GetFrameLevel())
+				-- (an underground city above the minimap layer, which shows the surface over it)
+				cf:SetFrameLevel(UNDERGROUND_CITIES[info.mapID] and artLevel + range - 5 or citiesRoot:GetFrameLevel())
 				local l, r, t, b = S.Rect(info.mapID)
 				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID }
 				culled[#culled + 1] = { cf, l, t, r, b }
@@ -1081,7 +1084,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		if p then
 			local f = CreateFrame("Frame", nil, citiesRoot)
 			f:SetAllPoints(root)
-			f:SetFrameLevel(citiesRoot:GetFrameLevel() + 1)
+			f:SetFrameLevel(c[1]:GetFrameLevel() + 1)
 			local tex = f:CreateTexture(nil, "ARTWORK")
 			tex:SetTexture(TEX .. "MapBanner\\" .. c.mapID, nil, nil, "LINEAR")
 			Record(tex, p.left + b[2] * p.sx, p.top + b[3] * p.sy, b[4] * p.sx, b[5] * p.sy)
@@ -1099,7 +1102,6 @@ function S.IsBuilt() return root ~= nil end
 -- how much an underground city's own map covers the point (u, v) (0..1): Close.lua keeps
 -- the minimap off it, as the minimap there shows the surface (the ruins above the Undercity,
 -- Ironforge's mountain). Over the cities in the open the minimap is the city, and mixes in.
-local UNDERGROUND_CITIES = { [1458] = true, [1455] = true }   -- Undercity, Ironforge
 
 -- whether (u, v) is in a city's own map (WorldMap.lua lets you zoom further there)
 function S.InCity(u, v)

@@ -19,7 +19,8 @@
   names the slowest steps of the close-up update, and how much of opening the map is OpenMap's.
 - Undercity: Tirisfal's "Undercity" banner sits over the city until close in, as Orgrimmar's
   does. You can zoom 1.5x further in cities, and the minimap mixes in over the cities in the
-  open (not Undercity or Ironforge, where it shows the surface).
+  open. Undercity's and Ironforge's own maps are drawn over the minimap, which shows the
+  surface there, wherever they are in the view.
 - "Fade while moving" (0-90%, in Options; on / off in the map's menu) replaces "Don't fade while
   moving": the map fades smoothly while you move, never while the mouse is over it.
 
