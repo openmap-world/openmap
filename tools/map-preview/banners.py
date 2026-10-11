@@ -7,8 +7,9 @@
 #                                   close it can go, leaving none of the zone's round the city)
 #   MapCityMask/<city uiMapID>.tga  the city's own map cut down to the city (its plan, not the
 #                                   blank parchment round it, which would cover the zone's
-#                                   painting of the land about it, nor its own name banner)
-# Both cuts are traced by hand on the art (BANNERS, CITIES: in its 1002 x 668 pixels),
+#                                   painting of the land about it), and its own name banner
+#                                   where CITY_TITLES has it (its title up close)
+# The cuts are traced by hand on the art (BANNERS, CITIES, CITY_TITLES: in its 1002 x 668 pixels),
 # softened at the edge.
 # usage: python -P tools/map-preview/banners.py <db2 dir> <texture cache>
 import os, sys
@@ -39,22 +40,31 @@ BANNERS = {
                   (737, 535), (731, 528), (723, 521), (695, 521)]),        # the right one
     ]),
 }
-# city -> its plan's outline on its own art: the valleys, the Drag and the gate (not its banner,
-# top left, nor the Horde emblem, bottom right)
+# city -> its plan's outline on its own art: the valleys, the Drag and the gate (its banner, top
+# left, is CITY_TITLES'; not the Horde emblem, bottom right)
 CITIES = {
     "Orgrimmar": [(300, 205), (430, 200), (560, 172), (610, 80), (700, 30), (800, 40), (845, 120),
                   (830, 250), (760, 300), (655, 340), (630, 420), (600, 500), (575, 560), (575, 662),
                   (440, 662), (440, 600), (330, 618), (240, 565), (200, 515), (120, 505), (85, 420),
                   (125, 330), (230, 340), (320, 300)],
-    # the ring and its quarters, the Ruins above, the Sewers (not its banner, top left, nor the
-    # Forsaken emblem, bottom left)
+    # the ring and its quarters, the Ruins above, the Sewers (its banner, top left, is
+    # CITY_TITLES'; not the Forsaken emblem, bottom left)
     "Undercity": [(120, 200), (170, 165), (300, 165), (350, 140), (430, 135), (430, 60), (470, 50),
                   (560, 45), (580, 35), (740, 35), (760, 55), (850, 55), (905, 95), (905, 200),
                   (870, 260), (880, 380), (910, 440), (900, 520), (830, 530), (760, 470), (660, 480),
                   (620, 520), (630, 600), (595, 625), (525, 625), (470, 610), (430, 560), (420, 470),
                   (420, 400), (450, 330), (400, 290), (330, 250), (270, 320), (170, 330), (110, 280)],
 }
+# city -> its own name banner's outline on its own art, kept in its cut: up close it's the city's
+# title, and its zone's banner for it (MapBanner, bigger, over the city) goes as the city comes in
+CITY_TITLES = {
+    "Orgrimmar": [(218, 160), (240, 152), (298, 150), (298, 140), (527, 140), (527, 150), (560, 154),
+                  (566, 168), (556, 180), (527, 190), (300, 193), (252, 199), (226, 196), (215, 180)],
+    "Undercity": [(30, 95), (45, 84), (108, 80), (108, 63), (338, 63), (338, 80), (400, 84), (415, 95),
+                  (412, 118), (395, 129), (338, 119), (110, 119), (50, 129), (32, 118)],
+}
 CITY_SOFT = 50                  # art px over which a city's cut fades (out from its outline: the plan stays whole)
+TITLE_FRAME = (10, 28)          # art px from the art's edge where a kept banner's cut is gone / whole (its torn frame)
 
 def pow2(n):
     p = 16
@@ -88,13 +98,25 @@ for city, (zone, shapes) in BANNERS.items():
     rows.append((c["id"], z["id"], x0, y0, w, h, city))
     print("banner", city, "on", zone, "at", (int(x0), int(y0)), "size", (w, h))
 
-cut = []
-for city, poly in CITIES.items():
-    c = by_name[city]
+def soft_cut(poly):
+    """an outline filled, grown and blurred: whole inside, fading out over CITY_SOFT past it"""
     mask = Image.new("L", (1002, 668), 0)
     ImageDraw.Draw(mask).polygon(poly, fill=255)
     mask = mask.filter(ImageFilter.MaxFilter(2 * (CITY_SOFT // 3) + 1))     # (grown, so the fade starts outside it)
-    mask = mask.filter(ImageFilter.GaussianBlur(CITY_SOFT / 3)).resize((256, 256), Image.LANCZOS)
+    return np.asarray(mask.filter(ImageFilter.GaussianBlur(CITY_SOFT / 3))).astype(np.float32)
+
+# a banner near the art's edge (Undercity's): its cut fades out inside the art's torn frame, not at
+# the art's rectangle (a straight line)
+ys_, xs_ = np.mgrid[0:668, 0:1002]
+from_edge = np.minimum(np.minimum(xs_, 1001 - xs_), np.minimum(ys_, 667 - ys_)).astype(np.float32)
+INSIDE_FRAME = np.clip((from_edge - TITLE_FRAME[0]) / (TITLE_FRAME[1] - TITLE_FRAME[0]), 0, 1)
+
+cut = []
+for city, poly in CITIES.items():
+    c = by_name[city]
+    m_ = soft_cut(poly)
+    if city in CITY_TITLES: m_ = np.maximum(m_, soft_cut(CITY_TITLES[city]) * INSIDE_FRAME)
+    mask = Image.fromarray(np.clip(m_ + 0.5, 0, 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS)
     Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (mask,)).save(os.path.join(TEX, "MapCityMask", "%d.tga" % c["id"]))
     cut.append((c["id"], city))
     print("city cut", city)
@@ -111,4 +133,7 @@ with open(os.path.join(g["REPO"], "OpenMap", "Data", "Banners.lua"), "w", encodi
     fh.write("}\n\n-- cities whose own map is cut down to the city (Media/Textures/MapCityMask/<city>)\nns.MapCityCuts = {\n")
     for cid, city in cut:
         fh.write("\t[%d] = true,   -- %s\n" % (cid, city))
+    fh.write("}\n\n-- ... and whose cut keeps their own name banner: their zone's banner for them goes as they come in\nns.MapCityTitles = {\n")
+    for cid, city in cut:
+        if city in CITY_TITLES: fh.write("\t[%d] = true,   -- %s\n" % (cid, city))
     fh.write("}\n")

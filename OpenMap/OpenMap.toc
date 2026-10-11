@@ -39,6 +39,7 @@ Map\Flights.lua
 Map\Routes.lua
 Map\Townsfolk.lua
 Map\Paint.lua
+Map\Debug.lua
 Map\Report.lua
 Map\Nav.lua
 Map\Window.lua

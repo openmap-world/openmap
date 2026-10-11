@@ -73,8 +73,9 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   client): a thin, wavy feather at the art's edge.
 - **zone interiors**: the overlays again through `MapCore`, above every zone's parchment halo.
 - **cities**: base art with a round feather, fading in near the zoom where they fill the view.
-  Orgrimmar comes in sooner, cut to its plan (`MapCityMask`), under Durotar's banner for it
-  (`MapBanner`; Durotar's own art is drawn without it, `MapBannerHole`).
+  Orgrimmar comes in sooner. Orgrimmar and Undercity are cut to their plan and their own name
+  banner (`MapCityMask`), under their zone's banner for them (`MapBanner`; the zone's own art is
+  drawn without it, `MapBannerHole`), which gives way to the city's own as it comes in.
 - **names**: the continents' and seas' names, lettered live in the client's font with the
   art's halo (`Data/Labels.lua`, measured from the art), one of each, fixed on the world.
 - **icons and lines**: pin sets (places, flight masters, townsfolk, group members,
@@ -130,20 +131,26 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   the estimate).
 - `Townsfolk.lua`: vendors, trainers, rares ... from Questie's NPC database at run time,
   built the first time a kind is turned on.
-- `Panel.lua`: the OpenMap menu (the button in the map's corner): search, find me, map pins,
-  report a problem, options, and the layer checklist (with Questie's own map-icon setting).
+- `Panel.lua`: the OpenMap menu (the button in the map's bottom-left corner), in the map
+  window's own frame: search, the actions (find me, map pins, the quest log beside the map,
+  report a problem, options), the layer checklist with an icon each (and Questie's own
+  map-icon setting), and the deepest zoom. A star on an action or a setting puts it on the
+  bar beside the OpenMap button (favourites).
 - `Routes.lua`: boat and zeppelin routes as evenly spaced dots along the real paths, in
   nested densities; Alliance blue, others red; quiet until the cursor comes near one.
 - `Nav.lua`: find me, reopening where you left off, Ctrl-click map pins (and TomTom),
   search (zones, dungeons, flight masters), group members off the map underneath.
-- `Window.lua`: move (title bar) and resize (corner grip) the windowed map to any shape,
+- `Window.lua`: move (title bar) and resize (a grip in each bottom corner) the windowed map to any shape,
   remembered; the maximized map fills the screen's width; the parchment border (nine pieces,
   `MapBorder`) round the view, seen only zoomed right out. Re-applied after Blizzard's panel layout, never by editing its
   layout tables (taint).
 - `Report.lua`: beta feedback: circle the problem on the map, add a note, get a report
   code (`OM1|...`) to paste into a GitHub issue; `tools/map-preview/report.py` renders it.
-- `Paint.lua`: development tool, soft-brush mark-up and notes saved under `paint`, for
-  reporting blending problems (`/openmap paint`).
+- `Paint.lua`: map notes, for working on the map (`/openmap notes`): paint an area, say what's
+  there (fix this, look into this, an idea), list them, export them all as text;
+  `tools/map-preview/notes.py` renders each one. Saved under `paint`.
+- `Debug.lua`: the debug overlay (`/openmap debug`): frame rate, a graph of frame times, the
+  worst frame, what OpenMap's zoom and close-up updates cost, textures drawn.
 
 ## Ideas and open questions
 

@@ -21,7 +21,7 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapCoast/`, `MapSeaMask/`, `MapGapLand/`, `MapGapMask/`, `MapBackLand/` | masks traced from the continent maps' coasts | `tools/map-preview/sea.py`, `gapfill.py` |
 | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/` | masks of the world and continent maps' sea: past the world map's edge, and its coastal hatching apart from its open sea | `tools/map-preview/sea_world.py` |
 | `MapBanner/` | a zone map's name banner for a city ("Orgrimmar" on Durotar's), cut out along a traced outline | `tools/map-preview/banners.py` |
-| `MapBannerHole/`, `MapCityMask/` | masks traced on the art: the zone's art without that banner, and a city's map cut down to the city | `tools/map-preview/banners.py` |
+| `MapBannerHole/`, `MapCityMask/` | masks traced on the art: the zone's art without that banner, and a city's map cut down to the city and its name banner | `tools/map-preview/banners.py` |
 | `MapGapLand/` (Gilneas), `MapCoastArt/` | masks for Blizzard's own maps that the client has but Forever's tables don't use (Gilneas' base map; the classic base maps of 18 zones, which paint the land round them): where they're drawn, at their own resolution, on land no zone covers | `tools/map-preview/gapfill.py` |
 | `MapArt/` | world and continent map tiles with their sea and continent names painted out (by hand) | `tools/map-art/import.py` |
 | `MapBorder/` | the map art's parchment frame (cut out by hand), in nine pieces | `tools/map-art/border.py` |

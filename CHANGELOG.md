@@ -2,13 +2,39 @@
 
 ## Unreleased
 
+- Map notes (Tools → Map notes, `/openmap notes`) replace the paint tool: paint an area (or
+  click) and say what's there, as a "fix this", "look into this" or "idea"; a list of them all
+  (click one to go there) and Export, which gives them all as text to paste where they're needed.
+  `tools/map-preview/notes.py` renders them out of game. Older paint mark-up becomes notes.
+- A debug overlay (Tools → Debug overlay, `/openmap debug`): the frame rate on the map, a graph of
+  frame times, the worst frame, and what OpenMap's own updates cost.
+- The quest log shows on the full-screen map too: the Quest log button (and the arrow button in
+  the corner, as on the windowed map) puts it over the map's right side. Its background no longer
+  ends in a line when the window is taller than Blizzard's.
+- Blizzard's quest areas (the blue shapes) keep up with the map as it zooms, instead of a step behind.
+- The OpenMap button and the favourites' row are in the map's bottom-left corner, along its
+  foot (over the coordinates when they show); favourites are icon buttons in Blizzard's
+  action-button frame, glowing while they're on.
+- The OpenMap menu is laid out afresh in the map window's own frame: the actions as tiles with
+  icons, an icon by each setting, bronze rules between the parts. Find me, Drop a pin,
+  Report a problem, Options and a new Quest log button (hide or show the quest log beside the
+  map, out of combat) can be starred onto the map too.
+- "Minimap detail" (in the menu's Up close and in Options) turns the minimap's detail off at
+  the closest zoom, so the painted map is all you see.
+- The deepest zoom is a slider in the menu, and goes to 192x (it was 96x at most).
+- The window resizes from its bottom-left corner as well as the bottom-right, and both grips
+  are easier to catch.
 - Favourite settings: the star by each setting in the OpenMap menu puts it on the map as a
   button of its own, beside the OpenMap button (lit while it's on; click to switch it,
   right-click to take it off).
 - The parchment border's edges are laid as copies of their piece at its own length, every other
   one mirrored, instead of one piece stretched along the whole side; the corners are as they were.
-- Orgrimmar's and Undercity's titles (their zone's banner for them) stay at every zoom, over the
-  close-up layers: up close the city had no title, its own map being cut down to its plan.
+- Orgrimmar and Undercity keep their own maps' name banners: up close that's the city's title,
+  and their zone's big banner for them (Durotar's, Tirisfal's) gives way to it as you zoom in,
+  instead of covering the city. (Changed textures: restart the game.)
+- No more straight-edged patches over the zones zoomed out (east of the Barrens, Stranglethorn ...):
+  the blank paper in the gaps between zones reaches only a little way under the zones, not to
+  the edge of the square it's drawn in. (Changed textures: restart the game.)
 - The ocean past the world map keeps the world sea's own colours, carried outward, instead of
   one flat grey-green. (New texture: restart the game.)
 - The OpenMap button stays in the map's top-left corner (an addon's frame across the map

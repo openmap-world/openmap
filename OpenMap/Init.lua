@@ -4,7 +4,8 @@
 --
 --   /openmap (/omap)        options
 --   /openmap status         what the map is doing
---   /openmap paint          paint & notes (marking up the map for contributors)
+--   /openmap notes          map notes (paint areas, say what's there, export them)
+--   /openmap debug          the debug overlay (frame rate, frame times, what OpenMap costs)
 --------------------------------------------------------------------------------
 
 local ADDON, ns = ...
@@ -29,7 +30,7 @@ local function Slash(msg)
 	msg = (msg or ""):lower():match("^%s*(.-)%s*$")
 	local mod = ns:GetModule("worldmap")
 	local run = {
-		status = "Diag", paint = "TogglePaint",
+		status = "Diag", paint = "TogglePaint", notes = "TogglePaint", debug = "ToggleDebugOverlay",
 	}
 	if run[msg] then
 		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod) else ns:Print("The map is off.") end

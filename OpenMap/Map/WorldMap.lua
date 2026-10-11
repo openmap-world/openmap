@@ -29,11 +29,14 @@ local mod = ns:NewModule("worldmap", {
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
-		maxZoom = 48,           -- x the whole-world view
+		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
 	},
 })
 
 local ZOOM_STEP = 1.25          -- each wheel notch
+local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step (the minimap's own detail runs out
+                                --  near 48; past it the painted map and the minimap are only enlarged)
+mod.MAX_ZOOM = MAX_ZOOM
 local ENTER, LEAVE = 0.9, 0.7   -- switch into a map at this share of its fit zoom; leave it below that
 local ART_RANGE = 80            -- frame levels the stitched art needs
 
@@ -98,6 +101,7 @@ end
 
 -- puts the view at once (Blizzard's InstantPanAndZoom drifts the pan toward the old one)
 local openStart, Part             -- (timing an opening: below)
+local BLOB_PINS = { "QuestBlobPinTemplate", "ScenarioBlobPinTemplate", "BonusObjectiveBlobPinTemplate" }
 
 local function SetView(scale, x, y)
 	sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
@@ -111,6 +115,13 @@ local function SetView(scale, x, y)
 	local start = openStart and debugprofilestop and debugprofilestop()
 	map:OnCanvasScaleChanged()
 	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
+	-- Blizzard's quest areas (blobs) redraw for a new scale in their own next OnUpdate, which can
+	-- come before this in the next frame: a frame behind all through a zoom. Redrawn now
+	for _, template in ipairs(BLOB_PINS) do
+		for pin in map:EnumeratePinsByTemplate(template) do
+			if pin:IsShown() and pin.Refresh then pin:Refresh() end
+		end
+	end
 	sc:MarkAreaTriggersDirty()
 	sc:MarkViewRectDirty()
 end
@@ -660,6 +671,7 @@ local function Setup()
 	if mod.SetupNav then mod:SetupNav(map) end          -- (before the menu: it holds Nav's search box)
 	if mod.SetupPanel then mod:SetupPanel(map) end
 	if mod.SetupPaint then mod:SetupPaint(map) end
+	if mod.SetupDebug then mod:SetupDebug(map) end
 	if mod.SetupReport then mod:SetupReport(map) end
 	if mod.SetupWindow then mod:SetupWindow(map) end
 
@@ -683,6 +695,11 @@ mod.ToWorld = function(mapID, x, y) return ToWorld(mapID, x, y) end
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
 function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v))) userMoved = true end end
 function mod.FitZoom(mapID) return FitZoom(mapID) end
+-- the deepest zoom (the menu's slider and the options): the zoom levels are rebuilt for it
+function mod.SetMaxZoom(v)
+	mod.db.maxZoom = math.max(MAX_ZOOM[1], math.min(MAX_ZOOM[2], v))
+	if map and active then sc:OnCanvasSizeChanged() end
+end
 function mod.HostMap() return active and map:GetMapID() or nil end
 mod.FromWorld = function(mapID, u, v) return FromWorld(mapID, u, v) end
 -- the view now: centre (normalized), zoom; nil when the map isn't stitched
@@ -811,9 +828,9 @@ function mod:Options()
 		unexplored = { type = "select", name = "Unexplored areas", order = 23, get = get, set = set, disabled = off,
 			values = { show = "Show", dim = "Fade", hide = "Hide" }, sorting = { "show", "dim", "hide" },
 			desc = "Areas you haven't explored yet: shown as they are, faded most of the way to the blank parchment, or hidden like Blizzard's own map (blank parchment until you get there)." },
-		maxZoom = { type = "range", name = "Deepest zoom", order = 24, min = 16, max = 96, step = 4,
-			get = get, set = function(info, v) set(info, v) if map and active then sc:OnCanvasSizeChanged() end end, disabled = off,
-			desc = "Times the whole-world view." },
+		maxZoom = { type = "range", name = "Deepest zoom", order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
+			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,
+			desc = "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged." },
 		iconHeader = ns.Header("Icons", 30),
 		routes = { type = "toggle", name = "Boat and zeppelin routes", order = 34, get = get, set = set, disabled = off },
 		icons = { type = "toggle", name = "Dungeons, travel and more", order = 31, get = get, set = set, disabled = off,

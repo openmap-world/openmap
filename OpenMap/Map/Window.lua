@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- The map window: drag its title bar to move it, drag the corner grip to make it
+-- The map window: drag its title bar to move it, drag either bottom corner's grip to make it
 -- any width and height (the stitched map has no edges to keep a shape for); both are
 -- remembered, and a size slider scales the whole window. Only the windowed map: the maximized map is left to
 -- Blizzard. Blizzard's panel layout tables are left alone (writing to them can
@@ -20,8 +20,8 @@ local MIN_W, MIN_H = 480, 320
 
 d.border = true                 -- the map art's parchment frame round the map, zoomed right out
 
-local map, handle, grip, border
-local FillScreen, SetupBorder
+local map, handle, grip, border  -- (grip: both corners' grips)
+local FillScreen, SetupBorder, SetupQuestLog
 local blizzardSize              -- the windowed map's own size, for a reset
 local ours = false              -- OpenMap is moving / sizing the window itself (not to be undone)
 
@@ -184,6 +184,61 @@ SetupBorder = function()
 	end)
 end
 
+-- a resize grip in one of the window's bottom corners: any width and height, the top edge and
+-- the far side staying put. In the window's outer corner (clear of Blizzard's quest log button
+-- just inside the right one), over everything there; its catch reaches well past the window's
+-- edge, and only a little in over the map
+local GRIP, GRIP_OUT, GRIP_IN = 20, 10, 4
+local function Grip(corner)
+	local left = corner == "BOTTOMLEFT"
+	local g = CreateFrame("Button", nil, map)
+	g:SetSize(GRIP, GRIP)
+	g:SetPoint(corner, map, corner, left and -1 or 1, -1)
+	g:SetFrameLevel(math.min(map.ScrollContainer:GetFrameLevel() + 9500, 9990))
+	if left then g:SetHitRectInsets(-GRIP_OUT, -GRIP_IN, -GRIP_IN, -GRIP_OUT)
+	else g:SetHitRectInsets(-GRIP_IN, -GRIP_OUT, -GRIP_IN, -GRIP_OUT) end
+	g:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+	g:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+	g:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+	if left then   -- (the chat frame's grabber points right: mirrored)
+		for _, tex in ipairs({ g:GetNormalTexture(), g:GetHighlightTexture(), g:GetPushedTexture() }) do tex:SetTexCoord(1, 0, 0, 1) end
+	end
+	local start
+	g:SetScript("OnMouseDown", function()
+		if Maximized() then return end
+		local x, y = GetCursorPosition()
+		start = { x = x, y = y, w = map:GetWidth(), h = map:GetHeight(), left = map:GetLeft(), right = map:GetRight(), top = map:GetTop() }
+	end)
+	g:SetScript("OnMouseUp", function()
+		if not start then return end
+		start = nil
+		mod.db.windowSize = { math.floor(map:GetWidth() + 0.5), math.floor(map:GetHeight() + 0.5) }
+		Save()
+		Refit()
+	end)
+	g:SetScript("OnUpdate", function()
+		if not start then return end
+		local x, y = GetCursorPosition()
+		local s = map:GetEffectiveScale()
+		local dx = (x - start.x) / s
+		local w = math.max(MIN_W, start.w + (left and -dx or dx))
+		local h = math.max(MIN_H, start.h - (y - start.y) / s)
+		ours = true
+		map:ClearAllPoints()
+		-- (offsets in the map's own units, as GetLeft gives)
+		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left and start.right - w or start.left, start.top)
+		map:SetSize(w, h)
+		ours = false
+	end)
+	g:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, left and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
+		GameTooltip:AddLine(L["Drag to resize the map"], 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	g:SetScript("OnLeave", GameTooltip_Hide)
+	return g
+end
+
 function mod:SetupWindow(worldMap)
 	map = worldMap
 	map:SetClampedToScreen(true)
@@ -215,48 +270,7 @@ function mod:SetupWindow(worldMap)
 	end)
 	handle:SetScript("OnLeave", GameTooltip_Hide)
 
-	-- the resize grip: any width and height, the top-left corner staying put. In the window's
-	-- outer corner (clear of Blizzard's quest log button just inside it), over everything there,
-	-- and a little easier to catch than it looks
-	grip = CreateFrame("Button", nil, map)
-	grip:SetSize(18, 18)
-	grip:SetPoint("BOTTOMRIGHT", map, "BOTTOMRIGHT", 1, -1)
-	grip:SetFrameLevel(math.min(map.ScrollContainer:GetFrameLevel() + 9500, 9990))
-	grip:SetHitRectInsets(-4, -6, -4, -6)
-	grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-	grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-	grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-	local start
-	grip:SetScript("OnMouseDown", function()
-		if Maximized() then return end
-		local x, y = GetCursorPosition()
-		start = { x = x, y = y, w = map:GetWidth(), h = map:GetHeight(), left = map:GetLeft(), top = map:GetTop() }
-	end)
-	grip:SetScript("OnMouseUp", function()
-		if not start then return end
-		start = nil
-		mod.db.windowSize = { math.floor(map:GetWidth() + 0.5), math.floor(map:GetHeight() + 0.5) }
-		Save()
-		Refit()
-	end)
-	grip:SetScript("OnUpdate", function()
-		if not start then return end
-		local x, y = GetCursorPosition()
-		local s = map:GetEffectiveScale()
-		local w = math.max(MIN_W, start.w + (x - start.x) / s)
-		local h = math.max(MIN_H, start.h - (y - start.y) / s)
-		ours = true
-		map:ClearAllPoints()
-		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", start.left, start.top)   -- (offsets in the map's own units, as GetLeft gives)
-		map:SetSize(w, h)
-		ours = false
-	end)
-	grip:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-		GameTooltip:AddLine(L["Drag to resize the map"], 1, 1, 1)
-		GameTooltip:Show()
-	end)
-	grip:SetScript("OnLeave", GameTooltip_Hide)
+	grip = { Grip("BOTTOMRIGHT"), Grip("BOTTOMLEFT") }
 
 	-- put the saved place back whenever Blizzard lays the map out: opening shows the map first and
 	-- places it after (inside ShowUIPanel), so it's put back once that's done, not a moment later
@@ -279,7 +293,7 @@ function mod:SetupWindow(worldMap)
 	local function Mode()
 		local max = Maximized()
 		handle:SetShown(not max)
-		grip:SetShown(not max)
+		for _, g in ipairs(grip) do g:SetShown(not max) end
 		if max then FillScreen() else Apply() end
 	end
 	if map.Maximize then hooksecurefunc(map, "Maximize", Mode) end
@@ -288,13 +302,84 @@ function mod:SetupWindow(worldMap)
 	if map.UpdateMaximizedSize then hooksecurefunc(map, "UpdateMaximizedSize", function() if Maximized() then FillScreen() end end) end
 	map:HookScript("OnShow", Mode)
 	SetupBorder()
-	grip:SetFrameLevel(border:GetFrameLevel() + 1)
+	for _, g in ipairs(grip) do g:SetFrameLevel(border:GetFrameLevel() + 1) end
+	SetupQuestLog()
+end
+
+--------------------------------------------------------------------------------
+-- The quest log: its list's background is an atlas at its own size, anchored at the top only,
+-- so a window taller than Blizzard's ends it in a line: it's stretched to the list's foot.
+-- Blizzard's full-screen map always hides the quest log (and its side-panel toggle leaves full
+-- screen first); while it's full screen, OpenMap shows it over the map's right edge when asked
+-- (maxQuestLog), as Blizzard anchors it, and takes it away again just before the map leaves full
+-- screen, so Blizzard's own layout for the window comes back as it was. Never in combat.
+--------------------------------------------------------------------------------
+
+d.maxQuestLog = false           -- the quest log on the full-screen map
+
+local function Log() return map.QuestLog end
+
+local function ShowMaxLog(on)
+	local log = Log()
+	if not log or not Maximized() or InCombatLockdown() or on == log:IsShown() then return end
+	log:SetShown(on)
+	if map.UpdateSpacerFrameAnchoring then map:UpdateSpacerFrameAnchoring() end   -- (the canvas makes room for it)
+end
+
+-- the menu's Quest log button while the map is full screen
+function mod.MaxQuestLog() return Maximized() and true or false end
+function mod.ToggleMaxQuestLog()
+	if InCombatLockdown() then
+		ns:Print(L["The quest log can't be opened or closed in combat."])
+		return
+	end
+	mod.db.maxQuestLog = not (Log() and Log():IsShown())
+	ShowMaxLog(mod.db.maxQuestLog)
+	if mod.maxLogToggle then mod.maxLogToggle:Refresh() end
+end
+
+SetupQuestLog = function()
+	local scroll = _G.QuestScrollFrame
+	local bg = scroll and scroll.Background
+	if bg and bg.SetPoint then bg:SetPoint("BOTTOMLEFT", scroll, "BOTTOMLEFT", 0, 0) end
+	if not Log() then return end
+	-- Blizzard's collapse / expand button for it, in the view's bottom-right corner, hidden while
+	-- full screen: a copy of it (its own template, so it looks and turns the same) there instead
+	local toggle
+	if map.GetCanvasContainer and pcall(function() toggle = CreateFrame("Frame", nil, map, "WorldMapSidePanelToggleTemplate") end) and toggle and toggle.Refresh then
+		toggle:SetPoint("BOTTOMRIGHT", map:GetCanvasContainer(), "BOTTOMRIGHT", -2, 1)
+		toggle:SetFrameLevel(math.min(map.ScrollContainer:GetFrameLevel() + 9300, 9950))
+		toggle.OnClick = function(self) mod.ToggleMaxQuestLog() self:Refresh() end   -- (its buttons call this)
+		toggle:Hide()
+		mod.maxLogToggle = toggle
+	end
+	local function ShowToggle()
+		if not toggle then return end
+		toggle:SetShown(Maximized() and true or false)
+		if toggle:IsShown() then toggle:Refresh() end
+	end
+	-- after Blizzard settles the map's state (opening, maximizing): put it back if it's wanted
+	if map.SetDisplayState then
+		hooksecurefunc(map, "SetDisplayState", function()
+			if Maximized() and mod.db.maxQuestLog then ShowMaxLog(true) end
+			ShowToggle()
+		end)
+	end
+	if map.Maximize then hooksecurefunc(map, "Maximize", ShowToggle) end
+	if map.Minimize then hooksecurefunc(map, "Minimize", ShowToggle) end
+	Log():HookScript("OnShow", function() if toggle and toggle:IsShown() then toggle:Refresh() end end)
+	Log():HookScript("OnHide", function() if toggle and toggle:IsShown() then toggle:Refresh() end end)
+	-- leaving full screen: hidden first (Blizzard only widens the window for a quest log it shows itself)
+	local mm = map.BorderFrame and map.BorderFrame.MaximizeMinimizeFrame
+	local minimize = mm and mm.MinimizeButton
+	if minimize then minimize:HookScript("OnMouseDown", function() ShowMaxLog(false) end) end
+	map:HookScript("OnHide", function() ShowMaxLog(false) end)
 end
 
 function mod:WindowOptions(opts, get, set, off)
 	opts.windowScale = { type = "range", name = L["Map size"], order = 25, min = MIN_SCALE, max = MAX_SCALE, step = 0.05, isPercent = true,
 		get = get, set = function(info, v) set(info, v) Apply() end, disabled = off,
-		desc = L["Scales the whole windowed map. Drag its bottom-right corner to change its width and height, and its title bar to move it."] }
+		desc = L["Scales the whole windowed map. Drag either of its bottom corners to change its width and height, and its title bar to move it."] }
 	opts.fullWidth = { type = "toggle", name = L["Full-screen map fills the width"], order = 27, get = get,
 		set = function(info, v)
 			set(info, v)

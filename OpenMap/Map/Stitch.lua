@@ -68,7 +68,9 @@ local CITY_FADE = { 0.2, 0.4 }  -- (cities: share of the zoom where they fill th
 local CITY_FADE_OF = {          -- ... sooner where the zone paints it as no more than a blur
 	[1454] = { 0.08, 0.25 },    --  (Orgrimmar, on Durotar's: a long fade, over its zone's painting of it)
 }
-local UNDERGROUND_CITIES = { [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
+local BANNER_OUT = { 0.25, 0.4 } -- ... and where the zone's banner for a city that keeps its own (ns.MapCityTitles)
+                                --  gives way to it: once that reads (tools/map-preview/render.py mirrors it)
+local UNDERGROUND_CITIES ={ [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
                                 -- shows the surface, so their own map is drawn above it (and it's kept off them)
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
@@ -1360,8 +1362,12 @@ function S.SetZoom(zoom, scale)
 		local a = Smooth({ fade[1] * c[2], fade[2] * c[2] })
 		if c.alpha ~= a then c.alpha = a c[1]:SetAlpha(a) end   -- (shown / hidden by S.Cull)
 		-- the zone's banner for it: the zone's art is drawn without it, so this is the banner,
-		-- with the zone's detail, and the city's title once you're in it
-		if c.banner then Fade(c.banner, detailNow) end
+		-- with the zone's detail; the city's title once you're in it, unless the city's own map
+		-- keeps its own banner (ns.MapCityTitles): then it gives way to that (BANNER_OUT)
+		if c.banner then
+			local out = ns.MapCityTitles and ns.MapCityTitles[c.mapID] and Smooth({ BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2] }) or 0
+			Fade(c.banner, math.floor(detailNow * (1 - out) * 50 + 0.5) / 50)
+		end
 	end
 	Step("cities")
 	local m = math.floor(Smooth(MUTE_FADE) * 20) / 20

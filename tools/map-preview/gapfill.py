@@ -18,7 +18,8 @@
 #   4b. for the game's minimap in the gaps (Close.lua): a soft mask of the gaps over the
 #      whole continent (MapGapMask/<continent>.tga), and the minimap tiles that touch a gap
 #      and aren't the black void past the world's edge (Gaps.lua's `minimap`)
-#   5. written as GAP_TILE-world-unit tiles, only where there's a gap: the land masks
+#   5. written as GAP_TILE-world-unit tiles, only where there's a gap (the paper reaching a
+#      little in under the zones, UNDER_REACH, never to a tile's edge deep under them): the land masks
 #      (MapGapLand/<continent>_<col>_<row>.tga) and, where there's a strip or a bare
 #      coast, what's drawn over the paper (MapGap/<same>), listed in OpenMap/Data/Gaps.lua
 #
@@ -52,6 +53,8 @@ COAST = (3, 7)                  # px either side of a bare coast where the conti
 PAINT_LONE = False              # paint islands no zone touches with the continent art
 LONE_REACH = 4                  # world units: land this close to a zone isn't a lone island
 COAST_AWAY = (5, 12)            # world units from any zone where that coastline starts / is full
+UNDER_REACH = (8, 16)           # world units under the zones from a gap where the paper is whole / gone (past
+                                #  their edges' fade: a zone is solid there)
 SEA_TRUST = (6, 10)             # world units past a zone's painted sea where the continent's land still gives way to sea
 PAPER_FROM, PAPER_BOX = "Westfall", (170, 470, 320, 620)   # a clean stretch of its base art (rows, cols)
 g.update(ZONES_ONLY=True, FADE_ZOOM=40.0, USE_SEA=False, USE_GAP=False)
@@ -541,15 +544,22 @@ for m in g["maps"]:
     raw[:gh, :gw] = np.asarray(Image.fromarray((g["field_img"](m)[..., 3] * 255).astype(np.uint8)).resize((gw, gh), Image.BILINEAR)).astype(np.float32) / 255
     on_land = np.clip(ndimage.gaussian_filter(raw, 2.0) * 2, 0, 1)
     need = L * (1 - A)
+    # the paper, and what's over it, reach UNDER_REACH in under the zones from the gaps and no
+    # further: deeper in it's never seen, and ending it there rather than at a tile's edge
+    # leaves no straight line where a tile with a gap meets one without (zoomed out, where the
+    # zones are only partly drawn in, the paper shows through them)
+    from_gap = ndimage.distance_transform_edt(need < 0.25) / GAP_PX     # world units from a gap
+    reach = np.clip(1 - (from_gap - UNDER_REACH[0]) / (UNDER_REACH[1] - UNDER_REACH[0]), 0, 1)
+    paper_a = crisp * reach
     got = []
     for j in range(rows):
         for i in range(cols):
             ys, xs = slice(j * TILE_PX, (j + 1) * TILE_PX), slice(i * TILE_PX, (i + 1) * TILE_PX)
-            if need[ys, xs].max() < 0.25: continue
+            if need[ys, xs].max() < 0.25 and paper_a[ys, xs].max() < 0.01: continue
             name = "%d_%d_%d.tga" % (m["id"], i, j)
             # where the land is (the game draws the paper through it)
             Image.merge("RGBA", (Image.new("L", (OUT_PX, OUT_PX), 255),) * 3 + (
-                Image.fromarray((crisp[ys, xs] * 255).astype(np.uint8)).resize((OUT_PX, OUT_PX), Image.LANCZOS),)).save(os.path.join(land_dir, name))
+                Image.fromarray((paper_a[ys, xs] * 255).astype(np.uint8)).resize((OUT_PX, OUT_PX), Image.LANCZOS),)).save(os.path.join(land_dir, name))
             # what's drawn over the paper: the zones' paintings of the area, the strips' carried
             # edges over those, the bare coasts' coastline over all (premultiplied, back to front)
             # (the paintings fill the continent map's land only: past it, a zone's picture of a coast
@@ -560,7 +570,7 @@ for m in g["maps"]:
             col, a3 = coast[ys, xs] * la + col * (1 - la), la + a3 * (1 - la)
             col, a3 = strip_rgb[ys, xs] * sa + col * (1 - sa), sa + a3 * (1 - sa)
             col, a3 = coast[ys, xs] * sh_ + col * (1 - sh_), sh_ + a3 * (1 - sh_)
-            a_ = a3[..., 0]
+            a_ = a3[..., 0] * reach[ys, xs]
             over = col / np.maximum(a3, 1e-4)
             has = a_.max() > 0.02
             if has:

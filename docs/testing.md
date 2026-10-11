@@ -39,13 +39,20 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] Close the map and reopen it: same view. Move to another zone and reopen: it opens on you.
 - [ ] Ctrl-click the map: a map pin appears (and the navigation arrow). Click the pin: it's gone. With TomTom on, Ctrl-click also adds a TomTom arrow.
 - [ ] In a group: party members show as class-coloured dots, also on zones the map isn't currently on.
-- [ ] Drag the map's title bar: it moves. Drag the bottom-right corner: it resizes. `/reload`, reopen: same place and size. Maximize: the grip and drag bar go away; un-maximize: back where it was.
+- [ ] Drag the map's title bar: it moves. Drag the bottom-right corner, then the bottom-left one: it resizes, the other side staying put. `/reload`, reopen: same place and size. Maximize: the grips and drag bar go away; un-maximize: back where it was.
 
 ## 6. Settings and combat (2 min)
 - [ ] Options → Look → Unexplored areas: Show / Dim / Hide each change the map at once. On Hide, unexplored parts of a zone are blank parchment; explore a new spot and it fills in without a reload.
 - [ ] Open and close the map in combat, open the quest log from it, then leave combat: no "action blocked" message, and the action bars still work.
+- [ ] The OpenMap menu's Quest log tile (and its favourite button): hides and shows the quest log beside the map; in combat it says it can't. Afterwards, open the map in combat: no "action blocked" message.
+- [ ] The OpenMap button and its favourites sit in the map's bottom-left corner (above the coordinates when they show), clear of the resize grip and the quest log button. The menu's frame matches the map window's; every row and tile has its icon (no green question marks).
 - [ ] With Questie: quest icons on the stitched map, including in the neighbouring zones and once the map has switched to a zone; the menu's "Questie icons" turns them off and on.
 - [ ] HandyNotes / GatherMate / TomTom (if you use them): their icons still show on the zone the map is on, and nothing errors.
 
-## 7. Report a problem (1 min)
+- [ ] Full screen: the Quest log button and the arrow button in the corner show and hide the quest log over the map's right side; leaving full screen, the window is as it was (quest log beside the map if it was). Make the window tall: the quest log's background fills it, no line.
+- [ ] Zoom in and out over a quest's blue area (track a quest with one): the area stays on the map as it zooms.
+
+## 7. Report a problem and map notes (2 min)
+- [ ] Tools → Map notes: paint an area, type a note, Enter. Click on the map for a note at a point; Shift-drag adds to the last one; click a note to edit it. List: click a note, the map glides there. Export: the text copies with Ctrl-C. Done hides it all.
+- [ ] Tools → Debug overlay: the frame rate and a moving graph in the map's top-right corner; zooming shows the costs change.
 - [ ] The report button: circle something, type a note, copy the code. Paste it into `tools/map-preview/report.py`: the render shows your circle in the right place.

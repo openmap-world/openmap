@@ -34,3 +34,10 @@ The other bakes, each a script here (run with the same `<db2 dir> <texture cache
 | `banners.py` | city banners cut from their zone's art (Orgrimmar on Durotar's) |
 | `tone.py` | each zone's colour, for the close-up minimap's tint |
 
+Two read what players and contributors send from the game:
+
+| Script | Renders |
+| --- | --- |
+| `report.py <db2> <tex> <out.png> "OM1\|..."` | a "Report a problem" code: the view and its circles |
+| `notes.py <db2> <tex> <out dir> <notes.txt> [#id ...]` | the Map notes tool's export: each note at its place, its painted area and text, and an index (`notes.md`) |
+

@@ -21,6 +21,7 @@ WORLD = 947
 CONT_FADE, DETAIL_FADE, CITY_FADE, MUTE_FADE = (1.3, 2.2), (3, 4.5), (0.2, 0.4), (4, 7)
 DETAIL_HINT = (1.8, 3, 0.3)     # (the zones' hint from further out: Stitch.lua's)
 CITY_FADE_OF = {1454: (0.08, 0.25)}   # (cities that come in sooner: Stitch.lua's)
+BANNER_OUT = (0.25, 0.4)        # (a zone's banner for a city that keeps its own goes: Stitch.lua's)
 BORDER_OUT, BORDER_SCALE = (1.15, 1.6), 0.55   # (the border round the view: Window.lua's)
 SEA = (0.50, 0.49, 0.41)        # the sea's colour where no map paints one (MapSeaField covers the rest)
 SEA_REACH = 1.5                 # how far past the world art the sea runs (Stitch.lua's): MapSeaFieldOut over it
@@ -166,6 +167,11 @@ def banner(city):
             _cache[k] = {"id": "banner%d" % city, "rect": (l + x * sx, l + (x + w) * sx, t + y * sy, t + (y + h) * sy),
                          "img": np.asarray(img).astype(np.float32) / 255}
     return _cache[k]
+
+def city_title(city):
+    """whether the city's cut keeps its own name banner (Data/Banners.lua's MapCityTitles)"""
+    m_ = re.search(r"ns\.MapCityTitles = \{(.*?)\}", open(os.path.join(WM, "Banners.lua"), encoding="utf-8").read(), re.S)
+    return bool(m_ and re.search(r"\[%d\] = true" % city, m_.group(1)))
 
 
 # ---------------------------------------------------------------- the maps
@@ -510,9 +516,10 @@ def render(cu, cv, zoom, path):
             a_ = smooth(zf, (fade[0] * f_, fade[1] * f_))
             cut_ = os.path.join(TEXDIR, "MapCityMask", "%d.tga" % m["id"])    # (cut down to the city: banners.py)
             place(m, base, mask("MapCityMask/%d" % m["id"]) if os.path.exists(cut_) else M_ROUND, alpha=a_)
-            b_ = banner(m["id"])                          # its zone's banner for it: its title at every zoom
-            if b_:
-                place(b_, b_["img"], None, alpha=d)
+            b_ = banner(m["id"])                          # its zone's banner for it: its title at every zoom,
+            if b_:                                        # or giving way to its own (Stitch.lua's MapCityTitles)
+                out_ = smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_)) if city_title(m["id"]) else 0
+                place(b_, b_["img"], None, alpha=d * (1 - out_))
     ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
     if ba > 0.003 and not ZONES_ONLY:
         c = int(round(192 * BORDER_SCALE * OH / 1024))

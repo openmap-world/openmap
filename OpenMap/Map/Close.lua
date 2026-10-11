@@ -20,6 +20,7 @@ local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 
 local d = mod.defaults
+d.minimap = true                -- the minimap's detail up close at all (off: the painted map alone, everywhere)
 d.minimapMix = 0.45             -- how strong the minimap's detail is up close (0 = none)
 d.minimapDeep = 0.85            -- ... and at the deepest zoom, where the painted map has nothing left to give
 d.soften = true                 -- soften + paper grain at the closest zoom
@@ -447,7 +448,7 @@ function S.SetView(u, v, hu, hv, zoom)
 	local soft = mod.db.soften and Smooth(zoom, SOFT_FADE) or 0
 	cv.soft = soft
 	Try("blur", S.SetBlur, soft, u - hu, v - hv, u + hu, v + hv)
-	local base = mod.db.minimapMix or 0
+	local base = mod.db.minimap and mod.db.minimapMix or 0
 	local mix = base * Smooth(zoom, MINI_FADE)
 	if base > 0 then mix = mix + (math.max(base, mod.db.minimapDeep or base) - mix) * Smooth(zoom, DEEP_FADE) end
 	-- not over a city's own map (the minimap there is the surface, not the city)
@@ -459,7 +460,7 @@ function S.SetView(u, v, hu, hv, zoom)
 	local conts = Try("continents", ContinentsInView, u, v, hu, hv) or {}
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)
 	cv.gapTiles = Try("minimap in the gaps", UpdateGapMinimap, conts, u, v, hu, hv,
-		mod.db.gapMinimap and GAP_MIX * Smooth(zoom, GAP_FADE) or 0)
+		mod.db.minimap and mod.db.gapMinimap and GAP_MIX * Smooth(zoom, GAP_FADE) or 0)
 	local under = Try("underground", UpdateUnderground, L.under, cont, u, v, hu, hv) or 0
 	-- the out-of-focus world above a cave gets heavier grain
 	Try("grain", UpdateGrain, L.grain, u, v, hu, hv, math.max(soft, math.min(1.4, under * 1.4)))
@@ -475,14 +476,17 @@ function S.SetView(u, v, hu, hv, zoom)
 end
 
 function mod:CloseOptions(opts, get, set, off)
+	local function noMinimap() return off() or not mod.db.minimap end
 	opts.closeHeader = ns.Header("Up close", 50)
-	opts.minimapMix = { type = "range", name = "Minimap detail", order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
-		get = get, set = set, disabled = off,
+	opts.minimap = { type = "toggle", name = "Minimap detail", order = 50.5, width = "full", get = get, set = set, disabled = off,
+		desc = "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom." }
+	opts.minimapMix = { type = "range", name = "Minimap strength", order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
+		get = get, set = set, disabled = noMinimap,
 		desc = "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads." }
 	opts.minimapDeep = { type = "range", name = "Minimap at the deepest zoom", order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
-		get = get, set = set, disabled = function() return off() or (mod.db.minimapMix or 0) == 0 end,
+		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
 		desc = "Zooming in past where the painted map has any detail left, the minimap takes over toward this." }
-	opts.gapMinimap = { type = "toggle", name = "Minimap in the gaps (experimental)", order = 51.5, get = get, set = set, disabled = off,
+	opts.gapMinimap = { type = "toggle", name = "Minimap in the gaps (experimental)", order = 51.5, get = get, set = set, disabled = noMinimap,
 		desc = "Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper." }
 	opts.soften = { type = "toggle", name = "Soften and add paper grain", order = 52, get = get, set = set, disabled = off,
 		desc = "At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it." }

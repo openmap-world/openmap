@@ -52,10 +52,15 @@ python -P tools/map-preview/report.py <db2 dir> <texture cache> report.png "OM1|
 ## Reporting blending problems
 
 Players: the "Report a problem" button on the map (circle it, add a note, paste the
-code into an issue). Contributors: `/openmap paint` opens a paint-and-notes tool: brush over the problem (hide or
-show a layer, blend a seam, tint) and leave a note. It's saved in
-`WTF/Account/<account>/SavedVariables/OpenMap.lua` after a `/reload`; attach
-that file (or the `paint` section of it) and a screenshot to the issue.
+code into an issue). Contributors: `/openmap notes` (or the menu's Tools → Map notes) opens the
+map notes tool: pick what a note is (fix this, look into this, an idea), paint the area on the
+map (or just click) and say what's there; as many as you like, all over the map. **Export**
+gives them all as text to paste into an issue; `tools/map-preview/notes.py` renders each note
+at its place. They're also saved in `WTF/Account/<account>/SavedVariables/OpenMap.lua` after a
+`/reload`.
+
+Lag: `/openmap debug` shows the frame rate on the map, a graph of frame times (hitches are
+spikes) and what OpenMap's own updates cost; a screenshot of it while it's slow helps.
 
 ## Code style
 

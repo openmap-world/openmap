@@ -20,3 +20,9 @@ ns.MapCityCuts = {
 	[1454] = true,   -- Orgrimmar
 	[1458] = true,   -- Undercity
 }
+
+-- ... and whose cut keeps their own name banner: their zone's banner for them goes as they come in
+ns.MapCityTitles = {
+	[1454] = true,   -- Orgrimmar
+	[1458] = true,   -- Undercity
+}
