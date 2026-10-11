@@ -1,6 +1,6 @@
 # OpenMap changelog
 
-## Unreleased
+## v0.2.0-beta (2026-10-11)
 
 - Map notes (Tools → Map notes, `/openmap notes`) replace the paint tool: paint an area (or
   click) and say what's there, as a "fix this", "look into this" or "idea"; a list of them all
