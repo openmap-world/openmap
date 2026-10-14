@@ -43,7 +43,9 @@ local function PlaceAt()
 		local hx, hy = mod.FromWorld(mapID, u, v)
 		return id, (u - l) / (r - l), (v - t) / (b - t), hx, hy
 	end
-	local x, y = map:GetNormalizedCursorPosition()
+	local x, y
+	if mod.PadCursor() and map.GetNormalizedGamepadCursorPosition then x, y = map:GetNormalizedGamepadCursorPosition()
+	else x, y = map:GetNormalizedCursorPosition() end
 	local info = C_Map.GetMapInfoAtPosition(mapID, x, y)
 	if info and info.mapID ~= mapID then
 		local l, r, t, b = C_Map.GetMapRectOnMap(info.mapID, mapID)
@@ -79,7 +81,7 @@ local function UpdateCoords(_, elapsed)
 	if ns.Safe.IsSecret(px) or ns.Safe.IsSecret(py) then px, py = nil, nil end
 	bar.player:SetText("|cffffd100" .. PLAYER .. "|r  " .. Coord(px, py))
 
-	if sc:IsMouseOver() then
+	if sc:IsMouseOver() or mod.PadCursor() then
 		local id, zx, zy = PlaceAt()
 		local name = MapName(id)
 		bar.cursor:SetText((name and ("|cffffd100" .. name .. "|r  ") or "") .. Coord(zx, zy))
@@ -139,7 +141,7 @@ end
 local function AreaLabelOnUpdate(self)
 	self:ClearLabel(MAP_AREA_LABEL_TYPE.AREA_NAME)
 	local m = self.dataProvider:GetMap()
-	if m:IsCanvasMouseFocus() then
+	if m:IsCanvasMouseFocus() or mod.PadCursor() then
 		local mapID = m:GetMapID()
 		local id, _, _, x, y = PlaceAt()
 		local name
@@ -264,7 +266,7 @@ fader:SetScript("OnUpdate", function(_, elapsed)
 		local speed = GetUnitSpeed("player")
 		moving = not ns.Safe.IsSecret(speed) and (speed or 0) > 0
 	end
-	local want = (moving and not map:IsMouseOver()) and 1 - (mod.db.moveFade or 0) or 1
+	local want = (moving and not (map:IsMouseOver() or mod.PadCursor())) and 1 - (mod.db.moveFade or 0) or 1
 	if math.abs(faded - want) < 0.005 then
 		if faded ~= want then faded = want map:SetAlpha(want) end
 		return

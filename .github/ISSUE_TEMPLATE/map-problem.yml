@@ -1,12 +1,13 @@
-name: Map problem
-description: Something on the map looks wrong (a seam, a gap, a wrong colour, a missing place ...)
-labels: ["map", "from-game"]
+name: Problem report (from the game)
+description: Something's wrong with OpenMap, on the map (a seam, a gap, a wrong colour ...) or anywhere else (the menu, a setting, another addon)
+labels: ["from-game"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping! In game: open the map, click the **Report a problem** button (top-left of the map),
-        circle the problem and copy the code it gives you.
+        Thanks for helping! In game: open the map, open the **OpenMap** menu (the button in the map's
+        bottom-left corner) and click **Report a problem**. If it's about a spot on the map, circle it;
+        if it's about something else (the menu, a setting ...), just click Next. Then copy the code it gives you.
   - type: input
     id: code
     attributes:

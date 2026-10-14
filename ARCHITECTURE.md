@@ -26,7 +26,7 @@ tools/
   map-data/minimap.py  Data/Minimap.lua (the minimap tiles' file IDs)
   map-grade/      Data/Grade.lua + MapBand / MapTerritory / MapCore masks
   map-textures/   edge fades, parchment grain
-  map-preview/    renders the stitched map out of game; bakes MapTerritory / MapLand;
+  map-preview/    renders the stitched map out of game; bakes MapTerritory / MapZoneLand / MapLand;
                   sea.py, sea_world.py (the sea), gapfill.py (the gaps), banners.py
                   (Orgrimmar's banner and cut), tone.py (zone colours)
   map-art/        export.py / import.py (hand-cleaned world and continent art), border.py
@@ -59,16 +59,22 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   baked-in names left out; parchment tint and `MapGrain`), so regions without a zone
   map (Quel'Thalas, Gilneas ...) meet the zones as land.
 - **gap fill** (`Data/Gaps.lua`, from `tools/map-preview/gapfill.py`): land no zone
-  covers. Narrow strips between neighbouring zones (their art's frames) carry each side's
-  own edge across, mirrored, blending where they meet, so roads and ridges run on. Wider
-  gaps are left blank: the zone maps' own parchment (`MapPaper`, two sizes that never line
-  up) through `MapGapLand`, with the continent map's crisp coastline along bare coasts
-  (`MapGap`). Over that, Blizzard's own maps of the land that Forever's tables don't use
-  (`Gaps.lua`'s `art`: the classic base maps of 18 zones, which paint the land round them,
-  and Gilneas' base map), drawn from the client at their own resolution through
-  `MapCoastArt`. It fades in with the zone detail.
-- **zone base art**: near-blank parchment in this client, shown only on the zone's
-  territory (`MapTerritory`: its land as it shows, through the overlays' edge fade).
+  paints is blank: the zone maps' own parchment (`MapPaper`, two sizes that never line up)
+  through `MapGapLand`, crisp along the coast. Over that, Blizzard's own maps of the land that
+  Forever's tables don't use (`Gaps.lua`'s `art`: the classic base maps of 18 zones, which
+  paint the land round them, and Gilneas' base map), drawn from the client at their own
+  resolution through `MapCoastArt`. It fades in with the zone detail. Nothing is painted in
+  or blurred across: only Blizzard's art, or paper.
+- **zone base art**, shown on the zone's territory (`MapTerritory`, `render.py
+  --bake-territory`): as far as Blizzard painted it, its own land and, inside its frame,
+  the sea off its coasts (Blizzard's hatching, shallows and islets, up to `TERR_SEA` off the
+  continent's coast) and the land round it (the mountains and coasts its map draws of its
+  neighbours' surroundings). Not another zone's own land, not the names it prints (the
+  sea's, its neighbours'), not its compass roses, not where a classic map is drawn. Where
+  several zones paint the same place their claims are shared out by how near their own land
+  is, each fading at its frame, so one hands over to the next; past every zone's painting
+  it fades into the paper. (`MapZoneLand` and `MapZoneBorder`, for darkening, are made from
+  the zone's own territory: its land and shore.)
 - **zone overlays** (the explored-area pieces, `Data/Reveal.lua`, explored ones from the
   client): a thin, wavy feather at the art's edge.
 - **zone interiors**: the overlays again through `MapCore`, above every zone's parchment halo.
@@ -85,7 +91,11 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
 
 Unexplored areas: each overlay piece is a shared `{ key, unexplored }` table, so
 `S.ApplyGrade` can show, dim or hide them and `S.RefreshExplored` (on
-`MAP_EXPLORATION_UPDATED`) flips the ones you've just explored.
+`MAP_EXPLORATION_UPDATED`) flips the ones you've just explored. Dimming is a shade over the
+zones' art and the close-up minimap (`shadeRoot`), through each zone's land without its painted
+sea (`MapZoneLand`): all of a zone you haven't found any of, from every zoom, with its share of the
+border land round it (`MapZoneBorder`, so neighbouring undiscovered zones darken as one), or each
+unexplored piece through its own tiles' shapes.
 
 Border colours are matched by a tinted copy of each zone drawn through its border-band
 mask (`MapBand`) with the multipliers in `Data/Grade.lua`. Everything is placed once, in
@@ -112,8 +122,13 @@ and from the continents' zoom the hover highlight is the zone under the cursor. 
 ## The closest zoom (`Map/Close.lua`)
 
 Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
-- **minimap**: the game's minimap tiles (`Data/Minimap.lua`) for what's on screen, capped at
-  `minimapMix` (45%) so the painted map leads; pooled, at most 64 tiles.
+- **minimap**: the game's minimap tiles (`Data/Minimap.lua`) for what's on screen, at
+  `minimapMix` (45%) so the painted map leads, rising toward `minimapDeep` (its most) at the
+  deepest zoom; from `minimapFrom` (20x; 1x: the whole world). Pooled, at most 64 tiles; further
+  out, two smaller copies of it (`MapMiniLOD`, `Data/MinimapLOD.lua`, from
+  `tools/map-preview/minimaplod.py`: 64 and 16 px a tile, in 256-px pieces) show instead, drawn
+  coarse under fine under the tiles with strengths that add up to the mix, the finer taking over
+  as fewer tiles are in view.
 - **soften + grain**: a five-tap blur of the zones in view (four offset copies, built
   lazily), and `MapGrain` + `MapTooth` over the art in two crossfaded octaves so the grain
   keeps its size on screen.
@@ -151,6 +166,17 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   `tools/map-preview/notes.py` renders each one. Saved under `paint`.
 - `Debug.lua`: the debug overlay (`/openmap debug`): frame rate, a graph of frame times, the
   worst frame, what OpenMap's zoom and close-up updates cost, textures drawn.
+- `Compat.lua`: other world map addons alongside. While the map is stitched it hides their map
+  art (High Fidelity World Map's minimap tiles, BetterMaps' terrain and caves, HiddenMaps'
+  approach maps, Leatrix Maps' icons) and shows it again on other maps; sets OpenMap's zone label,
+  coordinates CVars and map fade again after theirs; names the options of theirs that still fight
+  OpenMap's window. `WorldMap.lua` ignores their view changes there (`InstantPanAndZoom` from another
+  addon) and trims their zoom steps past OpenMap's deepest.
+- `Gamepad.lua`: Forever's gamepad mode. Blizzard's own cursor on the map (`SoftCursor`) has
+  no mouse-over, so what's under it (OpenMap's buttons, menu and map icons) is entered and left
+  as the mouse would, and A presses it. `WorldMap.lua` reads that cursor wherever it reads the
+  mouse's (`PadCursor`), zooms the stitched map with the right stick at a steady rate about it
+  (Blizzard's adds a fixed scale a second), and makes A and X zoom in and out a map as clicks do.
 
 ## Ideas and open questions
 

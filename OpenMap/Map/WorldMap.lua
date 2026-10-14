@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------------
 -- OpenMap: Blizzard's world map (quest log, controls, Questie) with every
 -- zone stitched into one canvas (ns.MapStitch). More map helpers are in
--- Extras.lua, Flights.lua, Townsfolk.lua, Panel.lua and Paint.lua.
+-- Extras.lua, Flights.lua, Townsfolk.lua, Panel.lua, Paint.lua and Gamepad.lua.
 --
 -- On the world, continent and zone maps:
 --   * the stitched art is a layer just above Blizzard's map art, under its pins
@@ -45,6 +45,7 @@ local active = false            -- the current map is stitched
 local switching = false         -- we're changing the map ourselves
 local userMoved = false         -- the view moved since Blizzard last showed a map (only then do we follow it)
 local wheelMode, scalingMode    -- Blizzard's, to put back on other maps
+local levelCount                -- how many zoom levels are ours (other addons add steps past them: trimmed)
 
 --------------------------------------------------------------------------------
 -- Geometry: "zoom" 1 = the whole world fits the view
@@ -101,6 +102,17 @@ end
 
 -- puts the view at once (Blizzard's InstantPanAndZoom drifts the pan toward the old one)
 local openStart, Part             -- (timing an opening: below)
+
+-- the Lua garbage each part makes (KB, added up), for the debug overlay (Debug.lua): counted
+-- only while it's on. (A collection during a part makes it read low, never high)
+local garbage = {}
+mod.garbage = garbage
+local function Before() return mod.db.debugOverlay and collectgarbage("count") or nil end
+local function After(name, before)
+	if not before then return end
+	local d = collectgarbage("count") - before
+	if d > 0 then garbage[name] = (garbage[name] or 0) + d end
+end
 local BLOB_PINS = { "QuestBlobPinTemplate", "ScenarioBlobPinTemplate", "BonusObjectiveBlobPinTemplate" }
 
 local function SetView(scale, x, y)
@@ -113,15 +125,19 @@ local function SetView(scale, x, y)
 	sc:SetNormalizedHorizontalScroll(x)
 	sc:SetNormalizedVerticalScroll(y)
 	local start = openStart and debugprofilestop and debugprofilestop()
+	local g = Before()
 	map:OnCanvasScaleChanged()
+	After("pins (all addons)", g)
 	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
 	-- Blizzard's quest areas (blobs) redraw for a new scale in their own next OnUpdate, which can
 	-- come before this in the next frame: a frame behind all through a zoom. Redrawn now
+	g = Before()
 	for _, template in ipairs(BLOB_PINS) do
 		for pin in map:EnumeratePinsByTemplate(template) do
 			if pin:IsShown() and pin.Refresh then pin:Refresh() end
 		end
 	end
+	After("quest areas", g)
 	sc:MarkAreaTriggersDirty()
 	sc:MarkViewRectDirty()
 end
@@ -146,9 +162,33 @@ local ZOOM_RATE = 14            -- the wheel zoom's approach, per second (in log
 local GLIDE_TIME = 0.4
 local anim                      -- the running animation, or nil
 
+-- the gamepad's cursor on the map (Blizzard's SoftCursor, in gamepad mode), in screen px as
+-- GetCursorPosition: while it's what's in use. That's from when it shows or moves until the
+-- mouse moves over the map (as Blizzard's own map labels judge it); nil otherwise
+local padX, padY                -- the mouse when the pad's cursor showed or last moved
+local function PadFocus()
+	local soft = _G.SoftCursor
+	return soft and soft:IsShown() and InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
+end
+local function PadCursor()
+	if not PadFocus() then padX = nil return end
+	local soft = _G.SoftCursor
+	local mx, my = GetCursorPosition()
+	if not padX or soft:IsMoving() or (sc.gamepadZoom or 0) ~= 0 then
+		padX, padY = mx, my
+	elseif (mx ~= padX or my ~= padY) and sc:IsMouseOver() then
+		return
+	end
+	local l, b, w, h = soft:GetRect()
+	if not l then return end
+	local es = soft:GetEffectiveScale()
+	return (l + w / 2) * es, (b + h / 2) * es
+end
+
 -- the cursor in view px from the view's centre (y down)
 local function CursorOffset()
-	local x, y = GetCursorPosition()
+	local x, y = PadCursor()
+	if not x then x, y = GetCursorPosition() end
 	local es = sc:GetEffectiveScale()
 	return x / es - (sc:GetLeft() + sc:GetWidth() / 2), (sc:GetTop() - sc:GetHeight() / 2) - y / es
 end
@@ -185,8 +225,29 @@ local function GlideTo(u, v, zoom)
 	userMoved = true
 end
 
+-- the gamepad's zoom stick: a steady rate in log zoom, about its cursor (Blizzard's adds a fixed
+-- scale a second, which at the stitched map's depths is too slow zoomed in, too fast out)
+local PAD_ZOOM_RATE = 1.8       -- per second at full tilt (in log zoom: 6x a second)
+local function PadZoom(elapsed)
+	local speed = sc.gamepadZoomSpeed
+	local tilt = Clamp(sc.gamepadZoom / ((speed and speed > 0) and speed or 1), -1, 1)   -- (Blizzard's curve applied)
+	local u, v, zoom = View()
+	local sx, sy = CursorOffset()
+	local pu, pv = PerPx(zoom)
+	local cu, cv = u + sx * pu, v + sy * pv
+	anim = nil
+	userMoved = true
+	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), 1, MaxZoomAt(cu, cv))
+	if math.abs(to - zoom) < 1e-6 then return end
+	pu, pv = PerPx(to)
+	ShowWorld(cu - sx * pu, cv - sy * pv, to)
+end
+
 -- after Blizzard's own OnUpdate, so its panning never adds to ours
 local function Animate(_, elapsed)
+	if active and (sc.gamepadZoom or 0) ~= 0 then return PadZoom(elapsed) end
+	-- the gamepad's cursor at the view's edge pans it (Blizzard's): a move of the user's
+	if active and sc.HasGamepadScrollSpeed and sc:HasGamepadScrollSpeed() then userMoved = true end
 	if not anim then return end
 	if not active then anim = nil return end
 	local a = anim
@@ -237,7 +298,9 @@ end
 local function Switch(target)
 	local u, v, zoom = View()
 	switching = true
+	local g = Before()
 	local ok, err = pcall(map.SetMapID, map, target)
+	After("map switch (all addons)", g)
 	switching = false
 	if not ok then geterrorhandler()(err) return end
 	if active then
@@ -264,6 +327,12 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 	if elapsedSum < 0.1 then return end
 	elapsedSum = 0
 	if not active then return end
+	-- another addon's zoom steps past ours (BetterMaps', High Fidelity World Map's): the deepest
+	-- zoom is OpenMap's, and Blizzard's icons size themselves from the last step
+	local zl = sc.zoomLevels
+	if levelCount and zl and #zl > levelCount then
+		for i = #zl, levelCount + 1, -1 do zl[i] = nil end
+	end
 	local mapID = map:GetMapID()
 
 	-- the player, when the map underneath can't show them
@@ -340,9 +409,12 @@ viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	self:Hide()
 	if not active or not S.SetView then return end
 	local u, v, zoom = View()
-	live = { u, v, zoom, sc:GetWidth(), sc:GetHeight() }
+	live = live or {}                             -- (kept: the view updates every frame of a pan)
+	live[1], live[2], live[3], live[4], live[5] = u, v, zoom, sc:GetWidth(), sc:GetHeight()
 	local pu, pv = PerPx(zoom)
+	local g = Before()
 	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom)
+	After("close-up", g)
 end))
 local function ApplyView()
 	if active then viewFrame:Show() end
@@ -350,7 +422,9 @@ end
 
 local function ApplyZoom()
 	if not active then return end
+	local g = Before()
 	S.SetZoom(ZoomFor(map:GetMapID(), sc:GetCanvasScale()), sc:GetCanvasScale())
+	After("zoom", g)
 	ApplyView()
 end
 
@@ -381,6 +455,7 @@ local function Attach(mapID)
 		anim = nil
 		if mod.IsPainting and mod:IsPainting() then mod:TogglePaint(false) end
 	end
+	if mod.OnStitchedChanged then mod.OnStitchedChanged(active) end
 end
 
 -- zoom levels from the whole world to street level, in this map's scale
@@ -405,6 +480,7 @@ local function OnCreateZoomLevels(self)
 	end
 	self.zoomLevels = levels
 	self.baseScale = levels[1].scale    -- panning allowed above the whole-world view
+	levelCount = #levels
 end
 
 -- Blizzard showed a map (opening, the quest log, the dropdown): show it as it would
@@ -412,15 +488,16 @@ end
 -- our way while the map is stitched: straight to where you left off, in one step (not the
 -- whole world and then there: every addon's icons rescaled twice); and if the map is still
 -- there (closed and reopened without moving), nothing at all. The window resized while open
--- (full screen and back, or dragged): where you were looking, at the same framing
+-- (full screen and back, or dragged): where you were looking, at the same framing. Another
+-- map put up while it's open (the quest log's, the dropdown's) shows whole, as Blizzard's does
 local function ResetView(self)
 	userMoved = false
 	anim = nil
 	local u, v, zoom
 	if live and map:IsShown() and (math.abs(sc:GetWidth() - live[4]) > 0.5 or math.abs(sc:GetHeight() - live[5]) > 0.5) then
 		u, v, zoom = live[1], live[2], live[3]
-	elseif mod.SavedView then
-		u, v, zoom = mod.SavedView()
+	elseif not live and mod.SavedView then          -- (no view drawn yet: the map is opening)
+		u, v, zoom = mod.SavedView(self.mapID)
 	end
 	if u then
 		zoom = Clamp(zoom, 1, MaxZoomAt(u, v))
@@ -627,6 +704,46 @@ local function Setup()
 	sc:HookScript("OnMouseWheel", OnMouseWheel)
 	sc:HookScript("OnMouseDown", OnGrab)
 	sc:HookScript("OnUpdate", Animate)
+	-- the gamepad (Forever's gamepad mode): its zoom stick is ours on the stitched map (PadZoom);
+	-- its A (Blizzard's icons under the cursor, then this) presses OpenMap's control or icon under
+	-- the cursor (Gamepad.lua), or else zooms in as a click does; its X, with no icon under the
+	-- cursor, zooms out a map as a right-click does (Blizzard's would change the map underneath)
+	if sc.IsGamepadZooming then
+		local zooming = sc.IsGamepadZooming
+		sc.IsGamepadZooming = function(self, ...)
+			if active then return false end
+			return zooming(self, ...)
+		end
+	end
+	-- other addons' view changes (zoom remembered per map, keep centred, a jump into a cave) don't
+	-- apply on the stitched map: its view is OpenMap's. Blizzard's own calls go through
+	if sc.InstantPanAndZoom and debugstack then
+		local pan = sc.InstantPanAndZoom
+		sc.InstantPanAndZoom = function(self, ...)
+			if active then
+				local caller = (debugstack(2, 1, 0) or ""):match("AddOns[\\/]([^\\/]+)[\\/]")
+				if caller and caller ~= "OpenMap" and not caller:find("^Blizzard_") then return end
+			end
+			return pan(self, ...)
+		end
+	end
+	if map.NavigateToGamepadCursor then
+		local navigate = map.NavigateToGamepadCursor
+		map.NavigateToGamepadCursor = function(self, ...)
+			local x, y = PadCursor()
+			if x and mod.PadPress and mod.PadPress(x, y) then return true end
+			if not active then return navigate(self, ...) end
+			if self.GetHoveredPin and self:GetHoveredPin() then return true end   -- (Blizzard clicked it)
+			return OnCanvasClick(nil, "LeftButton")
+		end
+	end
+	if map.NavigateToParentMap then
+		local up = map.NavigateToParentMap
+		map.NavigateToParentMap = function(self, ...)
+			if active and PadFocus() then return OnCanvasClick(nil, "RightButton") end
+			return up(self, ...)
+		end
+	end
 	map:AddCanvasClickHandler(OnCanvasClick, 1000)
 	if map.AddGlobalPinMouseActionHandler and MapCanvasMixin and MapCanvasMixin.MouseAction then
 		map:AddGlobalPinMouseActionHandler(OnBlizzardPinAction, 1000)
@@ -642,6 +759,7 @@ local function Setup()
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
 		ApplyZoom()
+		if mod.OnHostMapChanged then mod.OnHostMapChanged() end
 		if mod.RefreshPortrait then pcall(mod.RefreshPortrait) end   -- (OpenMap's icon only while stitching)
 		-- (inside Blizzard's map change: a failure here is reported, never left to break it)
 		if mod.RefreshNav then
@@ -672,8 +790,10 @@ local function Setup()
 	if mod.SetupPanel then mod:SetupPanel(map) end
 	if mod.SetupPaint then mod:SetupPaint(map) end
 	if mod.SetupDebug then mod:SetupDebug(map) end
+	if mod.SetupGamepad then mod:SetupGamepad(map) end
 	if mod.SetupReport then mod:SetupReport(map) end
 	if mod.SetupWindow then mod:SetupWindow(map) end
+	if mod.SetupCompat then mod:SetupCompat(map) end
 
 	-- the map may already be showing something
 	if map:IsShown() and map:GetMapID() then sc:OnCanvasSizeChanged() end
@@ -690,6 +810,8 @@ function mod.CursorWorld()
 	local pu, pv = PerPx(zoom)
 	return u + sx * pu, v + sy * pv, pu, pv
 end
+-- the gamepad's cursor (screen px) while it's the one in use on the map, else nil
+function mod.PadCursor() if sc then return PadCursor() end end
 mod.ToWorld = function(mapID, x, y) return ToWorld(mapID, x, y) end
 -- for Nav.lua: glide / jump to a world point (normalized) at a zoom; the zoom where a map fits
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
@@ -701,24 +823,13 @@ function mod.SetMaxZoom(v)
 	if map and active then sc:OnCanvasSizeChanged() end
 end
 function mod.HostMap() return active and map:GetMapID() or nil end
+-- the close-up layers again, for the view as it is (a setting changed)
+function mod.RefreshView() ApplyView() end
 mod.FromWorld = function(mapID, u, v) return FromWorld(mapID, u, v) end
 -- the view now: centre (normalized), zoom; nil when the map isn't stitched
 function mod.ViewNow() if active then return View() end end
 
--- other world map addons that change the same map: say so once, at login
-local CLASHES = { Leatrix_Maps = "Leatrix Maps", Mapster = "Mapster", Magnify = "Magnify" }
-local function WarnClashes()
-	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-	if not loaded then return end
-	for addon, title in pairs(CLASHES) do
-		if loaded(addon) then
-			ns:Print(ns.L["%s is also changing the world map. Turn off its world map options (or the addon) so the two don't fight."]:format(title))
-		end
-	end
-end
-
 function mod:OnEnable()
-	C_Timer.After(3, WarnClashes)
 	if _G.WorldMapFrame then
 		Setup()
 	elseif EventUtil and EventUtil.ContinueOnAddOnLoaded then
@@ -826,8 +937,8 @@ function mod:Options()
 		desaturate = { type = "range", name = "Take colour out", order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
 		unexplored = { type = "select", name = "Unexplored areas", order = 23, get = get, set = set, disabled = off,
-			values = { show = "Show", dim = "Fade", hide = "Hide" }, sorting = { "show", "dim", "hide" },
-			desc = "Areas you haven't explored yet: shown as they are, faded most of the way to the blank parchment, or hidden like Blizzard's own map (blank parchment until you get there)." },
+			values = { show = "Show", dim = "Darken", hide = "Hide" }, sorting = { "show", "dim", "hide" },
+			desc = "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)." },
 		maxZoom = { type = "range", name = "Deepest zoom", order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
 			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,
 			desc = "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged." },

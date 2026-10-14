@@ -347,6 +347,7 @@ end
 
 local function BuildList()
 	list = CreateFrame("Frame", nil, map)
+	mod.padRoots[#mod.padRoots + 1] = list      -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 	list:SetSize(320, ROWS * 18 + 40)
 	list:SetPoint("TOPRIGHT", sc, "TOPRIGHT", -8, -66)
 	list:SetFrameLevel(math.min(sc:GetFrameLevel() + 9410, 9965))
@@ -498,6 +499,7 @@ end
 
 local function CreateBar()
 	bar = CreateFrame("Frame", nil, map)
+	mod.padRoots[#mod.padRoots + 1] = bar      -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 	bar:SetPoint("TOP", sc, "TOP", 0, -6)
 	bar:SetSize(736, 54)
 	bar:SetFrameLevel(math.min(sc:GetFrameLevel() + 9400, 9960))

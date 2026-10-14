@@ -59,17 +59,23 @@ function mod:FindMe()
 	mod.Glide(u, v, math.max(zoom, mod.FitZoom(best)))
 end
 
-local saved                     -- { u, v, zoom, zone } when the map closed
+local saved                     -- { u, v, zoom, zone, host } when the map closed
 
 function mod:OnMapHidden()
 	local u, v, zoom = mod.ViewNow()
-	if u then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player") } end
+	if u then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player"), mod.HostMap() } end
 end
 
--- the view to reopen on: where the map was when it closed, unless you've moved on since
-function mod.SavedView()
+-- the view to reopen on, as Blizzard puts up mapID: where the map was when it closed, unless
+-- you've moved on since. Only for the map Blizzard opens on (yours, or the one it closed on):
+-- a map put up for something else (a quest's zone, from the quest log or the tracker) shows as
+-- Blizzard shows it, or the view would move the map back and Blizzard would close the quest.
+-- (No mapID: whether there's a view to reopen on at all)
+function mod.SavedView(mapID)
 	if not saved or not mod.db.rememberView then return end
 	if Safe.Call(C_Map.GetBestMapForUnit, "player") ~= saved[4] then return end   -- you've moved on: open on you
+	if mapID and mapID ~= saved[5] and mapID ~= saved[4]
+		and mapID ~= Safe.Call(MapUtil and MapUtil.GetDisplayableMapForPlayer) then return end
 	return saved[1], saved[2], saved[3]
 end
 
@@ -78,7 +84,7 @@ function mod:OnMapShown()
 	-- (Blizzard's zoom reset on opening goes straight there, WorldMap.lua; this is for when
 	-- Blizzard puts up another map after it, on the next frame: only if it's not there yet)
 	C_Timer.After(0, function()
-		local u, v, zoom = mod.SavedView()
+		local u, v, zoom = mod.SavedView(mod.HostMap())
 		if not u or not mod.IsStitched() then return end
 		local nu, nv, nz = mod.ViewNow()
 		if nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3 then return end

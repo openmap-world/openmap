@@ -12,7 +12,8 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 "Report a problem" button.
 
 ## 1. It loads (1 min)
-- [ ] No Lua error at login. If Leatrix Maps / Mapster / Magnify are on, one chat line says so.
+- [ ] No Lua error at login. With Leatrix Maps' "Unlock map frame", "Scale the map", "Use simple map frame" or "Show coordinates" on, one chat line names them; with Mapster or Magnify, one line says so.
+- [ ] With other map addons on (Leatrix Maps, BetterMaps, High Fidelity World Map, HiddenMaps): on the stitched map only OpenMap's art shows (no satellite tiles, terrain, approach maps or their icons over or under it), opening the map and zooming aren't pulled elsewhere, the hover label shows OpenMap's zone levels, and there's one coordinates bar. On a dungeon map their maps show as usual.
 - [ ] `/openmap status` after opening the map: a zone count around 40+, "stitched", and a memory figure.
 
 ## 2. The whole world (3 min)
@@ -28,6 +29,8 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] Zoom into Blackrock Mountain or the Wailing Caverns entrance: the world blurs and the cave map surfaces, soft-edged, no stray strips or banner pieces.
 - [ ] Click a dungeon entrance icon: it glides down into its cave (or opens the dungeon map).
 
+- [ ] The menu's "Minimap detail from" slider: lower, and the minimap's detail mixes in further out; higher, only right up close. At 1x it shows on the whole-world view, and zooming in from there it gets sharper with no pop or jump in strength. "Minimap opacity" caps it at every zoom. Both greyed out with Minimap detail off. Watch the frame rate (debug overlay) zoomed out with it at 1x.
+
 ## 4. Icons and routes (2 min)
 - [ ] Dungeon, boat and zeppelin icons; the zeppelin is a red-ballooned airship. Click one: it glides to the other end.
 - [ ] OpenMap menu → Boat and zeppelin routes: faint dotted routes, Alliance blue, others red. Hover near one: it lights up with a tooltip.
@@ -42,7 +45,7 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] Drag the map's title bar: it moves. Drag the bottom-right corner, then the bottom-left one: it resizes, the other side staying put. `/reload`, reopen: same place and size. Maximize: the grips and drag bar go away; un-maximize: back where it was.
 
 ## 6. Settings and combat (2 min)
-- [ ] Options → Look → Unexplored areas: Show / Dim / Hide each change the map at once. On Hide, unexplored parts of a zone are blank parchment; explore a new spot and it fills in without a reload.
+- [ ] Options → Look → Unexplored areas: Show / Darken / Hide each change the map at once. On Darken, unexplored land is much darker and greyer, a zone you haven't found at all is darkened whole from every zoom (no seam as you zoom into it), and the sea off its coasts is left alone. On Hide, unexplored parts of a zone are blank parchment; explore a new spot and it fills in without a reload.
 - [ ] Open and close the map in combat, open the quest log from it, then leave combat: no "action blocked" message, and the action bars still work.
 - [ ] The OpenMap menu's Quest log tile (and its favourite button): hides and shows the quest log beside the map; in combat it says it can't. Afterwards, open the map in combat: no "action blocked" message.
 - [ ] The OpenMap button and its favourites sit in the map's bottom-left corner (above the coordinates when they show), clear of the resize grip and the quest log button. The menu's frame matches the map window's; every row and tile has its icon (no green question marks).
@@ -51,6 +54,8 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 
 - [ ] Full screen: the Quest log button and the arrow button in the corner show and hide the quest log over the map's right side; leaving full screen, the window is as it was (quest log beside the map if it was). Make the window tall: the quest log's background fills it, no line.
 - [ ] Zoom in and out over a quest's blue area (track a quest with one): the area stays on the map as it zooms.
+
+- [ ] With a gamepad (Forever's gamepad mode on): open the map, move its cursor and zoom with the right stick, all the way in and out (a steady pace, about the cursor). The coordinates and the hover label follow the cursor. A over a zone zooms into it, X zooms out a map. Over the OpenMap button, a favourite or a dungeon icon its tooltip shows, and A presses it; open the menu, press a setting and the zoom slider.
 
 ## 7. Report a problem and map notes (2 min)
 - [ ] Tools → Map notes: paint an area, type a note, Enter. Click on the map for a note at a point; Shift-drag adds to the last one; click a note to edit it. List: click a note, the map glides there. Export: the text copies with Ctrl-C. Done hides it all.

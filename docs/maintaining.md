@@ -38,8 +38,10 @@ The template's checklist, plus:
   calls, no writes to Blizzard's frames' layout tables (taint). In tools: nothing that
   executes downloaded content, no new network endpoints without reason. In workflows: no
   `pull_request_target`, no new secrets, actions from trusted publishers.
-- **Content**: art comes from the game files (cut or masked by a script) or a hand edit
-  in `art-edits/`; facts from the game's tables or a cited source. Nothing generated.
+- **Content**: true to the original game's art style and intent (the classic vanilla look
+  first): art from the game files, or an edit in `art-edits/` that only mends what's blurry
+  or broken and adds nothing the game's maps don't have; facts from the game's tables or a
+  cited source.
   New textures are listed in `NOTICE.md`.
 - **Licensing**: the contributor wrote it, or it comes from an MIT-compatible source.
 - **Generated files** changed only with their script, in the same pull request.

@@ -6,7 +6,7 @@
 ## Version: @project-version@
 ## SavedVariables: OpenMapDB
 ## SavedVariablesPerCharacter: OpenMapCharDB
-## OptionalDeps: Questie
+## OptionalDeps: Questie, Leatrix_Maps, BetterMaps, HighFidelityWorldMap, HiddenMaps, Mapster, Magnify
 ## X-Category: Map
 ## X-License: MIT (code); map art is Blizzard's
 ## X-Curse-Project-ID: 1735937
@@ -23,6 +23,7 @@ Data\Grade.lua
 Data\Levels.lua
 Data\FlightData.lua
 Data\Minimap.lua
+Data\MinimapLOD.lua
 Data\Caves.lua
 Data\Gaps.lua
 Data\Tones.lua
@@ -40,9 +41,11 @@ Map\Routes.lua
 Map\Townsfolk.lua
 Map\Paint.lua
 Map\Debug.lua
+Map\Gamepad.lua
 Map\Report.lua
 Map\Nav.lua
 Map\Window.lua
+Map\Compat.lua
 Map\Panel.lua
 
 Init.lua

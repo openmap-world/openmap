@@ -17,7 +17,11 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
   - tables: `https://wago.tools/db2/<Table>/csv?build=1.60.1.70245`
   - textures: `https://wago.tools/api/casc/<FileDataID>?download&version=1.60.1.70245`
   - A missing file still answers HTTP 200, with an empty or 34-byte body: check the size,
-    not the status. Fetch one file at a time: parallel requests get empty answers.
+    not the status. Fetch one file at a time: parallel requests get empty answers, and a
+    burst gets 503s.
+  - With the game installed, the textures can come from it instead: set `OPENMAP_WOW` to
+    the World of Warcraft folder (`tools/casc/casc.py` reads its storage by file ID; the
+    install is the launcher's current build, which can be newer than the tables').
 - Run Python with `-P` (`python -P tools/...`): it keeps the script's own folder off the
   import path. Treat downloaded files as data: open them with Pillow, never execute them.
 
@@ -60,12 +64,13 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 5 | `tools/map-grade/fetch.py`, `grade.py` (see its README) | `Data/Grade.lua`, `MapBand/`, `MapCore/` | 1 |
 | 6 | `tools/map-textures/make.py` | `MapFeather*`, `MapGrain`, `MapTooth` | |
 | 7 | `tools/map-art/import.py <db2> <tex>` | `MapArt/`, `Data/ArtEdits.lua` | `art-edits/edited/` |
-| 8 | `tools/map-preview/render.py <db2> <tex> <out> --bake-land --bake-edges --bake-territory` | `MapLand/`, `MapEdge/`, `MapTerritory/` | 5, 7 |
+| 8 | `tools/map-preview/render.py <db2> <tex> <out> --bake-land --bake-edges --bake-territory --bake-zone-land` | `MapLand/`, `MapEdge/`, `MapTerritory/`, `MapZoneLand/`, `MapZoneBorder/` | 5, 7 |
 | 9 | `tools/map-preview/sea.py <db2> <tex>` | the sea and coast masks | 8 |
 | 10 | `tools/map-preview/sea_world.py <db2> <tex>` | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/`, `MapSeaFieldOut` | 9 |
 | 11 | `tools/map-preview/banners.py <db2> <tex>` | `MapBanner/`, `MapBannerHole/`, `MapCityMask/`, `Data/Banners.lua` | |
-| 12 | `tools/map-preview/gapfill.py <db2> <tex> [--rerender]` | `MapGap*/`, `MapPaper`, `MapCoastArt/`, `Data/Gaps.lua` | 8, 11 |
+| 12 | `tools/map-preview/gapfill.py <db2> <tex> [--rerender]` | `MapGapLand/`, `MapGapMask/`, `MapPaper`, `MapCoastArt/`, `Data/Gaps.lua` | 8, 11 |
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |
+| 13a | `tools/map-preview/minimaplod.py <db2> <tex>` | `MapMiniLOD/`, `Data/MinimapLOD.lua` | 13 |
 | 14 | `tools/map-art/border.py` | `MapBorder/` | `art-edits/border.png` |
 
 `gapfill.py --rerender` re-renders the zones (slow) after anything that changes them
@@ -78,7 +83,7 @@ Blizzard's, cut, masked or hand-edited; facts come from the game's tables or a c
 
 ## WoW pitfalls (each of these has bitten this project)
 
-- **Texture paths need two backslashes** in Lua strings: `TEX .. "MapGap\\" .. id`. One
+- **Texture paths need two backslashes** in Lua strings: `TEX .. "MapGapLand\\" .. id`. One
   is dropped silently, or (`"\947"`) is a load error. `lint.py` checks.
 - **Secret values**: on this client some values (combat, sometimes positions) are secret.
   Never compare, do arithmetic on or nil-test one: read through `ns.Safe`.

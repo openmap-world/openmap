@@ -176,7 +176,15 @@ local function Light(route)
 	lit = route
 	local owner = S.GetPinSet("routes").frame
 	if route then
-		GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+		local px, py = mod.PadCursor()
+		if px then
+			-- (by the gamepad's cursor: the mouse's is hidden, somewhere else)
+			local es = UIParent:GetEffectiveScale()
+			GameTooltip:SetOwner(owner, "ANCHOR_NONE")
+			GameTooltip:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", px / es + 16, py / es + 16)
+		else
+			GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+		end
 		GameTooltip:AddLine(route.kind == "zeppelin" and L["Zeppelin"] or L["Boat"], 1, 0.82, 0)
 		GameTooltip:AddLine(route.ends[1] .. "  -  " .. route.ends[2], 1, 1, 1)
 		local c = route.faction == "Alliance" and BLUE or route.faction == "Horde" and RED or nil
@@ -195,7 +203,7 @@ end
 local function Hover()
 	local u, v, pu, pv = mod.CursorWorld()
 	local map = WorldMapFrame
-	if not u or not pu or (map and map.IsCanvasMouseFocus and not map:IsCanvasMouseFocus()) then return Light(nil) end
+	if not u or not pu or (map and map.IsCanvasMouseFocus and not map:IsCanvasMouseFocus() and not mod.PadCursor()) then return Light(nil) end
 	local best, bestD = nil, HOVER_PX
 	for _, route in ipairs(routes) do
 		local way = route.way

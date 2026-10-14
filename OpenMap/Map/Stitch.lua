@@ -33,11 +33,11 @@
 -- then in finer octaves as you close in, so more strokes come in with the zoom.
 -- Its land stays land (PlaceLand: MapLand mask, parchment tint and grain), so
 -- regions with no zone map (Quel'Thalas, Gilneas ...) meet the zones as land.
--- Land no zone covers (ns.MapGaps): wide gaps are the zone maps' own blank paper
--- (MapPaper through MapGapLand); narrow strips between zones carry each side's edge
--- across, and bare coasts get the continent map's coastline (both MapGap). It fades
--- in with the zones. Each zone also keeps its own painted sea off its coasts
--- (MapTerritory): Blizzard's hatching and islets there, not ours.
+-- Each zone's art reaches as far as Blizzard painted it (MapTerritory): its own land, the
+-- sea off its coasts (Blizzard's hatching and islets there, not ours), and the land round
+-- it no zone owns, shared with the neighbours that paint it too. Land no zone paints
+-- (ns.MapGaps) is the zone maps' own blank paper (MapPaper through MapGapLand), which
+-- their art fades into at its frame; it fades in with the zones.
 -- Colour matching: each zone's art is drawn a second time, tinted toward a
 -- shared palette (ns.MapGrade), through a mask of its border band
 -- (Media/Textures/MapBand/<uiMapID>): full strength at the zone's outline,
@@ -74,8 +74,8 @@ local UNDERGROUND_CITIES ={ [1458] = true, [1455] = true }   -- Undercity, Ironf
                                 -- shows the surface, so their own map is drawn above it (and it's kept off them)
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
-local UNEXPLORED = 0.4          -- how much of an unexplored area's art shows when faded (the zone's blank
-                                -- parchment, its unexplored look, shows through the rest)
+local UNDISCOVERED = { 0.05, 0.06, 0.08, 0.62 }   -- unexplored land, shaded ("dim"): darker and greyer, over the
+                                --  zones' art and the close-up minimap (a plain blend: the map stays opaque)
 local SEA = { 0.50, 0.49, 0.41 } -- the sea's colour where no map paints one (MapSeaField covers the rest)
 local LAND_TINT, LAND_DESAT = { 0.96, 0.92, 0.84 }, 0.25   -- unmapped land, toward the zone art's parchment
 local GRAIN_TILE = 14           -- world units per parchment grain tile
@@ -92,6 +92,7 @@ local FEATHER, FEATHER_THIN, FEATHER_WIDE = TEX .. "MapFeather", TEX .. "MapFeat
 local FEATHER_ROUND = TEX .. "MapFeatherRound"
 local LAND, GRAIN = TEX .. "MapLand\\", TEX .. "MapGrain"
 local BAND, TERRITORY, CORE = TEX .. "MapBand\\", TEX .. "MapTerritory\\", TEX .. "MapCore\\"
+local ZONELAND = TEX .. "MapZoneLand\\"   -- (each zone's land without its painted sea: render.py --bake-zone-land)
 local EDGE = TEX .. "MapEdge\\"     -- each zone's own frame, measured (tools/map-preview/render.py --bake-edges)
 local SEA_DARK, SEA_LIGHT, SEA_FIELD = TEX .. "MapSeaDark", TEX .. "MapSeaLight", TEX .. "MapSeaField\\"
 local SEA_FIELD_OUT = TEX .. "MapSeaFieldOut"   -- (the world's sea colour carried out past it: sea_world.py)
@@ -100,11 +101,11 @@ local PAPER_LAYERS = { { 1, 0, 1 }, { 2.618, 0.41, 0.5 } }   -- the gap paper: {
 local SEA_MASK = TEX .. "MapSeaMask\\"
 local SEA_OUT = TEX .. "MapSeaOut\\"   -- (each continent's open sea past the world art's edges: tools/map-preview/sea_world.py)
 local SEA_OPEN, SEA_COAST = TEX .. "MapSeaOpen\\947", TEX .. "MapSeaCoast\\947"   -- (the world art's sea, apart from / off its coasts: the same)
-local GAP, GAP_LAND, PAPER = TEX .. "MapGap\\", TEX .. "MapGapLand\\", TEX .. "MapPaper"
+local GAP_LAND, PAPER = TEX .. "MapGapLand\\", TEX .. "MapPaper"
 local W, H                      -- the world map's art size (world units)
 local namesFrame                -- (the names' lettering: Letter, below)
 local labelsRoot, names = nil, {}   -- the lettered names (ns.MapLabels): { frame, label }, built when first shown
-local root, contRoot, tilesRoot, overlayRoot, coreRoot, blurRoot, citiesRoot, pinRoot, arrow
+local root, contRoot, tilesRoot, overlayRoot, coreRoot, blurRoot, citiesRoot, shadeRoot, pinRoot, arrow
 local placed = {}               -- every region: { region, x, y, w, h } in world units
 local graded = {}               -- zone art: { tex, mapID, piece } (piece: its overlay piece, or false for base art)
 local twins = {}                -- its colour-matched copies, same shape
@@ -401,13 +402,12 @@ local function PlaceLand(mapID)
 	end
 
 	-- the gaps between and around its zones (ns.MapGaps, tools/map-preview/gapfill.py): blank
-	-- map paper through a mask of where the land is, and over it (where `over` is 1) the
-	-- strips' carried edges and the bare coasts' coastline
+	-- map paper through a mask of where the land is (the zones' own art fades into it)
 	local gaps = ns.MapGaps and ns.MapGaps[mapID]
 	if gaps then
 		local size, paper = ns.MapGaps.tile, ns.MapGaps.paper
 		for k = 1, #gaps - 2, 3 do
-			local i, j, over = gaps[k], gaps[k + 1], gaps[k + 2]
+			local i, j = gaps[k], gaps[k + 1]
 			local name = mapID .. "_" .. i .. "_" .. j
 			local x, y = p.left + i * size, p.top + j * size
 			if paper then
@@ -427,14 +427,6 @@ local function PlaceLand(mapID)
 					gapFill[#gapFill + 1] = tex
 					culled[#culled + 1] = { tex, x / W, y / H, (x + size) / W, (y + size) / H }
 				end
-			end
-			if over == 1 then
-				local tex = contRoot:CreateTexture(nil, "ARTWORK", nil, 5)
-				tex:SetTexture(GAP .. name, nil, nil, "LINEAR")
-				Record(tex, x, y, size, size)
-				tex:AddMaskTexture(mask)
-				gapFill[#gapFill + 1] = tex
-				culled[#culled + 1] = { tex, x / W, y / H, (x + size) / W, (y + size) / H }
 			end
 		end
 	end
@@ -601,6 +593,7 @@ S.Look = Look
 -- view, so a pan or zoom doesn't move (and draw) every pin on the world, only those near it
 local PIN_CELL = 0.04           -- world (normalized)
 local cullBox                   -- the last view S.Cull saw, with its margin: { u0, v0, u1, v1 }
+local NONE = {}                 -- (an empty list to loop over, kept: not a new one a frame)
 local function PinCell(set, u, v)
 	local i, j = math.floor(u / PIN_CELL), math.floor(v / PIN_CELL)
 	set.cells = set.cells or {}
@@ -713,6 +706,28 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+
+-- the shown pin nearest a screen point (px, as GetCursorPosition) within `reach` px: for the
+-- gamepad's cursor, which has no mouse-over of its own
+function S.PinAt(x, y, reach)
+	local best, bestD = nil, reach * reach
+	for _, set in pairs(sets) do
+		if set.frame:IsVisible() then
+			for _, pin in ipairs(set.pins) do
+				if pin:IsVisible() and pin:IsMouseEnabled() then
+					local cx, cy = pin:GetCenter()
+					if cx then
+						local es = pin:GetEffectiveScale()
+						local dx, dy = cx * es - x, cy * es - y
+						local d = dx * dx + dy * dy
+						if d < bestD then best, bestD = pin, d end
+					end
+				end
+			end
+		end
+	end
+	return best
+end
 
 -- paint marks (the map paint tool's preview): soft dabs in world units, so they
 -- grow and shrink with the map; above the art, under the icons
@@ -938,12 +953,13 @@ function S.Build(parent, artLevel, range, iconLevel)
 	root:SetFrameLevel(artLevel)
 	contRoot = Layer(artLevel + 1)
 	tilesRoot = Layer(artLevel + 2)
-	overlayRoot = Layer(artLevel + range - 14)
-	coreRoot = Layer(artLevel + range - 13)
-	blurRoot = Layer(artLevel + range - 12)   -- (its copies take the next 4 levels)
-	citiesRoot = Layer(artLevel + range - 7)
+	overlayRoot = Layer(artLevel + range - 16)
+	coreRoot = Layer(artLevel + range - 15)
+	blurRoot = Layer(artLevel + range - 14)   -- (its copies take the next 4 levels)
+	citiesRoot = Layer(artLevel + range - 9)
+	shadeRoot = Layer(artLevel + range - 7)   -- (unexplored land, darkened: over the art and the minimap)
 	S.closeLayers = {                       -- for Close.lua: the closest zoom's layers
-		minimap = Layer(artLevel + range - 6),
+		minimap = Layer(artLevel + range - 8),
 		grain = Layer(artLevel + range - 1),   -- (over everything; range - 5 is the underground cities')
 		under = Layer(artLevel + range - 4),
 	}
@@ -1041,7 +1057,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		if area[info.mapID] > 0 then
 			local n = PlaceOverlays(info.mapID)
 			if n > 0 then
-				level = math.min(level + 1, artLevel + range - 16)
+				level = math.min(level + 1, artLevel + range - 17)
 				local zf = CreateFrame("Frame", nil, tilesRoot)
 				zf:SetAllPoints(root)
 				zf:SetFrameLevel(level)
@@ -1335,19 +1351,23 @@ local function Step(name)
 	stepAt = now
 end
 
+-- SetZoom's fades: 0..1 across `range` ({ from, to }, or from, to) of the zoom now. (Out here,
+-- and the names' fades a table kept, so a zoom step makes no garbage: it runs every frame of one)
+local function Smooth(range, to)
+	local from = range
+	if to == nil then from, to = range[1], range[2] end
+	local t = math.max(0, math.min(1, (zoomNow - from) / (to - from)))
+	return t * t * (3 - 2 * t)
+end
+local fades = {}
+
 function S.SetZoom(zoom, scale)
 	if not root then return end
 	Step()
-	local function Smooth(range)
-		local t = math.max(0, math.min(1, (zoom - range[1]) / (range[2] - range[1])))
-		return t * t * (3 - 2 * t)
-	end
 	zoomNow = zoom
 	Fade(contRoot, Smooth(CONT_IN))
-	local fades = {                                -- the names (one of each, fixed on the world)
-		land = 1 - Smooth(LABELS_OUT),
-		sea = 1 - Smooth(SEA_LABELS_OUT),
-	}
+	fades.land = 1 - Smooth(LABELS_OUT)          -- the names (one of each, fixed on the world)
+	fades.sea = 1 - Smooth(SEA_LABELS_OUT)
 	for _, n in ipairs(names) do
 		local a = math.floor((fades[n[2].fade] or 0) * 100 + 0.5) / 100
 		Fade(n[1], a)
@@ -1359,13 +1379,13 @@ function S.SetZoom(zoom, scale)
 	Step("zone detail")
 	for _, c in ipairs(cities) do
 		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
-		local a = Smooth({ fade[1] * c[2], fade[2] * c[2] })
+		local a = Smooth(fade[1] * c[2], fade[2] * c[2])
 		if c.alpha ~= a then c.alpha = a c[1]:SetAlpha(a) end   -- (shown / hidden by S.Cull)
 		-- the zone's banner for it: the zone's art is drawn without it, so this is the banner,
 		-- with the zone's detail; the city's title once you're in it, unless the city's own map
 		-- keeps its own banner (ns.MapCityTitles): then it gives way to that (BANNER_OUT)
 		if c.banner then
-			local out = ns.MapCityTitles and ns.MapCityTitles[c.mapID] and Smooth({ BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2] }) or 0
+			local out = ns.MapCityTitles and ns.MapCityTitles[c.mapID] and Smooth(BANNER_OUT[1] * c[2], BANNER_OUT[2] * c[2]) or 0
 			Fade(c.banner, math.floor(detailNow * (1 - out) * 50 + 0.5) / 50)
 		end
 	end
@@ -1442,7 +1462,7 @@ local function BuildBlur(mapID)
 	blurZones[mapID] = frames
 	-- (its own new copies graded and queued to load, not every zone's)
 	if lastGrade then
-		for i = from, #graded do GradeEntry(graded[i], lastGrade[2], lastGrade[3] == "dim") end
+		for i = from, #graded do GradeEntry(graded[i], lastGrade[2]) end
 	end
 	ShowZone(mapID)
 end
@@ -1480,6 +1500,7 @@ end
 -- the zoom doubles past SEA_OCTAVE / HATCH_OCTAVE, crossfading octave to octave, so the
 -- paper and strokes keep their size on screen and finer ones come in as you close in.
 local seaView = {}
+local function shift(k) return (k * 0.37) % 1 end   -- (an octave's own offset: below)
 local function Octaves(from)
 	local o = math.max(0, math.log(zoomNow / from) / math.log(2))
 	local n = math.floor(o)
@@ -1511,7 +1532,6 @@ function S.SetSea(u, v, hu, hv)
 	-- each size keeps its own offset (the octave's number), so when the finer copy takes
 	-- over as the zoom doubles, it's the same pattern in the same place: no jump
 	local n = math.floor(math.log(div) / math.log(2) + 0.5)
-	local function shift(k) return (k * 0.37) % 1 end
 	for i = 1, 2 do
 		Tile(seaPaper[i], u0, v0, u1, v1, size / div, size / div, m * (1 - f), shift(n))
 		Tile(seaPaper[i + 2], u0, v0, u1, v1, size / div / 2, size / div / 2, m * f, shift(n + 1))
@@ -1574,9 +1594,9 @@ end
 
 -- colour matching: the border copies move `strength` of the way to the shared
 -- palette (ns.MapGrade); `desat` takes some colour out of every zone. `unexplored`:
--- "show" the areas the player hasn't explored yet as they are, "dim" them (faded most of the way
--- to the parchment), or "hide"
--- them (the zone's blank parchment shows there, as on Blizzard's own map)
+-- "show" the areas the player hasn't explored yet as they are, "dim" them (darkened and cooled;
+-- a zone not found at all is shaded on the continent's art too, so it shows from every zoom), or
+-- "hide" them (the zone's blank parchment shows there, as on Blizzard's own map)
 -- a zone's textures shown or hidden: near the view, and not an unexplored piece being hidden
 -- zones' files waiting to be set, a few each frame (LOAD_PER_FRAME), so a zone coming into
 -- view (or the map opening on one) doesn't stall a frame setting them all at once
@@ -1616,6 +1636,135 @@ loader:SetScript("OnUpdate", function(self)
 	if loadAt == 1 and #loadQueue == 0 and fadingN == 0 then self:Hide() end
 end)
 
+--------------------------------------------------------------------------------
+-- Unexplored land, darkened ("dim"): a shade over the zones' art and the close-up minimap,
+-- through each zone's land without the sea its art paints (MapZoneLand, so the sea is left
+-- alone): all of a zone you haven't found any of, from every zoom; in a zone you've been to,
+-- each unexplored piece, cut to its own shape (its tiles' files as masks). Built the first time
+-- it's wanted, a zone's pieces when it's first in view; hidden with the zone off the view.
+--------------------------------------------------------------------------------
+
+-- (one table: the file is near Lua's limit of 200 locals)
+-- zones: mapID -> { frame, land, p, all = texture, rim = texture, pieces = { piece -> { textures } } }, or false
+-- REACH: world units round a zone its border share covers (render.py's BORDER_REACH)
+local Shade = { zones = {}, on = false, REACH = 12 }
+
+function Shade.Texture(z, x, y, w, h)
+	local tex = z.frame:CreateTexture(nil, "ARTWORK")
+	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+	Record(tex, x, y, w, h)
+	tex:AddMaskTexture(z.land)
+	return tex
+end
+
+function Shade.Zone(mapID)
+	local z = Shade.zones[mapID]
+	if z ~= nil then return z end
+	z = false
+	local p = Place(mapID)
+	if p and shadeRoot then
+		local frame = CreateFrame("Frame", nil, shadeRoot)
+		frame:SetAllPoints(root)
+		local land = ZoneMask(frame, p, ZONELAND)
+		if land then
+			z = { frame = frame, land = land, p = p }
+			z.all = Shade.Texture(z, p.left, p.top, p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy)
+			-- ... and its share of the land round it that's no zone's (border mountains, blank land
+			-- between zones: MapZoneBorder, over its art rectangle and REACH round it), so a stretch
+			-- of zones you haven't found is dark from one to the next
+			local R = Shade.REACH
+			local x, y = p.left - R, p.top - R
+			local w, h = p.layer.layerWidth * p.sx + 2 * R, p.layer.layerHeight * p.sy + 2 * R
+			local share = frame:CreateMaskTexture()
+			share:SetTexture(TEX .. "MapZoneBorder\\" .. mapID, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+			Record(share, x, y, w, h)
+			z.rim = frame:CreateTexture(nil, "ARTWORK")
+			z.rim:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+			Record(z.rim, x, y, w, h)
+			z.rim:AddMaskTexture(share)
+		else
+			frame:Hide()
+		end
+	end
+	Shade.zones[mapID] = z
+	return z
+end
+
+-- a zone's unexplored pieces, each through its own tiles' files (placed at the files' own size,
+-- so nothing needs cropping) and the zone's land. (Explored pieces never go back: none for them)
+function Shade.Pieces(mapID, z)
+	z.pieces = {}
+	local p = z.p
+	local tw, th = p.layer.tileWidth, p.layer.tileHeight
+	ForEachPiece(mapID, function(files, x, y, w, h, _, piece)
+		if not piece.unexplored then return end
+		local list = {}
+		local cols, rows = math.ceil(w / tw), math.ceil(h / th)
+		for j = 1, rows do
+			local ph = (j < rows) and th or (h - (rows - 1) * th)
+			for k = 1, cols do
+				local f = files[(j - 1) * cols + k]
+				local file = tonumber(f) or f
+				local pw = (k < cols) and tw or (w - (cols - 1) * tw)
+				if file and pw > 0 and ph > 0 then
+					local fw, fh = (k < cols) and tw or Pow2(pw), (j < rows) and th or Pow2(ph)
+					local tx, ty = p.left + (x + (k - 1) * tw) * p.sx, p.top + (y + (j - 1) * th) * p.sy
+					local shape = z.frame:CreateMaskTexture()
+					shape:SetTexture(file, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+					Record(shape, tx, ty, fw * p.sx, fh * p.sy)
+					local tex = Shade.Texture(z, tx, ty, pw * p.sx, ph * p.sy)
+					tex:AddMaskTexture(shape)
+					list[#list + 1] = tex
+				end
+			end
+		end
+		z.pieces[piece] = list
+	end)
+end
+
+-- how much of a zone is unexplored: "all", "some", or nil (none, or no pieces)
+function Shade.Unexplored(mapID)
+	local list = pieces[mapID]
+	if not list or next(list) == nil then return nil end
+	local any, all = false, true
+	for _, piece in pairs(list) do
+		if piece.unexplored then any = true else all = false end
+	end
+	return all and "all" or (any and "some" or nil)
+end
+
+-- near the view: its art rectangle and REACH round it (its border share), against S.Cull's box
+function Shade.Near(mapID)
+	local box = cullBox
+	if not box then return true end
+	local l, r, t, b = S.Rect(mapID)
+	if not l then return false end
+	local du, dv = Shade.REACH / W, Shade.REACH / H
+	return r + du > box[1] and l - du < box[3] and b + dv > box[2] and t - dv < box[4]
+end
+
+function Shade.Show(mapID)
+	local z = Shade.zones[mapID]
+	local state = Shade.on and Shade.Unexplored(mapID)
+	if not state then
+		if z then z.frame:Hide() end
+		return
+	end
+	if z == nil then z = Shade.Zone(mapID) end
+	if not z then return end
+	local here = Shade.Near(mapID)
+	z.near = here
+	z.frame:SetShown(here)
+	if not here then return end
+	z.all:SetShown(state == "all")
+	z.rim:SetShown(state == "all")
+	if state == "some" and not z.pieces then Shade.Pieces(mapID, z) end
+	for piece, list in pairs(z.pieces or NONE) do
+		local on = state == "some" and piece.unexplored
+		for _, tex in ipairs(list) do tex:SetShown(on) end
+	end
+end
+
 ShowZone = function(mapID)
 	local here = inView[mapID] ~= false
 	local load = inView[mapID] == true and detailLive   -- (in view and drawn: its files are wanted)
@@ -1630,13 +1779,28 @@ ShowZone = function(mapID)
 		end
 		tex:SetShown(here and not (un and hide) and (not e.twin or strength > 0))
 	end
+	Shade.Show(mapID)
 end
 
--- a zone texture's colour: unexplored ones faded toward the parchment (or not), some colour
--- taken out. (The fade is the vertex colour's alpha: the texture's own alpha is its load fade-in)
-GradeEntry = function(g, desat, dim)
-	local un = g[3] and g[3].unexplored
-	g[1]:SetVertexColor(1, 1, 1, (un and dim) and UNEXPLORED or 1)
+-- for the debug overlay (Debug.lua): how much of the zone art has its files loaded, of all of
+-- it; regions placed since the build (pins' anchors, close-up layers, marks); the load queue
+function S.ArtStats()
+	local loaded, total = 0, 0
+	for _, list in pairs(zoneTex) do
+		for _, e in ipairs(list) do
+			total = total + 1
+			if not e[1].omFile then loaded = loaded + 1 end
+		end
+	end
+	local live = 0
+	for _ in pairs(dynamic) do live = live + 1 end
+	return loaded, total, live, #loadQueue - loadAt + 1
+end
+
+-- a zone texture's colour: some colour taken out. (The texture's own alpha is its load fade-in;
+-- unexplored areas are darkened by the shades over them, Shade.Show)
+GradeEntry = function(g, desat)
+	g[1]:SetVertexColor(1, 1, 1, 1)
 	g[1]:SetDesaturation(desat)
 end
 
@@ -1644,13 +1808,11 @@ function S.ApplyGrade(strength, desat, unexplored)
 	lastGrade = { strength, desat, unexplored }
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
-	local dim = unexplored == "dim"
-	for _, g in ipairs(graded) do GradeEntry(g, desat, dim) end
+	Shade.on = unexplored == "dim"
+	for _, g in ipairs(graded) do GradeEntry(g, desat) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
-		local un = g[3] and g[3].unexplored
-		tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength,
-			(un and dim) and UNEXPLORED or 1)
+		tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1)
 		tex:SetDesaturation(desat)
 	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
@@ -1663,7 +1825,8 @@ function S.Cull(u0, v0, u1, v1)
 	if not root then return end
 	local mu, mv = (u1 - u0) * CULL_MARGIN, (v1 - v0) * CULL_MARGIN
 	u0, v0, u1, v1 = u0 - mu, v0 - mv, u1 + mu, v1 + mv
-	cullBox = { u0, v0, u1, v1 }
+	cullBox = cullBox or {}
+	cullBox[1], cullBox[2], cullBox[3], cullBox[4] = u0, v0, u1, v1
 	for mapID in pairs(zoneTex) do
 		local l, r, t, b = S.Rect(mapID)
 		local here = (l and r > u0 and l < u1 and b > v0 and t < v1) and true or false
@@ -1679,9 +1842,14 @@ function S.Cull(u0, v0, u1, v1)
 			c[1]:SetShown(here)
 		end
 	end
+	if Shade.on then
+		for mapID, z in pairs(Shade.zones) do
+			if z and z.near ~= Shade.Near(mapID) then Shade.Show(mapID) end
+		end
+	end
 	-- the pins' cells (S.AddPin)
 	for _, set in pairs(sets) do
-		for _, cell in pairs(set.cells or {}) do
+		for _, cell in pairs(set.cells or NONE) do
 			local here = cell.u0 + PIN_CELL > u0 and cell.u0 < u1 and cell.v0 + PIN_CELL > v0 and cell.v0 < v1
 			if cell.here ~= here then
 				cell.here = here

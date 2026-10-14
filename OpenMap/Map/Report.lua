@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
--- Report a problem (beta feedback), from the map's menu: circle the
--- problem on the map (drag), say what's wrong, and get a short report code to paste
--- into a GitHub issue (addons can't send anything themselves). The code carries the
--- place, zoom, circles and note, so tools/map-preview/report.py can render exactly
--- what the player saw, circles and all.
+-- Report a problem (beta feedback), from the map's menu: about a spot on the map (circle it:
+-- drag) or anything else (the menu, settings, another addon: no circle), say what's wrong, and
+-- get a short report code to paste into a GitHub issue (addons can't send anything themselves).
+-- The code carries the place, zoom, circles and note, so tools/map-preview/report.py can render
+-- exactly what the player saw, circles and all.
 --
 -- Code: OM1|<version>|<mapID>|<u>|<v>|<zoom>|<circles u:v:r;...>|<note>
 --------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ local function Code(note)
 end
 
 StaticPopupDialogs.OPENMAP_REPORT_NOTE = {
-	text = "What's wrong here?\n|cffaaaaaa(a sentence is plenty)|r",
+	text = "What's wrong?\n|cffaaaaaa(the map, the menu, a setting ... anything: a sentence is plenty)|r",
 	hasEditBox = true,
 	editBoxWidth = 340,
 	button1 = CONTINUE or "Continue",
@@ -96,7 +96,7 @@ function mod:ShowReportCode(code)
 		tip:SetPoint("TOPLEFT", 14, -140)
 		tip:SetWidth(490)
 		tip:SetJustifyH("LEFT")
-		tip:SetText("Thanks! The code says where you were looking and what you circled, so we can see exactly what you saw.")
+		tip:SetText("Thanks! The code says where you were looking (and what you circled, if anything), so we can see what you saw.")
 	end
 	codeFrame.url.value = ns.ISSUES_URL
 	codeFrame.url:SetText(ns.ISSUES_URL)
@@ -123,7 +123,9 @@ end
 function mod:ToggleReport(on)
 	if on == nil then on = not reporting end
 	if on and not mod.IsStitched() then
-		ns:Print("Open the world, a continent or a zone map to report a problem.")
+		-- (a dungeon map and the like: nothing to circle, but the problem can still be said)
+		wipe(circles)
+		StaticPopup_Show("OPENMAP_REPORT_NOTE")
 		return
 	end
 	if on and mod.IsPainting and mod:IsPainting() then mod:TogglePaint(false) end
@@ -167,6 +169,7 @@ function mod:SetupReport(worldMap)
 	catcher:SetScript("OnUpdate", UpdateDrag)
 
 	bar = CreateFrame("Frame", nil, map)
+	mod.padRoots[#mod.padRoots + 1] = bar      -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 	bar:SetPoint("TOP", sc, "TOP", 0, -6)
 	bar:SetSize(560, 34)
 	bar:SetFrameLevel(math.min(sc:GetFrameLevel() + 9400, 9960))
@@ -174,7 +177,7 @@ function mod:SetupReport(worldMap)
 	Look:Panel(bar, { inset = 0, alpha = 0.92 })
 	local text = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	text:SetPoint("LEFT", 10, 0)
-	text:SetText("|cffffd100Drag|r to circle the problem   |cffffd100Right-drag|r pan   |cffffd100Wheel|r zoom")
+	text:SetText("|cffffd100Drag|r to circle a spot (if it's about one)   |cffffd100Next|r to say what's wrong   |cffffd100Right-drag|r pan")
 	local function Btn(label, x, fn)
 		local b = CreateFrame("Button", nil, bar, "UIPanelButtonTemplate")
 		b:SetSize(70, 22)

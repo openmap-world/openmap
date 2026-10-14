@@ -22,14 +22,18 @@ local mod = ns:GetModule("worldmap")
 local d = mod.defaults
 d.minimap = true                -- the minimap's detail up close at all (off: the painted map alone, everywhere)
 d.minimapMix = 0.45             -- how strong the minimap's detail is up close (0 = none)
-d.minimapDeep = 0.85            -- ... and at the deepest zoom, where the painted map has nothing left to give
+d.minimapDeep = 0.85            -- the most it shows at any zoom (reached at the deepest, where the painted map has nothing left)
+d.minimapFrom = 20              -- the zoom where it starts to mix in (MINI_FROM: what it can be set to)
 d.soften = true                 -- soften + paper grain at the closest zoom
 d.underground = true            -- caves and pre-instance areas
 d.gapMinimap = false            -- the minimap in land no zone map covers (experimental: off, that land is left as
                                 --  the zone maps' blank parchment, an unfinished map)
 
-local MINI_FADE = { 20, 34 }    -- zoom where the minimap mixes in
+local MINI_FADE = { 20, 34 }    -- zoom where the minimap mixes in (at minimapFrom 20: both move with it)
 local DEEP_FADE = { 30, 48 }    -- ... and where it takes over, toward minimapDeep
+local MINI_FROM = { 1, 60, 1 }  -- minimapFrom's least (the whole world), most, step
+mod.MINI_FROM = MINI_FROM
+local miniFade, deepFade = { 20, 34 }, { 30, 48 }   -- (the fades as set: kept, not made each view)
 local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
@@ -72,16 +76,23 @@ local function Smooth(x, r)
 	return t * t * (3 - 2 * t)
 end
 
--- the continent (0 / 1) the view's centre is on
+-- the continent (0 / 1) the view's centre is on: looked up again only once the centre has
+-- moved a little (the game's lookup makes tables, and this runs every frame of a pan or zoom)
+local lastCU, lastCV, lastCont
 local function ContinentAt(u, v)
+	if lastCU and math.abs(u - lastCU) < 0.002 and math.abs(v - lastCV) < 0.002 then return lastCont end
+	lastCU, lastCV, lastCont = u, v, nil
 	for _, id in ipairs(S.ChainAt(u, v)) do
-		if CONT_OF[id] then return CONT_OF[id] end
+		if CONT_OF[id] then lastCont = CONT_OF[id] break end
 	end
+	return lastCont
 end
 
--- every continent (0 / 1) whose map the view overlaps
+-- every continent (0 / 1) whose map the view overlaps (one list, reused)
+local contsInView = {}
 local function ContinentsInView(u, v, hu, hv)
-	local out = {}
+	local out = contsInView
+	wipe(out)
 	for mapID, cont in pairs(CONT_OF) do
 		local l, r, t, b = S.Rect(mapID)
 		if l and r > u - hu and l < u + hu and b > v - hv and t < v + hv then out[#out + 1] = cont end
@@ -93,7 +104,9 @@ end
 -- Minimap tiles
 --------------------------------------------------------------------------------
 
-local tiles, pool = {}, {}      -- "cont:index" -> { texture }
+local tiles, pool = {}, {}      -- cont * 4096 + index -> { texture }
+local TileKey = function(cont, tx, ty) return cont * 4096 + tx * 64 + ty end   -- (a number: no string a tile a frame)
+local wantedTiles, wantedGap = {}, {}   -- (reused each update)
 
 -- a tile, through its continent's land (S.LandMask): the minimap's sea is left out
 local function Tile(layer, fid, cont)
@@ -119,8 +132,68 @@ local function DropTile(key)
 	pool[#pool + 1] = t
 end
 
+-- The smaller copies of the minimap (ns.MapMinimapLOD, tools/map-preview/minimaplod.py): its detail
+-- from further out than its own tiles can be drawn (at most 64 of them; a continent is over a
+-- thousand). Each copy is cut into pieces of `per` tiles a side, tinted as the tiles are. Drawn
+-- coarse under fine under the game's own tiles, their strengths set so the three add up to `mix`:
+-- the finer takes over as fewer tiles are in view
+local LOD = ns.Media.path .. "Textures\\MapMiniLOD\\"
+local NATIVE_FROM = { 64, 36 }  -- tiles in view where the game's own tiles start / finish taking over
+local FINE_FROM = { 40, 24 }    -- tiles across the view where the finer copy starts / finishes taking over
+local lodPieces, lodPool, wantedLOD = {}, {}, {}   -- key -> texture; free textures; (reused each update)
+local lodSets = {}              -- (continent * 2 + level) -> { [col * 64 + row] = true }
+
+local function LODSet(cont, level, keys)
+	local k = cont * 2 + level
+	if not lodSets[k] then
+		local set = {}
+		for _, key in ipairs(keys) do set[key] = true end
+		lodSets[k] = set
+	end
+	return lodSets[k]
+end
+
+local function LODPiece(layer, cont, sub)
+	local t = tremove(lodPool) or layer:CreateTexture(nil, "ARTWORK")
+	t:SetDrawLayer("ARTWORK", sub)
+	t:SetDesaturation(MINI_DESAT)
+	local mask = CONT_MAP[cont] and S.LandMask and S.LandMask(layer, CONT_MAP[cont])
+	if t.omMask ~= mask then
+		if t.omMask then t:RemoveMaskTexture(t.omMask) end
+		if mask then t:AddMaskTexture(mask) end
+		t.omMask = mask
+	end
+	return t
+end
+
+-- one copy's pieces over the tiles tx0 .. tx1, ty0 .. ty1, at `alpha`
+local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
+	local set = LODSet(cont, level, keys)
+	for col = math.floor(tx0 / per), math.floor(tx1 / per) do
+		for row = math.floor(ty0 / per), math.floor(ty1 / per) do
+			if set[col * 64 + row] then
+				local key = ((cont * 2 + level) * 64 + col) * 64 + row
+				wantedLOD[key] = true
+				local t = lodPieces[key]
+				if not t then
+					t = LODPiece(layer, cont, -level)
+					t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
+					lodPieces[key] = t
+					local u0, v0 = S.FromYards(cont, (32 - row * per) * TILE, (32 - col * per) * TILE)
+					local u1, v1 = S.FromYards(cont, (32 - (row + 1) * per) * TILE, (32 - (col + 1) * per) * TILE)
+					S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
+					t:Show()
+				end
+				t:SetAlpha(alpha)
+			end
+		end
+	end
+end
+
 local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
-	local wanted = {}
+	local wanted = wantedTiles
+	wipe(wanted)
+	wipe(wantedLOD)
 	for _, cont in ipairs(conts) do
 		local list = ns.MapMinimap and ns.MapMinimap[cont]
 		local xa, ya, xb, yb
@@ -131,12 +204,26 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 		if xa and xb then
 			local tx0, tx1 = math.floor(32 - math.max(ya, yb) / TILE), math.floor(32 - math.min(ya, yb) / TILE)
 			local ty0, ty1 = math.floor(32 - math.max(xa, xb) / TILE), math.floor(32 - math.min(xa, xb) / TILE)
-			if (tx1 - tx0 + 1) * (ty1 - ty0 + 1) <= 64 then
+			local count, across = (tx1 - tx0 + 1) * (ty1 - ty0 + 1), math.max(tx1 - tx0 + 1, ty1 - ty0 + 1)
+			-- how much each shows: the game's tiles, the finer copy, the coarser
+			local lods = ns.MapMinimapLOD and ns.MapMinimapLOD[cont]
+			local wn = count <= 64 and (lods and Smooth(count, NATIVE_FROM) or 1) or 0
+			local fine = Smooth(across, FINE_FROM)
+			local a3 = mix * wn
+			local a2 = a3 < 1 and mix * (1 - wn) * fine / (1 - a3) or 0
+			local a1 = mix * (1 - wn) * (1 - fine) / math.max(1e-3, (1 - a2) * (1 - a3))
+			if lods then
+				for level, lv in ipairs(lods) do               -- (finest first)
+					local a = level == 1 and a2 or a1
+					if a > 0.005 then ShowLOD(layer, cont, level, lv[1], lv[2], tx0, tx1, ty0, ty1, math.min(1, a)) end
+				end
+			end
+			if count <= 64 and a3 > 0.005 then
 				for tx = tx0, tx1 do
 					for ty = ty0, ty1 do
 						local fid = list[tx * 64 + ty]
 						if fid then
-							local key = cont .. ":" .. (tx * 64 + ty)
+							local key = TileKey(cont, tx, ty)
 							wanted[key] = true
 							local t = tiles[key]
 							if not t then
@@ -150,7 +237,7 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 									tex:Show()
 								end
 							end
-							t[1]:SetAlpha(mix)
+							t[1]:SetAlpha(a3)
 						end
 					end
 				end
@@ -159,6 +246,13 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 	end
 	for key in pairs(tiles) do
 		if not wanted[key] then DropTile(key) end
+	end
+	for key, t in pairs(lodPieces) do
+		if not wantedLOD[key] then
+			t:Hide(); S.UnplaceWorld(t)
+			lodPieces[key] = nil
+			lodPool[#lodPool + 1] = t
+		end
 	end
 end
 
@@ -184,8 +278,9 @@ local function GapSet(mapID)
 end
 
 -- the nearest zone's colour, looking a little way round a point in a gap
+local GAP_REACH = { 0, 0.004, 0.009, 0.016 }
 local function GapTone(u, v)
-	for _, reach in ipairs({ 0, 0.004, 0.009, 0.016 }) do
+	for _, reach in ipairs(GAP_REACH) do
 		for k = 0, reach > 0 and 7 or 0 do
 			local a = k * math.pi / 4
 			local chain = S.ChainAt(u + math.cos(a) * reach, v + math.sin(a) * reach * 1.5)
@@ -197,7 +292,8 @@ local function GapTone(u, v)
 end
 
 local function UpdateGapMinimap(conts, u, v, hu, hv, alpha)
-	local wanted, n = {}, 0
+	local wanted, n = wantedGap, 0
+	wipe(wanted)
 	local layer = S.GapLayer and S.GapLayer()
 	for _, cont in ipairs(conts) do
 		local list = ns.MapMinimap and ns.MapMinimap[cont]
@@ -223,7 +319,7 @@ local function UpdateGapMinimap(conts, u, v, hu, hv, alpha)
 						local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
 						do
 							n = n + 1
-							local key = cont .. ":" .. (tx * 64 + ty)
+							local key = TileKey(cont, tx, ty)
 							wanted[key] = true
 							local tex = gapTiles[key]
 							if not tex then
@@ -356,20 +452,26 @@ end
 -- Every cave map in view surfaces by the zoom alone (UNDER_START .. UNDER_FULL of its width),
 -- and stays while it's on screen. The surface above dims and softens for the one you're
 -- centred on only, so panning about doesn't darken the whole map.
+local underShown = {}           -- (reused each update)
+local underRange = {}           -- cave id -> its { full, start } (made once: no table a cave a frame)
+local FOCUS_RANGE = { 0.35, 0.8 }
 local function UpdateUnderground(layer, cont, u, v, hu, hv)
-	local shown, focus = {}, 0
+	local shown, focus = underShown, 0
+	wipe(shown)
 	if mod.db.underground and cont and ns.MapCaves then
 		for id, c in pairs(ns.MapCaves) do
 			if c[2] == cont and not UNDER_SKIP[id] and Primary(id, c) then
 				local u0, v0, u1, v1 = CaveRect(c)
 				if u0 and u1 > u - hu and u0 < u + hu and v1 > v - hv and v0 < v + hv then
 					local fill = (2 * hu) / (u1 - u0)          -- view width / cave width
-					local tz = 1 - Smooth(fill, { UNDER_FULL, UNDER_START_OF[id] or UNDER_START })
+					local range = underRange[id]
+					if not range then range = { UNDER_FULL, UNDER_START_OF[id] or UNDER_START } underRange[id] = range end
+					local tz = 1 - Smooth(fill, range)
 					if tz > 0.01 then
 						shown[id] = tz
 						local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
 						local off = math.max(math.abs(cu - u) / hu, math.abs(cv - v) / hv)
-						focus = math.max(focus, tz * (1 - Smooth(off, { 0.35, 0.8 })))
+						focus = math.max(focus, tz * (1 - Smooth(off, FOCUS_RANGE)))
 					end
 				end
 			end
@@ -449,8 +551,15 @@ function S.SetView(u, v, hu, hv, zoom)
 	cv.soft = soft
 	Try("blur", S.SetBlur, soft, u - hu, v - hv, u + hu, v + hv)
 	local base = mod.db.minimap and mod.db.minimapMix or 0
-	local mix = base * Smooth(zoom, MINI_FADE)
-	if base > 0 then mix = mix + (math.max(base, mod.db.minimapDeep or base) - mix) * Smooth(zoom, DEEP_FADE) end
+	local k = (mod.db.minimapFrom or MINI_FADE[1]) / MINI_FADE[1]          -- (sooner or later: the fades scale with it)
+	-- (the take-over toward minimapDeep moves later with it, never sooner: it's where the painted
+	-- map runs out of detail)
+	miniFade[1], miniFade[2] = MINI_FADE[1] * k, MINI_FADE[2] * k
+	deepFade[1], deepFade[2] = DEEP_FADE[1] * math.max(1, k), DEEP_FADE[2] * math.max(1, k)
+	local most = mod.db.minimapDeep or 1                     -- (the most it ever shows)
+	local from = mod.db.minimapFrom or MINI_FADE[1]
+	local mix = math.min(base, most) * (from <= MINI_FROM[1] and 1 or Smooth(zoom, miniFade))   -- (at the least: from the whole world)
+	if base > 0 then mix = mix + (most - mix) * Smooth(zoom, deepFade) end
 	-- not over a city's own map (the minimap there is the surface, not the city)
 	mix = mix * (1 - (Try("cities", S.CityCover, u, v) or 0))
 	-- and over the cities on the surface no more than CITY_MINI: their own plan leads
@@ -483,9 +592,12 @@ function mod:CloseOptions(opts, get, set, off)
 	opts.minimapMix = { type = "range", name = "Minimap strength", order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
 		get = get, set = set, disabled = noMinimap,
 		desc = "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads." }
-	opts.minimapDeep = { type = "range", name = "Minimap at the deepest zoom", order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
+	opts.minimapFrom = { type = "range", name = "Minimap detail from zoom", order = 51.1, min = MINI_FROM[1], max = MINI_FROM[2], step = MINI_FROM[3],
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
-		desc = "Zooming in past where the painted map has any detail left, the minimap takes over toward this." }
+		desc = "How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show." }
+	opts.minimapDeep = { type = "range", name = "Minimap detail, most opacity", order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
+		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
+		desc = "The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this." }
 	opts.gapMinimap = { type = "toggle", name = "Minimap in the gaps (experimental)", order = 51.5, get = get, set = set, disabled = noMinimap,
 		desc = "Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper." }
 	opts.soften = { type = "toggle", name = "Soften and add paper grain", order = 52, get = get, set = set, disabled = off,

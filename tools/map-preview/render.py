@@ -74,9 +74,26 @@ def rect(mapid):
     w_, h_ = (r - l) / (uM0 - um0), (b - t) / (uM1 - um1)
     return (l - um0 * w_, l - um0 * w_ + w_, t - um1 * h_, t - um1 * h_ + h_)
 
+# OPENMAP_WOW: the game's folder (World of Warcraft); its own files are read there first
+# (tools/casc), wago.tools only for what the install doesn't have
+WOW = os.environ.get("OPENMAP_WOW")
+_casc = []
+def local(fid, p):
+    if not WOW: return False
+    if not _casc:
+        sys.path.insert(0, os.path.join(REPO, "tools", "casc"))
+        import casc
+        _casc.append(casc.Casc(WOW, os.environ.get("OPENMAP_PRODUCT", "wow_classic_beta")))
+    try:
+        data = _casc[0].read(fid)
+    except Exception:
+        return False
+    open(p, "wb").write(data)
+    return True
+
 def fetch(fid):
     p = os.path.join(cache, "%d.blp" % fid)
-    if not os.path.exists(p) or os.path.getsize(p) == 0:
+    if (not os.path.exists(p) or os.path.getsize(p) == 0) and not local(fid, p):
         url = "https://wago.tools/api/casc/%d?download&version=%s" % (fid, BUILD)
         req = urllib.request.Request(url, headers={"User-Agent": "openmap-tools/1"})
         for attempt in range(3):
@@ -104,9 +121,11 @@ src = open(os.path.join(WM, "Reveal.lua"), encoding="utf-8").read()
 for artid, body in re.findall(r'\[(\d+)\] = \{(.*?)\},\n', src):
     reveal[int(artid)] = re.findall(r'\["([\d:]+)"\] = "([^"]+)"', body)
 
-def overlay_canvas(artid):
+def overlay_canvas(artid, keys=None):
+    """a zone's overlay pieces composited (only those in `keys`, when given)"""
     img = Image.new("RGBA", (1002, 668), (0, 0, 0, 0))
     for key, files in reveal.get(artid, []):
+        if keys is not None and key not in keys: continue
         w, h, x, y = map(int, key.split(":"))
         ids = [int(s) for s in files.split(",")]
         cols, rows = math.ceil(w / 256), math.ceil(h / 256)
@@ -225,7 +244,9 @@ def band(m):
     k = ("band", m["id"])
     if k not in _cache: _cache[k] = mask("MapBand/%d" % m["id"])
     return _cache[k]
+TERR_OWN = False                # (gapfill.py: each zone through its own territory only)
 def terr(m):
+    if TERR_OWN: return terr_own(m)
     k = ("terr", m["id"])
     if k not in _cache: _cache[k] = mask("MapTerritory/%d" % m["id"])
     return _cache[k]
@@ -263,19 +284,16 @@ def grain_tex():
 
 GAP_TILE = 64                   # world units per MapGap tile (tools/map-preview/gapfill.py)
 def gap_tiles(cid):
-    """MapGapLand masks and MapGap coastlines per tile: (col, row) -> (land alpha, coast RGBA or None)"""
+    """MapGapLand masks per tile: (col, row) -> land alpha"""
     k = ("gap", cid)
     if k not in _cache:
         got = {}
-        land_dir, coast_dir = os.path.join(TEXDIR, "MapGapLand"), os.path.join(TEXDIR, "MapGap")
+        land_dir = os.path.join(TEXDIR, "MapGapLand")
         if os.path.isdir(land_dir):
             for f in os.listdir(land_dir):
                 m_ = re.match(r"%d_(\d+)_(\d+)\.tga$" % cid, f)
                 if not m_: continue
-                land = np.asarray(Image.open(os.path.join(land_dir, f)).convert("RGBA")).astype(np.float32)[..., 3] / 255
-                cp = os.path.join(coast_dir, f)
-                coast = np.asarray(Image.open(cp).convert("RGBA")).astype(np.float32) / 255 if os.path.exists(cp) else None
-                got[(int(m_.group(1)), int(m_.group(2)))] = (land, coast)
+                got[(int(m_.group(1)), int(m_.group(2)))] = np.asarray(Image.open(os.path.join(land_dir, f)).convert("RGBA")).astype(np.float32)[..., 3] / 255
         _cache[k] = got
     return _cache[k]
 
@@ -293,6 +311,12 @@ LAND_FILL = os.environ.get("OPENMAP_LAND", "1") == "1"
 LAND_TINT, LAND_DSAT = (0.96, 0.92, 0.84), 0.25
 USE_CORE = os.environ.get("OPENMAP_CORE", "1") == "1"
 USE_BASE = os.environ.get("OPENMAP_BASE", "1") == "1"
+# "Darken unexplored areas" (Stitch.lua's UNDISCOVERED): a shade over the zones' land (MapZoneLand), all of
+# a zone not found at all, or its unexplored pieces. Out of game nothing is known about what a player
+# has explored, so a preview picks it: OPENMAP_UNEXPLORED="Westfall=all;Duskwood=half"
+# (all: none of it found; half: every other overlay piece unexplored)
+UNDISCOVERED = (0.05, 0.06, 0.08, 0.62)
+UNEXPLORED_SIM = dict(p.split("=", 1) for p in os.environ.get("OPENMAP_UNEXPLORED", "").split(";") if "=" in p)
 
 def smooth(z, rng):
     t = max(0.0, min(1.0, (z - rng[0]) / (rng[1] - rng[0])))
@@ -353,12 +377,12 @@ def render(cu, cv, zoom, path):
 
     def gap_over(cont, alpha):
         """the gaps: MapPaper repeated (paper_world() world units a tile) through the MapGapLand
-        masks, the MapGap coastlines over it, all under the continent art's wide edge fade"""
+        masks, under the continent art's wide edge fade"""
         tiles_ = gap_tiles(cont["id"])
         if not tiles_ or alpha <= 0: return
         pw, pap = paper_world(), tex_rgba("MapPaper")
         cl, ct = cont["rect"][0] * W, cont["rect"][2] * H
-        for (i, j), (land, coast) in tiles_.items():
+        for (i, j), land in tiles_.items():
             x0, y0 = cl + i * GAP_TILE, ct + j * GAP_TILE
             X0, X1 = (x0 - cu * W) * px + OW / 2, (x0 + GAP_TILE - cu * W) * px + OW / 2
             Y0, Y1 = (y0 - cv * H) * px + OH / 2, (y0 + GAP_TILE - cv * H) * px + OH / 2
@@ -384,10 +408,6 @@ def render(cu, cv, zoom, path):
                     col = np.dstack([ndimage.map_coordinates(pap[..., c_], [py_, px_], order=1, mode="grid-wrap") for c_ in range(3)])
                     aa = (la * fade * al)[..., None]
                     dst[:] = dst * (1 - aa) + col * aa
-            if coast is not None:
-                smp = np.dstack([ndimage.map_coordinates(coast[..., c_], [ty, tx], order=1, mode="nearest") for c_ in range(4)])
-                aa = smp[..., 3:4] * fade[..., None]
-                dst[:] = dst * (1 - aa) + smp[..., :3] * aa
 
     def grain_over(cont, alpha):
         """MapGrain tiled every GRAIN_TILE world units over the continent's land"""
@@ -520,6 +540,21 @@ def render(cu, cv, zoom, path):
             if b_:                                        # or giving way to its own (Stitch.lua's MapCityTitles)
                 out_ = smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_)) if city_title(m["id"]) else 0
                 place(b_, b_["img"], None, alpha=d * (1 - out_))
+    if UNEXPLORED_SIM and not ZONES_ONLY:                 # unexplored land, shaded over the art (Stitch.lua's shadeRoot)
+        solid = np.dstack([np.full((668, 1002, 3), UNDISCOVERED[:3], np.float32), np.ones((668, 1002), np.float32)])
+        for m in zones:
+            how, land = UNEXPLORED_SIM.get(m["name"]), mask("MapZoneLand/%d" % m["id"])
+            if not how or land is None: continue
+            if how == "all":
+                place(m, solid, land, alpha=UNDISCOVERED[3])
+                rim = mask("MapZoneBorder/%d" % m["id"])      # its share of the border land round it
+                if rim is not None:
+                    l, r, t, b = m["rect"]
+                    out_rect = (l - BORDER_REACH / W_, r + BORDER_REACH / W_, t - BORDER_REACH / H_, b + BORDER_REACH / H_)
+                    place({"id": m["id"], "rect": out_rect}, solid, rim, alpha=UNDISCOVERED[3])
+            else:                                         # each piece's own shade, as the game stacks them
+                for key in sorted(key for key, _ in reveal.get(m["art"], []))[::2]:
+                    place(m, solid, land * overlay_canvas(m["art"], {key})[..., 3], alpha=UNDISCOVERED[3])
     ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
     if ba > 0.003 and not ZONES_ONLY:
         c = int(round(192 * BORDER_SCALE * OH / 1024))
@@ -705,36 +740,98 @@ def zone_sea(m):
         _cache[k] = sea
     return _cache[k]
 
+def find_letters(m, region, size=(8, 26), mates=2, grow=8):
+    """lettering in a zone's base art, inside `region` (its art px): dark ink set apart in
+    letter-sized blocks, at least `mates` others of about the same height on the same line nearby
+    (a word, not the long horizontal wave strokes or a mountain's pen strokes); 0..1"""
+    from scipy import ndimage
+    L = base(m)[..., :3].mean(2)
+    # thin dark strokes (a letter's lines), not the broad mottling: what a closing fills in
+    ink = (ndimage.grey_closing(L, size=(5, 5)) - L > 0.09) & region
+    lab, n = ndimage.label(ink)
+    boxes = ndimage.find_objects(lab)
+    cand = []
+    for i, sl in enumerate(boxes, 1):
+        h, w = sl[0].stop - sl[0].start, sl[1].stop - sl[1].start
+        area = int((lab[sl] == i).sum())
+        if size[0] <= h <= size[1] and 2 <= w <= size[1] + 2 and 12 <= area <= size[1] * 9:   # letter-sized, not a stroke or a speck
+            cand.append((i, (sl[0].start + sl[0].stop) / 2, (sl[1].start + sl[1].stop) / 2, h))
+    hit = np.zeros(L.shape, bool)
+    for i, cy, cx, h in cand:
+        near = sum(1 for j, y2, x2, h2 in cand if j != i and abs(y2 - cy) < h * 0.5 and abs(x2 - cx) < 70 and abs(h2 - h) < 6)
+        if near >= mates: hit |= lab == i
+    # ... then the rest of each word and line: smaller ink beside what's found (twice over)
+    small = np.isin(lab, [i for i, sl in enumerate(boxes, 1) if (sl[0].stop - sl[0].start) <= size[1] and (sl[1].stop - sl[1].start) <= 40])
+    for _ in range(2):
+        g_ = ndimage.binary_dilation(hit, iterations=22)
+        ids = np.unique(lab[g_ & small])
+        hit |= np.isin(lab, ids[ids > 0])
+    return np.clip(ndimage.gaussian_filter(ndimage.binary_dilation(hit, iterations=grow).astype(np.float32), 3) * 1.5, 0, 1)
+
 def sea_letters(m):
-    """the sea names printed in a zone's painted sea ("The Great Sea" ...): dark ink set apart
-    from the coast, in blocks (not the long horizontal wave strokes); its art px, 0..1"""
+    """the sea names printed in a zone's painted sea ("The Great Sea" ...): away from its coast"""
     k = ("letters", m["id"])
     if k not in _cache:
         from scipy import ndimage
-        L = base(m)[..., :3].mean(2)
-        # thin dark strokes (a letter's lines), not the broad mottling: what a closing fills in
-        ink = (ndimage.grey_closing(L, size=(5, 5)) - L > 0.09) & zone_sea(m)
-        ink &= ndimage.distance_transform_edt(~own_land(m)) > LETTER_OFF
-        lab, n = ndimage.label(ink)
-        boxes = ndimage.find_objects(lab)
-        cand = []
-        for i, sl in enumerate(boxes, 1):
-            h, w = sl[0].stop - sl[0].start, sl[1].stop - sl[1].start
-            area = int((lab[sl] == i).sum())
-            if 8 <= h <= 26 and 2 <= w <= 28 and 12 <= area <= 220:          # letter-sized, not a stroke or a speck
-                cand.append((i, (sl[0].start + sl[0].stop) / 2, (sl[1].start + sl[1].stop) / 2, h))
-        # letters sit in words: at least two others of about the same height on the same line nearby
-        hit = np.zeros(L.shape, bool)
-        for i, cy, cx, h in cand:
-            mates = sum(1 for j, y2, x2, h2 in cand if j != i and abs(y2 - cy) < h * 0.5 and abs(x2 - cx) < 70 and abs(h2 - h) < 6)
-            if mates >= 2: hit |= lab == i
-        # ... then the rest of each word and line: smaller ink beside what's found (twice over)
-        small = np.isin(lab, [i for i, sl in enumerate(boxes, 1) if (sl[0].stop - sl[0].start) <= 26 and (sl[1].stop - sl[1].start) <= 40])
-        for _ in range(2):
-            grow = ndimage.binary_dilation(hit, iterations=22)
-            ids = np.unique(lab[grow & small])
-            hit |= np.isin(lab, ids[ids > 0])
-        _cache[k] = np.clip(ndimage.gaussian_filter(ndimage.binary_dilation(hit, iterations=8).astype(np.float32), 3) * 1.5, 0, 1)
+        _cache[k] = find_letters(m, zone_sea(m) & (ndimage.distance_transform_edt(~own_land(m)) > LETTER_OFF))
+    return _cache[k]
+
+COMPASS_FROM = ("Tanaris", 800, 525, 40)   # a compass rose to find the others by: its centre (art px) and half its size
+COMPASS_MATCH = 0.26            # how alike (normalized correlation of their ink) a compass rose must be: low, as it's
+                                #  only looked for in the zone's open sea (a false one there costs a patch of sea)
+COMPASS_SCALES = (0.85, 1.0, 1.15)
+def compass_ink(m):
+    from scipy import ndimage
+    L = base(m)[..., :3].mean(2)
+    return ndimage.grey_closing(L, size=(5, 5)) - L          # (thin dark strokes)
+
+def compasses(m):
+    """the compass roses Blizzard draws in a zone's sea (one drawing, on many maps), found by their
+    likeness to one of them (COMPASS_FROM); its art px, 0..1"""
+    k = ("compass", m["id"])
+    if k not in _cache:
+        from scipy import ndimage
+        def conv(a, k):                                   # (same-size correlation by FFT, numpy's)
+            sh = (a.shape[0] + k.shape[0], a.shape[1] + k.shape[1])
+            r = np.fft.irfft2(np.fft.rfft2(a, sh) * np.fft.rfft2(k[::-1, ::-1], sh), sh)
+            oy, ox = k.shape[0] // 2, k.shape[1] // 2
+            return r[oy:oy + a.shape[0], ox:ox + a.shape[1]]
+        if "compass_t" not in _cache:
+            name, cx, cy, r = COMPASS_FROM
+            src_ = next(z for z in zones if z["name"] == name)
+            _cache["compass_t"] = compass_ink(src_)[cy - r:cy + r, cx - r:cx + r]
+        t0 = _cache["compass_t"]
+        ink = compass_ink(m).astype(np.float32)
+        where = zone_sea(m) & (ndimage.distance_transform_edt(~own_land(m)) > 15) & (edge(m) > 0.05)
+        hit = np.zeros(ink.shape, np.float32)
+        ys, xs = np.mgrid[0:668, 0:1002].astype(np.float32)
+        for sc in COMPASS_SCALES:
+            n_ = max(8, int(round(t0.shape[0] * sc)))
+            t = np.asarray(Image.fromarray(t0.astype(np.float32), "F").resize((n_, n_), Image.BILINEAR))
+            t = (t - t.mean()) / (t.std() + 1e-6)
+            n = t.size
+            num = conv(ink, t)
+            ones = np.ones_like(t)
+            mean = conv(ink, ones) / n
+            sq = conv(ink * ink, ones) / n
+            sd = np.sqrt(np.maximum(sq - mean * mean, 1e-8))
+            ncc = num / (n * sd)
+            peaks = (ncc > COMPASS_MATCH) & (ncc == ndimage.maximum_filter(ncc, size=30)) & where
+            for py, px_ in zip(*np.nonzero(peaks)):
+                d = np.hypot(ys - py, xs - px_)
+                rr = COMPASS_FROM[3] * sc
+                hit = np.maximum(hit, np.clip(1 - (d - rr) / (rr * 0.5), 0, 1))
+        _cache[k] = hit
+    return _cache[k]
+
+def land_letters(m):
+    """the names a zone's base art prints on the land round it ("The Blasted Lands" on Swamp of
+    Sorrows' painting of it ...): anywhere off its own land, in its frame"""
+    k = ("lletters", m["id"])
+    if k not in _cache:
+        from scipy import ndimage
+        off = ~ndimage.binary_dilation(own_land(m), iterations=4) & (edge(m) > 0.3)
+        _cache[k] = find_letters(m, off, size=(9, 34), mates=3, grow=10)
     return _cache[k]
 
 def shore(m):
@@ -750,54 +847,328 @@ def shore(m):
         _cache[k] = (zone_sea(m) * t_ * t_ * (3 - 2 * t_) * (1 - sea_letters(m))).astype(np.float32)
     return _cache[k]
 
-def bake_territory():
-    """MapTerritory: where a zone's base art shows: its own land and a little past it.
-    Land beyond that (holes between zones, land in its rectangle that isn't its own) is
-    the gap fill's (tools/map-preview/gapfill.py), not blank parchment"""
+# MapZoneLand: a zone's land as it shows (its territory, MapTerritory) without the sea its own art
+# paints (Westfall's Great Sea, coastal hatching, islets), for darkening unexplored land and not
+# the sea: open sea in its base art (low saturation: its land is plain parchment; only patches
+# that reach the art's frame and are big, not lakes), grown through the zone as drawn while it
+# stays sea-coloured (the hatched band up to the coast)
+ZONE_LAND_SEED, ZONE_LAND_GROW, ZONE_LAND_MIN = 0.42, 0.47, 4000   # saturation; saturation; art px
+ZONE_LAND_ISLAND = 3000         # art px: land patches smaller than this, apart from the rest, are left out
+def zone_land(m):
+    k = ("zland", m["id"])
+    if k not in _cache:
+        from scipy import ndimage
+        def sat(img, s):
+            bb = np.dstack([ndimage.gaussian_filter(img[..., c], s) for c in range(3)])
+            mx, mn = bb.max(2), bb.min(2)
+            return (mx - mn) / np.maximum(mx, 1e-3)
+        b, o = base(m)[..., :3], over(m)
+        drawn = b * (1 - o[..., 3:4]) + o[..., :3] * o[..., 3:4]
+        seed = (sat(b, 5) < ZONE_LAND_SEED) & (M_FEATHER > 0.5)
+        lab, n = ndimage.label(seed)
+        frame = ndimage.binary_dilation(M_FEATHER < 0.6, iterations=8)
+        keep = sorted(set(np.unique(lab[frame & (lab > 0)]).tolist()) - {0})
+        sizes = ndimage.sum(np.ones_like(lab), lab, index=keep) if keep else []
+        seed = np.isin(lab, [i for i, s in zip(keep, sizes) if s >= ZONE_LAND_MIN])
+        sea = ndimage.binary_propagation(seed, mask=seed | (sat(drawn, 2) < ZONE_LAND_GROW))
+        sea = ndimage.binary_opening(sea, iterations=2)
+        _cache[("zsea_found", m["id"])] = sea
+        t = terr_own(m)
+        if t is None:
+            _cache[k] = None
+            return None
+        # its land: the territory less that sea (a pixel more, so the edge sits on the coast's ink);
+        # small patches cut off out in the sea (a compass rose, specks the sea's colour missed) go
+        solid = (t > 0.5) & ~ndimage.binary_dilation(sea, iterations=1)
+        lab, n = ndimage.label(solid)
+        if n:
+            sizes = ndimage.sum(np.ones_like(lab), lab, index=range(1, n + 1))
+            solid = np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= ZONE_LAND_ISLAND])
+        _cache[k] = t * ndimage.gaussian_filter(solid.astype(np.float32), 1.0)
+    return _cache[k]
+
+# MapZoneBorder: a zone's share of the land round it that's no zone's (the mountains along its
+# border, blank land between zones): each bit of it goes to the nearest zone's land, up to
+# BORDER_REACH world units, never onto sea. Shaded with an undiscovered zone (Stitch.lua), so a
+# stretch of zones you haven't found is dark from one to the next, not dark zones in bright
+# parchment; the shares don't overlap, so where two meet there's no doubled seam. Each covers
+# the zone's art rectangle and BORDER_REACH round it (Stitch.lua places it so), coarsely: mountains
+BORDER_REACH = 12               # world units (Stitch.lua's BORDER_REACH)
+BORDER_GRID = 2                 # px per world unit, laying a continent's zones out together
+BORDER_PX = 128                 # the masks' size
+W_, H_ = 1002.0, 668.0          # Azeroth's map in world units (render()'s W, H)
+
+def zone_borders():
+    """zone id -> its share of the border land, on its art rectangle and BORDER_REACH round it"""
     from scipy import ndimage
-    outdir_ = os.path.join(TEXDIR, "MapTerritory")
+    out_ = {}
+    G = BORDER_GRID
+    for c in maps:
+        if c["kind"] != 2: continue
+        cl, cr, ct, cb = c["rect"]
+        gw, gh = int((cr - cl) * W_ * G), int((cb - ct) * H_ * G)
+        def box(m):                                   # a map's rectangle on the continent's grid
+            l, r, t, b = m["rect"]
+            return (int(round((l - cl) * W_ * G)), int(round((t - ct) * H_ * G)),
+                    int(round((r - cl) * W_ * G)), int(round((b - ct) * H_ * G)))
+        def paste(dst, img, bx, op):
+            x0, y0, x1, y1 = bx
+            if x1 - x0 < 2 or y1 - y0 < 2: return
+            a = np.asarray(Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).resize((x1 - x0, y1 - y0), Image.BILINEAR)).astype(np.float32) / 255
+            X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
+            if X1 <= X0 or Y1 <= Y0: return
+            op(dst[Y0:Y1, X0:X1], a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0])
+        mine = [m for m in zones if reveal.get(m["art"]) and m["id"] in grade and zone_land(m) is not None
+                and cl <= (m["rect"][0] + m["rect"][1]) / 2 <= cr and ct <= (m["rect"][2] + m["rect"][3]) / 2 <= cb]
+        if not mine: continue
+        best = np.zeros((gh, gw), np.float32)
+        label = np.zeros((gh, gw), np.int32)
+        sea = np.zeros((gh, gw), np.float32)
+        covered = np.zeros((gh, gw), np.float32)          # all the zones' land, added up
+        for i, m in enumerate(mine, 1):
+            cover = np.zeros((gh, gw), np.float32)
+            paste(cover, zone_land(m), box(m), lambda d, a: np.maximum(d, a, out=d))
+            covered += cover
+            take = (cover > 0.5) & (cover > best)
+            label[take], best[take] = i, cover[take]
+            t = terr_own(m)                               # (its own painted sea: territory less land)
+            paste(sea, np.clip(t - zone_land(m), 0, 1), box(m), lambda d, a: np.maximum(d, a, out=d))
+        land = np.zeros((gh, gw), np.float32)
+        paste(land, field_img(c)[..., 3], (0, 0, gw, gh), lambda d, a: np.maximum(d, a, out=d))
+        free = (land > 0.5) & (sea < 0.5) & (covered < 0.99)
+        dist, (iy, ix) = ndimage.distance_transform_edt(label == 0, return_indices=True)
+        nearest = label[iy, ix]
+        free &= dist <= BORDER_REACH * G
+        for i, m in enumerate(mine, 1):
+            share = ndimage.gaussian_filter((free & (nearest == i)).astype(np.float32), 1.0)
+            share *= np.clip(1 - covered, 0, 1)              # (only what the zones' own land leaves)
+            x0, y0, x1, y1 = box(m)
+            R = BORDER_REACH * G
+            crop = np.zeros((y1 - y0 + 2 * R, x1 - x0 + 2 * R), np.float32)
+            X0, Y0, X1, Y1 = max(0, x0 - R), max(0, y0 - R), min(gw, x1 + R), min(gh, y1 + R)
+            crop[Y0 - (y0 - R):Y1 - (y0 - R), X0 - (x0 - R):X1 - (x0 - R)] = share[Y0:Y1, X0:X1]
+            out_[m["id"]] = crop
+    return out_
+
+def neighbours_on(m):
+    """the other zones' land (zone_land) laid on this zone's art px, added up, where they overlap it"""
+    l, r, t, b = m["rect"]
+    total = np.zeros((668, 1002), np.float32)
+    for n in zones:
+        if n is m or zone_land(n) is None: continue
+        nl, nr, nt, nb = n["rect"]
+        if nr <= l or nl >= r or nb <= t or nt >= b: continue
+        # m's art px -> n's: x_n = a x + c, y_n = e y + f
+        a, e = (r - l) / (nr - nl), (b - t) / (nb - nt)
+        c, f = (l - nl) / (nr - nl) * 1002, (t - nt) / (nb - nt) * 668
+        img = Image.fromarray(zone_land(n).astype(np.float32), "F")
+        total += np.asarray(img.transform((1002, 668), Image.AFFINE, (a, 0, c, 0, e, f), Image.BILINEAR, fillcolor=0))
+    return total
+
+def zone_land_shared(m):
+    """zone_land, with land neighbouring zones also cover shared out between them (each its part),
+    so two zones' shades never land twice on one spot (no dark seams where they meet)"""
+    k = ("zshared", m["id"])
+    if k not in _cache:
+        own = zone_land(m)
+        _cache[k] = None if own is None else own / np.maximum(1.0, own + neighbours_on(m))
+    return _cache[k]
+
+def zone_sea_found(m):
+    """the sea zone_land finds in a zone's art (its art px): open sea reaching its frame, grown to
+    the coast; stricter than zone_sea (no lakes, no grey land, no small maps' inlets)"""
+    k = ("zsea_found", m["id"])
+    if k not in _cache: zone_land(m)
+    return _cache.get(k)
+
+def bake_zone_land():
+    outdir_ = os.path.join(TEXDIR, "MapZoneLand")
+    os.makedirs(outdir_, exist_ok=True)
     n = 0
     for m in zones:
-        o = over(m)
-        if not o[..., 3].any(): continue
-        # its land as it shows: the overlays through their thin feather (where they fade out at
-        # the art's edge, the gap fill below shows through, not this blank parchment)
-        land = ndimage.binary_fill_holes(ndimage.binary_closing(o[..., 3] * edge(m) > 0.5, np.ones((3, 3)), iterations=6))
-        dout = ndimage.distance_transform_edt(~land)
-        tt = np.clip(1 - np.maximum(0, dout - TERR_MARGIN[0]) / TERR_MARGIN[1], 0, 1)
-        terr = tt * tt * (3 - 2 * tt)
-        # ... and its own painted sea off its coasts: Blizzard's hatching, shading and islets
-        # (fading out well inside its frame: where the art runs to its frame over the sea, a
-        # straight cut there shows against the open sea, Wetlands' west coast ...)
-        inside = ndimage.distance_transform_edt(edge(m) > 0.5)
-        sf = np.clip(inside / SHORE_FRAME, 0, 1)
-        terr = np.maximum(terr, shore(m) * sf * sf * (3 - 2 * sf))
-        # ... and the cities inside it (Orgrimmar in Durotar ...): they're maps of their own,
-        # shown only once you're close, so until then the zone's painting of them shows. (The
-        # game lists cities under their continent: a city belongs to the zone whose own land
-        # is at its centre)
-        l, r, t, b = m["rect"]
-        for c in zones:
-            if reveal.get(c["art"]): continue
-            if os.path.exists(os.path.join(TEXDIR, "MapCityMask", "%d.tga" % c["id"])): continue   # (cut to the city: banners.py)
-            cl, cr, ct, cb = c["rect"]
-            cx, cy = int(((cl + cr) / 2 - l) / (r - l) * 1002), int(((ct + cb) / 2 - t) / (b - t) * 668)
-            if not (0 <= cx < 1002 and 0 <= cy < 668) or not ndimage.binary_dilation(own_land(m), iterations=40)[cy, cx]: continue
-            box = (int((cl - l) / (r - l) * 1002), int((ct - t) / (b - t) * 668), int((cr - l) / (r - l) * 1002), int((cb - t) / (b - t) * 668))
-            w_, h_ = box[2] - box[0], box[3] - box[1]
-            if w_ < 4 or h_ < 4: continue
-            city = np.asarray(Image.fromarray((M_ROUND * 255).astype(np.uint8)).resize((w_, h_), Image.BILINEAR)).astype(np.float32) / 255
-            x0, y0, x1, y1 = max(0, box[0]), max(0, box[1]), min(1002, box[2]), min(668, box[3])
-            if x1 <= x0 or y1 <= y0: continue
-            piece = city[y0 - box[1]:y1 - box[1], x0 - box[0]:x1 - box[0]]
-            terr[y0:y1, x0:x1] = np.maximum(terr[y0:y1, x0:x1], piece)
-            print("   city", c["name"], "in", m["name"], flush=True)
-        # never past the zone's own frame: its burnt edge and dark ink would smear over the land
-        # beside it (Silverpine's bottom edge over Gilneas ...)
-        terr = terr * edge(m)
-        alpha = Image.fromarray((np.clip(terr, 0, 1) * 255).astype(np.uint8)).resize((128, 128), Image.LANCZOS)
-        Image.merge("RGBA", (Image.new("L", (128, 128), 255),) * 3 + (alpha,)).save(os.path.join(outdir_, "%d.tga" % m["id"]))
-        _cache.pop(("terr", m["id"]), None)
+        if not reveal.get(m["art"]) or m["id"] not in grade: continue   # (Stitch.lua's ZoneMask: colour-matched zones)
+        land = zone_land_shared(m)
+        if land is None: continue
+        a = Image.fromarray((np.clip(land, 0, 1) * 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS)
+        Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (a,)).save(os.path.join(outdir_, "%d.tga" % m["id"]))
+        n += 1
+    print("baked", n, "zone land masks", flush=True)
+    outdir_ = os.path.join(TEXDIR, "MapZoneBorder")
+    os.makedirs(outdir_, exist_ok=True)
+    borders = zone_borders()
+    for zid, share in borders.items():
+        a = Image.fromarray((np.clip(share, 0, 1) * 255).astype(np.uint8)).resize((BORDER_PX, BORDER_PX), Image.LANCZOS)
+        Image.merge("RGBA", (Image.new("L", (BORDER_PX, BORDER_PX), 255),) * 3 + (a,)).save(os.path.join(outdir_, "%d.tga" % zid))
+    print("baked", len(borders), "zone border masks", flush=True)
+
+def terr_own_raw(m):
+    """a zone's own territory: its land and a little past it, its own painted sea off its coasts
+    (SHORE), the cities in it; inside its frame (the unexplored shading's masks, MapZoneLand and
+    MapZoneBorder, are made from this)"""
+    k = ("terr_own_raw", m["id"])
+    if k in _cache: return _cache[k]
+    from scipy import ndimage
+    o = over(m)
+    if not o[..., 3].any():
+        _cache[k] = None
+        return None
+    land = ndimage.binary_fill_holes(ndimage.binary_closing(o[..., 3] * edge(m) > 0.5, np.ones((3, 3)), iterations=6))
+    dout = ndimage.distance_transform_edt(~land)
+    tt = np.clip(1 - np.maximum(0, dout - TERR_MARGIN[0]) / TERR_MARGIN[1], 0, 1)
+    terr = tt * tt * (3 - 2 * tt)
+    inside = ndimage.distance_transform_edt(edge(m) > 0.5)
+    sf = np.clip(inside / SHORE_FRAME, 0, 1)
+    terr = np.maximum(terr, shore(m) * sf * sf * (3 - 2 * sf))
+    # the cities inside it (Orgrimmar in Durotar ...): maps of their own, shown only once you're
+    # close, so until then the zone's painting of them shows. (The game lists cities under their
+    # continent: a city belongs to the zone whose own land is at its centre)
+    l, r, t, b = m["rect"]
+    for c in zones:
+        if reveal.get(c["art"]): continue
+        if os.path.exists(os.path.join(TEXDIR, "MapCityMask", "%d.tga" % c["id"])): continue   # (cut to the city: banners.py)
+        cl, cr, ct, cb = c["rect"]
+        cx, cy = int(((cl + cr) / 2 - l) / (r - l) * 1002), int(((ct + cb) / 2 - t) / (b - t) * 668)
+        if not (0 <= cx < 1002 and 0 <= cy < 668) or not ndimage.binary_dilation(own_land(m), iterations=40)[cy, cx]: continue
+        box = (int((cl - l) / (r - l) * 1002), int((ct - t) / (b - t) * 668), int((cr - l) / (r - l) * 1002), int((cb - t) / (b - t) * 668))
+        w_, h_ = box[2] - box[0], box[3] - box[1]
+        if w_ < 4 or h_ < 4: continue
+        city = np.asarray(Image.fromarray((M_ROUND * 255).astype(np.uint8)).resize((w_, h_), Image.BILINEAR)).astype(np.float32) / 255
+        x0, y0, x1, y1 = max(0, box[0]), max(0, box[1]), min(1002, box[2]), min(668, box[3])
+        if x1 <= x0 or y1 <= y0: continue
+        piece = city[y0 - box[1]:y1 - box[1], x0 - box[0]:x1 - box[0]]
+        terr[y0:y1, x0:x1] = np.maximum(terr[y0:y1, x0:x1], piece)
+    # never past the zone's own frame: its burnt edge and dark ink would smear over the land beside it
+    _cache[k] = terr * edge(m)
+    return _cache[k]
+
+def terr_own(m):
+    """terr_own_raw as the 128-px mask it was baked to (MapTerritory, before it took in the
+    zone's whole painting): what MapZoneLand and MapZoneBorder are made from"""
+    k = ("terr_own", m["id"])
+    if k not in _cache:
+        t = terr_own_raw(m)
+        if t is None: _cache[k] = None
+        else:
+            a = Image.fromarray((np.clip(t, 0, 1) * 255).astype(np.uint8)).resize((128, 128), Image.LANCZOS)
+            _cache[k] = np.asarray(a.resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
+    return _cache[k]
+
+# MapTerritory: where a zone's base art shows, as far as Blizzard painted it: its own land (and
+# cities), and past it everything else its map paints inside its frame (the sea off its coasts, the
+# land round it no zone owns: Tanaris' painting of the coast south of Un'Goro ...; not where Blizzard's
+# classic map of that land is drawn, which paints it where Forever's maps leave it blank), never another
+# zone's own land (its blank painting of a neighbour, with that neighbour's name on it). Where two
+# zones paint the same place, the one whose own land is nearer has it, crossfading over
+# TERR_BLEND world units. Its sea reaches TERR_SEA world units off the continent's coast (not out
+# to its frame: the open sea's lettering), and never the names it prints (the sea's, its
+# neighbours' on their land) or its compass roses; at its frame its painting fades into the paper
+# over TERR_FRAME. Past every
+# zone's painting the land is the gap fill's blank paper (gapfill.py), which each zone's art fades
+# into at its frame.
+TERR_GRID = 4                   # px per world unit, laying a continent's zones out together
+TERR_BLEND = 3.0                # world units: how fast a zone's claim on land two zones paint falls off past the nearer one's
+TERR_SEA = (12.0, 20.0)         # world units off the continent's coast where a zone's painted sea is full / gone
+TERR_OTHER = 1.0                # world units over which a zone's painting gives way to another zone's own land
+TERR_FRAME = 5.0                # world units inside its frame over which its painting (not its own land) fades into the paper
+TERR_PX = 256                   # the masks' size
+def terr_shared():
+    """zone id -> its territory (its art px), the zones of each continent laid out together"""
+    from scipy import ndimage
+    G = TERR_GRID
+    out_ = {}
+    for c in maps:
+        if c["kind"] != 2: continue
+        cl, cr, ct, cb = c["rect"]
+        gw, gh = int((cr - cl) * W_ * G), int((cb - ct) * H_ * G)
+        mine = [m for m in zones if reveal.get(m["art"]) and terr_own_raw(m) is not None
+                and cl <= (m["rect"][0] + m["rect"][1]) / 2 <= cr and ct <= (m["rect"][2] + m["rect"][3]) / 2 <= cb]
+        if not mine: continue
+        def box(m):
+            l, r, t, b = m["rect"]
+            return (int(round((l - cl) * W_ * G)), int(round((t - ct) * H_ * G)),
+                    int(round((r - cl) * W_ * G)), int(round((b - ct) * H_ * G)))
+        def to_grid(img, m):
+            """an art-px image of zone m on the continent's grid (0 outside its rectangle)"""
+            x0, y0, x1, y1 = box(m)
+            dst = np.zeros((gh, gw), np.float32)
+            if x1 - x0 < 2 or y1 - y0 < 2: return dst
+            a = np.asarray(Image.fromarray(np.clip(img, 0, 1).astype(np.float32), "F").resize((x1 - x0, y1 - y0), Image.BILINEAR))
+            X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
+            if X1 > X0 and Y1 > Y0: dst[Y0:Y1, X0:X1] = a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0]
+            return dst
+        def to_art(img, m):
+            """back: the grid over zone m's rectangle, at its art px"""
+            x0, y0, x1, y1 = box(m)
+            pad = np.zeros((y1 - y0, x1 - x0), np.float32)
+            X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
+            if X1 > X0 and Y1 > Y0: pad[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0] = img[Y0:Y1, X0:X1]
+            return np.asarray(Image.fromarray(pad, "F").resize((1002, 668), Image.BILINEAR))
+        own, frame, dist = {}, {}, {}
+        for m in mine:
+            own[m["id"]] = to_grid(terr_own_raw(m), m)                   # (its own land, cities and shore)
+            frame[m["id"]] = to_grid(edge(m), m)
+            land = ndimage.binary_fill_holes(ndimage.binary_closing(over(m)[..., 3] * edge(m) > 0.5, np.ones((3, 3)), iterations=6))
+            dist[m["id"]] = ndimage.distance_transform_edt(to_grid(land.astype(np.float32), m) < 0.5) / G
+        # the continent's land (its map's coast, coarse but sure of itself), and how far each spot is
+        # from it: a zone's painted sea reaches only so far off a coast
+        cland = np.asarray(Image.fromarray((field_img(c)[..., 3] * 255).astype(np.uint8)).resize((gw, gh), Image.BILINEAR)).astype(np.float32) / 255
+        from_land = ndimage.distance_transform_edt(cland < 0.5) / G
+        u = np.clip(1 - (from_land - TERR_SEA[0]) / (TERR_SEA[1] - TERR_SEA[0]), 0, 1)
+        reach = u * u * (3 - 2 * u)
+        # where Blizzard's classic maps of the land are drawn (Gaps.lua's art: Gilneas, the ridges round
+        # Orgrimmar ...): theirs, over a Forever zone's blank painting of the same land
+        classic = np.zeros((gh, gw), np.float32)
+        for x in gap_art():
+            al, ar, at, ab = x["rect"]
+            a_ = x["img"][..., 3] * (x["mask"] if x["mask"] is not None else 1)
+            x0, y0 = int(round((al - cl) * W_ * G)), int(round((at - ct) * H_ * G))
+            x1, y1 = int(round((ar - cl) * W_ * G)), int(round((ab - ct) * H_ * G))
+            if x1 - x0 < 2 or y1 - y0 < 2: continue
+            a = np.asarray(Image.fromarray(a_.astype(np.float32), "F").resize((x1 - x0, y1 - y0), Image.BILINEAR))
+            X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
+            if X1 > X0 and Y1 > Y0: classic[Y0:Y1, X0:X1] = np.maximum(classic[Y0:Y1, X0:X1], a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0])
+        # each zone's claim on the land round it: its painting where it can show it (inside its frame,
+        # fading out over TERR_FRAME; off the others' own land; not where it prints a name), weighed by
+        # how near its own land is. The claims are shared out where they overlap, so where one zone's
+        # frame ends the next takes over, and where none reaches there's paper
+        claim, avail = {}, {}
+        big = np.float32(1e6)
+        dmin = np.full((gh, gw), big, np.float32)
+        for m in mine:
+            i = m["id"]
+            # off the others' own land, as much as that's drawn: where a neighbour's art fades out at its
+            # frame, this one's painting comes in by as much, so no paper shows between them
+            others = np.zeros((gh, gw), np.float32)
+            for n in mine:
+                if n is not m: others = np.maximum(others, ndimage.gaussian_filter((dist[n["id"]] <= 0).astype(np.float32), TERR_OTHER * G / 2) * frame[n["id"]])
+            keep = np.clip(1 - others, 0, 1)
+            letters = to_grid(np.maximum(sea_letters(m), land_letters(m)), m)
+            t = np.clip(ndimage.distance_transform_edt(frame[i] > 0.5) / G / TERR_FRAME, 0, 1)
+            avail[i] = (t * t * (3 - 2 * t)) * keep * (1 - letters)
+            dmin = np.minimum(dmin, np.where(avail[i] > 0.01, dist[i], big))
+        total = np.zeros((gh, gw), np.float32)
+        for m in mine:
+            i = m["id"]
+            claim[i] = avail[i] * np.exp(-np.clip(dist[i] - dmin, 0, 60) / TERR_BLEND)
+            total += claim[i]
+        norm = np.maximum(total, 1)
+        for m in mine:
+            i = m["id"]
+            # its painted sea only so far off the coast; not where Blizzard's classic map of the land is drawn
+            beyond = claim[i] / norm * reach * (1 - np.clip(classic * 1.25, 0, 1))
+            terr = np.maximum(own[i], beyond) * np.clip(frame[i] * 1.0, 0, 1)
+            out_[i] = to_art(terr, m) * edge(m) * (1 - compasses(m))       # (never its compass roses)
+        print("  territories:", c["name"], len(mine), flush=True)
+    return out_
+
+def bake_territory():
+    outdir_ = os.path.join(TEXDIR, "MapTerritory")
+    os.makedirs(outdir_, exist_ok=True)
+    n = 0
+    for i, terr in terr_shared().items():
+        alpha = Image.fromarray((np.clip(terr, 0, 1) * 255).astype(np.uint8)).resize((TERR_PX, TERR_PX), Image.LANCZOS)
+        Image.merge("RGBA", (Image.new("L", (TERR_PX, TERR_PX), 255),) * 3 + (alpha,)).save(os.path.join(outdir_, "%d.tga" % i))
+        _cache.pop(("terr", i), None)
         n += 1
     print("baked", n, "territories", flush=True)
 
@@ -815,6 +1186,9 @@ if views and views[0] == "--bake-edges":
     views = views[1:]
 if views and views[0] == "--bake-territory":
     bake_territory()
+    views = views[1:]
+if views and views[0] == "--bake-zone-land":
+    bake_zone_land()
     views = views[1:]
 for v in views:
     name, spec = v.split("=", 1)

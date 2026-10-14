@@ -17,7 +17,7 @@ d.menuPos = false               -- { point, relPoint, x, y } on the map once dra
 d.menuOpen = false
 d.favorites = {}                -- action and row ids, in the order they were starred: a button each on the map
 
-local map, sc, menu, toggle, checks, favBar, tiles, zoomRow
+local map, sc, menu, toggle, checks, favBar, tiles, zoomRow, miniRow, opacityRow
 local W, PAD, COL = 480, 16, 224
 local BAR_X = 28                -- the bar's start, clear of the window's bottom-left resize grip (Window.lua)
 local FAV = 30                  -- a favourite's button
@@ -201,8 +201,8 @@ local function Rows()
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = row(L["Fade while moving"], "moveFade", Icon("Ability_Stealth"), function() return (db.moveFade or 0) > 0 end,
 		function(v) db.moveFade = v and 0.5 or 0 mod:Refresh() end)   -- (the amount: Options → Fade while moving)
-	-- unexplored areas: faded or hidden (neither ticked: shown as they are)
-	for _, mode in ipairs({ { "dim", L["Fade unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
+	-- unexplored areas: darkened or hidden (neither ticked: shown as they are)
+	for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
 		rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return db.unexplored == mode[1] end,
 			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
 	end
@@ -547,11 +547,10 @@ Fill = function()
 		tallest = math.max(tallest, -y)
 	end
 	checks:SetHeight(tallest)
-	filling = true
-	zoomRow.slider:SetValue(mod.db.maxZoom)
-	filling = false
-	zoomRow.value:SetText(("%dx"):format(mod.db.maxZoom))
-	menu:SetHeight(checks.top + tallest + 14 + zoomRow:GetHeight() + 26 + PAD)
+	zoomRow:Fill()
+	miniRow:Fill()
+	opacityRow:Fill()
+	menu:SetHeight(checks.top + tallest + 14 + zoomRow:GetHeight() + 2 + miniRow:GetHeight() + 2 + opacityRow:GetHeight() + 26 + PAD)
 end
 
 local function Place()
@@ -567,23 +566,24 @@ local function SetOpen(on)
 	if toggle then SetLit(toggle, on and "on" or nil) end
 end
 
--- the deepest zoom: a slider under the checklist
-local function ZoomRow(parent, width)
+-- a slider under the checklist (the deepest zoom, the minimap's): { label, icon, range { least, most,
+-- step }, get, set, tip }; f:Fill() shows the setting as it is
+local function SliderRow(parent, width, spec)
 	local f = CreateFrame("Frame", nil, parent)
 	f:SetSize(width, 24)
 	local icon = f:CreateTexture(nil, "ARTWORK")
 	icon:SetSize(16, 16)
 	icon:SetPoint("LEFT", 4, 0)
-	SetIcon(icon, Icon("INV_Misc_Spyglass_02"))
+	SetIcon(icon, spec.icon)
 	IconBorder(f, icon, 16)
 	local label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 	label:SetPoint("LEFT", icon, "RIGHT", 5, 0)
-	label:SetText(L["Deepest zoom"])
+	label:SetText(spec.label)
 	f.value = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	f.value:SetPoint("RIGHT", -4, 0)
 	f.value:SetWidth(40)
 	f.value:SetJustifyH("RIGHT")
-	local lo, hi, step = mod.MAX_ZOOM[1], mod.MAX_ZOOM[2], mod.MAX_ZOOM[3]
+	local lo, hi, step = spec.range[1], spec.range[2], spec.range[3]
 	local s = CreateFrame("Slider", nil, f, "BackdropTemplate")
 	s:SetOrientation("HORIZONTAL")
 	s:SetHeight(16)
@@ -597,18 +597,27 @@ local function ZoomRow(parent, width)
 	s:SetMinMaxValues(lo, hi)
 	s:SetValueStep(step)
 	if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
-	s:SetValue(mod.db.maxZoom)      -- (before its script: setting it up mustn't set the zoom)
+	s:SetValue(spec.get())          -- (before its script: setting it up mustn't set anything)
 	s:SetScript("OnValueChanged", function(_, v)
 		v = math.floor(v / step + 0.5) * step
-		f.value:SetText(("%dx"):format(v))
-		if filling or v == mod.db.maxZoom then return end
-		mod.SetMaxZoom(v)
+		if step < 1 then v = math.floor(v * 1000 + 0.5) / 1000 end      -- (no float dust in a saved 0.85)
+		f.value:SetText((spec.fmt or "%dx"):format(spec.show and spec.show(v) or v))
+		if filling or v == spec.get() then return end
+		spec.set(v)
 		if ns.NotifyOptions then ns.NotifyOptions() end
 	end)
-	local tip = { L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] }
 	for _, r in ipairs({ s, f }) do
-		r:SetScript("OnEnter", function(self) Tip(self, "ANCHOR_TOP", L["Deepest zoom"], tip) end)
+		r:SetScript("OnEnter", function(self) Tip(self, "ANCHOR_TOP", spec.label, { spec.tip }) end)
 		r:SetScript("OnLeave", GameTooltip_Hide)
+	end
+	function f:Fill()
+		filling = true
+		s:SetValue(spec.get())
+		filling = false
+		f.value:SetText((spec.fmt or "%dx"):format(spec.show and spec.show(spec.get()) or spec.get()))
+		local on = not spec.enabled or spec.enabled()
+		s:SetEnabled(on)
+		f:SetAlpha(on and 1 or 0.5)
 	end
 	f.slider = s
 	return f
@@ -658,7 +667,9 @@ function mod:SetupPanel(worldMap)
 	end
 
 	-- the floating menu
-	menu = CreateFrame("Frame", nil, map, "BackdropTemplate")
+	menu = CreateFrame("Frame", "OpenMapMenu", map, "BackdropTemplate")
+	local pad = mod.padRoots      -- (the gamepad's cursor presses their buttons: Gamepad.lua)
+	pad[#pad + 1], pad[#pad + 2], pad[#pad + 3] = toggle, favBar, menu
 	menu:SetWidth(W)
 	menu:SetFrameLevel(level + 5)
 	local titleH = Dress(menu)
@@ -676,8 +687,20 @@ function mod:SetupPanel(worldMap)
 		Place()
 	end)
 	local title = menu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	-- the close button over everything else in the menu, and a little easier to catch than it looks;
+	-- Escape closes the menu too (the map stays open)
 	local close = CreateFrame("Button", nil, menu, "UIPanelCloseButton")
+	close:SetFrameLevel(menu:GetFrameLevel() + 20)
+	close:SetHitRectInsets(-4, -4, -4, -4)
 	close:SetScript("OnClick", function() SetOpen(false) end)
+	tinsert(UISpecialFrames, "OpenMapMenu")
+	menu:SetScript("OnHide", function()
+		-- (Escape, or the X: closed. The map closing hides it too, but then it opens again with the map)
+		if map:IsShown() then
+			mod.db.menuOpen = false
+			if toggle then SetLit(toggle, nil) end
+		end
+	end)
 	if titleH > 0 then
 		-- (the nine-slice's own title bar)
 		title:SetPoint("TOP", 0, -4)
@@ -741,10 +764,25 @@ function mod:SetupPanel(worldMap)
 	local rule2 = Rule(menu)
 	rule2:SetPoint("TOPLEFT", checks, "BOTTOMLEFT", 2, -6)
 	rule2:SetWidth(inner - 4)
-	zoomRow = ZoomRow(menu, inner)
+	zoomRow = SliderRow(menu, inner, { label = L["Deepest zoom"], icon = Icon("INV_Misc_Spyglass_02"), range = mod.MAX_ZOOM,
+		get = function() return mod.db.maxZoom end, set = mod.SetMaxZoom,
+		tip = L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] })
 	zoomRow:SetPoint("TOPLEFT", checks, "BOTTOMLEFT", 0, -12)
+	miniRow = SliderRow(menu, inner, { label = L["Minimap detail from"], icon = Icon("Spell_Nature_FarSight"), range = mod.MINI_FROM,
+		get = function() return mod.db.minimapFrom end,
+		set = function(v) mod.db.minimapFrom = v if mod.RefreshView then mod.RefreshView() end end,
+		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 end,
+		tip = L["How far in the minimap's detail starts to mix in: lower comes in sooner, higher later."] })
+	miniRow:SetPoint("TOPLEFT", zoomRow, "BOTTOMLEFT", 0, -2)
+	opacityRow = SliderRow(menu, inner, { label = L["Minimap opacity"], icon = Icon("Spell_Nature_FarSight"), range = { 0, 1, 0.05 },
+		get = function() return mod.db.minimapDeep end,
+		set = function(v) mod.db.minimapDeep = v if mod.RefreshView then mod.RefreshView() end end,
+		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 end,
+		fmt = "%d%%", show = function(v) return math.floor(v * 100 + 0.5) end,
+		tip = L["The most the minimap's detail ever shows, at any zoom."] })
+	opacityRow:SetPoint("TOPLEFT", miniRow, "BOTTOMLEFT", 0, -2)
 	local hint = menu:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-	hint:SetPoint("TOPLEFT", zoomRow, "BOTTOMLEFT", 2, -6)
+	hint:SetPoint("TOPLEFT", opacityRow, "BOTTOMLEFT", 2, -6)
 	hint:SetWidth(inner - 4)
 	hint:SetJustifyH("LEFT")
 	hint:SetText(L["A star puts that action or setting on the map as a button, beside OpenMap's."])

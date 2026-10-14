@@ -21,7 +21,7 @@ OpenMap stitches every zone map into one continuous map. Scroll out of Elwynn an
 - **Vendors, spirit healers and rares** (needs Questie): repair, innkeepers, trainers, bankers, auctioneers, stable masters, spirit healers and rare mobs. Questie's quest icons can be switched on or off from OpenMap's menu too. (Still working on performance here.)
 - **A map that fits your screen.** No more black bars at the sides: resize the window to any shape, or go full screen and the map fills it.
 
-Everything is in the **OpenMap** menu on the map (or type `/openmap`). If you use another world map addon (Leatrix Maps, Mapster, Magnify ...), turn it off to avoid conflicts. OpenMap tells you at login if one is on.
+Everything is in the **OpenMap** menu on the map (or type `/openmap`). OpenMap works alongside other map addons: on its seamless map the map art and the zoom are OpenMap's, and the rest of theirs keeps working. If one of their options still fights OpenMap's window, OpenMap names it at login.
 
 ## Original game art
 

@@ -1,32 +1,30 @@
 # Bakes the gap fill: land on the continent map that no zone map covers, both the narrow
 # strips between neighbouring zones (their art's frames) and wider gaps (west of Searing
-# Gorge, south of Un'Goro, Mount Hyjal ...).
+# Gorge, south of Un'Goro, Mount Hyjal ...). Each zone's own art already reaches as far as
+# Blizzard painted it (its sea, the land round it: render.py's territories); past that the
+# land is blank, the zone maps' own parchment, which the zones' art fades into at its frame.
 #
-#   1. the zones alone (no backdrop, full detail) are rendered over each continent at
-#      GAP_PX px per world unit, twice (on black and on white), giving their colour and
-#      how much of each pixel they cover
-#   2. where a zone's own map paints the area around it (its base art beyond its own land:
-#      neighbouring coasts, mountains, rivers, drawn in Blizzard's lighter style), that
-#      painting fills the gap, the nearest zone's first, fading out with distance from it;
-#      past that, the gap is blank: the zone maps' own parchment, a clean stretch of
-#      Westfall's base art made to tile seamlessly (MapPaper.tga), which the game repeats
-#      at the zone maps' scale through a mask of where the land is (MapGapLand)
-#   3. narrow strips carry each neighbour's own edge across, mirrored from just inside
-#      it, blending where the two meet, so roads, rivers and ridges run on
-#   4. coasts stay sharp: the land edge is crisp, and along coasts well away from any
-#      zone the continent map's own coastline (its ink line) is laid on
-#   4b. for the game's minimap in the gaps (Close.lua): a soft mask of the gaps over the
+#   1. the zones alone (no backdrop, full detail; each through its own territory, its land and
+#      its sea near its coasts) are rendered over each continent at GAP_PX px per world unit,
+#      twice (on black and on white), giving how much of each pixel they cover
+#   2. Blizzard's own maps of land Forever's tables don't use (Gilneas, the classic base maps
+#      that paint the land round their zone) are drawn there, at their own resolution
+#   3. the rest is blank: a clean stretch of Westfall's base art made to tile seamlessly
+#      (MapPaper.tga), which the game repeats at the zone maps' scale through a mask of where
+#      the land is (MapGapLand), its edge crisp along the coast
+#   3b. for the game's minimap in the gaps (Close.lua): a soft mask of the gaps over the
 #      whole continent (MapGapMask/<continent>.tga), and the minimap tiles that touch a gap
 #      and aren't the black void past the world's edge (Gaps.lua's `minimap`)
-#   5. written as GAP_TILE-world-unit tiles, only where there's a gap (the paper reaching a
-#      little in under the zones, UNDER_REACH, never to a tile's edge deep under them): the land masks
-#      (MapGapLand/<continent>_<col>_<row>.tga) and, where there's a strip or a bare
-#      coast, what's drawn over the paper (MapGap/<same>), listed in OpenMap/Data/Gaps.lua
+#   4. written as GAP_TILE-world-unit tiles, only where there's a gap (the paper reaching a
+#      little in under the zones, UNDER_REACH, never to a tile's edge deep under them): the land
+#      masks (MapGapLand/<continent>_<col>_<row>.tga), listed in OpenMap/Data/Gaps.lua
 #
 # Tried and dropped: a colour fade from each neighbour, the neighbours' mountains carried
-# in, and the minimap as detail. Each read as terrain that isn't on Blizzard's map.
+# in, the minimap as detail, the zones' paintings and edges baked in at the gaps' scale, a
+# coastline laid on from the continent map. Each read as terrain that isn't on Blizzard's map,
+# or as a blur: Blizzard's art is drawn at its own resolution, or not at all.
 # usage: python -P tools/map-preview/gapfill.py <db2 dir> <texture cache> [--rerender]
-import math, os, sys
+import math, os, re, sys
 import numpy as np
 from PIL import Image
 from scipy import ndimage
@@ -43,28 +41,21 @@ exec(compile(src[:src.index("views = sys.argv[4:]")], "render", "exec"), g)
 TEX, GAP_TILE = g["TEXDIR"], g["GAP_TILE"]
 GAP_PX = 4                      # px per world unit while baking (a tile: GAP_TILE * GAP_PX px)
 TILE_PX = GAP_TILE * GAP_PX
-OUT_PX = 128                    # written at half that, as plain 32-bit TGA
-STRIP = 10                      # px: strips up to twice this wide are bridged (seams between zones'
-                                #  frames; anything wider is left blank paper: carried further, an
-                                #  edge smears into terrain the map doesn't have)
-STRIP_SKIP = 6                  # px: the painting's outermost pixels (its edge ink) aren't carried
-STRIP_CARRY = (STRIP, STRIP + 6)    # px into a strip where a side's own edge is full / gone
-COAST = (3, 7)                  # px either side of a bare coast where the continent's coastline is laid on
-PAINT_LONE = False              # paint islands no zone touches with the continent art
-LONE_REACH = 4                  # world units: land this close to a zone isn't a lone island
-COAST_AWAY = (5, 12)            # world units from any zone where that coastline starts / is full
+OUT_PX = 256                    # written at that, as plain 32-bit TGA (its coast edge crisp up close)
 UNDER_REACH = (8, 16)           # world units under the zones from a gap where the paper is whole / gone (past
                                 #  their edges' fade: a zone is solid there)
 SEA_TRUST = (6, 10)             # world units past a zone's painted sea where the continent's land still gives way to sea
 PAPER_FROM, PAPER_BOX = "Westfall", (170, 470, 320, 620)   # a clean stretch of its base art (rows, cols)
-g.update(ZONES_ONLY=True, FADE_ZOOM=40.0, USE_SEA=False, USE_GAP=False)
+g.update(ZONES_ONLY=True, FADE_ZOOM=40.0, USE_SEA=False, USE_GAP=False, TERR_OWN=True)   # (each zone's own territory)
 
 def zones_layer(m, cols, rows):
-    """the zones' colour C and coverage A over the continent's tile grid; its land L"""
+    """the zones' colour C and coverage A over the continent's tile grid (rendered: cached until
+    --rerender); its land L (worked out each run: land_layer)"""
     p = os.path.join(work, "%d_layer.npz" % m["id"])
     if os.path.exists(p) and not rerender:
         z = np.load(p)
-        return z["C"].astype(np.float32), z["A"].astype(np.float32), z["L"].astype(np.float32)
+        C, A = z["C"].astype(np.float32), z["A"].astype(np.float32)
+        return C, A, land_layer(m, cols, rows, A)
     l, r, t, b = m["rect"]
     OW, OH = cols * TILE_PX, rows * TILE_PX
     g["OW"], g["OH"] = OW, OH
@@ -79,6 +70,13 @@ def zones_layer(m, cols, rows):
     dark, light = shots
     A = np.clip(1 - (light - dark).mean(2), 0, 1)
     C = np.clip(dark / np.maximum(A, 1e-3)[..., None], 0, 1)
+    np.savez_compressed(p, C=C.astype(np.float16), A=A.astype(np.float16))
+    return C, A, land_layer(m, cols, rows, A)
+
+def land_layer(m, cols, rows, A):
+    """the continent's land over its tile grid, less the sea the zones' own art paints"""
+    l, r, t, b = m["rect"]
+    OW, OH = cols * TILE_PX, rows * TILE_PX
     land = g["field_img"](m)[..., 3]                  # MapLand: the land, its frame and torn edges left out
     gw, gh = int(round((r - l) * 1002 * GAP_PX)), int(round((b - t) * 668 * GAP_PX))
     L = np.zeros((OH, OW), np.float32)
@@ -88,7 +86,14 @@ def zones_layer(m, cols, rows):
     for z in g["zones"]:
         zl, zr, zt, zb = z["rect"]
         if zr < l or zl > r or zb < t or zt > b: continue
-        sea = g["zone_sea"](z).astype(np.float32)
+        # (zone_sea, but only its stretches joined to open sea that reaches the art's frame, render.py's
+        # zone_land sea: a small map's inland inlet, Shen'dralas', isn't, and SEA_TRUST spreading
+        # from it made the land between Desolace and Feralas sea, so it had no paper)
+        sea = g["zone_sea"](z)
+        found = g["zone_sea_found"](z) if g["reveal"].get(z["art"]) else None
+        lab, n = ndimage.label(sea)
+        joined = np.unique(lab[found & (lab > 0)]) if found is not None and n else []
+        sea = np.isin(lab, joined[joined > 0]).astype(np.float32) if len(joined) else np.zeros(sea.shape, np.float32)
         x0, y0 = (zl - l) * 1002 * GAP_PX, (zt - t) * 668 * GAP_PX
         w_, h_ = (zr - zl) * 1002 * GAP_PX, (zb - zt) * 668 * GAP_PX
         X0, Y0, X1, Y1 = max(0, int(x0)), max(0, int(y0)), min(OW, int(x0 + w_)), min(OH, int(y0 + h_))
@@ -101,24 +106,7 @@ def zones_layer(m, cols, rows):
     # the one that's off, so land it claims within SEA_TRUST of a zone's sea is sea
     reach = ndimage.distance_transform_edt(zsea < 0.5) / GAP_PX       # world units from a zone's sea
     zsea = np.maximum(zsea, np.clip(1 - (reach - SEA_TRUST[0]) / (SEA_TRUST[1] - SEA_TRUST[0]), 0, 1) * (A < 0.5))
-    L = L * (1 - np.clip(zsea * 1.5, 0, 1))
-    np.savez_compressed(p, C=C.astype(np.float16), A=A.astype(np.float16), L=L.astype(np.float16))
-    return C, A, L
-
-def pushpull(c, w):
-    """fills where w is 0 from where it isn't, smoothly (a weighted image pyramid)"""
-    h, wd = w.shape
-    if min(h, wd) < 4:
-        m = (c * w[..., None]).sum((0, 1)) / max(float(w.sum()), 1e-6)
-        return np.broadcast_to(m, c.shape).astype(np.float32).copy()
-    H2, W2 = (h + 1) // 2, (wd + 1) // 2
-    cp = np.zeros((H2 * 2, W2 * 2, 3), np.float32); wp = np.zeros((H2 * 2, W2 * 2), np.float32)
-    cp[:h, :wd] = c * w[..., None]; wp[:h, :wd] = w
-    cs, ws = cp.reshape(H2, 2, W2, 2, 3).sum((1, 3)), wp.reshape(H2, 2, W2, 2).sum((1, 3))
-    low = pushpull(cs / np.maximum(ws, 1e-6)[..., None], np.minimum(ws, 1))
-    up = ndimage.zoom(low, (2, 2, 1), order=1)[:h, :wd]
-    up = np.pad(up, ((0, h - up.shape[0]), (0, wd - up.shape[1]), (0, 0)), mode="edge")
-    return c * w[..., None] + up * (1 - w[..., None])
+    return L * (1 - np.clip(zsea * 1.5, 0, 1))
 
 def wrap(a, kx, ky):
     """a zero-mean texture crop made to tile: its last kx columns / ky rows crossfaded into
@@ -152,74 +140,6 @@ def paper_tile():
     zone_px = 1002 / ((m["rect"][1] - m["rect"][0]) * 1002)       # its art px per world unit
     return tile, tile.shape[0] / zone_px
 
-def strip_fill(C, A, L):
-    """the narrow strips between zones: a smooth blend of the two sides' own edge colours,
-    with each side's edge carried across (mirrored from just inside it, past the painting's
-    outermost pixels), so its roads, rivers and ridges run on"""
-    covered = A > 0.9
-    gap = (L > 0.2) & ~covered
-    near = ndimage.distance_transform_edt(~covered) <= STRIP
-    narrow = (ndimage.distance_transform_edt(near) > STRIP) & gap
-    dist, (pi, pj) = ndimage.distance_transform_edt(~covered, return_indices=True)
-    # the colour: each side's edge band, spread across and blended where they meet
-    din = ndimage.distance_transform_edt(covered)
-    band = covered & (din > STRIP_SKIP) & (din < STRIP_SKIP + 24)
-    k = ndimage.gaussian_filter(band.astype(np.float32), 6)
-    c = np.dstack([ndimage.gaussian_filter(C[..., i] * band, 6) for i in range(3)]) / np.maximum(k, 1e-3)[..., None]
-    field = pushpull(c.astype(np.float32), (np.clip(k * 3, 0, 1) * band).astype(np.float32))
-    field = np.dstack([ndimage.gaussian_filter(field[..., i], 8) for i in range(3)])
-    # the edge carried on: mirrored about the edge, sampled STRIP_SKIP px further in
-    qy, qx = np.mgrid[0:A.shape[0], 0:A.shape[1]].astype(np.float32)
-    d = np.maximum(dist, 1e-3)
-    sy = np.clip(2 * pi - qy + (pi - qy) / d * STRIP_SKIP, 0, A.shape[0] - 1)
-    sx = np.clip(2 * pj - qx + (pj - qx) / d * STRIP_SKIP, 0, A.shape[1] - 1)
-    mir = np.dstack([ndimage.map_coordinates(C[..., i], [sy, sx], order=1) for i in range(3)])
-    ok = ndimage.map_coordinates(A, [sy, sx], order=1) > 0.9
-    # where the two sides' reflections meet (the nearest edge flips side), blend them softly
-    jump = (np.hypot(ndimage.sobel(pi.astype(np.float32), 0), ndimage.sobel(pi.astype(np.float32), 1)) +
-            np.hypot(ndimage.sobel(pj.astype(np.float32), 0), ndimage.sobel(pj.astype(np.float32), 1)))
-    seam = np.clip(ndimage.gaussian_filter((jump > 40).astype(np.float32), 4) * 3, 0, 1)[..., None]
-    soft = np.dstack([ndimage.gaussian_filter(mir[..., i], 5) for i in range(3)])
-    mir = mir * (1 - seam) + soft * seam
-    carry = np.clip(1 - (dist - STRIP_CARRY[0]) / (STRIP_CARRY[1] - STRIP_CARRY[0]), 0, 1) * ok
-    rgb = field * (1 - carry[..., None]) + mir * carry[..., None]
-    a = ndimage.gaussian_filter(narrow.astype(np.float32), 3) * (L > 0.2)
-    return rgb, np.clip(a * 1.3, 0, 1)
-
-PAINT_FADE = (30, 170)          # zone art px from a zone's own land where its painting of the area around it is full / gone
-PAINT_CLEAR = 40                # zone art px inside its frame over which that painting fades in
-def neighbour_paint(m, OW, OH):
-    """the zones' own paintings of the land around them, on the continent's grid: colour,
-    and how much of each pixel they cover (the nearest zone's painting counts most)"""
-    l, r, t, b = m["rect"]
-    acc, wsum = np.zeros((OH, OW, 3), np.float32), np.zeros((OH, OW), np.float32)
-    for z in g["zones"]:
-        if not g["reveal"].get(z["art"]): continue                # (cities: their own maps)
-        zl, zr, zt, zb = z["rect"]
-        if zr < l or zl > r or zb < t or zt > b: continue
-        art = g["base"](z)[..., :3]
-        d = ndimage.distance_transform_edt(~g["own_land"](z))
-        near = np.clip(1 - (d - PAINT_FADE[0]) / (PAINT_FADE[1] - PAINT_FADE[0]), 0, 1)
-        # inside the zone's own measured frame, fading in well clear of it: its burnt edge isn't
-        # painting (carried into a gap it smears), and a cut at the frame would show its straight line
-        inside = ndimage.distance_transform_edt(g["edge"](z) > 0.5)
-        frame = np.clip(inside / PAINT_CLEAR, 0, 1)
-        w = (frame * frame * (3 - 2 * frame) * near * (1 - g["zone_sea"](z)) * (d > 0)).astype(np.float32)
-        w = w * w                                                  # (nearest zone's painting leads)
-        x0, y0 = (zl - l) * 1002 * GAP_PX, (zt - t) * 668 * GAP_PX
-        w_, h_ = (zr - zl) * 1002 * GAP_PX, (zb - zt) * 668 * GAP_PX
-        X0, Y0, X1, Y1 = max(0, int(x0)), max(0, int(y0)), min(OW, int(x0 + w_)), min(OH, int(y0 + h_))
-        if X1 <= X0 or Y1 <= Y0: continue
-        ys_ = ((np.arange(Y0, Y1) + 0.5 - y0) / h_ * 668 - 0.5)[:, None].repeat(X1 - X0, 1)
-        xs_ = ((np.arange(X0, X1) + 0.5 - x0) / w_ * 1002 - 0.5)[None, :].repeat(Y1 - Y0, 0)
-        ww = ndimage.map_coordinates(w, [ys_, xs_], order=1)
-        for c in range(3):
-            acc[Y0:Y1, X0:X1, c] += ndimage.map_coordinates(art[..., c], [ys_, xs_], order=1) * ww
-        wsum[Y0:Y1, X0:X1] += ww
-    rgb = acc / np.maximum(wsum, 1e-6)[..., None]
-    return rgb, np.clip(wsum * 2.5, 0, 1)
-
-import re
 MINI_YARDS = 1600 / 3           # yards per minimap tile
 CONT_OF = {1415: 0, 1414: 1}
 MASK_PX = 768                   # the gap mask's width
@@ -273,13 +193,6 @@ def gap_minimap(m, gap):
     Image.merge("RGBA", (Image.new("L", (MASK_PX, mh), 255),) * 3 + (a,)).save(os.path.join(TEX, "MapGapMask", "%d.tga" % m["id"]))
     print("   gap minimap tiles", len(keep), flush=True)
     return keep
-
-def coast_art(m, OW, OH, gw, gh):
-    """the continent art on the tile grid (for its coastline, where no zone has one)"""
-    art = g["base"](m)[..., :3]
-    up = np.zeros((OH, OW, 3), np.float32)
-    up[:gh, :gw] = np.asarray(Image.fromarray((art * 255).astype(np.uint8)).resize((gw, gh), Image.BICUBIC)).astype(np.float32) / 255
-    return np.dstack([ndimage.gaussian_filter(up[..., k], 1.2) for k in range(3)])   # (its pixel steps softened)
 
 # Finer maps of land no zone covers, from Blizzard's own maps the client has but Forever's
 # map tables don't use, placed as Mists of Pandaria Classic's tables place them. Stitch.lua
@@ -505,7 +418,7 @@ def apply_sources(m, L, A, OW, OH):
         print("   coast from", src["name"], flush=True)
 
 over_dir, land_dir = os.path.join(TEX, "MapGap"), os.path.join(TEX, "MapGapLand")
-for d_ in (over_dir, land_dir):
+for d_ in (over_dir, land_dir):                         # (MapGap: what was laid over the paper; none now)
     os.makedirs(d_, exist_ok=True)
     for f in os.listdir(d_):
         if f.endswith(".tga"): os.remove(os.path.join(d_, f))
@@ -517,34 +430,12 @@ for m in g["maps"]:
     OW, OH = cols * TILE_PX, rows * TILE_PX
     C, A, L = zones_layer(m, cols, rows)
     print(m["name"], flush=True)
-    gw, gh = int(round((r - l) * 1002 * GAP_PX)), int(round((b - t) * 668 * GAP_PX))
-    coast = coast_art(m, OW, OH, gw, gh)
     L = L.copy()
     apply_sources(m, L, A, OW, OH)
-    strip_rgb, strip_a = strip_fill(C, A, L)
-    paint_rgb, paint_a = neighbour_paint(m, OW, OH)
-    # a crisp land edge, and the continent's own coastline along bare coasts well away from
-    # any zone (near one, the zone's own coast is the true one)
-    land = L > 0.5
+    # a crisp land edge
     crisp = np.clip((ndimage.gaussian_filter(L, 1.0) - 0.5) / 0.12 + 0.5, 0, 1)
-    dist = np.where(land, ndimage.distance_transform_edt(land), ndimage.distance_transform_edt(~land))
-    shore = np.clip(1 - (dist - COAST[0]) / (COAST[1] - COAST[0]), 0, 1) * np.clip(1 - A, 0, 1)
-    away = ndimage.distance_transform_edt(A < 0.5) / GAP_PX            # world units from the zones
-    shore = shore * np.clip((away - COAST_AWAY[0]) / (COAST_AWAY[1] - COAST_AWAY[0]), 0, 1)
-    # islands no zone touches (out in the open sea): the continent map's own painting of
-    # them, not blank paper
-    lab, n = ndimage.label(L > 0.5)
-    near_zone = ndimage.binary_dilation(A > 0.5, iterations=int(LONE_REACH * GAP_PX))
-    touched = set(np.unique(lab[near_zone & (lab > 0)]).tolist())
-    lone = (lab > 0) & ~np.isin(lab, list(touched))
-    lone_a = np.clip(ndimage.gaussian_filter(lone.astype(np.float32), 2) * 1.5, 0, 1) * (L > 0.2)
-    if not PAINT_LONE: lone_a = lone_a * 0       # (off: the cleaned world map shows the open-sea islands itself)
-    # the continent map's own land (not trimmed by the zones' seas, which take in rivers and lakes)
-    raw = np.zeros_like(L)
-    raw[:gh, :gw] = np.asarray(Image.fromarray((g["field_img"](m)[..., 3] * 255).astype(np.uint8)).resize((gw, gh), Image.BILINEAR)).astype(np.float32) / 255
-    on_land = np.clip(ndimage.gaussian_filter(raw, 2.0) * 2, 0, 1)
     need = L * (1 - A)
-    # the paper, and what's over it, reach UNDER_REACH in under the zones from the gaps and no
+    # the paper reaches UNDER_REACH in under the zones from the gaps and no
     # further: deeper in it's never seen, and ending it there rather than at a tile's edge
     # leaves no straight line where a tile with a gap meets one without (zoomed out, where the
     # zones are only partly drawn in, the paper shows through them)
@@ -560,24 +451,7 @@ for m in g["maps"]:
             # where the land is (the game draws the paper through it)
             Image.merge("RGBA", (Image.new("L", (OUT_PX, OUT_PX), 255),) * 3 + (
                 Image.fromarray((paper_a[ys, xs] * 255).astype(np.uint8)).resize((OUT_PX, OUT_PX), Image.LANCZOS),)).save(os.path.join(land_dir, name))
-            # what's drawn over the paper: the zones' paintings of the area, the strips' carried
-            # edges over those, the bare coasts' coastline over all (premultiplied, back to front)
-            # (the paintings fill the continent map's land only: past it, a zone's picture of a coast
-            # that isn't where the zones have it lands in open sea, cut square at the tile's edge)
-            pa, sa, sh_ = (paint_a * on_land)[ys, xs, None], strip_a[ys, xs, None], shore[ys, xs, None]
-            col, a3 = paint_rgb[ys, xs] * pa, pa
-            la = lone_a[ys, xs, None]
-            col, a3 = coast[ys, xs] * la + col * (1 - la), la + a3 * (1 - la)
-            col, a3 = strip_rgb[ys, xs] * sa + col * (1 - sa), sa + a3 * (1 - sa)
-            col, a3 = coast[ys, xs] * sh_ + col * (1 - sh_), sh_ + a3 * (1 - sh_)
-            a_ = a3[..., 0] * reach[ys, xs]
-            over = col / np.maximum(a3, 1e-4)
-            has = a_.max() > 0.02
-            if has:
-                over = over * (a_ > 0.004)[..., None]              # (blank where it's clear: it compresses)
-                Image.fromarray((np.clip(np.dstack([over, a_]), 0, 1) * 255).astype(np.uint8), "RGBA").resize(
-                    (OUT_PX, OUT_PX), Image.LANCZOS).save(os.path.join(over_dir, name))
-            got.append((i, j, 1 if has else 0))
+            got.append((i, j, 0))
     listing[m["id"]] = got
     gap_tiles[m["id"]] = gap_minimap(m, ((L > 0.5) & (A < 0.5)).astype(np.float32))
     print("  %d x %d tiles, %d with gaps" % (cols, rows, len(got)), flush=True)
@@ -588,7 +462,7 @@ with open(os.path.join(here, "..", "..", "OpenMap", "Data", "Gaps.lua"), "w", en
     f.write("-- The gaps: land no zone map covers. Per continent, tiles { col, row, over, ... }, each `tile`\n")
     f.write("-- world units square from the continent map's top-left corner. MapGapLand/<continent>_<col>_<row>\n")
     f.write("-- is where the land is, and the blank map paper (MapPaper, `paper` world units a tile) is drawn\n")
-    f.write("-- through it; where `over` is 1, MapGap/<same> (strips between zones, bare coastlines) goes over it.\n")
+    f.write("-- through it (`over` is 0: nothing is laid over the paper).\n")
     f.write("-- Generated by tools/map-preview/gapfill.py; regenerate rather than edit.\n\n")
     f.write("local _, ns = ...\n\nns.MapGaps = {\n\ttile = %d,\n\tpaper = %.2f,\n" % (GAP_TILE, paper_world))
     for cid, got in sorted(listing.items()):

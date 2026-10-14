@@ -19,4 +19,5 @@ cleaning it out by hand.
    art): one of each, fixed on the world, so they stay put as you zoom.
 4. Restart the game (new textures need a full restart, not `/reload`).
 
-Edits are by hand, of Blizzard's own art; nothing here is generated.
+Edits are of Blizzard's own art, and stay true to its style: they take out what's in the way
+and add nothing the game's maps don't have.

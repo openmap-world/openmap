@@ -1,5 +1,53 @@
 # OpenMap changelog
 
+## Unreleased
+
+- "Minimap detail from" (a slider in the menu, under Deepest zoom, and in Options' Up close) sets how
+  far in the minimap's detail starts to mix in: lower comes in sooner, higher later (20x by default);
+  at 1x it's there from the whole world. Further out than the game's own minimap tiles can be
+  drawn, smaller copies of them show, crossfading to the tiles as you zoom in. (New textures:
+  restart the game.)
+- "Minimap opacity" (in the menu too, and Options' "Minimap detail, most opacity"): the most the
+  minimap's detail ever shows, at any zoom.
+- More coastal and border detail: each zone map now shows everything it paints
+  round its own land (the sea off its coasts with its shallows, hatching and islets, the
+  mountains and coasts beyond its border), shared out with its neighbours so each place shows
+  one painting, handing over smoothly at the maps' frames. Land no map paints is plain
+  parchment, which the art fades into, instead of the neighbours' edges blurred across it.
+  The zone maps' sea names, their names for the neighbouring zones and their compass roses
+  are left out. (Changed textures: restart the game.)
+- Improved compatibility with other map addons: they work alongside OpenMap instead of fighting
+  it. On the stitched map the art and the view are OpenMap's, and the rest of theirs keeps working;
+  their map art shows on dungeon maps as before. At login OpenMap names only the options that
+  still clash, not the whole addon.
+- Gamepad: on the stitched map the right stick zooms at a steady pace all the way in and out
+  (it crawled zoomed in), about the gamepad's cursor; A zooms into the zone under the cursor and
+  X out a map, as clicks do, instead of changing the map underneath; the coordinates, the hover
+  label, the zone highlight and the boat routes follow the gamepad's cursor. Its cursor shows
+  the tooltips of OpenMap's buttons and map icons, and A presses them: the OpenMap button, the
+  favourites, the menu (a slider goes to the value under the cursor), the dungeon, flight and
+  other icons.
+- "Fade unexplored areas" is now "Darken unexplored areas": the land you haven't explored is much
+  darker and greyer, instead of faded toward the parchment, and a zone you haven't found at all is
+  darkened whole from every zoom, the whole world's too, with the mountains and land round it, so a
+  stretch you haven't been to is dark from one zone to the next. Only land is darkened, not the
+  sea the zone maps paint round their coasts. (New textures: restart the game.)
+- Panning and zooming make far less Lua garbage (OpenMap's view and zoom updates reuse their
+  tables instead of making new ones every frame), so the game has less to clear up as you use the map.
+- Clicking a quest in the quest log that's in another zone opens it again: the map goes to the
+  quest's zone and stays there. It flickered and went back to the list, because the map was put
+  back where you'd last closed it. Reopening where you left off now only applies when you open the
+  map, not when Blizzard changes the map while it's open (the quest log, the zone dropdown), and
+  not when the map opens on a quest's zone from the quest tracker.
+- The OpenMap menu's close button is easier to hit, and Escape closes the menu.
+- "Report a problem" isn't only about the map: circling a spot is optional (just click Next), it
+  works on dungeon maps too, and the issue form says so.
+- The debug overlay also shows what can pile up over a session: the UI's Lua memory and how fast it
+  grows, the map's pins (every addon's, and the kind there's most of), how much zone art is loaded,
+  how many regions are placed live, which parts make the most Lua garbage a second (rescaling
+  every addon's pins, switching maps, OpenMap's own updates), and which addons hold the most
+  memory and grow it fastest.
+
 ## v0.2.0-beta (2026-10-11)
 
 - Map notes (Tools → Map notes, `/openmap notes`) replace the paint tool: paint an area (or

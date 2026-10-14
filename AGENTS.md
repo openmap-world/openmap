@@ -12,12 +12,12 @@ the game's own files. The addon is `OpenMap/`; everything else is tooling and do
 
 ## Hard rules
 
-1. **No generated map content.** Never create art or imagery, or invent what the map
-   shows (place names, positions, levels, terrain). Interface text (option labels,
-   tooltips) is fine. Art is Blizzard's, from the game files: cut,
-   masked or recoloured by a script, or edited by a human in `art-edits/`. Facts come from
-   the game's tables or a source cited in the file. Noise-made paper grain is the one
-   exception, and it's listed as such.
+1. **True to the game.** The map stays true to the original game's art style and intent:
+   the classic vanilla look and immersion come first. Art starts from Blizzard's, in the
+   game files; edits to it (in `art-edits/`) only mend what's blurry or broken, and add no
+   places, landmarks or detail the game's own maps don't have. Facts (place names,
+   positions, levels) come from the game's tables or a source cited in the file. Interface
+   text (option labels, tooltips) is fine.
 2. **Generated files are generated.** Don't hand-edit anything a script writes (its first
    lines say which script). Change the script and rerun it, and commit both together.
 3. **Blizzard's art stays credited.** A new texture gets a line in
