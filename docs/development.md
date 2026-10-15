@@ -48,6 +48,10 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
 4. **Check in game.** New or changed **textures need a full client restart**; `/reload`
    is enough for Lua. `/openmap status` reports what's built, what's drawing, the frame
    rate and any part that failed. Before a release, run [testing.md](testing.md).
+   For speed, `/openmap bench` (the map open where it's slow, the mouse left still) times the
+   map at several zooms, still, panning and zooming, then with each part off in turn, and shows
+   the results to copy (kept in the saved settings as `lastBench` too). Compare a run before
+   and after a change that should make the map faster.
 
 ## Regenerating data and textures
 
@@ -72,9 +76,11 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |
 | 13a | `tools/map-preview/minimaplod.py <db2> <tex>` | `MapMiniLOD/`, `Data/MinimapLOD.lua` | 13 |
 | 14 | `tools/map-art/border.py` | `MapBorder/` | `art-edits/border.png` |
+| 15 | `tools/map-preview/render.py <db2> <tex> <out> --bake-zones` | `MapZones/`, `Data/ZoneArt.lua` | 5, 7, 8, 11, 12 |
 
 `gapfill.py --rerender` re-renders the zones (slow) after anything that changes them
-(steps 5, 7, 8, 11). Each texture in `OpenMap/Media/Textures` is listed in its
+(steps 5, 7, 8, 11), and so does `--bake-zones` (step 15: the zones' art as the map draws it,
+baked into tiles; `OPENMAP_BAKED=1` renders from those tiles, to compare). Each texture in `OpenMap/Media/Textures` is listed in its
 `NOTICE.md` with the script that makes it: add a line when you add a texture.
 
 Hand edits of Blizzard's art (names painted out, the border) live in `art-edits/`

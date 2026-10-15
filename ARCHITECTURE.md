@@ -3,8 +3,9 @@
 OpenMap targets **World of Warcraft: Forever** (`_classic_beta_`, `## Interface: 16001`):
 classic content on the retail 12.x engine. Its world map is the classic-era MapCanvas
 map (`WorldMapFrame`, data providers, a pin frame-level manager); the reference source is
-the `classic_era` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source)
-(`Blizzard_MapCanvas`, `Blizzard_WorldMap/Vanilla`).
+the `forever` branch of [Gethe/wow-ui-source](https://github.com/Gethe/wow-ui-source)
+(`Blizzard_MapCanvas`, `Blizzard_WorldMap` with its `Camelot` overrides, and the retail quest
+log, `Blizzard_UIPanels_Game/Mainline/QuestMapFrame`).
 
 Some values are **secret** on this client (combat values, sometimes positions): never
 compare, do arithmetic on or nil-test a value that may be secret. Read through `ns.Safe`.
@@ -85,9 +86,19 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
 - **names**: the continents' and seas' names, lettered live in the client's font with the
   art's halo (`Data/Labels.lua`, measured from the art), one of each, fixed on the world.
 - **icons and lines**: pin sets (places, flight masters, townsfolk, group members,
-  map pins, boat / zeppelin routes). Each pin hangs from an anchor placed in the art, so a
-  zoom is one `SetScale` of the pin layer. A set with `build` makes its pins the first
+  map pins, boat / zeppelin routes). Each pin hangs from an anchor placed in the art; the pin
+  layer is on the map's view, not its canvas, so it never scales: the pins keep their size on
+  screen and a zoom only moves them. A set with `build` makes its pins the first
   time it shows.
+
+**Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
+layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
+maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the
+settings they're baked at (colour match and desaturation at their defaults, unexplored areas
+not hidden) they're drawn instead of the live zone layers, a few dozen tiles where the live
+layers are hundreds of masked textures, until the view passes the tiles' own pixels; then
+the live layers take over (`Baked.FADE`, in screen px per tile px), tile by tile near the view.
+Drawn at `1 - (1 - d)^2` for the zone detail's fade `d`, as strong as the live layers stacked.
 
 Unexplored areas: each overlay piece is a shared `{ key, unexplored }` table, so
 `S.ApplyGrade` can show, dim or hide them and `S.RefreshExplored` (on
@@ -101,7 +112,13 @@ Border colours are matched by a tinted copy of each zone drawn through its borde
 mask (`MapBand`) with the multipliers in `Data/Grade.lua`. Everything is placed once, in
 world units on one root frame; `Layout(mapID)` only sets that frame's scale and corner for
 whichever map's canvas Blizzard's map is showing. Layers that have faded out are hidden,
-not drawn at alpha 0.
+not drawn at alpha 0, and of the zones near the view only the tiles near it are shown (and
+have their files loaded), against a box round the view that a pan redoes only near its edge
+(`S.Cull`). A hidden zone texture (and a zone's live-layer masks, and the gap paper off the view)
+lets go of its anchor until it shows again: every region hangs from root, and the game lays out
+again everything anchored to a frame that moves, hidden or not, on each frame of a pan or zoom.
+The sea's and the grain's textures are fixed on the world, so a pan lays them again only near
+the edge of the box they cover.
 
 ## Hosting it in Blizzard's map (`Map/WorldMap.lua`)
 
@@ -166,6 +183,10 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   `tools/map-preview/notes.py` renders each one. Saved under `paint`.
 - `Debug.lua`: the debug overlay (`/openmap debug`): frame rate, a graph of frame times, the
   worst frame, what OpenMap's zoom and close-up updates cost, textures drawn.
+- `Bench.lua`: `/openmap bench`, a fixed course timing the map (still, panning, zooming) at
+  several zooms about the view, then each part of the map off in turn (`S.Parts`, and every
+  addon's pins) at the slowest; the results in a box to copy and in `lastBench`. Map switching
+  waits while it runs (`mod.benching`), and `S.bench` collects each timed part's milliseconds.
 - `Compat.lua`: other world map addons alongside. While the map is stitched it hides their map
   art (High Fidelity World Map's minimap tiles, BetterMaps' terrain and caves, HiddenMaps'
   approach maps, Leatrix Maps' icons) and shows it again on other maps; sets OpenMap's zone label,

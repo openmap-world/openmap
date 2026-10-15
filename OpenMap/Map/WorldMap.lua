@@ -114,6 +114,11 @@ local function After(name, before)
 	if d > 0 then garbage[name] = (garbage[name] or 0) + d end
 end
 local BLOB_PINS = { "QuestBlobPinTemplate", "ScenarioBlobPinTemplate", "BonusObjectiveBlobPinTemplate" }
+-- /openmap bench (Bench.lua): each part's time, added up while it runs (S.bench, ms)
+local function Clock() return S.bench and debugprofilestop and debugprofilestop() end
+local function Clocked(name, t0)
+	if t0 and S.bench then S.bench[name] = (S.bench[name] or 0) + debugprofilestop() - t0 end
+end
 
 local function SetView(scale, x, y)
 	sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
@@ -125,19 +130,21 @@ local function SetView(scale, x, y)
 	sc:SetNormalizedHorizontalScroll(x)
 	sc:SetNormalizedVerticalScroll(y)
 	local start = openStart and debugprofilestop and debugprofilestop()
-	local g = Before()
+	local g, t0 = Before(), Clock()
 	map:OnCanvasScaleChanged()
 	After("pins (all addons)", g)
+	Clocked("every addon's pins rescaled", t0)
 	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
 	-- Blizzard's quest areas (blobs) redraw for a new scale in their own next OnUpdate, which can
 	-- come before this in the next frame: a frame behind all through a zoom. Redrawn now
-	g = Before()
+	g, t0 = Before(), Clock()
 	for _, template in ipairs(BLOB_PINS) do
 		for pin in map:EnumeratePinsByTemplate(template) do
 			if pin:IsShown() and pin.Refresh then pin:Refresh() end
 		end
 	end
 	After("quest areas", g)
+	Clocked("quest areas", t0)
 	sc:MarkAreaTriggersDirty()
 	sc:MarkViewRectDirty()
 end
@@ -353,7 +360,7 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 	end
 
 	stillFor = Settled() and stillFor + 0.1 or 0
-	if mod.db.autoSwitch and userMoved and stillFor >= SWITCH_AFTER and not InCombatLockdown() then
+	if mod.db.autoSwitch and userMoved and stillFor >= SWITCH_AFTER and not InCombatLockdown() and not mod.benching then
 		local u, v, zoom = View()
 		local target = PickMap(u, v, zoom, mapID)
 		if target ~= mapID then Switch(target) end
@@ -412,9 +419,10 @@ viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	live = live or {}                             -- (kept: the view updates every frame of a pan)
 	live[1], live[2], live[3], live[4], live[5] = u, v, zoom, sc:GetWidth(), sc:GetHeight()
 	local pu, pv = PerPx(zoom)
-	local g = Before()
+	local g, t0 = Before(), Clock()
 	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom)
 	After("close-up", g)
+	Clocked("OpenMap's view update", t0)
 end))
 local function ApplyView()
 	if active then viewFrame:Show() end
@@ -422,9 +430,10 @@ end
 
 local function ApplyZoom()
 	if not active then return end
-	local g = Before()
+	local g, t0 = Before(), Clock()
 	S.SetZoom(ZoomFor(map:GetMapID(), sc:GetCanvasScale()), sc:GetCanvasScale())
 	After("zoom", g)
+	Clocked("OpenMap's zoom update", t0)
 	ApplyView()
 end
 
@@ -790,6 +799,7 @@ local function Setup()
 	if mod.SetupPanel then mod:SetupPanel(map) end
 	if mod.SetupPaint then mod:SetupPaint(map) end
 	if mod.SetupDebug then mod:SetupDebug(map) end
+	if mod.SetupBench then mod:SetupBench(map) end
 	if mod.SetupGamepad then mod:SetupGamepad(map) end
 	if mod.SetupReport then mod:SetupReport(map) end
 	if mod.SetupWindow then mod:SetupWindow(map) end
@@ -816,6 +826,15 @@ mod.ToWorld = function(mapID, x, y) return ToWorld(mapID, x, y) end
 -- for Nav.lua: glide / jump to a world point (normalized) at a zoom; the zoom where a map fits
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
 function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v))) userMoved = true end end
+-- for Bench.lua: the view heads for a world point (normalized) the way a drag moves it, Blizzard's
+-- scroll easing there over the next frames; and whether a zoom or glide of ours is running
+function mod.PanTo(u, v)
+	if not active then return end
+	local x, y = FromWorld(map:GetMapID(), u, v)
+	sc.targetScrollX = Clamp(x, sc.scrollXExtentsMin, sc.scrollXExtentsMax)
+	sc.targetScrollY = Clamp(y, sc.scrollYExtentsMin, sc.scrollYExtentsMax)
+end
+function mod.Animating() return anim ~= nil end
 function mod.FitZoom(mapID) return FitZoom(mapID) end
 -- the deepest zoom (the menu's slider and the options): the zoom levels are rebuilt for it
 function mod.SetMaxZoom(v)

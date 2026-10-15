@@ -34,6 +34,7 @@ SEA_OCTAVE, HATCH_OCTAVE = 4, 7        # zoom where each starts halving to keep 
 HATCH_ALPHA = 0.6
 USE_SEA = os.environ.get("OPENMAP_SEA", "1") == "1"
 USE_GAP = os.environ.get("OPENMAP_GAP", "1") == "1"
+USE_BAKED = os.environ.get("OPENMAP_BAKED", "0") == "1"   # the zones from their baked tiles (--bake-zones), as the game draws them
 ZONES_ONLY, FADE_ZOOM = False, None   # (gapfill.py: only the zone layers, at full detail)
 
 db2, cache, outdir = sys.argv[1:4]
@@ -509,12 +510,20 @@ def render(cu, cv, zoom, path):
             if LAND_FILL and lf > 0:
                 grain_over(m, smooth(zf, CONT_FADE) * lf)
     d = detail_at(zf) * (1 - 0.75 * UNDER_T)    # (a cave surfacing: Stitch.SetUnderground)
-    if USE_GAP and not ZONES_ONLY:
+    if USE_BAKED:                                         # the zones' baked tiles (--bake-zones), as Stitch.lua draws them
+        T_ = ZONE_STEP / ZONE_PX
+        for f_ in os.listdir(os.path.join(TEXDIR, "MapZones")):
+            i_, j_ = map(int, f_[:-4].split("_"))
+            img_ = np.asarray(Image.open(os.path.join(TEXDIR, "MapZones", f_)).convert("RGBA")).astype(np.float32) / 255
+            img_ = np.asarray(Image.fromarray((img_ * 255).astype(np.uint8)).crop((1, 1, ZONE_TILE - 1, ZONE_TILE - 1)).resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
+            place({"rect": (i_ * T_ / W, (i_ + 1) * T_ / W, j_ * T_ / H, (j_ + 1) * T_ / H)}, img_, None,
+                  alpha=1 - (1 - d) ** 2)                 # (Stitch.lua's: as strong as the live layers stacked)
+    if USE_GAP and not ZONES_ONLY and not USE_BAKED:
         for x in gap_art():                               # finer maps of land no zone covers (Gilneas), under every zone
             place(x, x["img"], x["mask"], alpha=d)
     has_over = {m["id"]: bool(reveal.get(m["art"])) for m in zones}
     for m in zones:                                       # base art, biggest zone first, with its border copy
-        if not has_over[m["id"]] or not USE_BASE: continue
+        if not has_over[m["id"]] or not USE_BASE or USE_BAKED: continue
         t_ = terr(m)
         fm = M_FEATHER * t_ if t_ is not None else M_FEATHER
         place(m, base, fm, alpha=d)
@@ -522,11 +531,11 @@ def render(cu, cv, zoom, path):
         bd = band(m)
         if g and bd is not None: place(m, base, fm * bd, tint=g, alpha=d)
     for m in zones:                                       # overlays
-        if has_over[m["id"]]: place(m, over, edge(m), alpha=d)
+        if has_over[m["id"]] and not USE_BAKED: place(m, over, edge(m), alpha=d)
     for m in zones:                                       # their border copies
         g = grade.get(m["id"]); bd = band(m)
-        if has_over[m["id"]] and g and bd is not None: place(m, over, edge(m) * bd, tint=g, alpha=d)
-    if USE_CORE:
+        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over, edge(m) * bd, tint=g, alpha=d)
+    if USE_CORE and not USE_BAKED:
         for m in zones:                                   # every zone's interior again, over its neighbours' halos
             if has_over[m["id"]]: place(m, over, edge(m) * core(m), alpha=d)
     for m in zones:                                       # cities
@@ -1172,7 +1181,102 @@ def bake_territory():
         n += 1
     print("baked", n, "territories", flush=True)
 
+ZONE_PX = 16                    # baked zone art: px per world unit (a zone map's own: 4 in the Barrens, 11 most, 22 the smallest; 16 carries zone-fit zooms)
+ZONE_TILE, ZONE_STEP = 512, 510 # ... its tiles, and the world each covers (the other 2 px: its neighbours' edge, for filtering)
+ZONE_DESAT, ZONE_MATCH = 0.1, 1 # the settings it's baked at (Stitch.lua's defaults: desaturate, colorMatch)
+
+def bake_zones():
+    """MapZones/<i>_<j>.blp and Data/ZoneArt.lua: every zone's art as the stitched map draws it at
+    full detail, on the world, in tiles (Stitch.lua's zone layers, in its order and with its masks:
+    the gaps' finer maps, each zone's base art and its colour-match copy, the overlays, theirs, and
+    the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds"""
+    sys.path.insert(0, os.path.join(REPO, "tools", "map-textures"))
+    import blp
+    W, H = 1002.0, 668.0
+    T = ZONE_STEP / ZONE_PX                              # world units a tile covers
+    has_over = {m["id"]: bool(reveal.get(m["art"])) for m in zones}
+    live = [m for m in zones if has_over[m["id"]]]
+    # the layers, bottom to top, as Stitch.lua builds them: (rect, image(), mask(), tint, desaturation)
+    layers = []
+    for x in gap_art():                                  # (tilesRoot, under every zone's frame; not graded)
+        layers.append((x["rect"], lambda x=x: x["img"], lambda x=x: x["mask"], None, 0))
+    for m in live:                                       # (a frame each, biggest first: base, then its copy)
+        g = grade.get(m["id"])
+        layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: M_FEATHER * terr(m) if g and terr(m) is not None else M_FEATHER, None, ZONE_DESAT))
+        if g and band(m) is not None:
+            layers.append((m["rect"], lambda m=m: base(m), lambda m=m: M_FEATHER * band(m), g, ZONE_DESAT))
+    def edge_of(m): return edge(m) if grade.get(m["id"]) else M_THIN   # (Stitch.lua: MapEdge for graded zones)
+    for m in live:                                       # (overlayRoot: every zone's overlays, then their copies)
+        layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m), None, ZONE_DESAT))
+    for m in live:
+        g = grade.get(m["id"])
+        if g and band(m) is not None:
+            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * band(m), g, ZONE_DESAT))
+    for m in live:                                       # (coreRoot: the interiors, graded zones only)
+        if grade.get(m["id"]) and os.path.exists(os.path.join(TEXDIR, "MapCore", "%d.tga" % m["id"])):
+            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, ZONE_DESAT))
+    out_dir = os.path.join(TEXDIR, "MapZones")
+    os.makedirs(out_dir, exist_ok=True)
+    for f in os.listdir(out_dir):
+        if f.endswith(".blp"): os.remove(os.path.join(out_dir, f))
+    cols, rows = int(math.ceil(W / T)), int(math.ceil(H / T))
+    made = []
+    for j in range(rows):
+        for i in range(cols):
+            # the tile's pixels' centres, in world units (its first and last px are its neighbours' edge)
+            x0, y0 = i * T - 1 / ZONE_PX, j * T - 1 / ZONE_PX
+            wx = x0 + (np.arange(ZONE_TILE) + 0.5) / ZONE_PX
+            wy = y0 + (np.arange(ZONE_TILE) + 0.5) / ZONE_PX
+            acc = np.zeros((ZONE_TILE, ZONE_TILE, 3), np.float32)       # (premultiplied)
+            acc_a = np.zeros((ZONE_TILE, ZONE_TILE), np.float32)
+            for (l, r, t, b), img_, mask_, tint, dsat in layers:
+                cx = np.nonzero((wx >= l * W - 1) & (wx <= r * W + 1))[0]
+                cy = np.nonzero((wy >= t * H - 1) & (wy <= b * H + 1))[0]
+                if len(cx) == 0 or len(cy) == 0: continue
+                img, msk = img_(), mask_()
+                if img is None: continue
+                sx = (wx[cx] / W - l) / (r - l) * img.shape[1] - 0.5
+                sy = (wy[cy] / H - t) / (b - t) * img.shape[0] - 0.5
+                SY, SX = np.meshgrid(sy, sx, indexing="ij")
+                def sample(ch): return ndimage.map_coordinates(ch, [SY, SX], order=1, mode="constant", cval=0)
+                a = sample(img[..., 3])
+                if msk is not None: a = a * sample(msk)
+                if a.max() <= 0: continue
+                rgb = np.dstack([sample(img[..., c]) for c in range(3)])
+                rgb = desat(rgb, dsat)
+                if tint is not None: rgb = rgb * np.array(tint, np.float32)
+                ys_, xs_ = slice(cy[0], cy[-1] + 1), slice(cx[0], cx[-1] + 1)
+                acc[ys_, xs_] = acc[ys_, xs_] * (1 - a[..., None]) + rgb * a[..., None]
+                acc_a[ys_, xs_] = acc_a[ys_, xs_] * (1 - a) + a
+            if acc_a.max() < 1 / 255: continue
+            rgb = acc / np.maximum(acc_a[..., None], 1e-6)
+            # clear pixels take the nearest seen colour, so filtering at the art's soft edges doesn't darken them
+            seen = acc_a >= 1 / 255
+            if not seen.all():
+                _, (iy, ix) = ndimage.distance_transform_edt(~seen, return_indices=True)
+                rgb = rgb[iy, ix]
+            rgba = np.dstack([np.clip(rgb, 0, 1), np.clip(acc_a, 0, 1)])
+            blp.write(os.path.join(out_dir, "%d_%d.blp" % (i, j)), np.round(rgba * 255).astype(np.uint8))
+            made.append(i * 256 + j)
+            print("zone tile", i, j, flush=True)
+    with open(os.path.join(WM, "ZoneArt.lua"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("-- The zones' art baked into world tiles (Media/Textures/MapZones/<i>_<j>.blp): every zone's layers as\n"
+                "-- Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws these in their place.\n"
+                "-- Generated by tools/map-preview/render.py --bake-zones (build %s); regenerate rather than edit.\n\n" % BUILD)
+        f.write("local _, ns = ...\n\n")
+        f.write("ns.MapZoneArt = {\n")
+        f.write("\tpx = %d, size = %d, step = %d,   -- px per world unit; a tile's px, and those of it the world (the rest: its neighbours' edge)\n" % (ZONE_PX, ZONE_TILE, ZONE_STEP))
+        f.write("\tdesaturate = %g, colorMatch = %g,   -- the settings it's baked at\n" % (ZONE_DESAT, ZONE_MATCH))
+        f.write("\ttiles = {   -- i * 256 + j: column i, row j\n")
+        for k in range(0, len(made), 16):
+            f.write("\t\t" + ", ".join(str(v_) for v_ in made[k:k + 16]) + ",\n")
+        f.write("\t},\n}\n")
+    print("baked", len(made), "zone tiles", flush=True)
+
 views = sys.argv[4:] or ["world=0.5,0.5,1"]
+if views and views[0] == "--bake-zones":
+    bake_zones()
+    views = views[1:]
 if views and views[0] == "--bake-land":
     # MapLand/<continent>.tga: where a continent's art is land, for the land fill and grain
     os.makedirs(os.path.join(TEXDIR, "MapLand"), exist_ok=True)

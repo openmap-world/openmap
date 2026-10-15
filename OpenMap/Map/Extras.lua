@@ -196,7 +196,8 @@ local function Lift(icon)
 	icon:SetFrameLevel(level - QUESTIE_BASE + top + 1)
 	icon:SetFixedFrameLevel(true)
 end
-local NEAR = 1                          -- how far round the map underneath (its widths) pins are placed
+local NEAR = 0.5                        -- how far round the map underneath (its widths) pins are placed (each pin
+                                        --  on the map is laid out again on every frame of a pan or zoom: /openmap bench)
 
 local questie = { placed = 0, ours = 0, moved = 0 }   -- for /openmap status: since the map last changed
 

@@ -35,6 +35,9 @@ local MINI_FROM = { 1, 60, 1 }  -- minimapFrom's least (the whole world), most, 
 mod.MINI_FROM = MINI_FROM
 local miniFade, deepFade = { 20, 34 }, { 30, 48 }   -- (the fades as set: kept, not made each view)
 local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
+local CITY_MINI_OF = {          -- ... less over these: their own plan is detailed, and comes in from further out
+	[1454] = 0.15,              --  (Orgrimmar)
+}
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
@@ -362,6 +365,10 @@ end
 --------------------------------------------------------------------------------
 
 local grain
+-- (laid over a box well past the view, as the sea's: the grain is fixed on the world, so a pan
+-- lays it again only near the box's edge; a zoom or a change of strength, every time)
+local GRAIN_BOX = 1.8           -- the box's half extents, of the view's
+local grainBox = {}             -- { u0, v0, u1, v1, hu =, amount = } as last laid
 
 local function UpdateGrain(layer, u, v, hu, hv, amount)
 	if not grain then
@@ -372,12 +379,19 @@ local function UpdateGrain(layer, u, v, hu, hv, amount)
 			grain[i] = { tex = tex, octave = spec[2], tooth = spec[1] == TOOTH }
 		end
 	end
+	local gb = grainBox
 	if amount <= 0.01 then
-		for _, g in ipairs(grain) do g.tex:Hide() end
+		if gb.amount ~= 0 then
+			for _, g in ipairs(grain) do g.tex:Hide() end
+			gb.amount = 0
+		end
 		return
 	end
+	if gb.hu == hu and gb.amount == amount and u - hu * 1.2 > gb[1] and u + hu * 1.2 < gb[3]
+		and v - hv * 1.2 > gb[2] and v + hv * 1.2 < gb[4] then return end
 	local W, H = S.Size()
-	local u0, u1, v0, v1 = u - hu * 1.2, u + hu * 1.2, v - hv * 1.2, v + hv * 1.2
+	local u0, u1, v0, v1 = u - hu * GRAIN_BOX, u + hu * GRAIN_BOX, v - hv * GRAIN_BOX, v + hv * GRAIN_BOX
+	gb[1], gb[2], gb[3], gb[4], gb.hu, gb.amount = u0, v0, u1, v1, hu, amount
 	local want = math.log(hu * 2 * W * 0.35) / math.log(2)      -- a mottle tile ~ a third of the view
 	local n = math.floor(want)
 	local f = want - n
@@ -522,14 +536,14 @@ local stepMs = {}               -- each step's time (ms, smoothed) and its worst
 S.closeSteps = stepMs
 local function Try(name, fn, ...)
 	local start = debugprofilestop and debugprofilestop()
-	local ok, a = pcall(fn, ...)
+	local ok, a, b = pcall(fn, ...)
 	if start then
 		local ms = debugprofilestop() - start
 		local s = stepMs[name] or { ms = ms, worst = 0 }
 		s.ms, s.worst = s.ms * 0.9 + ms * 0.1, math.max(s.worst, ms)
 		stepMs[name] = s
 	end
-	if ok then return a end
+	if ok then return a, b end
 	if not failed[name] then
 		failed[name] = tostring(a)
 		geterrorhandler()(("OpenMap %s: %s"):format(name, tostring(a)))
@@ -544,6 +558,7 @@ function S.SetView(u, v, hu, hv, zoom)
 	local cv = S.closeView
 	local start = debugprofilestop and debugprofilestop()
 	cv.zoom, cv.time, cv.updates = zoom, GetTime(), (cv.updates or 0) + 1
+	if S.Moved then S.Moved() end
 	local cont = Try("continent", ContinentAt, u, v)
 	Try("sea", S.SetSea, u, v, hu, hv)
 	Try("culling", S.Cull, u - hu, v - hv, u + hu, v + hv)
@@ -562,9 +577,10 @@ function S.SetView(u, v, hu, hv, zoom)
 	if base > 0 then mix = mix + (most - mix) * Smooth(zoom, deepFade) end
 	-- not over a city's own map (the minimap there is the surface, not the city)
 	mix = mix * (1 - (Try("cities", S.CityCover, u, v) or 0))
-	-- and over the cities on the surface no more than CITY_MINI: their own plan leads
-	local city = Try("surface cities", S.SurfaceCityCover, u, v) or 0
-	if mix > CITY_MINI then mix = mix + (CITY_MINI - mix) * city end
+	-- and over the cities on the surface no more than CITY_MINI (or the city's own): their own plan leads
+	local city, cityID = Try("surface cities", S.SurfaceCityCover, u, v)
+	local most = CITY_MINI_OF[cityID] or CITY_MINI
+	if mix > most then mix = mix + (most - mix) * (city or 0) end
 	cv.mix = mix
 	local conts = Try("continents", ContinentsInView, u, v, hu, hv) or {}
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)

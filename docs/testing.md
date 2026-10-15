@@ -48,11 +48,14 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] Options → Look → Unexplored areas: Show / Darken / Hide each change the map at once. On Darken, unexplored land is much darker and greyer, a zone you haven't found at all is darkened whole from every zoom (no seam as you zoom into it), and the sea off its coasts is left alone. On Hide, unexplored parts of a zone are blank parchment; explore a new spot and it fills in without a reload.
 - [ ] Open and close the map in combat, open the quest log from it, then leave combat: no "action blocked" message, and the action bars still work.
 - [ ] The OpenMap menu's Quest log tile (and its favourite button): hides and shows the quest log beside the map; in combat it says it can't. Afterwards, open the map in combat: no "action blocked" message.
-- [ ] The OpenMap button and its favourites sit in the map's bottom-left corner (above the coordinates when they show), clear of the resize grip and the quest log button. The menu's frame matches the map window's; every row and tile has its icon (no green question marks).
+- [ ] The OpenMap button (its icon, no label) sits right in the map's bottom-left corner (above the coordinates when they show), its favourites in a row beside it, clear of the quest log button. Clicking it opens the menu; just outside the window's corner, the bottom-left resize grip still catches. The menu's frame matches the map window's; every row and tile has its icon (no green question marks).
 - [ ] With Questie: quest icons on the stitched map, including in the neighbouring zones and once the map has switched to a zone; the menu's "Questie icons" turns them off and on.
 - [ ] HandyNotes / GatherMate / TomTom (if you use them): their icons still show on the zone the map is on, and nothing errors.
 
-- [ ] Full screen: the Quest log button and the arrow button in the corner show and hide the quest log over the map's right side; leaving full screen, the window is as it was (quest log beside the map if it was). Make the window tall: the quest log's background fills it, no line.
+- [ ] Full screen: the Quest log button and the arrow button in the corner show and hide the quest log over the map's right side; leaving full screen, the window is as it was (quest log beside the map if it was). Make the window tall: the quest log's background fills it, no line. Click a quest: its details reach the window's foot (the parchment behind the text, and the text, longer; Abandon / Share / Track at the bottom, no gap under them); at Blizzard's own size they look as before.
+- [ ] Zoom in and out with the wheel, and drag the map, at the world and continent zooms: the
+  continents' and seas' names keep their ink while the map moves, their soft light halo back a
+  moment after it stops (no flicker when the map just opens).
 - [ ] Zoom in and out over a quest's blue area (track a quest with one): the area stays on the map as it zooms.
 
 - [ ] With a gamepad (Forever's gamepad mode on): open the map, move its cursor and zoom with the right stick, all the way in and out (a steady pace, about the cursor). The coordinates and the hover label follow the cursor. A over a zone zooms into it, X zooms out a map. Over the OpenMap button, a favourite or a dungeon icon its tooltip shows, and A presses it; open the menu, press a setting and the zoom slider.

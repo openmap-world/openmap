@@ -19,7 +19,8 @@ d.favorites = {}                -- action and row ids, in the order they were st
 
 local map, sc, menu, toggle, checks, favBar, tiles, zoomRow, miniRow, opacityRow
 local W, PAD, COL = 480, 16, 224
-local BAR_X = 28                -- the bar's start, clear of the window's bottom-left resize grip (Window.lua)
+local BAR_X, BAR_Y = 2, 1       -- the OpenMap button's corner, as Blizzard's quest log button sits in the other
+                                --  (over the window's resize grip: it still catches just outside the corner)
 local FAV = 30                  -- a favourite's button
 local TILE_H = 60               -- an action's tile in the menu (room for a label on two lines)
 local BRONZE = { 0.66, 0.49, 0.28 }
@@ -388,7 +389,7 @@ local function PlaceToggle()
 		end
 	end
 	toggle:ClearAllPoints()
-	toggle:SetPoint("BOTTOMLEFT", sc, "BOTTOMLEFT", x, mod.db.coords and 24 or 6)
+	toggle:SetPoint("BOTTOMLEFT", sc, "BOTTOMLEFT", x, mod.db.coords and 18 + BAR_Y or BAR_Y)
 end
 
 -- the room left for favourites: to the map's right edge, or Blizzard's buttons in the
@@ -627,16 +628,11 @@ function mod:SetupPanel(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	local level = math.min(sc:GetFrameLevel() + 9300, 9950)
 
-	-- the OpenMap button, in the bottom-left corner: placed again whenever Blizzard refreshes
-	-- its overlay buttons
-	toggle = Tile(map, 98, FAV, FAV - 8)
-	toggle:SetFrameLevel(level)
-	toggle.icon.slot:ClearAllPoints()
-	toggle.icon.slot:SetPoint("LEFT", 4, 0)
+	-- the OpenMap button, its icon alone, in the bottom-left corner: placed again whenever
+	-- Blizzard refreshes its overlay buttons
+	toggle = Tile(map, FAV, FAV)
+	toggle:SetFrameLevel(level)               -- (over the window's resize grip there: Window.lua)
 	ShowIcon(toggle.icon, OPENMAP_ICON)
-	local text = toggle:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	text:SetPoint("LEFT", toggle.icon.slot, "RIGHT", 6, 0)
-	text:SetText("OpenMap")
 	toggle:SetScript("OnClick", function() SetOpen(not menu:IsShown()) end)
 	toggle:SetScript("OnEnter", function(self)
 		Tip(self, "ANCHOR_TOP", "OpenMap", { L["Search, find me, map pins, the quest log, report a problem, options, and what the map shows."] })

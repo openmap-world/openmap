@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.3.0-beta (2026-10-14)
+
 - "Minimap detail from" (a slider in the menu, under Deepest zoom, and in Options' Up close) sets how
   far in the minimap's detail starts to mix in: lower comes in sooner, higher later (20x by default);
   at 1x it's there from the whole world. Further out than the game's own minimap tiles can be
@@ -39,6 +41,39 @@
   back where you'd last closed it. Reopening where you left off now only applies when you open the
   map, not when Blizzard changes the map while it's open (the quest log, the zone dropdown), and
   not when the map opens on a quest's zone from the quest tracker.
+- A quest's details in the quest log reach the foot of a window taller than Blizzard's, with more
+  room for the quest's text, instead of stopping short with an empty strip under the buttons.
+- The OpenMap button is its icon alone, right in the map's bottom-left corner.
+- Zoomed in, only the tiles of each zone near the view are drawn and loaded, not every tile of
+  every zone it touches, and panning works out what to show only now and then instead of every
+  frame (the sea and the paper grain stay put as you pan, too). Less for the game to draw and lay
+  out as you move about.
+- The zones' art is baked into world tiles (made by a script from Blizzard's map art, as the map
+  draws it), so from the continents' zoom in to a zone the map draws a few dozen tiles instead of
+  hundreds of masked textures; closer in than the tiles' own pixels, the zones' art is drawn live
+  as before. Changing the colour match, or hiding unexplored areas, uses the live art throughout.
+  (New textures, 69 MB: restart the game.)
+- The continents' and seas' names cost far less to pan and zoom: only those near the view are
+  drawn, and their halo takes half as many font strings (each copy's shadow is the one opposite
+  it), the same to look at. Panning over a continent with its names showing was a third of the
+  map's frame time on a wide screen. While the map moves (zooming or panning) their halo rests
+  (every letter is drawn again at its new size on each frame of a zoom, and laid out again on each
+  of a pan, and the halo was eight of its nine), back as soon as the map stops.
+- Questie's icons from the neighbouring zones are placed up to half the map's width round it,
+  not a whole width: every icon on the map is laid out again on each frame of a pan or zoom (231
+  of them cost 7 ms a frame on a wide screen). Those further off show once the map switches to
+  their zone.
+- Panning and zooming no longer lay out the thousands of zone textures that aren't showing (the
+  live art the baked tiles stand in for, the tiles off the view): a hidden one lets go of its place
+  on the map until it shows again. With vsync off on a wide screen, all of OpenMap's art cost 20 ms
+  of a 41 ms panning frame, 8 of them in art nobody could see.
+- Up close over Orgrimmar the minimap's detail is much fainter (15% at most, from 50%): the city's own
+  plan, which comes in from further out than the other cities', leads there.
+- OpenMap's icons (flight masters, dungeons, the player arrow ...) are on the map's view instead of
+  its canvas: they keep their size on screen by themselves, instead of their layer being rescaled
+  on every frame of a zoom (which laid every icon out again: 6.6 ms of a zooming frame).
+- `/openmap bench` times the map where it's slow (still, panning and zooming, at several zooms, then
+  with each part of it off in turn) and gives the results to copy into an issue.
 - The OpenMap menu's close button is easier to hit, and Escape closes the menu.
 - "Report a problem" isn't only about the map: circling a spot is optional (just click Next), it
   works on dungeon maps too, and the issue form says so.

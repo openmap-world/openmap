@@ -31,6 +31,14 @@ areas": out of game nothing's known about what a player has explored, so it says
 which zones to treat as never found (`all`) or half explored (`half`, every other
 overlay piece).
 
+`--bake-zones` rewrites `Media/Textures/MapZones` and `Data/ZoneArt.lua`: every zone's art as
+`Stitch.lua` draws it at full detail (its layers, in its order, through its masks, at the default
+colour settings), on the world in 512-px tiles (BLP, DXT5, mipmapped: `tools/map-textures/blp.py`),
+which the map draws instead of the zones' hundreds of textures until the view passes the tiles'
+own pixels. Re-run it after anything that changes the zones (the grade, the art edits, the
+territories and edges, the banners, the gaps). `OPENMAP_BAKED=1` renders the zones from those
+tiles, as the game draws them, to compare with a render of the live layers.
+
 `--bake-land` rewrites `Media/Textures/MapLand/<continent>.tga` (the continents'
 land masks). The edge fades and the parchment grain come from
 `tools/map-textures/make.py`.

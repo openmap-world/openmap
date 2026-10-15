@@ -338,11 +338,43 @@ function mod.ToggleMaxQuestLog()
 	if mod.maxLogToggle then mod.maxLogToggle:Refresh() end
 end
 
+-- A quest's details: Blizzard's are a fixed 502 high, anchored at the top, sized for its own
+-- window (534 high), so a taller window leaves a gap under them. They reach the quest log's foot
+-- instead (as far below the list as Blizzard's do in its window: 502 there), the text with them;
+-- the parchment behind the text runs down to the rewards (Blizzard's 440 in its 502), cut from
+-- its art as Blizzard cuts it, or stretched once it's taller than the art
+local DETAILS_BELOW, TEXT_FOOT, PAPER_FOOT = 6, 29, 62
+local function FitDetailsPaper(details)
+	local bg = details.Bg
+	local atlas = bg and bg.GetAtlas and bg:GetAtlas()
+	local info = atlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+	local w, h = details:GetWidth(), details:GetHeight()
+	if not info or not info.width or info.width <= 0 or not w or not h or h <= PAPER_FOOT then return end
+	local natural = info.height * w / info.width
+	local want = h - PAPER_FOOT
+	bg:SetWidth(w)
+	bg:SetTexCoord(0, 1, 0, math.min(1, want / natural))
+	bg:SetHeight(want)
+end
+
+local function StretchDetails()
+	local quests = Log() and Log().QuestsFrame
+	local details = quests and quests.DetailsFrame
+	if not details or not details.ScrollFrame or details.omStretched then return end
+	details.omStretched = true
+	details:SetPoint("BOTTOMRIGHT", quests, "BOTTOMRIGHT", 0, -DETAILS_BELOW)
+	details.ScrollFrame:SetPoint("BOTTOMLEFT", details, "BOTTOMLEFT", 5, TEXT_FOOT)
+	-- (after Blizzard sizes it for its own height, each time the details show)
+	details:HookScript("OnShow", FitDetailsPaper)
+	details:HookScript("OnSizeChanged", FitDetailsPaper)
+end
+
 SetupQuestLog = function()
 	local scroll = _G.QuestScrollFrame
 	local bg = scroll and scroll.Background
 	if bg and bg.SetPoint then bg:SetPoint("BOTTOMLEFT", scroll, "BOTTOMLEFT", 0, 0) end
 	if not Log() then return end
+	StretchDetails()
 	-- Blizzard's collapse / expand button for it, in the view's bottom-right corner, hidden while
 	-- full screen: a copy of it (its own template, so it looks and turns the same) there instead
 	local toggle

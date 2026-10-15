@@ -142,6 +142,27 @@ local function Fade(region, a)
 	region:SetShown(a > 0.003)
 end
 
+-- The zones' art baked into world tiles (ns.MapZoneArt, render.py --bake-zones): at the settings it
+-- was baked at, drawn in place of the live zone layers (tilesRoot, overlayRoot, coreRoot: hundreds of
+-- masked textures in view) until the view is past the tiles' own pixels, then handing over to them
+-- (FADE: screen px per tile px). `live`: the live layers' share now (0: the tiles alone, 1: live alone).
+-- (One table: the file is near Lua's limit of 200 locals)
+local Baked = { FADE = { 1.2, 1.6 }, tiles = {}, use = false, live = 1, path = TEX .. "MapZones\\" }
+
+-- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
+-- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
+-- pan or zoom the game lays out again everything anchored to it, hidden or not: thousands of hidden
+-- textures cost as much as the art on screen. masks: mapID -> its masks' records in those layers;
+-- placed: mapID -> whether they're anchored now; seen: whether the zone detail shows at all
+local Live = { masks = {}, placed = {}, seen = false }
+function Live.Under(f)
+	while f do
+		if f == tilesRoot or f == overlayRoot or f == coreRoot then return true end
+		f = f:GetParent()
+	end
+	return false
+end
+
 -- the zone detail layers' alpha: the zoom fade, less the softening and underground
 local appliedDetail, appliedSoft
 local function ApplyDetail()
@@ -150,26 +171,32 @@ local function ApplyDetail()
 		appliedSoft = softNow
 		Fade(blurRoot, d * softNow)
 	end
-	if d == appliedDetail then return end
-	appliedDetail = d
-	local on = d > 0.001
-	if on ~= detailLive then                     -- (zones' files load once their detail first shows)
-		detailLive = on
-		if on then
-			for mapID in pairs(zoneTex) do
-				if inView[mapID] == true then ShowZone(mapID) end
-			end
+	local live = Baked.use and Baked.live or 1
+	if d == appliedDetail and live == Baked.applied then return end
+	appliedDetail, Baked.applied = d, live
+	local dl = d * live
+	local on, seen = dl > 0.001, d > 0.001
+	if on ~= detailLive or seen ~= Live.seen then   -- (zones' files load once their detail first shows; the live
+		detailLive, Live.seen = on, seen             --  layers' regions are anchored while they show, ShowZone)
+		for mapID in pairs(zoneTex) do
+			if inView[mapID] == true then ShowZone(mapID) end
 		end
 	end
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
-	tilesRoot:SetAlpha(d)
+	tilesRoot:SetAlpha(dl)
 	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
-	overlayRoot:SetAlpha(d)
+	overlayRoot:SetAlpha(dl)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
 	-- under the faint hint from further out they'd hardly show, over both continents at once
-	Fade(coreRoot, math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])))
+	Fade(coreRoot, math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])) * live)
 	if blurRoot then Fade(blurRoot, d * softNow) end
+	if Baked.frame then
+		-- (the live layers stack: a zone's base art and its overlays, each at d, cover 1 - (1 - d)^2 of
+		-- what's under them; the tiles are all of them in one, so they're drawn that strong)
+		Fade(Baked.frame, math.floor((1 - (1 - d) ^ 2) * (1 - live) * 100 + 0.5) / 100)
+		Baked.Cull()
+	end
 end
 S.stats = { zones = 0, tiles = 0, overlays = 0, pins = 0, cities = {} }
 S.viewHooks = {}                -- fn(u, v, hu, hv, zoom) on every pan / zoom (Close.lua's S.SetView calls them)
@@ -248,6 +275,7 @@ local function Record(region, x, y, w, h)
 	local parent = region:GetParent()
 	local rec = { region, x, y, w, h, rel = parent and parent.omShift and parent or nil }
 	placed[#placed + 1] = rec
+	region.omRec = rec
 	PlaceRecord(rec)
 end
 
@@ -264,6 +292,11 @@ local function Feather(parent, p, file)
 	local mask = parent:CreateMaskTexture()
 	mask:SetTexture(file, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	Record(mask, p.left, p.top, p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy)
+	if p.mapID and Live.Under(parent) then         -- (a live layer's: anchored while the zone's art can show)
+		local list = Live.masks[p.mapID] or {}
+		Live.masks[p.mapID] = list
+		list[#list + 1] = mask.omRec
+	end
 	return mask
 end
 
@@ -285,6 +318,7 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 	local tw, th = p.layer.tileWidth, p.layer.tileHeight
 	local cols, rows = math.ceil(w / tw), math.ceil(h / th)
 	local n = 0
+	local layer = Live.Under(parent)               -- (a live zone layer's: shown only while the layers are)
 	for j = 1, rows do
 		local ph = (j < rows) and th or (h - (rows - 1) * th)
 		local fh = (j < rows or not overlay) and th or Pow2(ph)
@@ -306,9 +340,12 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 					if mask then tex:AddMaskTexture(mask) end
 					local hole = overlay and BannerHole(parent, p)
 					if hole then tex:AddMaskTexture(hole) end
+					-- (a zone's texture keeps its rectangle on the world, normalized: ShowZone shows only
+					-- those near the view)
+					local u0, v0, u1, v1 = tx / W, ty / H, (tx + pw * p.sx) / W, (ty + ph * p.sy) / H
 					if copy == 2 then
 						tex:AddMaskTexture(band)
-						local e = { tex, p.mapID, piece, twin = true }
+						local e = { tex, p.mapID, piece, twin = true, layer = layer, u0 = u0, v0 = v0, u1 = u1, v1 = v1 }
 						twins[#twins + 1] = e
 						local list = zoneTex[p.mapID] or {}
 						zoneTex[p.mapID] = list
@@ -316,7 +353,7 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 					else
 						if mask2 then tex:AddMaskTexture(mask2) end
 						if list == graded then
-							local e = { tex, p.mapID, piece }
+							local e = { tex, p.mapID, piece, layer = layer, u0 = u0, v0 = v0, u1 = u1, v1 = v1 }
 							graded[#graded + 1] = e
 							local list = zoneTex[p.mapID] or {}
 							zoneTex[p.mapID] = list
@@ -525,9 +562,11 @@ end
 --------------------------------------------------------------------------------
 -- Pin sets: groups of icons (and lines) that keep their size on screen.
 -- Each pin hangs from an invisible anchor placed in the art (re-placed by
--- Layout), and pinRoot undoes the canvas scale: a zoom is one SetScale, not a
--- SetPoint per pin. A set shows when it's on and the zoom has reached its
--- minimum. Pins can be any frame with a texture; lines join two anchors.
+-- Layout), and pinRoot is on the map's view, not its canvas: it never scales, so
+-- the pins keep their size on screen and a zoom only moves them (a layer rescaled
+-- on each frame of a zoom lays out every pin in it again). A set shows when it's on
+-- and the zoom has reached its minimum. Pins can be any frame with a texture; lines
+-- join two anchors.
 --------------------------------------------------------------------------------
 
 local sets = {}                 -- key -> { frame, on, minZoom, pins = {}, lines = {}, anchors = {}, pinPool, linePool }
@@ -966,7 +1005,12 @@ function S.Build(parent, artLevel, range, iconLevel)
 	labelsRoot = Layer(artLevel + range - 3)
 	marksRoot = Layer(artLevel + range - 2)
 	marksRoot:Hide()
-	pinRoot = Layer(iconLevel)
+	-- (on the map's view, which clips them as the canvas does, not on the canvas: see Pin sets)
+	local view = parent:GetParent() or parent
+	pinRoot = CreateFrame("Frame", nil, view)
+	pinRoot:SetAllPoints(view)
+	pinRoot:SetFrameLevel(iconLevel)
+	if pinRoot.SetClipsChildren then pinRoot:SetClipsChildren(true) end
 	arrow = pinRoot:CreateTexture(nil, "OVERLAY", nil, 7)
 	arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
 	arrow:SetSize(28, 28)
@@ -1036,12 +1080,42 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- the continents' and seas' names (S.SetZoom letters each when it first shows)
 	namesFrame = CreateFrame("Frame", nil, labelsRoot)
 	namesFrame:SetSize(1, 1)
+	-- while the map moves, the names' halos rest: every font string is drawn again at its new size on
+	-- each frame of a zoom, and laid out again on each of a pan, and the halo is eight of a letter's
+	-- nine. Back once the map has stopped. (On `names`, not locals of their own: the file is near
+	-- Lua's limit of 200)
+	names.Hush = function(on)
+		names.hushed = on
+		for _, n in ipairs(names) do
+			for _, copy in ipairs(n[1].halos or NONE) do copy:SetShown(not on) end
+		end
+		names.watch:SetShown(on)
+	end
+	names.watch = CreateFrame("Frame")
+	names.watch:Hide()
+	names.watch:SetScript("OnUpdate", function()
+		if GetTime() - (names.movedAt or 0) > 0.15 then names.Hush(false) end
+	end)
 	for _, label in ipairs(ns.MapLabels or {}) do
 		local f = CreateFrame("Frame", nil, namesFrame)
 		f:SetPoint("TOPLEFT")
 		f:SetSize(1, 1)
 		f:Hide()
-		names[#names + 1] = { f, label }
+		-- its box on the world (normalized), for S.Cull: its lines, with room for a name set wider
+		-- than the art's line (another language's) and for its halo
+		local n, p = { f, label }, Place(label.map)
+		for _, line in ipairs(p and label.lines or NONE) do
+			local x0, x1 = p.left + line[1] * p.sx, p.left + line[2] * p.sx
+			local y1 = p.top + line[3] * p.sy
+			local y0 = y1 - line[4] * p.sy
+			n.l, n.r = math.min(n.l or x0, x0), math.max(n.r or x1, x1)
+			n.t, n.b = math.min(n.t or y0, y0), math.max(n.b or y1, y1)
+		end
+		if n.l then
+			local mx, my = (n.r - n.l) * 0.5, (n.b - n.t)
+			n.l, n.r, n.t, n.b = (n.l - mx) / W, (n.r + mx) / W, (n.t - my) / H, (n.b + my) / H
+		end
+		names[#names + 1] = n
 	end
 
 	-- zones, biggest first so small zones land on top; cities go above everything
@@ -1114,6 +1188,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		end
 	end
 
+	Baked.Build()
 	BuildPins()
 	return true
 end
@@ -1136,17 +1211,18 @@ end
 -- each one's rectangle. `underground`: the cities under the surface (their minimap is the
 -- surface's), else the others
 local function Cover(u, v, underground)
-	local cover = 0
+	local cover, most = 0, nil
 	for _, c in ipairs(cities) do
 		local l, r, t, b
 		if (UNDERGROUND_CITIES[c.mapID] and true or false) == underground then l, r, t, b = S.Rect(c.mapID) end
 		if l and u > l and u < r and v > t and v < b then
 			local e = math.min(u - l, r - u) / (r - l) * 2
 			e = math.min(e, math.min(v - t, b - v) / (b - t) * 2)
-			cover = math.max(cover, c[1]:GetAlpha() * math.min(1, e * 2.5))
+			local here = c[1]:GetAlpha() * math.min(1, e * 2.5)
+			if here > cover then cover, most = here, c.mapID end
 		end
 	end
-	return cover
+	return cover, most                             -- (and the city covering it most)
 end
 function S.CityCover(u, v) return Cover(u, v, true) end
 function S.SurfaceCityCover(u, v) return Cover(u, v, false) end
@@ -1190,8 +1266,67 @@ function S.DrawnCount()
 	return n
 end
 
+-- the view moved (a pan or zoom: Close.lua's S.SetView): a third frame running is the map moving, and
+-- the names' halos rest until it stops (the map opening, or a setting changed, is one or two)
+function S.Moved()
+	if not names.Hush then return end
+	local now = GetTime()
+	if now == names.movedAt then return end      -- (one a frame)
+	names.moves = names.movedAt and now - names.movedAt < 0.1 and (names.moves or 0) + 1 or 1
+	names.movedAt = now
+	if not names.hushed and names.moves >= 3 then names.Hush(true) end
+end
+
 function S.SetShown(shown)
 	if root and root:IsShown() ~= (shown and true or false) then root:SetShown(shown) end
+	if pinRoot and pinRoot:IsShown() ~= (shown and true or false) then pinRoot:SetShown(shown) end
+end
+
+-- for /openmap bench (Bench.lua): the art's parts, each { name, regions } it hides for a moment
+-- to see what that part costs. (Textures straight on root: the sea and the world map's art)
+function S.Parts()
+	if not root then return {} end
+	local own, copies = {}, {}
+	for _, r in ipairs({ root:GetRegions() }) do
+		if r:GetObjectType() == "Texture" then own[#own + 1] = r end
+	end
+	for _, e in ipairs(twins) do copies[#copies + 1] = e[1] end
+	local L = S.closeLayers or {}
+	return {
+		{ "all OpenMap art and icons", { root, pinRoot } },
+		{ "sea and world art", own },
+		{ "continents, land, gap paper", { contRoot } },
+		{ "zone base art", { tilesRoot } },
+		{ "zone overlays", { overlayRoot } },
+		{ "zone interiors", { coreRoot } },
+		{ "baked zone art", { Baked.frame } },
+		{ "colour-match copies", copies },
+		{ "blur", { blurRoot } },
+		{ "cities", { citiesRoot } },
+		{ "unexplored shade", { shadeRoot } },
+		{ "minimap detail", { L.minimap } },
+		{ "grain", { L.grain } },
+		{ "caves", { L.under } },
+		{ "names", { labelsRoot } },
+		{ "OpenMap icons", { pinRoot } },
+	}
+end
+
+-- after the bench: the next S.Cull shows or hides every zone's textures and every culled region
+-- afresh, as they should be
+function S.ResetShown()
+	if not root then return end
+	wipe(inView)
+	wipe(Live.placed)
+	cullBox = nil
+	for _, list in pairs(zoneTex) do
+		for _, e in ipairs(list) do e.shown = nil end
+	end
+	for _, c in ipairs(culled) do c.here = nil end
+	for _, n in ipairs(names) do n.near = nil end
+	for _, set in pairs(sets) do
+		for _, cell in pairs(set.cells or NONE) do cell.here = nil end
+	end
 end
 
 -- the blur's copies (see S.SetBlur): offset diagonally each way by a fraction of an art pixel
@@ -1293,17 +1428,24 @@ local function Letter(f, label)
 			if g.fs then
 				local y = -base + NAME_MIDDLE * g.size
 				g.fs:SetPoint("LEFT", f, "TOPLEFT", x, y)
-				-- the halo: copies in a ring round it, in the glow's colour
+				-- the halo: copies in a ring round it, in the glow's colour. Each copy's shadow is the
+				-- tap opposite it in the ring, so a ring is half as many font strings (every one is
+				-- moved on each frame of a pan, and redrawn on each frame of a zoom)
 				for _, ring in ipairs(HALO) do
-					local r, a = ring[1] * cap, ring[2] * label.glowA / HALO_TAPS * 2
-					for i = 1, HALO_TAPS do
+					local r, a = ring[1] * cap, math.min(1, ring[2] * label.glowA / HALO_TAPS * 2)
+					for i = 1, HALO_TAPS / 2 do
 						local angle = (i - 1) / HALO_TAPS * 2 * math.pi
+						local dx, dy = r * math.cos(angle), r * math.sin(angle)
 						local copy = f:CreateFontString(nil, "ARTWORK")
 						copy:SetFont(font, g.size, "")
 						copy:SetText(g.fs:GetText())
-						copy:SetTextColor(glow[1] / 255, glow[2] / 255, glow[3] / 255, math.min(1, a))
-						copy:SetShadowOffset(0, 0)
-						copy:SetPoint("LEFT", f, "TOPLEFT", x + r * math.cos(angle), y + r * math.sin(angle))
+						copy:SetTextColor(glow[1] / 255, glow[2] / 255, glow[3] / 255, a)
+						copy:SetShadowColor(glow[1] / 255, glow[2] / 255, glow[3] / 255, a)
+						copy:SetShadowOffset(-2 * dx, -2 * dy)
+						copy:SetPoint("LEFT", f, "TOPLEFT", x + dx, y + dy)
+						f.halos = f.halos or {}
+						f.halos[#f.halos + 1] = copy
+						if names.hushed then copy:Hide() end
 					end
 				end
 			end
@@ -1371,10 +1513,17 @@ function S.SetZoom(zoom, scale)
 	for _, n in ipairs(names) do
 		local a = math.floor((fades[n[2].fade] or 0) * 100 + 0.5) / 100
 		Fade(n[1], a)
+		if n.near == false and n[1]:IsShown() then n[1]:Hide() end   -- (off the view: S.Cull)
 		if a > 0.01 and not n.built then Letter(n[1], n[2]); n.built = true end
 	end
 	Step("names")
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
+	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
+		local _, ph = GetPhysicalScreenSize()
+		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
+		local t = math.max(0, math.min(1, (r - Baked.FADE[1]) / (Baked.FADE[2] - Baked.FADE[1])))
+		Baked.live = math.floor(t * t * (3 - 2 * t) * 50 + 0.5) / 50
+	end
 	ApplyDetail()
 	Step("zone detail")
 	for _, c in ipairs(cities) do
@@ -1423,11 +1572,8 @@ function S.SetZoom(zoom, scale)
 	for _, tex in ipairs(landFill) do Fade(tex, math.max(m, underNow)) end
 	Step("land")
 
-	-- icons keep their size on screen: pinRoot undoes the canvas scale (and root's)
+	-- (the icons keep their size on screen by themselves: pinRoot is on the view, PlacePlayer's units)
 	scaleNow = scale
-	local ps = 1 / (scale * host.k)
-	if pinRoot.omScale ~= ps then pinRoot.omScale = ps pinRoot:SetScale(ps) end
-	Step("icons' scale")
 	ShowSets()
 	Step("icon sets")
 	S.PlacePlayer()
@@ -1500,6 +1646,9 @@ end
 -- the zoom doubles past SEA_OCTAVE / HATCH_OCTAVE, crossfading octave to octave, so the
 -- paper and strokes keep their size on screen and finer ones come in as you close in.
 local seaView = {}
+-- (laid over a box well past the view: the pattern is fixed on the world, so a pan only lays it
+-- again once the view nears the box's edge; a zoom or the mute changing, every time)
+local seaBox = { k = 1.8 }      -- { u0, v0, u1, v1, zoom =, m = } as last laid; k: its half extents, of the view's
 local function shift(k) return (k * 0.37) % 1 end   -- (an octave's own offset: below)
 local function Octaves(from)
 	local o = math.max(0, math.log(zoomNow / from) / math.log(2))
@@ -1522,7 +1671,11 @@ function S.SetSea(u, v, hu, hv)
 	u, v, hu, hv = seaView[1], seaView[2], seaView[3], seaView[4]
 	if not u then return end
 	local m = math.max(0, worldSea, worldCoastOut)   -- (under the world art's sea: it shows as that goes, off the coasts first)
-	local u0, u1, v0, v1 = u - hu * 1.2, u + hu * 1.2, v - hv * 1.2, v + hv * 1.2
+	local sb = seaBox
+	if sb.zoom == zoomNow and sb.m == m and u - hu * 1.2 > sb[1] and u + hu * 1.2 < sb[3]
+		and v - hv * 1.2 > sb[2] and v + hv * 1.2 < sb[4] then return end
+	local u0, u1, v0, v1 = u - hu * sb.k, u + hu * sb.k, v - hv * sb.k, v + hv * sb.k
+	sb[1], sb[2], sb[3], sb[4], sb.zoom, sb.m = u0, v0, u1, v1, zoomNow, m
 	local ek = hatches[1] and hatches[1].k or 0.4
 	for _, h in ipairs(hatches) do
 		if h.mapID == 1415 then ek = h.k end
@@ -1765,19 +1918,43 @@ function Shade.Show(mapID)
 	end
 end
 
+-- a zone's textures: those near the view (S.Cull's box), tile by tile, so zoomed in only the part
+-- of a zone on screen is drawn (and has its files loaded), not all of every zone touching the view
+-- A hidden one lets go of its anchor (and a zone's live-layer masks do while none of its live art can
+-- show), so a pan or zoom doesn't lay out thousands of textures nobody sees: see Live, above
 ShowZone = function(mapID)
 	local here = inView[mapID] ~= false
-	local load = inView[mapID] == true and detailLive   -- (in view and drawn: its files are wanted)
+	local inside = inView[mapID] == true          -- (in view and drawn: its files are wanted)
 	local hide, strength = gradeNow[3] == "hide", gradeNow[1]
-	for _, e in ipairs(zoneTex[mapID] or {}) do
-		local un = e[3] and e[3].unexplored
+	local box = cullBox
+	for _, e in ipairs(zoneTex[mapID] or NONE) do
 		local tex = e[1]
-		if load and tex.omFile and not tex.omQueued then
+		local near = here and (not box or not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4]))
+		local drawn = not e.layer or detailLive       -- (the live layers: only while they show; the cities: always)
+		local un = e[3] and e[3].unexplored
+		if near and drawn and inside and (detailLive or Live.seen) and tex.omFile and not tex.omQueued then
 			tex.omQueued = true
 			loadQueue[#loadQueue + 1] = tex
 			loader:Show()
 		end
-		tex:SetShown(here and not (un and hide) and (not e.twin or strength > 0))
+		local show = near and drawn and not (un and hide) and (not e.twin or strength > 0)
+		if e.shown ~= show then
+			e.shown = show
+			if show then
+				if not tex:GetPoint() then PlaceRecord(tex.omRec) end
+				tex:Show()
+			else
+				tex:Hide()
+				tex:ClearAllPoints()
+			end
+		end
+	end
+	local want = (here and detailLive) and true or false
+	if Live.placed[mapID] ~= want then
+		Live.placed[mapID] = want
+		for _, rec in ipairs(Live.masks[mapID] or NONE) do
+			if want then PlaceRecord(rec) else rec[1]:ClearAllPoints() end
+		end
 	end
 	Shade.Show(mapID)
 end
@@ -1816,21 +1993,38 @@ function S.ApplyGrade(strength, desat, unexplored)
 		tex:SetDesaturation(desat)
 	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
+	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece)
+	local art = ns.MapZoneArt
+	Baked.use = (art and Baked.frame and strength == art.colorMatch and math.abs(desat - art.desaturate) < 0.001
+		and unexplored ~= "hide") and true or false
+	if root then
+		appliedDetail = nil
+		ApplyDetail()
+	end
 end
 
--- only what's near the view is drawn: each zone's art, the cities, the gap fill. (Hidden
--- regions cost nothing; at the closest zoom most of the world is off screen.)
-local CULL_MARGIN = 0.35        -- of the view's size, on every side
+-- only what's near the view is drawn: each zone's art (tile by tile), the cities, the gap fill.
+-- (Hidden regions cost nothing; at the closest zoom most of the world is off screen.) The box is
+-- kept while the view stays well inside it, so a pan redoes it now and then, not every frame
+-- margin: of the view's size, on every side; redone once the view comes `keep` near its edge (of
+-- the view's size), or has zoomed in `zoom` times since (the box would be much too big).
+-- (One table: the file is near Lua's limit of 200 locals)
+local CULL = { margin = 0.35, keep = 0.1, zoom = 1.6 }
 function S.Cull(u0, v0, u1, v1)
 	if not root then return end
-	local mu, mv = (u1 - u0) * CULL_MARGIN, (v1 - v0) * CULL_MARGIN
+	local w, h = u1 - u0, v1 - v0
+	local box = cullBox
+	local keep = CULL.keep
+	if box and w * CULL.zoom > box.w and u0 - w * keep > box[1] and u1 + w * keep < box[3]
+		and v0 - h * keep > box[2] and v1 + h * keep < box[4] then return end
+	local mu, mv = w * CULL.margin, h * CULL.margin
 	u0, v0, u1, v1 = u0 - mu, v0 - mv, u1 + mu, v1 + mv
-	cullBox = cullBox or {}
-	cullBox[1], cullBox[2], cullBox[3], cullBox[4] = u0, v0, u1, v1
+	cullBox = box or {}
+	cullBox[1], cullBox[2], cullBox[3], cullBox[4], cullBox.w = u0, v0, u1, v1, w
 	for mapID in pairs(zoneTex) do
 		local l, r, t, b = S.Rect(mapID)
 		local here = (l and r > u0 and l < u1 and b > v0 and t < v1) and true or false
-		if inView[mapID] ~= here then
+		if here or inView[mapID] ~= here then        -- (one in view: its tiles near the new box)
 			inView[mapID] = here
 			ShowZone(mapID)
 		end
@@ -1839,7 +2033,24 @@ function S.Cull(u0, v0, u1, v1)
 		local here = c[4] > u0 and c[2] < u1 and c[5] > v0 and c[3] < v1
 		if c.here ~= here then
 			c.here = here
-			c[1]:SetShown(here)
+			local r = c[1]
+			if r.omRec then                          -- (a texture of its own, the gap paper: its anchor too, Live)
+				if here then
+					if not r:GetPoint() then PlaceRecord(r.omRec) end
+				else
+					r:ClearAllPoints()
+				end
+			end
+			r:SetShown(here)
+		end
+	end
+	Baked.Cull()
+	-- the names: each letter is many font strings (its halo), all moved on every frame of a pan
+	for _, n in ipairs(names) do
+		local near = not n.l or (n.r > u0 and n.l < u1 and n.b > v0 and n.t < v1)
+		if n.near ~= near then
+			n.near = near
+			n[1]:SetShown(near and (n[1].omFade or 0) > 0.003)
 		end
 	end
 	if Shade.on then
@@ -1855,6 +2066,45 @@ function S.Cull(u0, v0, u1, v1)
 				cell.here = here
 				cell:SetShown(here)
 			end
+		end
+	end
+end
+
+-- the baked tiles (Baked, above): each placed the first time it's near the view (its file set then),
+-- and shown near the view (S.Cull's box) while the baked art shows
+function Baked.Build()
+	local art = ns.MapZoneArt
+	if not art or not root then return end
+	local f = CreateFrame("Frame", nil, root)
+	f:SetAllPoints(root)
+	f:SetFrameLevel(coreRoot:GetFrameLevel())   -- (in place of the live layers, under the blur and the cities)
+	f:Hide()
+	Baked.frame = f
+	local size = art.step / art.px            -- world units a tile covers
+	Baked.inset = (art.size - art.step) / 2 / art.size
+	for _, key in ipairs(art.tiles) do
+		local i, j = math.floor(key / 256), key % 256
+		local x, y = i * size, j * size
+		Baked.tiles[#Baked.tiles + 1] = { name = i .. "_" .. j, x = x, y = y, size = size,
+			u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
+	end
+end
+
+function Baked.Cull()
+	local f, box = Baked.frame, cullBox
+	if not f or not f:IsShown() then return end
+	for _, t in ipairs(Baked.tiles) do
+		local near = not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4])
+		if near and not t.tex then
+			t.tex = f:CreateTexture(nil, "ARTWORK")
+			t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
+			t.tex:SetTexCoord(Baked.inset, 1 - Baked.inset, Baked.inset, 1 - Baked.inset)
+			Record(t.tex, t.x, t.y, t.size, t.size)
+			t.shown = true
+		end
+		if t.tex and t.shown ~= near then
+			t.shown = near
+			t.tex:SetShown(near)
 		end
 	end
 end

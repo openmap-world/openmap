@@ -30,6 +30,7 @@ Data\Tones.lua
 Data\ArtEdits.lua
 Data\Labels.lua
 Data\Banners.lua
+Data\ZoneArt.lua
 
 # The map
 Map\Stitch.lua
@@ -41,6 +42,7 @@ Map\Routes.lua
 Map\Townsfolk.lua
 Map\Paint.lua
 Map\Debug.lua
+Map\Bench.lua
 Map\Gamepad.lua
 Map\Report.lua
 Map\Nav.lua

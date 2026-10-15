@@ -6,6 +6,7 @@
 --   /openmap status         what the map is doing
 --   /openmap notes          map notes (paint areas, say what's there, export them)
 --   /openmap debug          the debug overlay (frame rate, frame times, what OpenMap costs)
+--   /openmap bench [zoom]   times the map at several zooms, each part off in turn (Bench.lua)
 --------------------------------------------------------------------------------
 
 local ADDON, ns = ...
@@ -29,11 +30,14 @@ ns.OpenOptions = OpenOptions
 local function Slash(msg)
 	msg = (msg or ""):lower():match("^%s*(.-)%s*$")
 	local mod = ns:GetModule("worldmap")
+	local word, rest = msg:match("^(%S+)%s+(.+)$")
+	if word == "bench" then msg = word end         -- (/openmap bench 16: at that zoom)
 	local run = {
 		status = "Diag", paint = "TogglePaint", notes = "TogglePaint", debug = "ToggleDebugOverlay",
+		bench = "Bench",
 	}
 	if run[msg] then
-		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod) else ns:Print("The map is off.") end
+		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod, msg == "bench" and rest or nil) else ns:Print("The map is off.") end
 	else
 		OpenOptions()
 	end

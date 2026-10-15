@@ -25,6 +25,7 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapBannerHole/`, `MapCityMask/` | masks traced on the art: the zone's art without that banner, and a city's map cut down to the city and its name banner | `tools/map-preview/banners.py` |
 | `MapGapLand/` (Gilneas), `MapCoastArt/` | masks for Blizzard's own maps that the client has but Forever's tables don't use (Gilneas' base map; the classic base maps of 18 zones, which paint the land round them): where they're drawn, at their own resolution, on land no zone covers | `tools/map-preview/gapfill.py` |
 | `MapMiniLOD/` | the game's minimap tiles, shrunk and laid side by side (16 and 64 px a tile), tinted as the close-up minimap is | `tools/map-preview/minimaplod.py` |
+| `MapZones/` | every zone map composited onto the world as the map draws it at full detail (each zone's base art and overlays through its masks, the colour-match copies, the interiors, the gaps' finer maps), in 512-px tiles, BLP with DXT5 compression | `tools/map-preview/render.py --bake-zones` |
 | `MapArt/` | world and continent map tiles with their sea and continent names painted out (by hand) | `tools/map-art/import.py` |
 | `MapBorder/` | the map art's parchment frame (cut out by hand), in nine pieces | `tools/map-art/border.py` |
 
