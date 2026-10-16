@@ -39,6 +39,8 @@ local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step
 mod.MAX_ZOOM = MAX_ZOOM
 local ENTER, LEAVE = 0.9, 0.7   -- switch into a map at this share of its fit zoom; leave it below that
 local ART_RANGE = 80            -- frame levels the stitched art needs
+local PLAYER_ABOVE = 8500       -- the player's arrow: this many levels over the view, over every icon (Questie's,
+                                --  lifted over the art, and other addons' at fixed levels), under a dungeon's map (+8800)
 
 local map, sc
 local active = false            -- the current map is stitched
@@ -334,6 +336,16 @@ local function Settled()
 		and sc.currentScrollX == sc.targetScrollX and sc.currentScrollY == sc.targetScrollY
 end
 
+-- the player's arrow on top of every other icon (#31): Blizzard's (its group members pin, the party's
+-- with it) and ours. Blizzard sets its level again as it reuses the pin, so it's checked each tick
+local function RaisePlayer()
+	local level = math.min(sc:GetFrameLevel() + PLAYER_ABOVE, 9500)
+	for pin in map:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+		if pin:GetFrameLevel() ~= level and not (pin:IsProtected() and InCombatLockdown()) then pin:SetFrameLevel(level) end
+	end
+	S.RaiseArrow(level)
+end
+
 local ticker = CreateFrame("Frame")
 ticker:Hide()
 local elapsedSum = 0
@@ -370,6 +382,8 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 			S.SetPlayer(nil)
 		end
 	end
+
+	RaisePlayer()
 
 	stillFor = Settled() and stillFor + 0.1 or 0
 	if mod.db.autoSwitch and userMoved and stillFor >= SWITCH_AFTER and not InCombatLockdown() and not mod.benching then
@@ -820,6 +834,7 @@ local function Setup()
 			ticker:Show()
 			S.Recull()
 			ApplyZoom()
+			RaisePlayer()
 		end
 		if mod.OnMapShown then mod:OnMapShown() end
 	end)

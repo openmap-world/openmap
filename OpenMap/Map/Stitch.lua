@@ -1027,7 +1027,8 @@ function S.Build(parent, artLevel, range, iconLevel)
 	pinRoot:SetAllPoints(view)
 	pinRoot:SetFrameLevel(iconLevel)
 	if pinRoot.SetClipsChildren then pinRoot:SetClipsChildren(true) end
-	arrow = pinRoot:CreateTexture(nil, "OVERLAY", nil, 7)
+	-- (on a frame of its own, so it can be lifted over every icon: S.RaiseArrow)
+	arrow = CreateFrame("Frame", nil, pinRoot):CreateTexture(nil, "OVERLAY", nil, 7)
 	arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
 	arrow:SetSize(28, 28)
 	arrow:Hide()
@@ -1757,6 +1758,12 @@ function S.PlacePlayer()
 	arrow:SetPoint("CENTER", root, "TOPLEFT", player.u * W * s, -player.v * H * s)
 	if player.facing then arrow:SetRotation(player.facing) end
 	arrow:Show()
+end
+
+-- our arrow over every icon on the map, at frame level `level` (WorldMap.lua: with Blizzard's own)
+function S.RaiseArrow(level)
+	local f = arrow and arrow:GetParent()
+	if f and f:GetFrameLevel() ~= level then f:SetFrameLevel(level) end
 end
 
 -- colour matching: the border copies move `strength` of the way to the shared

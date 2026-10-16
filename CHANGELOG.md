@@ -10,6 +10,9 @@
   /openmap welcome asks again. Suggested in #24.
 - **OpenMap button on the map** (the menu's Look tab) hides the OpenMap button and the favourites;
   /openmap opens the menu then.
+- **Your arrow on top**: the player arrow is drawn over every other icon on the map (quest givers,
+  Questie's and other addons' icons), so you can always see which way you're facing (suggested in
+  #31). Your party's markers come up with it.
 - OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Fixed
