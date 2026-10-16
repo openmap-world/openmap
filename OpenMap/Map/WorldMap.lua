@@ -27,6 +27,7 @@ local mod = ns:NewModule("worldmap", {
 		boats = true,           -- boat docks and routes
 		zeppelins = true,       -- zeppelin towers (Horde's) and routes
 		flight = true,
+		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
@@ -345,10 +346,30 @@ end
 
 -- the player's arrow on top of every other icon (#31): Blizzard's (its group members pin, the party's
 -- with it) and ours. Blizzard sets its level again as it reuses the pin, so it's checked each tick
+-- and your own blip on it sized away while your arrow is off (Your arrow): the pin draws the party
+-- too, so it stays. Blizzard sizes it again as it updates the pin, so this is each tick as well
+local blipHidden = setmetatable({}, { __mode = "k" })
+local function PlayerBlip(pin, shown)
+	if not pin.SetPinSize then return end
+	if not shown then
+		pcall(pin.SetPinSize, pin, "player", 0)
+		blipHidden[pin] = true
+	elseif blipHidden[pin] then
+		local dp = pin.dataProvider
+		local sizes = dp and dp.GetUnitPinSizesTable and dp:GetUnitPinSizesTable()
+		if sizes and sizes.player then pcall(pin.SetPinSize, pin, "player", sizes.player) end
+		blipHidden[pin] = nil
+	end
+end
+
 local function RaisePlayer()
 	local level = math.min(sc:GetFrameLevel() + PLAYER_ABOVE, 9500)
+	local shown = mod.db.playerArrow ~= false
 	for pin in map:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
-		if pin:GetFrameLevel() ~= level and not (pin:IsProtected() and InCombatLockdown()) then pin:SetFrameLevel(level) end
+		if not (pin:IsProtected() and InCombatLockdown()) then
+			if pin:GetFrameLevel() ~= level then pin:SetFrameLevel(level) end
+			PlayerBlip(pin, shown)
+		end
 	end
 	S.RaiseArrow(level)
 end
@@ -933,6 +954,7 @@ function mod:Refresh()
 		if set then S.SetPinSetOn(set, self.db[opt]) end
 	end
 	if S.RefreshRoutes then S.RefreshRoutes() end
+	S.SetPlayerHidden(self.db.playerArrow == false)
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
@@ -1042,6 +1064,8 @@ function mod:Options()
 			desc = "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown." },
 		flight = { type = "toggle", name = "Flight masters", order = 32, get = get, set = set,
 			disabled = off },
+		playerArrow = { type = "toggle", name = "Your arrow", order = 33, get = get, set = set, disabled = off,
+			desc = "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap." },
 	}
 	if mod.ExtraOptions then mod:ExtraOptions(opts, get, set, off) end
 	if mod.NavOptions then mod:NavOptions(opts, get, set, off) end

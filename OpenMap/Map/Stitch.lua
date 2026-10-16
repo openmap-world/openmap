@@ -1762,6 +1762,11 @@ S.CaveMasks = ns.Media.path .. "Textures\\MapCave\\"
 
 -- our own player arrow, for when the host map can't show the player
 local player = {}
+local playerHidden = false      -- (Your arrow off: WorldMap.lua)
+function S.SetPlayerHidden(hidden)
+	playerHidden = hidden and true or false
+	S.PlacePlayer()
+end
 function S.SetPlayer(u, v, facing)
 	player.u, player.v, player.facing = u, v, facing
 	S.PlacePlayer()
@@ -1769,7 +1774,7 @@ end
 
 function S.PlacePlayer()
 	if not root then return end
-	if not player.u or scaleNow <= 0 then arrow:Hide() return end
+	if not player.u or scaleNow <= 0 or playerHidden then arrow:Hide() return end
 	local s = scaleNow * host.k                 -- (world units -> the arrow's, pinRoot's, units)
 	arrow:ClearAllPoints()
 	arrow:SetPoint("CENTER", root, "TOPLEFT", player.u * W * s, -player.v * H * s)

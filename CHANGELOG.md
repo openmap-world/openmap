@@ -30,6 +30,9 @@
 - **Your arrow on top**: the player arrow is drawn over every other icon on the map (quest givers,
   Questie's and other addons' icons), so you can always see which way you're facing (suggested in
   #31). Your party's markers come up with it.
+- **Your arrow, or not**: the menu's Show tab (and Options) can take your own arrow off the world
+  map, to find your way old-school by the land around you. Your party still shows, and so does the
+  minimap.
 - OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Improved

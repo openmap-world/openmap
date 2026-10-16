@@ -196,6 +196,7 @@ local function Rows()
 		optRow(L["Flight masters"], "flight", { atlas = faction == "Horde" and "TaxiNode_Horde" or "TaxiNode_Alliance",
 			texture = "Interface\\Icons\\Ability_Mount_Wyvern_01", icon = true }),
 		optRow(L["Boat and zeppelin routes"], "routes", { atlas = "Ships_CargoShip-Map", texture = "Interface\\Icons\\INV_Misc_Spyglass_02", icon = true }),
+		optRow(L["Your arrow"], "playerArrow", { texture = "Interface\\Minimap\\MinimapArrow" }),
 		optRow(L["Party and raid members"], "group", Icon("Spell_Holy_PrayerOfFortitude")),
 		optRow(L["Your drawings"], "sketchShown", Icon("INV_Feather_04")),
 	}
