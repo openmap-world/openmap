@@ -41,6 +41,7 @@ local map, sc, chooser, card
 local entrancePins = {}
 local byMap                     -- a dungeon's map (each floor) -> { insts = { ... }, u, v (its entrance) }
 local returnTo                  -- the world as it was when a dungeon's map was opened: { u, v, zoom, maps = { [mapID] = true } }
+local away = {}                 -- maps off the stitched world a dock has opened (Zephras Isle): [mapID] = true
 local shownMap, lastMap         -- the map the window shows, and the one before it
 
 local function Places() return ns.MapPlaces or {} end
@@ -1029,7 +1030,7 @@ function mod.ReturnView(newMapID)
 	local from = (shownMap == newMapID) and lastMap or shownMap
 	local r = returnTo
 	returnTo = nil
-	if not from or not IsDungeonMap(from) then return end
+	if not from or not (IsDungeonMap(from) or away[from]) then return end
 	-- (only going up out of it: a map it's part of; not the quest log or the dropdown putting up another)
 	local up, steps = C_Map.GetMapInfo(from), 0
 	local above = false
@@ -1041,6 +1042,17 @@ function mod.ReturnView(newMapID)
 	if r and r.maps[from] then return r[1], r[2], r[3] end
 	local e = Index()[from]
 	if e and e.u then return e.u, e.v, math.max(mod.FitZoom(newMapID) * 2, 6) end
+end
+
+-- a map off the stitched world (Zephras Isle, from the Dalaran skydock: Stitch.lua's docks), opened as
+-- a dungeon's is: the game's own map of it in the window, the world as it was on the way back out
+function mod.OpenAwayMap(mapID)
+	if not C_Map.GetMapInfo(mapID) then return false end
+	local u, v, zoom = mod.ViewNow()
+	away[mapID] = true
+	returnTo = u and { u, v, zoom, maps = MapsOf(mapID) } or nil
+	S.OpenMap(mapID)
+	return true
 end
 
 local function Back()

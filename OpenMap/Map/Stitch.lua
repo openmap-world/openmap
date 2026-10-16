@@ -921,6 +921,11 @@ local LOOK = {
 	-- indicator outline where a client lacks it
 	zeppelin = { atlas = "vehicle-air-horde", texture = "Interface\\Vehicles\\SeatIndicator\\Vehicle-HordeZeppelin", size = 30 },
 }
+LOOK.airship = LOOK.boat         -- (the flying boats to Zephras Isle: a boat's icon, under the Boats switch)
+
+-- continents off the stitched world a dock sails to: the map its icon opens instead of going there.
+-- Zephras Isle is its own continent (Map 2991), whose map is UiMap 2521 (UiMapAssignment)
+local AWAY_MAP = { [2991] = 2521 }
 
 -- an instance's name in the player's language (the game's own), else the data's English. A wing
 -- (the group finder's name for part of a dungeon, "Dire Maul - East") keeps its own name in English,
@@ -943,8 +948,12 @@ local L = ns.L
 
 local function DockEnter(pin)
 	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
-	GameTooltip:AddLine(pin.kind == "zeppelin" and L["Zeppelin"] or L["Boat"], 1, 0.82, 0)
-	if pin.to then
+	GameTooltip:AddLine(pin.kind == "zeppelin" and L["Zeppelin"] or pin.kind == "airship" and L["Airship"] or L["Boat"], 1, 0.82, 0)
+	local info = pin.away and C_Map.GetMapInfo(pin.away)
+	if info then
+		GameTooltip:AddLine(L["To"] .. " " .. (info.name or "?"), 1, 1, 1)
+		GameTooltip:AddLine(L["Click to open its map"], 0.6, 0.6, 0.6)
+	elseif pin.to then
 		-- where it goes: the zone at the other end, in the player's language
 		local chain = S.ChainAt(pin.to[1], pin.to[2])
 		local info = C_Map.GetMapInfo(chain[#chain])
@@ -955,6 +964,8 @@ local function DockEnter(pin)
 end
 
 local function DockClick(pin)
+	local mod = ns:GetModule("worldmap")
+	if pin.away and mod and mod.OpenAwayMap and mod.OpenAwayMap(pin.away) then return end
 	if pin.to and S.GlideToWorld then S.GlideToWorld(pin.to[1], pin.to[2], 6) end
 end
 
@@ -962,6 +973,7 @@ local function BuildPins()
 	local P = ns.MapPlaces or {}
 	local dungeons = S.PinSet("dungeons", 1.5)
 	local travel = { boat = S.PinSet("boats", 2.5), zeppelin = S.PinSet("zeppelins", 2.5) }   -- (each its own switch)
+	travel.airship = travel.boat
 	if S.BuildDungeonPins then
 		for _, pin in ipairs(S.BuildDungeonPins(dungeons)) do pins[#pins + 1] = pin end   -- (Dungeons.lua)
 	end
@@ -974,6 +986,7 @@ local function BuildPins()
 			if d[6] then
 				local tu, tv = S.FromYards(d[6], d[7], d[8])
 				if tu then pin.to = { tu, tv } end
+				pin.away = AWAY_MAP[d[6]]
 			end
 			pin:SetScript("OnEnter", DockEnter)
 			pin:SetScript("OnLeave", GameTooltip_Hide)
