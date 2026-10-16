@@ -20,6 +20,9 @@
 - **Move Any** owns the map window: with it, OpenMap's title bar, resize grips and saved place
   stand down, so Move Any's own drag and resize work on the map again (reported in #23). The map
   size slider and Reset size and place are off then.
+- A city's own map that went missing (Ironforge showing only Dun Morogh's painting of it, until a
+  /reload: reported in #30) is shown again when you reopen the map, and the map's check of what's in
+  view no longer stays stuck if it stopped part way. (A safeguard: what hid it isn't known yet.)
 
 ## v0.4.0-beta (2026-10-16)
 

@@ -1161,7 +1161,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 				cf:SetFrameLevel(UNDERGROUND_CITIES[info.mapID] and artLevel + range - 5 or citiesRoot:GetFrameLevel())
 				local l, r, t, b = S.Rect(info.mapID)
 				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID }
-				culled[#culled + 1] = { cf, l, t, r, b }
+				culled[#culled + 1] = { cf, l, t, r, b, city = true }
 				-- (a city that comes in early is cut down to the city: ns.MapCityCuts, banners.py)
 				local cut = ns.MapCityCuts and ns.MapCityCuts[info.mapID] and TEX .. "MapCityMask\\" .. info.mapID
 				PlaceBase(cf, info.mapID, "ARTWORK", graded, cut or FEATHER_ROUND)
@@ -2097,12 +2097,14 @@ function S.Cull(u0, v0, u1, v1)
 	local w, h = u1 - u0, v1 - v0
 	local box = cullBox
 	local keep = CULL.keep
-	if box and w * CULL.zoom > box.w and u0 - w * keep > box[1] and u1 + w * keep < box[3]
+	if box and box.done and w * CULL.zoom > box.w and u0 - w * keep > box[1] and u1 + w * keep < box[3]
 		and v0 - h * keep > box[2] and v1 + h * keep < box[4] then return end
 	local mu, mv = w * CULL.margin, h * CULL.margin
 	u0, v0, u1, v1 = u0 - mu, v0 - mv, u1 + mu, v1 + mv
 	cullBox = box or {}
 	cullBox[1], cullBox[2], cullBox[3], cullBox[4], cullBox.w = u0, v0, u1, v1, w
+	-- (done at the end: one that stopped on an error is redone next time, not kept as it was left)
+	cullBox.done = false
 	for mapID in pairs(zoneTex) do
 		local l, r, t, b = S.Rect(mapID)
 		local here = (l and r > u0 and l < u1 and b > v0 and t < v1) and true or false
@@ -2149,6 +2151,21 @@ function S.Cull(u0, v0, u1, v1)
 				cell:SetShown(here)
 			end
 		end
+	end
+	cullBox.done = true
+end
+
+-- the map shown again: the next S.Cull runs in full, and the cities are shown afresh, their frames,
+-- textures and fades (a city left hidden showed the zone's painting of it till a /reload: #30)
+function S.Recull()
+	if not root then return end
+	if cullBox then cullBox.done = false end
+	for _, c in ipairs(cities) do
+		c.alpha = nil
+		for _, e in ipairs(zoneTex[c.mapID] or NONE) do e.shown = nil end
+	end
+	for _, c in ipairs(culled) do
+		if c.city then c.here = nil end
 	end
 end
 

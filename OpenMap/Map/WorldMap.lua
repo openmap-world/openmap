@@ -816,7 +816,11 @@ local function Setup()
 	end
 	local shown = Ours("map shown", function()
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
-		if active then ticker:Show() end
+		if active then
+			ticker:Show()
+			S.Recull()
+			ApplyZoom()
+		end
 		if mod.OnMapShown then mod:OnMapShown() end
 	end)
 	dp.OnShow = function()
