@@ -1,27 +1,57 @@
 # Builds OpenMap/Data/Minimap.lua: the file IDs of the game's minimap tiles per continent,
-# mixed into the closest zoom levels for detail (Stitch.lua). Each tile is 533.33 yards
+# mixed into the closest zoom levels for detail (Close.lua). Each tile is 533.33 yards
 # square; tile (x, y) covers world Y from (32 - x) * 533.33 down and world X from
 # (32 - y) * 533.33 down (x runs east, y runs south).
+#
+# The tiles are the ones the continent's own WDT lists (Map.WdtFileDataID: its MAIN chunk says
+# which tiles have terrain, its MAID chunk gives each one's minimap texture), so the minimap is
+# the one the game draws. The build's file listing has more under world/minimaps/: other
+# versions' tiles of places Forever's world doesn't have (a rebuilt Quel'Thalas and Zul'Aman north
+# and east of the Plaguelands, the sea far west of Dun Morogh and off the coast east of Wetlands,
+# the Draenei isles off Kalimdor), which the game never shows.
 # usage: python -P tools/map-data/minimap.py <cache dir> [build]
-import json, os, re, sys, time, urllib.request
+import csv, os, struct, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "..", "..", "OpenMap", "Data", "Minimap.lua")
 cache = sys.argv[1]
 BUILD = sys.argv[2] if len(sys.argv) > 2 else "1.60.1.70245"
 os.makedirs(cache, exist_ok=True)
+UA = {"User-Agent": "openmap-tools/1"}
 
-conts = {0: "azeroth", 1: "kalimdor"}
-tiles = {}
-for cont, folder in conts.items():
-    p = os.path.join(cache, "minimap-%s-%s.json" % (folder, BUILD))
-    if not os.path.exists(p) or os.path.getsize(p) < 100:
-        url = "https://wago.tools/api/files?search=world/minimaps/%s/map&build=%s" % (folder, BUILD)
-        open(p, "wb").write(urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "openmap-tools/1"}), timeout=300).read())
+
+def get(url, path):
+    # (a missing file still answers 200, with an empty or tiny body)
+    if not os.path.exists(path) or os.path.getsize(path) < 100:
+        open(path, "wb").write(urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=300).read())
         time.sleep(0.3)
-    for fid, path in json.load(open(p)).items():
-        m = re.search(r"/map(\d+)_(\d+)\.blp$", path)
-        if m: tiles.setdefault(cont, {})[(int(m.group(1)), int(m.group(2)))] = int(fid)
+    if os.path.getsize(path) < 100: sys.exit("empty answer for " + url)
+    return path
+
+
+maps = {r["ID"]: r for r in csv.DictReader(open(get("https://wago.tools/db2/Map/csv?build=%s" % BUILD,
+        os.path.join(cache, "Map-%s.csv" % BUILD)), encoding="utf-8"))}
+
+
+def chunks(data):
+    out, i = {}, 0
+    while i + 8 <= len(data):
+        tag, size = data[i:i + 4][::-1].decode("latin1"), struct.unpack("<I", data[i + 4:i + 8])[0]
+        out[tag] = data[i + 8:i + 8 + size]
+        i += 8 + size
+    return out
+
+
+tiles = {}
+for cont in (0, 1):
+    fid = int(maps[str(cont)]["WdtFileDataID"])
+    c = chunks(open(get("https://wago.tools/api/casc/%d?download&version=%s" % (fid, BUILD),
+                        os.path.join(cache, "%d-%s.wdt" % (fid, BUILD))), "rb").read())
+    for n in range(64 * 64):
+        y, x = divmod(n, 64)                                    # (both chunks run row by row: y, then x)
+        has = struct.unpack_from("<I", c["MAIN"], n * 8)[0] & 1
+        mini = struct.unpack_from("<8I", c["MAID"], n * 32)[7]   # (root, obj0, obj1, tex0, lod, map, map normal, minimap)
+        if has and mini: tiles.setdefault(cont, {})[(x, y)] = mini
 
 with open(OUT, "w", encoding="utf-8", newline="\n") as f:
     f.write("-- The game's minimap tiles: [continent][x * 64 + y] = file ID (tile x runs east, y south;\n")

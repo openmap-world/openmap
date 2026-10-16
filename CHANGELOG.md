@@ -60,6 +60,10 @@
   Theramore, Booty Bay's shallows, Teldrassil and Darnassus, Feathermoon Stronghold. It was cut to
   the continent map's coarse outline of the land, which leaves out what that map draws as sea; it
   now takes in each zone map's own land too.
+- Zoomed in on Quel'Thalas, the minimap no longer shows retail's rebuilt Eversong Woods and Zul'Aman.
+  The minimap is now only the tiles the game itself draws (those its own world map file lists), which
+  also leaves out other versions' sea far west of Dun Morogh and east of Wetlands, and the Draenei
+  isles off Kalimdor.
 
 ## v0.4.0-beta (2026-10-16)
 
