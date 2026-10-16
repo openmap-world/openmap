@@ -45,6 +45,9 @@
 - A city's own map that went missing (Ironforge showing only Dun Morogh's painting of it, until a
   /reload: reported in #30) is shown again when you reopen the map, and the map's check of what's in
   view no longer stays stuck if it stopped part way. (A safeguard: what hid it isn't known yet.)
+- **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
+  to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
+  to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.
 
 ## v0.4.0-beta (2026-10-16)
 

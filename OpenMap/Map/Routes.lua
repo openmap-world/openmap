@@ -23,7 +23,11 @@ local LIT_FADE = { 3, 12 }      -- zoom over which the hover's lift fades away (
 local EASE = 8                  -- how fast a route eases to its new alpha (per second)
 local HOVER_PX = 8              -- how near the cursor must come
 local BLUE, RED = { 0.20, 0.42, 0.88 }, { 0.72, 0.13, 0.10 }
-local NEUTRAL = { ["Booty Bay - Ratchet"] = true }
+-- goblin ports: Booty Bay, Ratchet and Powderfuse Port have a flight master for each faction
+-- (TaxiNodes 18 / 19, 80, 3274 / 3275); every other boat is the Alliance's
+local NEUTRAL = { ["Booty Bay - Ratchet"] = true, ["Steamwheedle Port - Powderfuse Port"] = true }
+-- the kinds drawn (Zephras Isle's airships wait for its map: its continent can't be placed yet)
+local KINDS = { boat = true, zeppelin = true }
 
 local routes = {}               -- { frame, levels = { frames }, way = { { u, v } }, kind, name, faction, ends }
 local lit
@@ -45,7 +49,8 @@ local function Faction(sail)
 	return "Alliance"
 end
 
--- the whole way as world points, a sea crossing between pieces bridged by a bowed arc
+-- the whole way as world points, a sea crossing between pieces bridged by a bowed arc;
+-- none if a piece's continent can't be placed (half a route would stop out at sea)
 local function Way(sail)
 	local way = {}
 	for _, piece in ipairs(sail[3]) do
@@ -55,6 +60,7 @@ local function Way(sail)
 			local u, v = S.FromYards(cont, pts[k], pts[k + 1])
 			if u then way[#way + 1] = { u, v } end
 		end
+		if #way < first then return {} end
 		if first > 1 and way[first] then
 			local p0, p2 = way[first - 1], way[first]
 			local du, dv = p2[1] - p0[1], p2[2] - p0[2]
@@ -105,7 +111,7 @@ local function Build(set)
 		tinsert(taken[key], { u, v, level })
 	end
 	for _, sail in ipairs(P.sailings or {}) do
-		local way = Way(sail)
+		local way = KINDS[sail[1]] and Way(sail) or {}
 		if #way > 1 then
 			local route = { way = way, kind = sail[1], name = sail[2], faction = Faction(sail), levels = {} }
 			route.frame = CreateFrame("Frame", nil, set.frame)

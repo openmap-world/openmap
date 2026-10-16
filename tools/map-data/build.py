@@ -1,6 +1,6 @@
 # Builds OpenMap's map data from the game's own tables (WoW Forever, build 1.60.1.70245):
 #   OpenMap/Data/Reveal.lua   explored-area pieces per zone art   (WorldMapOverlay, WorldMapOverlayTile)
-#   OpenMap/Data/Places.lua   instance entrances, levels and bosses, boat and zeppelin docks and routes
+#   OpenMap/Data/Places.lua   instance entrances, levels and bosses, boat, zeppelin and airship docks and routes
 #                             (Map, LFGDungeons, ContentTuning, DungeonEncounter, TaxiNodes, TaxiPath,
 #                             TaxiPathNode)
 # The tables are fetched as CSV from wago.tools into a cache folder.
@@ -151,30 +151,59 @@ def thin(pts_, tol=15.0):
     if dm <= tol: return [pts_[0], pts_[-1]]
     return thin(pts_[:i + 1], tol)[:-1] + thin(pts_[i:], tol)
 
-docks, sailings, sailed = [], [], set()
+# WoW Forever's own transports have no "Transport, ..." taxi node (their TaxiPath rows run from
+# node 0 to node 0): each is named here by its TaxiPath ID, after the places at its docks (the
+# docks' zones from UiMapAssignment, the ports' names from AreaTable:
+# 977 Steamwheedle Port, 16727 Powderfuse Port, 16593 Zephras Isle). Their docks at sea level are a
+# boat's; the Zephras Isle ones dock hundreds of yards up (an airship), and run to continent 2991.
+# Forever's paths with no stops (9669, 10538, 10641, 11078, 11350, 11520, 11669) aren't sailings.
+FOREVER_SAILINGS = {
+    11391: "Steamwheedle Port - Powderfuse Port",      # Tanaris - Riverglades
+    11167: "Menethil - Southshore - Auberdine",        # Wetlands - Hillsbrad Foothills - Darkshore
+    11616: "Stormwind - Auberdine",                    # Stormwind City - Darkshore
+    11398: "Alterac Mountains - Zephras Isle",
+    11457: "Mulgore - Zephras Isle",
+}
+
+def stop_key(c, x, y): return (c, round(x / 60), round(y / 60))
+
+cands = []
 for p in table("TaxiPath"):
-    n = nodes.get(p["FromTaxiNode"]) or nodes.get(p["ToTaxiNode"])
-    if not n or not n["Name_lang"].startswith("Transport"): continue
-    route = n["Name_lang"].split(",", 1)[1].strip()
     path = sorted(pts.get(p["ID"], []), key=lambda r: int(r["NodeIndex"]))
     stops = [r for r in path if r["Delay"] != "0"]
-    zeppelin = "Zepplin" in route or "Orgrimmar" in route
+    n = nodes.get(p["FromTaxiNode"]) or nodes.get(p["ToTaxiNode"])
+    if n and n["Name_lang"].startswith("Transport"):
+        route = n["Name_lang"].split(",", 1)[1].strip()
+        kind = "zeppelin" if "Zepplin" in route or "Orgrimmar" in route else "boat"
+    elif int(p["ID"]) in FOREVER_SAILINGS:
+        route = FOREVER_SAILINGS[int(p["ID"])]
+        kind = "boat" if all(abs(float(s["Loc_2"])) < 5 for s in stops) else "airship"
+    else:
+        if p["FromTaxiNode"] == "0" and stops: print("unnamed sailing: TaxiPath", p["ID"], "(add it to FOREVER_SAILINGS)")
+        continue
     uniq = []
     for s in stops:
         c, x, y = int(s["ContinentID"]), float(s["Loc_0"]), float(s["Loc_1"])
         if not any(u[0] == c and math.hypot(u[1] - x, u[2] - y) < 60 for u in uniq): uniq.append((c, x, y))
+    cands.append((kind, route, path, stops, uniq, {stop_key(*u) for u in uniq}))
+# a ship whose stops are all another's, and fewer, is that ship before it called at more:
+# Menethil - Auberdine (295, still in the tables) is now Menethil - Southshore - Auberdine (11167)
+cands = [c for c in cands if not any(c[5] < o[5] for o in cands)]
+
+docks, sailings, sailed = [], [], set()
+for kind, route, path, stops, uniq, keys in cands:
     for k, (c, x, y) in enumerate(uniq):
         to = uniq[(k + 1) % len(uniq)] if len(uniq) > 1 else None
-        docks.append({"kind": "zeppelin" if zeppelin else "boat", "route": route, "cont": c, "x": x, "y": y, "to": to})
-    # the way the vessel actually sails, from its first stop to the next (one direction per
-    # crossing), split where it passes from one continent's map to the other's
+        docks.append({"kind": kind, "route": route, "cont": c, "x": x, "y": y, "to": to})
+    # the way the vessel actually sails, from its first stop to its last one elsewhere (one
+    # direction per crossing; calling at any between), split where it passes from one
+    # continent's map to another's
     ix = [path.index(s) for s in stops]
     i0 = ix[0] if ix else None
-    i1 = next((j for j, s in zip(ix[1:], stops[1:]) if (int(s["ContinentID"]), round(float(s["Loc_0"]) / 60), round(float(s["Loc_1"]) / 60))
-               != (int(stops[0]["ContinentID"]), round(float(stops[0]["Loc_0"]) / 60), round(float(stops[0]["Loc_1"]) / 60))), None)
+    first = stops and stop_key(int(stops[0]["ContinentID"]), float(stops[0]["Loc_0"]), float(stops[0]["Loc_1"]))
+    i1 = next((j for j, s in reversed(list(zip(ix[1:], stops[1:]))) if stop_key(int(s["ContinentID"]), float(s["Loc_0"]), float(s["Loc_1"])) != first), None)
     if i0 is None or i1 is None: continue
-    ends = tuple(sorted(((uniq[0]), (uniq[1] if len(uniq) > 1 else uniq[0]))))
-    key = tuple((c, round(x / 60), round(y / 60)) for c, x, y in ends)
+    key = tuple(sorted(keys))
     if key in sailed: continue
     sailed.add(key)
     segs, seg, last = [], [], None
@@ -187,7 +216,7 @@ for p in table("TaxiPath"):
             seg = []
         seg.append((x, y)); last = c
     if len(seg) > 1: segs.append((last, thin(seg)))
-    if segs: sailings.append(("zeppelin" if zeppelin else "boat", route, segs))
+    if segs: sailings.append((kind, route, segs))
 
 def item(i):
     lv = lambda v: "nil" if v is None else str(v)
@@ -201,7 +230,8 @@ with open(os.path.join(DATA, "Places.lua"), "w", encoding="utf-8", newline="\n")
     f.write("--     { nil, x, y, { ... }, map = uiMapID }: a spot on that zone's map (0..1), where players find it\n")
     f.write("--   unplaced[i] = { mapID (0: not in the tables), name, raid, minLevel, maxLevel }: no entrance yet\n")
     f.write("--   bosses[mapID] = { name, ... } in the game's order\n")
-    f.write("--   transports[i] = { \"boat\" | \"zeppelin\", route, continent, x, y, toContinent, toX, toY }\n")
+    f.write("--   transports[i] = { \"boat\" | \"zeppelin\" | \"airship\", route, continent, x, y, toContinent, toX, toY }\n")
+    f.write("--     (an airship's continent can be 2991, Zephras Isle: not on the stitched map yet)\n")
     f.write("--   sailings[i] = { kind, route, { { continent, { x1, y1, x2, y2, ... } }, ... } }: the way it sails,\n")
     f.write("--     dock to dock, in pieces per continent map (between pieces it's crossing the open sea)\n")
     f.write(HEADER + "ns.MapPlaces = {\n\tinstances = {\n")
