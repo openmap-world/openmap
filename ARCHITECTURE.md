@@ -27,7 +27,7 @@ tools/
   map-data/minimap.py  Data/Minimap.lua (the minimap tiles' file IDs)
   map-grade/      Data/Grade.lua + MapBand / MapTerritory / MapCore masks
   map-textures/   edge fades, parchment grain
-  map-preview/    renders the stitched map out of game; bakes MapTerritory / MapZoneLand / MapLand;
+  map-preview/    renders the stitched map out of game; bakes MapTerritory / MapZoneLand / MapLand / MapMiniLand;
                   sea.py, sea_world.py (the sea), gapfill.py (the gaps), banners.py
                   (the cities' banners and cuts), tone.py (zone colours)
   map-art/        export.py / import.py (hand-cleaned world and continent art), border.py
@@ -156,7 +156,8 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   out, two smaller copies of it (`MapMiniLOD`, `Data/MinimapLOD.lua`, from
   `tools/map-preview/minimaplod.py`: 64 and 16 px a tile, in 256-px pieces) show instead, drawn
   coarse under fine under the tiles with strengths that add up to the mix, the finer taking over
-  as fewer tiles are in view.
+  as fewer tiles are in view. All of it through `MapMiniLand` (the continent's land and the zones'
+  own, `render.py --bake-mini-land`), so it leaves out the open sea.
 - **soften + grain**: a five-tap blur of the zones in view (four offset copies, built
   lazily), and `MapGrain` + `MapTooth` over the art in two crossfaded octaves so the grain
   keeps its size on screen.

@@ -1272,12 +1272,15 @@ function S.GapMask(mapID)
 end
 
 -- for Close.lua's close-up minimap: each continent's land (a touch past its coast) as a
--- soft mask on `layer`, so the minimap never draws the open sea (dark, in square tiles)
+-- soft mask on `layer`, so the minimap never draws the open sea (dark, in square tiles).
+-- MapMiniLand, not MapLand: finer, and with the zones' own land, so towns on the coast and
+-- islands the continent's art draws as sea (Menethil Harbor, Teldrassil) keep their minimap
+local MINI_LAND = TEX .. "MapMiniLand\\"
 local minimapMasks = {}
 function S.LandMask(layer, mapID)
 	if minimapMasks[mapID] == nil then
 		local p = Place(mapID)
-		minimapMasks[mapID] = p and Feather(layer, p, LAND .. mapID) or false
+		minimapMasks[mapID] = p and Feather(layer, p, MINI_LAND .. mapID) or false
 	end
 	return minimapMasks[mapID] or nil
 end

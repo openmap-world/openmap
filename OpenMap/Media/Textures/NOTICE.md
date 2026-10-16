@@ -19,6 +19,7 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapBand/`, `MapCore/`, `MapTerritory/`, `MapEdge/` | masks traced from each zone map's shape and frame | `tools/map-grade`, `tools/map-preview` |
 | `MapZoneLand/` | each zone map's land without the sea it paints (its territory less that sea, found by colour; shared out where neighbours overlap), for darkening unexplored land | `tools/map-preview/render.py --bake-zone-land` |
 | `MapZoneBorder/` | each zone's share of the land round it that's no zone's (border mountains, land between zones), from the continent map's land and the zones' land masks | `tools/map-preview/render.py --bake-zone-land` |
+| `MapMiniLand/` | where the close-up minimap shows: each continent map's land and its zone maps' own land (`MapLand` and `MapZoneLand` put together, finer) | `tools/map-preview/render.py --bake-mini-land` |
 | `MapCave/` | masks traced from the cave maps | `tools/map-caves/build.py` |
 | `MapCoast/`, `MapSeaMask/`, `MapGapLand/`, `MapGapMask/`, `MapBackLand/` | masks traced from the continent maps' coasts | `tools/map-preview/sea.py`, `gapfill.py` |
 | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/` | masks of the world and continent maps' sea: past the world map's edge, and its coastal hatching apart from its open sea | `tools/map-preview/sea_world.py` |

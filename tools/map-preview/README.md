@@ -40,7 +40,10 @@ territories and edges, the banners, the gaps). `OPENMAP_BAKED=1` renders the zon
 tiles, as the game draws them, to compare with a render of the live layers.
 
 `--bake-land` rewrites `Media/Textures/MapLand/<continent>.tga` (the continents'
-land masks). The edge fades and the parchment grain come from
+land masks). `--bake-mini-land` (after `--bake-zone-land`) rewrites `Media/Textures/MapMiniLand`:
+where the close-up minimap shows, the continent's land and every zone's own land (`MapZoneLand`),
+finer than `MapLand`, so towns on the coast and islands the continent's art draws as sea keep
+their minimap. The preview doesn't draw the minimap itself. The edge fades and the parchment grain come from
 `tools/map-textures/make.py`.
 
 The other bakes, each a script here (run with the same `<db2 dir> <texture cache>`):

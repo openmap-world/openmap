@@ -1086,6 +1086,38 @@ def bake_zone_land():
         Image.merge("RGBA", (Image.new("L", (BORDER_PX, BORDER_PX), 255),) * 3 + (a,)).save(os.path.join(outdir_, "%d.tga" % zid))
     print("baked", len(borders), "zone border masks", flush=True)
 
+# MapMiniLand: where the close-up minimap shows (Close.lua, through Stitch.lua's S.LandMask), so it
+# never draws the open sea (dark, in square tiles): the continent's land (MapLand) and every zone's
+# own land (MapZoneLand). MapLand alone is coarse (a pixel is over a hundred yards) and leaves out
+# whatever the continent's art draws as sea or hatching: towns on the coast (Menethil Harbor, the
+# bay's hatching runs up to it), islands (Teldrassil, Feathermoon); the zones' own maps draw them
+MINI_LAND_PX = 1024             # the masks' size, over the continent's map rectangle
+def bake_mini_land():
+    outdir_ = os.path.join(TEXDIR, "MapMiniLand")
+    os.makedirs(outdir_, exist_ok=True)
+    N = MINI_LAND_PX
+    for c in maps:
+        if c["kind"] != 2: continue
+        cl, cr, ct, cb = c["rect"]
+        u = cl + (np.arange(N) + 0.5) / N * (cr - cl)
+        v = ct + (np.arange(N) + 0.5) / N * (cb - ct)
+        def on_grid(img, rc):                             # a mask over rc, on the continent's grid
+            l, r, t, b = rc
+            Y, X = np.meshgrid((v - t) / (b - t) * img.shape[0] - 0.5, (u - l) / (r - l) * img.shape[1] - 0.5, indexing="ij")
+            return ndimage.map_coordinates(img, [Y, X], order=1, mode="constant", cval=0)
+        land = np.zeros((N, N), np.float32)
+        n = 0
+        for z in zones:
+            l, r, t, b = z["rect"]
+            zl = mask("MapZoneLand/%d" % z["id"])
+            if zl is None or r <= cl or l >= cr or b <= ct or t >= cb: continue
+            land += on_grid(zl, z["rect"])                # (shared out where zones overlap: they add up)
+            n += 1
+        a = np.maximum(on_grid(field_img(c)[..., 3], c["rect"]), np.clip(land, 0, 1))
+        Image.merge("RGBA", (Image.new("L", (N, N), 255),) * 3 + (Image.fromarray((a * 255).round().astype(np.uint8)),)).save(
+            os.path.join(outdir_, "%d.tga" % c["id"]))
+        print("baked minimap land", c["id"], c["name"], "with", n, "zones", flush=True)
+
 def terr_own_raw(m):
     """a zone's own territory: its land and a little past it, its own painted sea off its coasts
     (SHORE), the cities in it; inside its frame (the unexplored shading's masks, MapZoneLand and
@@ -1375,6 +1407,9 @@ if views and views[0] == "--bake-territory":
     views = views[1:]
 if views and views[0] == "--bake-zone-land":
     bake_zone_land()
+    views = views[1:]
+if views and views[0] == "--bake-mini-land":
+    bake_mini_land()
     views = views[1:]
 for v in views:
     name, spec = v.split("=", 1)

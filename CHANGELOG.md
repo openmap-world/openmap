@@ -56,6 +56,10 @@
   Morgan's Vigil and Thelsamar; Rog'mar to Stonard, Kargath, Flame Crest and Hammerfall). The flight
   network now comes from WoW Forever's own tables, which have moved Stormwind's flight master and
   redrawn some of the classic flights.
+- The close-up minimap shows on towns by the sea and on islands: Menethil Harbor, Southshore,
+  Theramore, Booty Bay's shallows, Teldrassil and Darnassus, Feathermoon Stronghold. It was cut to
+  the continent map's coarse outline of the land, which leaves out what that map draws as sea; it
+  now takes in each zone map's own land too.
 
 ## v0.4.0-beta (2026-10-16)
 
