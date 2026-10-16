@@ -6,7 +6,8 @@
 --     BetterMaps' terrain and caves (under the stitched art: drawn for nothing), HiddenMaps'
 --     approach and dungeon maps (over it, catching clicks)
 --   * Leatrix Maps' icons (its points of interest: dungeons, flight points, boats, portals ...) are
---     lifted above the stitched art (they're made at a fixed low frame level on the canvas, under it)
+--     lifted above the stitched art (they're made at a fixed low frame level on the canvas, under it);
+--     so are Azeroth Tripview's live ships and docks, should the art reach their levels
 --   * their view changes (zoom remembered per map, keep centred, a jump into a cave) and their
 --     zoom steps past OpenMap's deepest don't apply there (WorldMap.lua)
 --   * the zone label, the coordinates CVars and the game's map fade are set again after theirs:
@@ -58,6 +59,22 @@ local function LeatrixPins()
 	end
 end
 
+-- Azeroth Tripview's live ships and docks: unnamed frames on the canvas at fixed levels (2400, 2500),
+-- each holding its icon buttons (a .face, and an .arrow or a .label): kept above the stitched art,
+-- wherever that ends. (Its route dots, under the map's own pins, stay under the art: OpenMap's routes
+-- are there.) Where its ships show is its own doing: the map underneath only (docs/api.md)
+local function TripviewLayers()
+	local top = S.artTop
+	if not top then return end
+	for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
+		local lvl = f:GetFrameLevel()
+		if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
+			local first = f:GetNumChildren() > 0 and (f:GetChildren())
+			if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
+		end
+	end
+end
+
 local function HoldAll()
 	if not Stitched() then return end
 	for name, reshow in pairs(FRAMES) do
@@ -65,6 +82,7 @@ local function HoldAll()
 		if type(f) == "table" and f.HookScript then Hold(f, reshow) end
 	end
 	if _G.LeaMapsDB then LeatrixPins() end
+	if _G.AzerothTripview then TripviewLayers() end
 end
 
 local function Release()

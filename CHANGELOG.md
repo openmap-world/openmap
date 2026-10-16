@@ -40,6 +40,12 @@
 - **Dungeons, boats and zeppelins each have their own switch** in the menu's Show tab and in
   Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's
   off takes its routes with it when routes are shown. Your old setting carries over to all three.
+- **Out of a city to its zone**: right-click out of Stormwind, Ironforge, Darnassus, Orgrimmar,
+  Thunder Bluff or Undercity and the map goes out to the zone around it (Elwynn Forest, Dun Morogh
+  ...), as it does from anywhere else in that zone, not the whole continent.
+- **Azeroth Tripview**: its live ships and docks are kept above the map's art. For other addons,
+  OpenMapAPI (version 2) can now place a point of the game's world anywhere on the stitched map,
+  for frames they put on the world map themselves (docs/api.md).
 
 ### Fixed
 

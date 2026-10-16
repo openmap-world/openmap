@@ -4,7 +4,7 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [10] = "Improved", [11] = "Fixed", }, items = {
+	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [10] = "Improved", [13] = "Fixed", }, items = {
 		"|cff6e2c0aAirships to Zephras Isle|r: the flying boats at the Dalaran skydock (Alterac Mountains) and in Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does, and Back takes you to the world where you were. (Under the Boats switch.)",
 		"|cff6e2c0aMaps of Ruins of Lordaeron and The Hall of Thanes|r, two of WoW Forever's own dungeons, which the game has no map of: drawn by Santiago Reyes and used with his permission. Click their entrances in Undercity and Ironforge; the map shows \"Map by Santiago Reyes\" in its corner.",
 		"|cff6e2c0aDungeon Journal|r: with Exehn's Dungeon Journal installed, a dungeon's map has |cff6e2c0aOpen in Dungeon Journal|r on its Bosses tab, and clicking an entrance can open its page there instead of its map (the menu's |cff6e2c0aEntrances open Dungeon Journal|r, or Options). Its map still opens where Dungeon Journal has no page for it.",
@@ -15,6 +15,8 @@ ns.MapChangelog = {
 		"|cff6e2c0aYour arrow, or not|r: the menu's Show tab (and Options) can take your own arrow off the world map, to find your way old-school by the land around you. Your party still shows, and so does the minimap.",
 		"OpenMap shows under a |cff6e2c0aMap|r category in the game's AddOns list.",
 		"|cff6e2c0aDungeons, boats and zeppelins each have their own switch|r in the menu's Show tab and in Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's off takes its routes with it when routes are shown. Your old setting carries over to all three.",
+		"|cff6e2c0aOut of a city to its zone|r: right-click out of Stormwind, Ironforge, Darnassus, Orgrimmar, Thunder Bluff or Undercity and the map goes out to the zone around it (Elwynn Forest, Dun Morogh ...), as it does from anywhere else in that zone, not the whole continent.",
+		"|cff6e2c0aAzeroth Tripview|r: its live ships and docks are kept above the map's art. For other addons, OpenMapAPI (version 2) can now place a point of the game's world anywhere on the stitched map, for frames they put on the world map themselves (docs/api.md).",
 		"|cff6e2c0aWoW Forever's boats|r are on the map, with their docks and routes: Steamwheedle Port (Tanaris) to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.",
 		"|cff6e2c0aWoW Forever's flight masters|r: Farholde Keep and Powderfuse Port for the Alliance, Rog'mar and Powderfuse Port for the Horde, with their flights (Farholde Keep to Powderfuse Port, Lakeshire, Morgan's Vigil and Thelsamar; Rog'mar to Stonard, Kargath, Flame Crest and Hammerfall). The flight network now comes from WoW Forever's own tables, which have moved Stormwind's flight master and redrawn some of the classic flights.",
 		"|cff6e2c0aThe close-up minimap on towns by the sea and on islands|r: Menethil Harbor, Southshore, Theramore, Booty Bay's shallows, Teldrassil and Darnassus, Feathermoon Stronghold. It was cut to the continent map's coarse outline of the land, which leaves out what that map draws as sea; it now takes in each zone map's own land too.",

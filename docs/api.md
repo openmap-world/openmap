@@ -29,9 +29,33 @@ map isn't showing.
 | `OM.IsStitched()` | whether the world map shows OpenMap's stitched map now |
 | `OM.WorldFromMap(uiMapID, x, y)` | `u, v`, or nil if that map isn't part of the stitched world |
 | `OM.MapFromWorld(uiMapID, u, v)` | `x, y` on that map (outside 0..1 when the point is off it) |
+| `OM.CanvasFromWorldPos(continent, x, y)` | (version 2) where a point in the game's world (continent and yards, as `UnitPosition` gives them) is on the world map's canvas: `x, y` of the map underneath the stitched view, outside 0..1 where the view shows past it. See below |
+| `OM.ArtTopLevel()` | (version 2) the highest frame level the stitched art takes on the canvas |
 | `OM.MapAt(u, v)` | the uiMapID of the zone (or city) at that point |
 | `OM.GetView()` | the view's centre `u, v` and its zoom (1: the whole world fits) |
 | `OM.ShowWorld(u, v [, zoom])` | glides the stitched map there; false if it isn't showing |
+
+### Frames of your own on the world map's canvas
+
+On the stitched map the map underneath (`WorldMapFrame:GetMapID()`) is only the part the view is
+on: as you zoom in it's a zone, while the view shows its neighbours too. An addon that puts frames on
+`WorldMapFrame:GetCanvas()` itself, at positions on that map (dropping anything outside 0..1), only
+shows what's on that zone. While `OM.IsStitched()`, place them by `OM.CanvasFromWorldPos` instead and
+keep the ones outside 0..1:
+
+```lua
+local mx, my
+if OM and OM.version >= 2 and OM.IsStitched() then
+	mx, my = OM.CanvasFromWorldPos(continent, worldX, worldY)
+else
+	-- as before, on WorldMapFrame:GetMapID()
+end
+if mx then frame:SetPoint("CENTER", canvas, "TOPLEFT", canvas:GetWidth() * mx, -canvas:GetHeight() * my) end
+```
+
+Recompute on `OpenMap_ViewChanged` or the map's own changes, as for any canvas frame. A frame at a
+fixed frame level on the canvas needs to be above OpenMap's art, which `OM.ArtTopLevel()` (version 2)
+gives: Questie's icons, made from level 2015, are under it, and OpenMap lifts them itself.
 
 ## Callbacks
 

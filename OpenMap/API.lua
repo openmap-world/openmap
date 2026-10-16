@@ -19,7 +19,7 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 
-local API = { major = 1, version = 1 }
+local API = { major = 1, version = 2 }
 OpenMapAPI = API
 
 local CBH = LibStub and LibStub("CallbackHandler-1.0", true)
@@ -45,6 +45,22 @@ function API.MapFromWorld(uiMapID, u, v)
 	if type(uiMapID) ~= "number" or type(u) ~= "number" or type(v) ~= "number" or not S.Rect(uiMapID) then return end
 	return mod.FromWorld(uiMapID, u, v)
 end
+
+-- (version 2) a point in the game's world (a continent and yards, as UnitPosition and the taxi tables
+-- give them) on the map the stitched view sits on: x, y as on WorldMapFrame's canvas (0..1 its own
+-- map's rectangle, and past it: the view shows beyond it). For an addon that places frames on the
+-- canvas itself, so they show over all of the stitched map, not only the map underneath
+function API.CanvasFromWorldPos(continent, x, y)
+	if type(continent) ~= "number" or type(x) ~= "number" or type(y) ~= "number" or not API.IsStitched() then return end
+	local u, v = S.FromYards(continent, x, y)
+	local host = mod.HostMap and mod.HostMap()
+	if not u or not host then return end
+	return mod.FromWorld(host, u, v)
+end
+
+-- (version 2) the frame level the stitched art reaches on the canvas: a frame of yours at a fixed level
+-- on it needs to be above this to show over the map
+function API.ArtTopLevel() return S.artTop end
 
 -- the zone (or city) at a point of the stitched world: its uiMapID
 function API.MapAt(u, v)
