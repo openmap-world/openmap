@@ -17,6 +17,16 @@
 - **Maps of Ruins of Lordaeron and The Hall of Thanes**, two of WoW Forever's own dungeons, which
   the game has no map of: drawn by Santiago Reyes and used with his permission. Click their
   entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" in its corner.
+- **Dungeon Journal**: with Exehn's Dungeon Journal installed, a dungeon's map has **Open in Dungeon
+  Journal** on its Bosses tab, and clicking an entrance can open its page there instead of its map
+  (the menu's **Entrances open Dungeon Journal**, or Options). Its map still opens where Dungeon
+  Journal has no page for it.
+- **Dungeon quests without Questie**: the Quests tab works with Dungeon Journal or NeedRoll too, as a
+  button that opens the dungeon's quests in it. With more than one installed, Options' **Dungeon
+  quests from** picks which (the first installed: Questie, then Dungeon Journal, then NeedRoll).
+- **OpenMap in the minimap's AddOns list**, and a **minimap button** if you want one (the menu's Look
+  tab, or Options): click for the map and its menu, right-click for the options window, drag it round
+  the minimap. So the OpenMap button on the map can be hidden and the menu is still a click away.
 
 ### Improved
 

@@ -216,7 +216,15 @@ local function Rows()
 	rows[#rows + 1] = { L["Dungeons"] }
 	rows[#rows + 1] = optRow(L["Level ranges"], "dungeonLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Dungeon bosses"], "dungeonBosses", Icon("INV_Misc_Bone_ElfSkull_01"))
-	if questie then rows[#rows + 1] = optRow(L["Dungeon quests (Questie)"], "dungeonQuests", { texture = "Interface\\GossipFrame\\ActiveQuestIcon" }) end
+	-- (with Questie, Dungeon Journal or NeedRoll: where they come from is in Options)
+	if mod.DungeonQuestSource and mod.DungeonQuestSource() then
+		rows[#rows + 1] = optRow(L["Dungeon quests"], "dungeonQuests", { texture = "Interface\\GossipFrame\\ActiveQuestIcon" })
+	end
+	if mod.HasDungeonJournal and mod.HasDungeonJournal() then
+		rows[#rows + 1] = row(L["Entrances open Dungeon Journal"], "entranceClick", Icon("INV_Misc_Book_09"),
+			function() return db.entranceClick == "journal" end,
+			function(v) db.entranceClick = v and "journal" or "map" if ns.NotifyOptions then ns.NotifyOptions() end end)
+	end
 	rows[#rows + 1] = { L["Townsfolk"] }
 	local kinds = {}
 	for _, k in ipairs(mod.TOWNSFOLK or {}) do kinds[k.key] = k end
@@ -245,8 +253,15 @@ local function Rows()
 	rows[#rows + 1] = row(L["OpenMap button on the map"], "mapButtons", Icon("INV_Misc_Map_01"), function() return db.mapButtons end,
 		function(v)
 			db.mapButtons = v
-			if not v then ns:Print(L["The OpenMap button is hidden. Type /openmap to open its menu."]) end
+			if not v then ns:Print(L["The OpenMap button is hidden. Its menu opens with /openmap, the minimap button or the minimap's AddOns list."]) end
 			mod:Refresh()
+			if ns.NotifyOptions then ns.NotifyOptions() end
+		end)
+	rows[#rows + 1] = row(L["Minimap button"], "minimapButton", Icon("INV_Misc_Map_02"), function() return db.minimapButton end,
+		function(v)
+			db.minimapButton = v
+			if mod.RefreshLauncher then mod.RefreshLauncher() end
+			if ns.NotifyOptions then ns.NotifyOptions() end
 		end)
 	-- (Options' own setters, where they do more than set it: the full-screen map is laid out again)
 	local options = mod.Options and mod:Options() or {}

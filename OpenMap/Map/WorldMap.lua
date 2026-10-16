@@ -1047,6 +1047,7 @@ function mod:Options()
 	if mod.NavOptions then mod:NavOptions(opts, get, set, off) end
 	if mod.PinOptions then mod:PinOptions(opts, get, set, off) end
 	if mod.DungeonOptions then mod:DungeonOptions(opts, get, set, off) end
+	if mod.LauncherOptions then mod:LauncherOptions(opts, get, off) end
 	if mod.SketchOptions then mod:SketchOptions(opts, get, set, off) end
 	if mod.WindowOptions then mod:WindowOptions(opts, get, set, off) end
 	if mod.CloseOptions then mod:CloseOptions(opts, get, set, off) end

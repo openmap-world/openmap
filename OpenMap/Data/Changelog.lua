@@ -4,12 +4,15 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [6] = "Improved", [7] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [9] = "Improved", [10] = "Fixed", }, items = {
 		"|cff6e2c0aA choice the first time the map opens|r on a new install: |cff6e2c0aClassic|r (unexplored areas hidden, no dungeon or flight master icons, no zone levels, the favourite buttons folded away) or |cff6e2c0aOpenMap|r (as it comes). Settings you already have aren't asked about or changed; /openmap welcome asks again. Suggested in #24.",
 		"|cff6e2c0aOpenMap button on the map|r (the menu's Look tab) hides the OpenMap button and the favourites; /openmap opens the menu then.",
 		"|cff6e2c0aYour arrow on top|r: the player arrow is drawn over every other icon on the map (quest givers, Questie's and other addons' icons), so you can always see which way you're facing (suggested in #31). Your party's markers come up with it.",
 		"OpenMap shows under a |cff6e2c0aMap|r category in the game's AddOns list.",
 		"|cff6e2c0aMaps of Ruins of Lordaeron and The Hall of Thanes|r, two of WoW Forever's own dungeons, which the game has no map of: drawn by Santiago Reyes and used with his permission. Click their entrances in Undercity and Ironforge; the map shows \"Map by Santiago Reyes\" in its corner.",
+		"|cff6e2c0aDungeon Journal|r: with Exehn's Dungeon Journal installed, a dungeon's map has |cff6e2c0aOpen in Dungeon Journal|r on its Bosses tab, and clicking an entrance can open its page there instead of its map (the menu's |cff6e2c0aEntrances open Dungeon Journal|r, or Options). Its map still opens where Dungeon Journal has no page for it.",
+		"|cff6e2c0aDungeon quests without Questie|r: the Quests tab works with Dungeon Journal or NeedRoll too, as a button that opens the dungeon's quests in it. With more than one installed, Options' |cff6e2c0aDungeon quests from|r picks which (the first installed: Questie, then Dungeon Journal, then NeedRoll).",
+		"|cff6e2c0aOpenMap in the minimap's AddOns list|r, and a |cff6e2c0aminimap button|r if you want one (the menu's Look tab, or Options): click for the map and its menu, right-click for the options window, drag it round the minimap. So the OpenMap button on the map can be hidden and the menu is still a click away.",
 		"|cff6e2c0aDungeons, boats and zeppelins each have their own switch|r in the menu's Show tab and in Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's off takes its routes with it when routes are shown. Your old setting carries over to all three.",
 		"The zone you're looking at has its name over the map again when you hover it, where the game names no place in it (Silverpine Forest's had gone; reported in #25). With Zone levels off, zone names still show, without their levels.",
 		"|cff6e2c0aMove Any|r owns the map window: with it, OpenMap's title bar, resize grips and saved place stand down, so Move Any's own drag and resize work on the map again (reported in #23). The map size slider and Reset size and place are off then.",

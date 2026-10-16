@@ -16,7 +16,9 @@ local Look, Safe, L = ns.Look, ns.Safe, ns.L
 
 local d = mod.defaults
 d.dungeonBosses = true          -- the card lists a dungeon's bosses
-d.dungeonQuests = true          -- and, with Questie, its quests
+d.dungeonQuests = true          -- and its quests (questSource)
+d.questSource = "auto"          -- the quests from: "questie", "journal" (Dungeon Journal), "needroll"; "auto": the first there
+d.entranceClick = "map"         -- clicking an entrance: "map" (its map here) or "journal" (its Dungeon Journal page, where it has one)
 d.dungeonCard = true            -- the card open (false: folded to its title)
 d.dungeonLevels = true          -- each entrance's level range under its icon
 d.dungeonHints = 0              -- dungeon maps opened with the how-to-leave hint (it shows for the first few)
@@ -966,8 +968,40 @@ local function OpenView(inst, pin)
 end
 function mod.DungeonViewShown() return view and view:IsShown() or false end
 
+local function NeedRoll() return SlashCmdList and SlashCmdList.NEEDROLL end
+
+-- Dungeon Journal (by Exehn, for WoW Forever: /dj): its pages are by its own names for the
+-- dungeons ("Scarlet Monastery: Graveyard", "Hall of Thanes"), matched to ours loosely
+local function Journal()
+	local dj = _G.ForeverDungeonJournal_NS
+	if type(dj) == "table" and type(dj.DB) == "table" and type(dj.OpenBossPage) == "function" then return dj end
+end
+local function Plain(name)
+	name = (name or ""):lower():gsub("^the ", ""):gsub("%s*[-:]%s*", ": ")
+	return name
+end
+local function JournalName(inst)
+	local dj = Journal()
+	if not dj then return end
+	local want = Plain(inst[2])
+	for key, entry in pairs(dj.DB) do
+		if type(entry) == "table" and not entry.previewOnly and Plain(key) == want then return key end
+	end
+end
+-- its window at the dungeon's page (bosses, or `quests`); false where it has none
+local function OpenJournal(inst, quests)
+	local dj, key = Journal(), JournalName(inst)
+	if not key then return false end
+	-- (shown first: showing it puts up the page it was last on)
+	local frame, toggle = _G.ForeverDungeonJournalFrame, _G.ForeverDungeonJournal_Toggle
+	if frame and not frame:IsShown() and type(toggle) == "function" then pcall(toggle) end
+	local open = quests and type(dj.OpenQuestPage) == "function" and dj.OpenQuestPage or dj.OpenBossPage
+	return (pcall(open, key))
+end
+
 local function Open(inst, pin)
 	if chooser then chooser:Hide() end
+	if mod.db.entranceClick == "journal" and OpenJournal(inst) then return end
 	local id = DungeonMap(inst)
 	if not id and OpenView(inst, pin) then return end
 	if not id then
@@ -1192,6 +1226,17 @@ local function Questie()
 	local ok2, zones = pcall(loader.ImportModule, loader, "ZoneDB")
 	if ok and ok2 and db and db.QuestPointers and db.QueryQuestSingle and zones and zones.GetDungeons then return db, zones end
 end
+
+-- where a dungeon's quests come from: the one chosen, else the first there of Questie (listed here),
+-- Dungeon Journal and NeedRoll (opened at them); nil with none
+local function QuestSource()
+	local have = { questie = _G.QuestieLoader ~= nil, journal = Journal() ~= nil, needroll = NeedRoll() ~= nil }
+	local want = mod.db.questSource
+	if have[want] then return want end
+	return have.questie and "questie" or have.journal and "journal" or have.needroll and "needroll" or nil
+end
+mod.DungeonQuestSource = QuestSource
+mod.HasDungeonJournal = function() return Journal() ~= nil end
 
 -- a dungeon's area as Questie has it: its own, the dungeon its part of belongs to
 local function DungeonArea(zones, areaId)
@@ -1433,7 +1478,7 @@ RefreshCard = function()
 			for i, name in ipairs(bosses) do lines[#lines + 1] = ("|cff998866%d.|r %s"):format(i, name) end
 		end
 	end
-	if open and mod.db.dungeonQuests then
+	if open and mod.db.dungeonQuests and QuestSource() == "questie" then
 		EnsureQuests(RefreshCard)
 		local q = QuestLines(mapID, insts[1])
 		if q and #q > 0 then
@@ -1464,7 +1509,6 @@ RefreshCard = function()
 	card:Show()
 end
 -- the view's side panel: rows of one tab (bosses, quests, loot), each made as needed and kept
-local function NeedRoll() return SlashCmdList and SlashCmdList.NEEDROLL end
 -- NeedRoll's window: at this dungeon (and `boss`) if NeedRoll offers a call for it, else just opened
 -- (its /nr toggles: an open window is only brought up, not closed)
 local function OpenNeedRoll(boss)
@@ -1519,6 +1563,9 @@ FillSide = function()
 				end }
 		end
 		if #bosses == 0 then Text("|cff998866" .. L["The game lists no bosses for it."] .. "|r") end
+		if JournalName(inst) then
+			items[#items + 1] = { kind = "button", L["Open in Dungeon Journal"], click = function() OpenJournal(inst) end }
+		end
 		-- other addons' sections (API.lua)
 		for _, section in ipairs(mod.CardSections and mod.CardSections() or {}) do
 			local ok, title, lines = pcall(section, Info(nil, { inst }))
@@ -1530,8 +1577,19 @@ FillSide = function()
 			end
 		end
 	elseif tab == "quests" then
-		if not Questie() then
-			Text("|cff998866" .. L["With Questie, the quests for this dungeon are listed here."] .. "|r")
+		local source = QuestSource()
+		if source == "journal" then
+			if JournalName(inst) then
+				Text(L["Dungeon Journal has this dungeon's quests: where each one starts, what it asks and what it gives."])
+				items[#items + 1] = { kind = "button", L["Open in Dungeon Journal"], click = function() OpenJournal(inst, true) end }
+			else
+				Text("|cff998866" .. L["Dungeon Journal has no page for this dungeon."] .. "|r")
+			end
+		elseif source == "needroll" then
+			Text(L["NeedRoll lists dungeon quests too: open it and pick this dungeon."])
+			items[#items + 1] = { kind = "button", L["Open NeedRoll"], click = function() OpenNeedRoll() end }
+		elseif not Questie() then
+			Text("|cff998866" .. L["With Questie, Dungeon Journal or NeedRoll, this dungeon's quests are here."] .. "|r")
 		else
 			EnsureQuests(FillSide)
 			local list = QuestList(nil, inst)
@@ -1738,8 +1796,15 @@ function mod:DungeonOptions(opts, get, set, off)
 		desc = L["A dungeon's map lists its bosses, in the game's order."] }
 	opts.dungeonLevels = { type = "toggle", name = L["Dungeon level ranges"], order = 31.05, width = "full", get = get, set = set, disabled = off,
 		desc = L["Each dungeon entrance's level range under its icon, coloured for your level."] }
-	opts.dungeonQuests = { type = "toggle", name = L["Dungeon maps: quests (Questie)"], order = 31.2, width = "full", get = get, set = set, disabled = off,
-		desc = L["A dungeon's map lists the quests for it that you can take, from Questie's database, marked done or in your log."] }
+	opts.dungeonQuests = { type = "toggle", name = L["Dungeon maps: quests"], order = 31.2, width = "full", get = get, set = set, disabled = off,
+		desc = L["A dungeon's map has a Quests tab: with Questie, the quests for it that you can take, marked done or in your log; with Dungeon Journal or NeedRoll, a button that opens them there."] }
+	opts.questSource = { type = "select", name = L["Dungeon quests from"], order = 31.25, get = get, set = set, disabled = off,
+		values = { auto = L["The first installed"], questie = "Questie", journal = L["Dungeon Journal"], needroll = "NeedRoll" },
+		sorting = { "auto", "questie", "journal", "needroll" },
+		desc = L["Where the Quests tab's quests come from, when you have more than one of these addons. The first installed: Questie, then Dungeon Journal, then NeedRoll."] }
+	opts.entranceClick = { type = "select", name = L["Clicking a dungeon entrance opens"], order = 31.3, get = get, set = set, disabled = off,
+		values = { map = L["Its map"], journal = L["Its Dungeon Journal page"] }, sorting = { "map", "journal" },
+		desc = L["With Dungeon Journal installed, an entrance can open that dungeon's page in it instead of its map (its map still opens where Dungeon Journal has no page for it)."] }
 end
 
 function mod:SetupDungeons(worldMap)
