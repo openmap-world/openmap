@@ -27,6 +27,9 @@
 - **OpenMap in the minimap's AddOns list**, and a **minimap button** if you want one (the menu's Look
   tab, or Options): click for the map and its menu, right-click for the options window, drag it round
   the minimap. So the OpenMap button on the map can be hidden and the menu is still a click away.
+- **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
+  Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
+  and Back takes you to the world where you were. (Under the Boats switch.)
 
 ### Improved
 
