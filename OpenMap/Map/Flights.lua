@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- Flight paths on the world map (ns.MapFlights, the Classic Era flight network):
+-- Flight paths on the world map (ns.MapFlights, the game's flight network):
 --   * every flight master of your faction: learned ones in colour, the rest grey
 --     (learned = seen as known at a flight master; remembered per character)
 --   * click one, then another: the route you'd fly is drawn along the real

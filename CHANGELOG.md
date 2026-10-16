@@ -48,6 +48,11 @@
 - **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
   to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
   to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.
+- **WoW Forever's flight masters**: Farholde Keep and Powderfuse Port for the Alliance, Rog'mar and
+  Powderfuse Port for the Horde, with their flights (Farholde Keep to Powderfuse Port, Lakeshire,
+  Morgan's Vigil and Thelsamar; Rog'mar to Stonard, Kargath, Flame Crest and Hammerfall). The flight
+  network now comes from WoW Forever's own tables, which have moved Stormwind's flight master and
+  redrawn some of the classic flights.
 
 ## v0.4.0-beta (2026-10-16)
 
