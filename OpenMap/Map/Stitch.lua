@@ -960,15 +960,16 @@ end
 
 local function BuildPins()
 	local P = ns.MapPlaces or {}
-	local dungeons, travel = S.PinSet("dungeons", 1.5), S.PinSet("travel", 2.5)
+	local dungeons = S.PinSet("dungeons", 1.5)
+	local travel = { boat = S.PinSet("boats", 2.5), zeppelin = S.PinSet("zeppelins", 2.5) }   -- (each its own switch)
 	if S.BuildDungeonPins then
 		for _, pin in ipairs(S.BuildDungeonPins(dungeons)) do pins[#pins + 1] = pin end   -- (Dungeons.lua)
 	end
 	local horde = UnitFactionGroup("player") == "Horde"
 	for _, d in ipairs(P.transports or {}) do
 		local u, v = S.FromYards(d[3], d[4], d[5])
-		if u and (d[1] ~= "zeppelin" or horde) then
-			local pin = S.AddPin(travel, u, v, LOOK[d[1]])
+		if u and travel[d[1]] and (d[1] ~= "zeppelin" or horde) then
+			local pin = S.AddPin(travel[d[1]], u, v, LOOK[d[1]])
 			pin.kind = d[1]
 			if d[6] then
 				local tu, tv = S.FromYards(d[6], d[7], d[8])

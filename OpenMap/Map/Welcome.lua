@@ -12,7 +12,7 @@ local L = ns.L
 -- (presetAsked isn't in the defaults, where old saves would get it too: nil until the first login
 -- with this version, then false on a new install, asked when the map opens, and true on one that
 -- had settings)
-local CLASSIC = { unexplored = "hide", icons = false, flight = false, routes = false, zoneLevels = false,
+local CLASSIC = { unexplored = "hide", icons = false, boats = false, zeppelins = false, flight = false, routes = false, zoneLevels = false,
 	dungeonLevels = false, trayOpen = false }
 
 local frame

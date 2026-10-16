@@ -190,7 +190,9 @@ local function Rows()
 	local rows = {
 		-- on the map
 		{ L["Places"], tab = "show" },
-		optRow(L["Dungeons, boats, zeppelins"], "icons", { atlas = "dungeon", texture = "Interface\\Icons\\INV_Misc_Key_13", icon = true }),
+		optRow(L["Dungeons and raids"], "icons", { atlas = "dungeon", texture = "Interface\\Icons\\INV_Misc_Key_13", icon = true }),
+		optRow(L["Boats"], "boats", { atlas = "Ships_CargoShip-Map", texture = "Interface\\Icons\\INV_Misc_Spyglass_02", icon = true }),
+		optRow(L["Zeppelins"], "zeppelins", { atlas = "vehicle-air-horde", texture = "Interface\\Vehicles\\SeatIndicator\\Vehicle-HordeZeppelin", icon = true }),
 		optRow(L["Flight masters"], "flight", { atlas = faction == "Horde" and "TaxiNode_Horde" or "TaxiNode_Alliance",
 			texture = "Interface\\Icons\\Ability_Mount_Wyvern_01", icon = true }),
 		optRow(L["Boat and zeppelin routes"], "routes", { atlas = "Ships_CargoShip-Map", texture = "Interface\\Icons\\INV_Misc_Spyglass_02", icon = true }),

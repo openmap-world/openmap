@@ -27,6 +27,12 @@ local NEUTRAL = { ["Booty Bay - Ratchet"] = true }
 
 local routes = {}               -- { frame, levels = { frames }, way = { { u, v } }, kind, name, faction, ends }
 local lit
+local KIND_OPTION = { boat = "boats", zeppelin = "zeppelins" }   -- (a route shows while its kind's icons do)
+
+local function KindOn(route)
+	local key = KIND_OPTION[route.kind]
+	return not key or mod.db[key] ~= false
+end
 
 local function Smooth(x, r)
 	local t = math.max(0, math.min(1, (x - r[1]) / (r[2] - r[1])))
@@ -136,6 +142,7 @@ local function Build(set)
 				ends[#ends + 1] = info and info.name or "?"
 			end
 			route.ends = ends
+			route.frame:SetShown(KindOn(route))
 			routes[#routes + 1] = route
 		end
 	end
@@ -207,7 +214,7 @@ local function Hover()
 	local best, bestD = nil, HOVER_PX
 	for _, route in ipairs(routes) do
 		local way = route.way
-		for k = 1, #way - 1 do
+		for k = 1, route.frame:IsShown() and #way - 1 or 0 do   -- (a hidden kind's routes aren't hovered)
 			local ax, ay = (way[k][1] - u) / pu, (way[k][2] - v) / pv
 			local bx, by = (way[k + 1][1] - u) / pu, (way[k + 1][2] - v) / pv
 			local dx, dy = bx - ax, by - ay
@@ -236,6 +243,15 @@ function S.BuildRoutes()
 			Hover()
 		end)
 		s.frame:SetScript("OnHide", function() Light(nil) end)
+	end
+end
+
+-- the boats' and zeppelins' switches (mod:Refresh)
+function S.RefreshRoutes()
+	for _, route in ipairs(routes) do
+		local on = KindOn(route)
+		route.frame:SetShown(on)
+		if not on and route == lit then Light(nil) end
 	end
 end
 

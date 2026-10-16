@@ -23,7 +23,9 @@ local mod = ns:NewModule("worldmap", {
 		enabled = true,
 		autoSwitch = true,      -- the map underneath follows what you're looking at
 		hoverHighlight = false, -- Blizzard's glow on the zone under the cursor (on the stitched map)
-		icons = true,
+		icons = true,           -- dungeon and raid entrances
+		boats = true,           -- boat docks and routes
+		zeppelins = true,       -- zeppelin towers (Horde's) and routes
 		flight = true,
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
@@ -32,6 +34,11 @@ local mod = ns:NewModule("worldmap", {
 		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
 	},
 })
+
+-- (dungeons, boats and zeppelins were one switch, `icons`: an old save's choice carried to each)
+function mod.Migrate(db)
+	if db.boats == nil and db.icons ~= nil then db.boats, db.zeppelins = db.icons, db.icons end
+end
 
 local ZOOM_STEP = 1.25          -- each wheel notch
 local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step (the minimap's own detail runs out
@@ -918,13 +925,14 @@ function mod:OnEnable()
 end
 
 -- which pin sets each option shows
-local SET_OPTION = { dungeons = "icons", travel = "icons", flight = "flight", routes = "routes" }
+local SET_OPTION = { dungeons = "icons", boats = "boats", zeppelins = "zeppelins", flight = "flight", routes = "routes" }
 
 function mod:Refresh()
 	for key, opt in pairs(SET_OPTION) do
 		local set = S.GetPinSet(key)
 		if set then S.SetPinSetOn(set, self.db[opt]) end
 	end
+	if S.RefreshRoutes then S.RefreshRoutes() end
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
@@ -1026,8 +1034,12 @@ function mod:Options()
 			desc = "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged." },
 		iconHeader = ns.Header("Icons", 30),
 		routes = { type = "toggle", name = "Boat and zeppelin routes", order = 34, get = get, set = set, disabled = off },
-		icons = { type = "toggle", name = "Dungeons, travel and more", order = 31, get = get, set = set, disabled = off,
-			desc = "Dungeon and raid entrances, with their levels (click one: its map), boats and zeppelins (click: the other end)." },
+		icons = { type = "toggle", name = "Dungeons and raids", order = 31, get = get, set = set, disabled = off,
+			desc = "Dungeon and raid entrances, with their levels (click one: its map)." },
+		boats = { type = "toggle", name = "Boats", order = 31.4, get = get, set = set, disabled = off,
+			desc = "Boat docks (click one: the other end), and boats' routes when routes are shown." },
+		zeppelins = { type = "toggle", name = "Zeppelins", order = 31.6, get = get, set = set, disabled = off,
+			desc = "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown." },
 		flight = { type = "toggle", name = "Flight masters", order = 32, get = get, set = set,
 			disabled = off },
 	}

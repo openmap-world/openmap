@@ -127,6 +127,8 @@ function ns:InitDB()
 	OpenMapCharDB = OpenMapCharDB or {}
 	for key, mod in pairs(ns.modules) do
 		mod.fresh = OpenMapDB[key] == nil       -- (no saved settings yet: a new install)
+		-- (an old save's settings carried to the keys that replace them, before the defaults fill those)
+		if not mod.fresh and mod.Migrate then mod.Migrate(OpenMapDB[key]) end
 		OpenMapDB[key] = Fill(OpenMapDB[key] or {}, mod.defaults)
 		OpenMapCharDB[key] = OpenMapCharDB[key] or {}
 		mod.db, mod.char = OpenMapDB[key], OpenMapCharDB[key]

@@ -18,6 +18,12 @@
   the game has no map of: drawn by Santiago Reyes and used with his permission. Click their
   entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" in its corner.
 
+### Improved
+
+- **Dungeons, boats and zeppelins each have their own switch** in the menu's Show tab and in
+  Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's
+  off takes its routes with it when routes are shown. Your old setting carries over to all three.
+
 ### Fixed
 
 - The zone you're looking at has its name over the map again when you hover it, where the game
