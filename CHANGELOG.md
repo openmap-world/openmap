@@ -2,18 +2,13 @@
 
 ## Unreleased
 
+## v0.5.0-beta (2026-10-16)
+
 ### New
 
-- **A choice the first time the map opens** on a new install: **Classic** (unexplored areas
-  hidden, no dungeon or flight master icons, no zone levels, the favourite buttons folded away) or
-  **OpenMap** (as it comes). Settings you already have aren't asked about or changed;
-  /openmap welcome asks again. Suggested in #24.
-- **OpenMap button on the map** (the menu's Look tab) hides the OpenMap button and the favourites;
-  /openmap opens the menu then.
-- **Your arrow on top**: the player arrow is drawn over every other icon on the map (quest givers,
-  Questie's and other addons' icons), so you can always see which way you're facing (suggested in
-  #31). Your party's markers come up with it.
-- OpenMap shows under a **Map** category in the game's AddOns list.
+- **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
+  Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
+  and Back takes you to the world where you were. (Under the Boats switch.)
 - **Maps of Ruins of Lordaeron and The Hall of Thanes**, two of WoW Forever's own dungeons, which
   the game has no map of: drawn by Santiago Reyes and used with his permission. Click their
   entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" in its corner.
@@ -24,12 +19,18 @@
 - **Dungeon quests without Questie**: the Quests tab works with Dungeon Journal or NeedRoll too, as a
   button that opens the dungeon's quests in it. With more than one installed, Options' **Dungeon
   quests from** picks which (the first installed: Questie, then Dungeon Journal, then NeedRoll).
-- **OpenMap in the minimap's AddOns list**, and a **minimap button** if you want one (the menu's Look
-  tab, or Options): click for the map and its menu, right-click for the options window, drag it round
-  the minimap. So the OpenMap button on the map can be hidden and the menu is still a click away.
-- **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
-  Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
-  and Back takes you to the world where you were. (Under the Boats switch.)
+- **The OpenMap button off the map, if you like**: **OpenMap button on the map** (the menu's Look tab)
+  hides it and the favourites. The menu is still a click away: OpenMap is in the minimap's AddOns
+  list, and there's a **minimap button** if you want one (the Look tab, or Options). Click for the map
+  and its menu, right-click for the options window, drag it round the minimap; /openmap works too.
+- **A choice the first time the map opens** on a new install: **Classic** (unexplored areas
+  hidden, no dungeon or flight master icons, no zone levels, the favourite buttons folded away) or
+  **OpenMap** (as it comes). Settings you already have aren't asked about or changed;
+  /openmap welcome asks again. Suggested in #24.
+- **Your arrow on top**: the player arrow is drawn over every other icon on the map (quest givers,
+  Questie's and other addons' icons), so you can always see which way you're facing (suggested in
+  #31). Your party's markers come up with it.
+- OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Improved
 
@@ -39,15 +40,6 @@
 
 ### Fixed
 
-- The zone you're looking at has its name over the map again when you hover it, where the game
-  names no place in it (Silverpine Forest's had gone; reported in #25). With Zone levels off, zone
-  names still show, without their levels.
-- **Move Any** owns the map window: with it, OpenMap's title bar, resize grips and saved place
-  stand down, so Move Any's own drag and resize work on the map again (reported in #23). The map
-  size slider and Reset size and place are off then.
-- A city's own map that went missing (Ironforge showing only Dun Morogh's painting of it, until a
-  /reload: reported in #30) is shown again when you reopen the map, and the map's check of what's in
-  view no longer stays stuck if it stopped part way. (A safeguard: what hid it isn't known yet.)
 - **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
   to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
   to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.
@@ -56,14 +48,13 @@
   Morgan's Vigil and Thelsamar; Rog'mar to Stonard, Kargath, Flame Crest and Hammerfall). The flight
   network now comes from WoW Forever's own tables, which have moved Stormwind's flight master and
   redrawn some of the classic flights.
-- The close-up minimap shows on towns by the sea and on islands: Menethil Harbor, Southshore,
+- **The close-up minimap on towns by the sea and on islands**: Menethil Harbor, Southshore,
   Theramore, Booty Bay's shallows, Teldrassil and Darnassus, Feathermoon Stronghold. It was cut to
   the continent map's coarse outline of the land, which leaves out what that map draws as sea; it
   now takes in each zone map's own land too.
-- Zoomed in on Quel'Thalas, the minimap no longer shows retail's rebuilt Eversong Woods and Zul'Aman.
-  The minimap is now only the tiles the game itself draws (those its own world map file lists), which
-  also leaves out other versions' sea far west of Dun Morogh and east of Wetlands, and the Draenei
-  isles off Kalimdor.
+- **No retail Eversong Woods or Zul'Aman over Quel'Thalas**: the minimap is now only the tiles the
+  game itself draws (those its own world map file lists), which also leaves out other versions' sea
+  far west of Dun Morogh and east of Wetlands, and the Draenei isles off Kalimdor.
 - Blizzard's classic maps drawn in the land between zones are placed where WoW Forever places those
   zones. They were placed by Mists of Pandaria Classic's tables, whose zones are Cataclysm's, so
   The Barrens' was drawn at Northern Barrens' size and Stonetalon Mountains', Silithus', Badlands',
@@ -73,6 +64,15 @@
 - The cave maps of four places WoW Forever doesn't have are gone: Greymane Manor (Gilneas),
   Spitescale Cavern (the Echo Isles as Cataclysm remade them), and Legion's Keeper's Rest and
   Karazhan Catacombs.
+- The zone you're looking at has its name over the map again when you hover it, where the game
+  names no place in it (Silverpine Forest's had gone; reported in #25). With Zone levels off, zone
+  names still show, without their levels.
+- **Move Any** owns the map window: with it, OpenMap's title bar, resize grips and saved place
+  stand down, so Move Any's own drag and resize work on the map again (reported in #23). The map
+  size slider and Reset size and place are off then.
+- A city's own map that went missing (Ironforge showing only Dun Morogh's painting of it, until a
+  /reload: reported in #30) is shown again when you reopen the map, and the map's check of what's in
+  view no longer stays stuck if it stopped part way. (A safeguard: what hid it isn't known yet.)
 
 ## v0.4.0-beta (2026-10-16)
 
