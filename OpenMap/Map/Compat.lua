@@ -7,7 +7,8 @@
 --     approach and dungeon maps (over it, catching clicks)
 --   * Leatrix Maps' icons (its points of interest: dungeons, flight points, boats, portals ...) are
 --     lifted above the stitched art (they're made at a fixed low frame level on the canvas, under it);
---     so are Azeroth Tripview's live ships and docks, should the art reach their levels
+--     so are Azeroth Tripview's live ships and docks, should the art reach their levels, and Books on
+--     Map Forever's book icons (made under it each time it draws them)
 --   * their view changes (zoom remembered per map, keep centred, a jump into a cave) and their
 --     zoom steps past OpenMap's deepest don't apply there (WorldMap.lua)
 --   * the zone label, the coordinates CVars and the game's map fade are set again after theirs:
@@ -73,6 +74,36 @@ local function TripviewLayers()
 			if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
 		end
 	end
+end
+
+-- Books on Map Forever's book icons: buttons on the canvas (each with its .book and .loc), set to the
+-- canvas's level + 2000 (under the stitched art) every time it draws them: as the map changes, opens
+-- and zooms. Lifted after each of those, once its own hooks have run; the ones seen are kept, so a
+-- zoom (the same icons again) needn't look through the canvas. (Its route lines are drawn on the
+-- canvas itself, under the art: they don't show.) Which books it shows is its own doing: those on
+-- the map underneath, or a continent's (docs/api.md)
+local books = setmetatable({}, { __mode = "k" })
+local function LiftBooks(scan)
+	local top = S.artTop
+	if not top or not Stitched() then return end
+	if scan then
+		for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
+			if f.book and f.loc then books[f] = true end
+		end
+	end
+	for f in pairs(books) do
+		if f:GetFrameLevel() <= top then f:SetFrameLevel(top + 2) end
+	end
+end
+local booksQueued               -- nil, "lift" or "scan": one pass on the next frame, however many asked
+local function RunBooks()
+	local scan = booksQueued == "scan"
+	booksQueued = nil
+	LiftBooks(scan)
+end
+local function QueueBooks(scan)
+	if not booksQueued then C_Timer.After(0, RunBooks) end
+	if scan or not booksQueued then booksQueued = scan and "scan" or "lift" end
 end
 
 local function HoldAll()
@@ -147,4 +178,12 @@ function mod:SetupCompat(worldMap)
 	C_Timer.After(1, Reassert)
 	ns.RegisterEvent(owner, "CVAR_UPDATE", OnCVar)
 	C_Timer.After(3, Warn)
+	-- (Books on Map Forever redraws its icons from these: lifted once it has)
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+	if loaded and loaded("Books_on_map_Forever") then
+		hooksecurefunc(map, "OnMapChanged", function() QueueBooks(true) end)
+		map:HookScript("OnShow", function() QueueBooks(true) end)
+		if map.OnCanvasScaleChanged then hooksecurefunc(map, "OnCanvasScaleChanged", function() QueueBooks(false) end) end
+		QueueBooks(true)
+	end
 end

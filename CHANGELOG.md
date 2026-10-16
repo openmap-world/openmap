@@ -49,6 +49,8 @@
 
 ### Fixed
 
+- **Books on Map Forever**'s book icons show on the stitched map: they were drawn under its art.
+  Which ones show is still the addon's own choice (those of the zone or continent the map is on).
 - **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
   to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
   to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.
