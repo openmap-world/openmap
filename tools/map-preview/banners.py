@@ -10,7 +10,8 @@
 #                                   painting of the land about it), and its own name banner
 #                                   where CITY_TITLES has it (its title up close)
 # The cuts are traced by hand on the art (BANNERS, CITIES, CITY_TITLES: in its 1002 x 668 pixels),
-# softened at the edge.
+# softened at the edge. Banners.lua also gets each city's zone (MapCityZones: the zone whose own land
+# is under the city), where going out of the city goes.
 # usage: python -P tools/map-preview/banners.py <db2 dir> <texture cache>
 import os, sys
 import numpy as np
@@ -162,6 +163,28 @@ for city, poly in CITIES.items():
     cut.append((c["id"], city))
     print("city cut", city)
 
+# each city's zone: the one whose own land (its painted land, not the frame round it, render.py's
+# own_land) lies under the city's middle. A city's map is its continent's child in the game's
+# tables, so going out from it (right-click, Map/WorldMap.lua) would skip the zone it's in
+cities = [m for m in g["zones"] if not g["reveal"].get(m["art"])]
+lands = [m for m in g["zones"] if g["reveal"].get(m["art"])]
+homes = []
+for c in cities:
+    l, r, t, b = c["rect"]
+    cu, cv = (l + r) / 2, (t + b) / 2
+    best = None
+    for z in lands:
+        zl, zr, zt, zb = z["rect"]
+        if not (zl <= cu <= zr and zt <= cv <= zb): continue
+        land = g["own_land"](z)
+        h, w = land.shape[:2]
+        px, py = int((cu - zl) / (zr - zl) * w), int((cv - zt) / (zb - zt) * h)
+        share = float(np.mean(land[max(0, py - 6):py + 7, max(0, px - 6):px + 7]))
+        if share > 0.05 and (not best or share > best[0]): best = (share, z)
+    if best:
+        homes.append((c["id"], best[1]["id"], c["name"], best[1]["name"]))
+        print("city", c["name"], "in", best[1]["name"])
+
 with open(os.path.join(g["REPO"], "OpenMap", "Data", "Banners.lua"), "w", encoding="utf-8", newline="\n") as fh:
     fh.write("-- City banners: [city uiMapID] = { zone uiMapID, x, y, width, height }: the zone's name banner for\n")
     fh.write("-- the city, at (x, y) in the zone's art pixels, in Media/Textures/MapBanner/<city> (width x height).\n")
@@ -177,4 +200,7 @@ with open(os.path.join(g["REPO"], "OpenMap", "Data", "Banners.lua"), "w", encodi
     fh.write("}\n\n-- ... and whose cut keeps their own name banner: their zone's banner for them goes as they come in\nns.MapCityTitles = {\n")
     for cid, city in cut:
         if city in CITY_TITLES: fh.write("\t[%d] = true,   -- %s\n" % (cid, city))
+    fh.write("}\n\n-- each city's zone, whose own land is under the city's middle: [city uiMapID] = zone uiMapID\nns.MapCityZones = {\n")
+    for cid, zid, city, zone in sorted(homes):
+        fh.write("\t[%d] = %d,   -- %s in %s\n" % (cid, zid, city, zone))
     fh.write("}\n")

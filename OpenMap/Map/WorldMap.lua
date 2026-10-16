@@ -696,6 +696,10 @@ local function OnCanvasClick(_, button)
 		end
 	elseif button == "RightButton" then
 		if mod.ClearFlightRoute then mod:ClearFlightRoute() end
+		-- (a city's map is its continent's child in the game's tables: out of it, its own zone comes
+		-- first, as out of any other part of that zone; ns.MapCityZones, banners.py)
+		local zone = ns.MapCityZones and ns.MapCityZones[chain[#chain]]
+		if zone then tinsert(chain, #chain, zone) end
 		local target = WORLD
 		for _, id in ipairs(chain) do
 			if id ~= WORLD and Stitchable(id) and FitZoom(id) < zoom * 0.95 then target = id end

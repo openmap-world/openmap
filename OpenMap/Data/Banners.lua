@@ -32,3 +32,13 @@ ns.MapCityTitles = {
 	[1458] = true,   -- Undercity
 	[1456] = true,   -- Thunder Bluff
 }
+
+-- each city's zone, whose own land is under the city's middle: [city uiMapID] = zone uiMapID
+ns.MapCityZones = {
+	[1453] = 1429,   -- Stormwind City in Elwynn Forest
+	[1454] = 1411,   -- Orgrimmar in Durotar
+	[1455] = 1426,   -- Ironforge in Dun Morogh
+	[1456] = 1412,   -- Thunder Bluff in Mulgore
+	[1457] = 1438,   -- Darnassus in Teldrassil
+	[1458] = 1420,   -- Undercity in Tirisfal Glades
+}
