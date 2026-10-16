@@ -2,7 +2,8 @@
 
 OpenMap draws no art of its own. Every texture here is either cut from World of
 Warcraft's own map art (Blizzard Entertainment's, not covered by OpenMap's MIT
-licence) or generated from noise. Each is made by a script in `tools/`, so it
+licence), generated from noise, or (one folder, below) drawn by a player who lets
+OpenMap use it. Each is made by a script in `tools/`, so it
 can be rebuilt from the game's files; the few touched by hand (marked below) are
 Blizzard's art edited by hand, kept in `art-edits/`.
 
@@ -28,6 +29,13 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapZones/` | every zone map composited onto the world as the map draws it at full detail (each zone's base art and overlays through its masks, the colour-match copies, the interiors, the gaps' finer maps), in 512-px tiles, BLP with DXT5 compression | `tools/map-preview/render.py --bake-zones` |
 | `MapArt/` | world and continent map tiles with their sea and continent names painted out (by hand) | `tools/map-art/import.py` |
 | `MapBorder/` | the map art's parchment frame (cut out by hand), in nine pieces | `tools/map-art/border.py` |
+
+**Drawn for WoW Forever's own dungeons** (the game has no map of them), used with the artist's
+permission, credited on the map in game, and not covered by OpenMap's MIT licence:
+
+| Texture | What it is | Made by |
+| --- | --- | --- |
+| `MapDungeonDrawn/` | maps of Ruins of Lordaeron (`2999_*`) and The Hall of Thanes (`3065_*`), drawn by Santiago Reyes (originals in `art-drawn/dungeons/`), in the dungeon map layout: 4 x 3 tiles of 256 px | `tools/map-dungeons/drawn.py` |
 
 **Generated** (no game art in them): `MapGrain`, `MapTooth` (paper grain, from noise)
 and the `MapFeather*` edge masks (`tools/map-textures/make.py`).

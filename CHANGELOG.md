@@ -14,6 +14,9 @@
   Questie's and other addons' icons), so you can always see which way you're facing (suggested in
   #31). Your party's markers come up with it.
 - OpenMap shows under a **Map** category in the game's AddOns list.
+- **Maps of Ruins of Lordaeron and The Hall of Thanes**, two of WoW Forever's own dungeons, which
+  the game has no map of: drawn by Santiago Reyes and used with his permission. Click their
+  entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" in its corner.
 
 ### Fixed
 

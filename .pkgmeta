@@ -15,6 +15,7 @@ ignore:
   - CONTRIBUTING.md
   - LICENSE
   - art-edits
+  - art-drawn
   - CHANGELOG.md
   - AGENTS.md
   - CLAUDE.md

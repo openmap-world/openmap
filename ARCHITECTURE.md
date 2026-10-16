@@ -288,7 +288,9 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   ranges are Forever's (cited in the script). Bosses are the game's `DungeonEncounter` table.
   Dungeon maps (`DungeonMaps.lua`): each instance's floors, their names and wings from Mists of
   Pandaria Classic's map tables (its dungeon art is the same files as Forever's), every tile checked
-  in the install (`tools/map-dungeons/build.py`); Forever's own new dungeons have no map art.
+  in the install (`tools/map-dungeons/build.py`); Forever's own new dungeons have no map art, so
+  some have maps players drew and let OpenMap use (`DungeonDrawn.lua`, `tools/map-dungeons/drawn.py`),
+  shown the same way with "Map by ..." in the picture's corner.
   Entrances are where a ghost returns (`Map`); Forever's new dungeons have none there: `ENTRANCES`
   places five on their zones' maps where players find them (checked against Leatrix Maps' icons),
   and the rest show once recorded in game.

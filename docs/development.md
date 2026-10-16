@@ -79,6 +79,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 15 | `tools/map-preview/render.py <db2> <tex> <out> --bake-zones` | `MapZones/`, `Data/ZoneArt.lua` | 5, 7, 8, 11, 12 |
 | 16 | `tools/changelog/build.py` (after any change to `CHANGELOG.md`) | `Data/Changelog.lua` | |
 | 17 | `tools/map-dungeons/build.py <cache> <WoW folder> [preview dir]` | `Data/DungeonMaps.lua` | 1 |
+| 17a | `tools/map-dungeons/drawn.py` | `MapDungeonDrawn/`, `Data/DungeonDrawn.lua` | `art-drawn/dungeons/` |
 
 A dungeon entrance the game's tables don't have (a Dire Maul wing's own door, a second way in,
 WoW Forever's new dungeons): stand in the portal in game and type `/openmap entrance <name>`, with

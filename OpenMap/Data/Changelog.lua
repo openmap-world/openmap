@@ -4,11 +4,12 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [5] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [6] = "Fixed", }, items = {
 		"|cff6e2c0aA choice the first time the map opens|r on a new install: |cff6e2c0aClassic|r (unexplored areas hidden, no dungeon or flight master icons, no zone levels, the favourite buttons folded away) or |cff6e2c0aOpenMap|r (as it comes). Settings you already have aren't asked about or changed; /openmap welcome asks again. Suggested in #24.",
 		"|cff6e2c0aOpenMap button on the map|r (the menu's Look tab) hides the OpenMap button and the favourites; /openmap opens the menu then.",
 		"|cff6e2c0aYour arrow on top|r: the player arrow is drawn over every other icon on the map (quest givers, Questie's and other addons' icons), so you can always see which way you're facing (suggested in #31). Your party's markers come up with it.",
 		"OpenMap shows under a |cff6e2c0aMap|r category in the game's AddOns list.",
+		"|cff6e2c0aMaps of Ruins of Lordaeron and The Hall of Thanes|r, two of WoW Forever's own dungeons, which the game has no map of: drawn by Santiago Reyes and used with his permission. Click their entrances in Undercity and Ironforge; the map shows \"Map by Santiago Reyes\" in its corner.",
 		"The zone you're looking at has its name over the map again when you hover it, where the game names no place in it (Silverpine Forest's had gone; reported in #25). With Zone levels off, zone names still show, without their levels.",
 		"|cff6e2c0aMove Any|r owns the map window: with it, OpenMap's title bar, resize grips and saved place stand down, so Move Any's own drag and resize work on the map again (reported in #23). The map size slider and Reset size and place are off then.",
 		"A city's own map that went missing (Ironforge showing only Dun Morogh's painting of it, until a /reload: reported in #30) is shown again when you reopen the map, and the map's check of what's in view no longer stays stuck if it stopped part way. (A safeguard: what hid it isn't known yet.)",

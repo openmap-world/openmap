@@ -185,7 +185,10 @@ local function Atlas(tex, name, turn, ownSize)
 	return true
 end
 
-local function FloorsOf(inst) return ns.MapDungeonMaps and ns.MapDungeonMaps[inst[1]] end
+-- Blizzard's map of it, else one drawn for WoW Forever's own dungeons (Data/DungeonDrawn.lua)
+local function FloorsOf(inst)
+	return ns.MapDungeonMaps and ns.MapDungeonMaps[inst[1]] or ns.MapDungeonDrawn and ns.MapDungeonDrawn[inst[1]]
+end
 local BLANK = { { blank = true } }    -- (the floors of a dungeon the client has no map of: one blank page)
 
 local function LayoutView()
@@ -224,6 +227,7 @@ local function ShowFloor(i, quiet)
 	end
 	view.blank:SetShown(f.blank and true or false)
 	view.blankText:SetShown(f.blank and true or false)
+	view.credit:SetText(f.credit and L["Map by %s"]:format(f.credit) or "")
 	view.floorName:SetText(("|cffffd100%s|r%s"):format(view.FloorName(i), #floors > 1 and ("  |cff998866%d / %d|r"):format(i, #floors) or ""))
 	view.wing:SetText(f.wing and (f.wing .. "   ") or "")
 	view.where:SetText(S.InstanceName(view.inst))
@@ -291,6 +295,15 @@ local function BuildView()
 	view.blankText:SetTextColor(0.32, 0.22, 0.12)
 	view.blankText:SetText(L["WoW Forever has no map of this dungeon yet."])
 	view.blankText:Hide()
+	-- who drew a map we didn't get from the game (Data/DungeonDrawn.lua): small, in the picture's corner
+	local over = CreateFrame("Frame", nil, view)
+	over:SetAllPoints(view.port)
+	over:SetFrameLevel(view:GetFrameLevel() + 20)   -- (over the picture, however far in)
+	view.credit = Look:Font(over:CreateFontString(nil, "OVERLAY"), 11)
+	view.credit:SetPoint("BOTTOMRIGHT", view.port, "BOTTOMRIGHT", -10, 8)
+	view.credit:SetTextColor(0.8, 0.7, 0.5)
+	view.credit:SetShadowColor(0, 0, 0, 1)
+	view.credit:SetShadowOffset(1, -1)
 	-- the bar across the top: back to the world (the zone it was entered from), the floor (its name
 	-- between two arrows, a list of them all from its name), close
 	local bar = CreateFrame("Frame", nil, view)

@@ -21,6 +21,7 @@ Core.lua
 Data\Reveal.lua
 Data\Places.lua
 Data\DungeonMaps.lua
+Data\DungeonDrawn.lua
 Data\Grade.lua
 Data\Levels.lua
 Data\FlightData.lua
