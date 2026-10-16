@@ -10,6 +10,7 @@
   /openmap welcome asks again. Suggested in #24.
 - **OpenMap button on the map** (the menu's Look tab) hides the OpenMap button and the favourites;
   /openmap opens the menu then.
+- OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Fixed
 
