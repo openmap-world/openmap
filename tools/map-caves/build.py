@@ -65,9 +65,19 @@ for r in table("UiMapArtTile", CATA):
 
 # later expansions' maps of the same places (classic has none of these)
 SKIP_NAMES = {"Dalaran", "New Tinkertown", "Light's Hope Chapel", "Caverns of Time"}
+# and only places Forever's world has: a micro map named for an area in its own AreaTable (not
+# Greymane Manor in Gilneas, Spitescale Cavern on the remade Echo Isles, Legion's Keeper's Rest and
+# Karazhan Catacombs), or one of these, places classic has under no name of their own
+KEEP_NAMES = {
+    "Scarlet Monastery Entrance",   # the monastery's courtyard, before its doors
+    "Frostmane Hovel",              # Coldridge Valley's troll cave (kept until it's checked in game:
+                                    #  classic has a troll cave there, its map may be Cataclysm's)
+}
+areas = {r["AreaName_lang"] for r in table("AreaTable", FOREVER)}
 caves = []
 for mid, u in uimap.items():
     if u["Name_lang"] in SKIP_NAMES: continue
+    if u["Name_lang"] not in areas and u["Name_lang"] not in KEEP_NAMES: continue
     if u["Type"] != "5" or mid not in art_of: continue           # micro maps: caves, pre-instance areas
     rows = [a for a in assign.get(mid, []) if a["MapID"] in ("0", "1")]
     if not rows: continue
@@ -147,6 +157,8 @@ sheet_path = sys.argv[2] if len(sys.argv) > 2 else None    # (optional: a contac
 sheet = Image.new("RGB", (6 * 336, 8 * 225)) if sheet_path else None
 outdir = os.path.join(ROOT, "Media", "Textures", "MapCave")
 os.makedirs(outdir, exist_ok=True)
+for f in os.listdir(outdir):                # (a cave no longer kept leaves no mask behind)
+    if f.endswith(".tga"): os.remove(os.path.join(outdir, f))
 kept = []
 for c in caves:
     img = Image.new("RGBA", (1002, 668))

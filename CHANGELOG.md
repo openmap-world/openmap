@@ -64,6 +64,9 @@
   The minimap is now only the tiles the game itself draws (those its own world map file lists), which
   also leaves out other versions' sea far west of Dun Morogh and east of Wetlands, and the Draenei
   isles off Kalimdor.
+- The cave maps of four places WoW Forever doesn't have are gone: Greymane Manor (Gilneas),
+  Spitescale Cavern (the Echo Isles as Cataclysm remade them), and Legion's Keeper's Rest and
+  Karazhan Catacombs.
 
 ## v0.4.0-beta (2026-10-16)
 
