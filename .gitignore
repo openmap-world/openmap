@@ -8,3 +8,5 @@ __pycache__/
 /renders/
 # map art exported for hand-editing (tools/map-art/export.py): regenerate, don't commit
 /art-edits/source/
+# release zips built locally (tools/package/build.py)
+/dist/

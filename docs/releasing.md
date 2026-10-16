@@ -30,3 +30,16 @@ GitHub release with the zip, and uploads it to CurseForge.
 3. Tag and push: `git tag v0.2.0` then `git push origin v0.2.0`.
 
 Tags with `-beta` or `-alpha` in them are uploaded to CurseForge as beta / alpha files.
+
+## By hand
+
+To upload without the workflow, do steps 1 and 2, commit, then
+
+    python -P tools/package/build.py v0.5.0-beta
+
+It runs lint and the offline tests, then writes `dist/OpenMap-v0.5.0-beta.zip`: what the packager
+would make, the `OpenMap/` folder as committed with the version in its toc. It also writes
+`dist/OpenMap-v0.5.0-beta-changelog.md`, that version's notes. On CurseForge, open the project's
+Files → Upload File, choose the zip, paste the notes as the changelog (Markdown), set the release
+type (Beta for a `-beta` version) and the game version, and upload. Tag the commit when you can
+push again, so the next release's notes start from the right place.
