@@ -64,6 +64,12 @@
   The minimap is now only the tiles the game itself draws (those its own world map file lists), which
   also leaves out other versions' sea far west of Dun Morogh and east of Wetlands, and the Draenei
   isles off Kalimdor.
+- Blizzard's classic maps drawn in the land between zones are placed where WoW Forever places those
+  zones. They were placed by Mists of Pandaria Classic's tables, whose zones are Cataclysm's, so
+  The Barrens' was drawn at Northern Barrens' size and Stonetalon Mountains', Silithus', Badlands',
+  Dun Morogh's and Azshara's were off, showing copies of their mountains beside the real ones.
+  Cataclysm's Hillsbrad Foothills (Alterac taken in) and a different drawing of Mulgore are no longer
+  used.
 - The cave maps of four places WoW Forever doesn't have are gone: Greymane Manor (Gilneas),
   Spitescale Cavern (the Echo Isles as Cataclysm remade them), and Legion's Keeper's Rest and
   Karazhan Catacombs.

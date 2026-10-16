@@ -62,7 +62,7 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
 - **gap fill** (`Data/Gaps.lua`, from `tools/map-preview/gapfill.py`): land no zone
   paints is blank: the zone maps' own parchment (`MapPaper`, two sizes that never line up)
   through `MapGapLand`, crisp along the coast. Over that, Blizzard's own maps of the land that
-  Forever's tables don't use (`Gaps.lua`'s `art`: the classic base maps of 18 zones, which
+  Forever's tables don't use (`Gaps.lua`'s `art`: the classic base maps of 16 zones, which
   paint the land round them, and Gilneas' base map), drawn from the client at their own
   resolution through `MapCoastArt`. It fades in with the zone detail. Nothing is painted in
   or blurred across: only Blizzard's art, or paper.
@@ -283,8 +283,8 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 - **Data sources**: everything in `Data/` comes from the game's tables except
   `Levels.lua`, which the client doesn't carry (zone ranges from the Warcraft Wiki, see the
   file), `Labels.lua` and `Banners.lua` (measured or traced on the art), and the placement of
-  the maps in `Gaps.lua`'s `art` (from Mists of Pandaria Classic's tables, which still place
-  them). Dungeon levels come from the game's group finder (`tools/map-data/build.py`): one level
+  Gilneas' map in `Gaps.lua`'s `art` (from Mists of Pandaria Classic's tables, which still place
+  it; the others are the same drawings as Forever's own zone maps, and go where those do). Dungeon levels come from the game's group finder (`tools/map-data/build.py`): one level
   each, shown as a range five past it, the span WoW Forever's own list gives its new dungeons, whose
   ranges are Forever's (cited in the script). Bosses are the game's `DungeonEncounter` table.
   Dungeon maps (`DungeonMaps.lua`): each instance's floors, their names and wings from Mists of

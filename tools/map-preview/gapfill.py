@@ -195,20 +195,25 @@ def gap_minimap(m, gap):
     return keep
 
 # Finer maps of land no zone covers, from Blizzard's own maps the client has but Forever's
-# map tables don't use, placed as Mists of Pandaria Classic's tables place them. Stitch.lua
-# draws each (its own tiles, at their own resolution) where no zone paints, through
-# MapCoastArt/<name>.tga: its land and shallows, inside its frame, less its labels.
+# map tables don't use. Stitch.lua draws each (its own tiles, at their own resolution) where no
+# zone paints, through MapCoastArt/<name>.tga: its land and shallows, inside its frame, less its
+# labels.
 #   Gilneas   the base map of Gilneas before the Cataclysm (the unexplored layer: parchment,
-#             coast and shallows, no towns; uiMap 179, on Silverpine Forest's coordinates).
-#             The gaps' land takes its outline (`seeds`: points on its land, for finding it)
+#             coast and shallows, no towns; uiMap 179, on Silverpine Forest's coordinates),
+#             placed as Mists of Pandaria Classic's tables place it (`rect`). The gaps' land
+#             takes its outline (`seeds`: points on its land, for finding it)
 #   the rest  the classic base maps of Forever's zones (Forever's own are newer art): they
 #             paint the land round their zone in Blizzard's lighter style (the ridges round
 #             Orgrimmar, the mountains west of Searing Gorge ...), which no zone map of
-#             Forever's does. The land is Forever's outline. `labels`: boxes round the names
+#             Forever's does. Each is the same drawing as Forever's own map of its zone, so it's
+#             placed where Forever's tables place that zone (SAME_ART checks); Mists Classic's
+#             own places for them are its Cataclysm-era zones' (The Barrens': Northern Barrens'),
+#             and its Hillsbrad Foothills (Alterac's land taken in) and Mulgore are other
+#             drawings, left out. The land is Forever's outline. `labels`: boxes round the names
 #             of the zones next door that each sets on that land (its art px), left out
 # Where two reach the same land, it's shared out by which one's own zone is nearer (SHARE),
 # softly, so no stretch shows two paintings of itself.
-# (uiMap ids are Mists Classic's.)
+# (uiMap ids are Mists Classic's: where each file comes from.)
 COAST_SOURCES = [{
     "name": "Gilneas", "continent": 1415, "zone": None,          # (uiMap 179)
     "rect": (0.652549, 0.722944, 0.349999, 0.420411),           # l, r, t, b on the world (normalized)
@@ -216,89 +221,63 @@ COAST_SOURCES = [{
     "seeds": ((334, 400), (747, 267), (614, 333), (560, 160), (700, 520), (450, 520), (250, 300), (400, 250)),
 }, {
     "name": "Azshara", "continent": 1414, "zone": "Azshara",     # (uiMap 76)
-    "rect": (0.2695, 0.3924, 0.3157, 0.4386),
     "files": (270416, 270418, 270422, 270429, 270439, 270440, 270430, 270413, 270407, 270435, 270417, 270428),
 }, {
     "name": "Durotar", "continent": 1414, "zone": "Durotar",     # (uiMap 1)
-    "rect": (0.238119, 0.355937, 0.435090, 0.552919),
     "files": (271420, 271436, 271430, 271434, 271431, 271432, 271433, 271423, 271425, 271429, 271424, 271441),
 }, {
     "name": "Stonetalon Mountains", "continent": 1414, "zone": "Stonetalon Mountains",   # (uiMap 65)
-    "rect": (0.1074, 0.2389, 0.3817, 0.5132),
     "files": (272625, 272631, 272639, 272643, 272626, 272627, 272651, 272640, 272622, 272629, 272644, 272645),
     "labels": ((710, 85, 930, 130), (110, 572, 310, 618)),
 }, {
     "name": "Silithus", "continent": 1414, "zone": "Silithus",   # (uiMap 81)
-    "rect": (0.1279, 0.2183, 0.6918, 0.7823),
     "files": (272549, 272550, 272569, 272578, 272551, 272570, 272571, 272579, 272552, 272568, 272557, 272558),
     "labels": ((770, 345, 970, 432),),
 }, {
     "name": "Feralas", "continent": 1414, "zone": "Feralas",     # (uiMap 69)
-    "rect": (0.0731, 0.228, 0.5746, 0.7295),
     "files": (271676, 271689, 271697, 271693, 271703, 271677, 271698, 271690, 271684, 271688, 271701, 271702),
     "labels": ((100, 130, 210, 252), (740, 66, 930, 112), (640, 576, 830, 628)),
 }, {
     "name": "Thousand Needles", "continent": 1414, "zone": "Thousand Needles",   # (uiMap 64)
-    "rect": (0.204, 0.3021, 0.6281, 0.7262),
     "files": (272969, 272960, 272974, 272980, 272956, 272970, 272971, 272966, 272967, 272959, 272965, 272979),
     "labels": ((290, 32, 410, 104), (570, 118, 790, 198), (130, 532, 320, 612)),
 }, {
     "name": "Ashenvale", "continent": 1414, "zone": "Ashenvale",     # (uiMap 63)
-    "rect": (0.1565, 0.285, 0.3393, 0.4678),
     "files": (270377, 270403, 270374, 270383, 270395, 270404, 270396, 270384, 270385, 270399, 270382, 270406),
     "labels": ((420, 82, 660, 132), (20, 562, 260, 618)),
 }, {
     "name": "Felwood", "continent": 1414, "zone": "Felwood",     # (uiMap 77)
-    "rect": (0.1543, 0.2894, 0.2536, 0.3887),
     "files": (271651, 271667, 271661, 271668, 271671, 271654, 271662, 271672, 271674, 271670, 271655, 271656),
     "labels": ((730, 82, 960, 122), (650, 352, 780, 396)),
 }, {
     "name": "Tanaris", "continent": 1414, "zone": "Tanaris",     # (uiMap 71)
-    "rect": (0.1958, 0.3565, 0.6884, 0.8492),
     "files": (272790, 272786, 272802, 272797, 272791, 272779, 272780, 272804, 272803, 272785, 272778, 272796),
     "labels": ((10, 180, 180, 228), (820, 216, 960, 342)),
 }, {
     "name": "Dun Morogh", "continent": 1415, "zone": "Dun Morogh",   # (uiMap 27)
-    "rect": (0.6817, 0.7913, 0.4644, 0.574),
     "files": (271407, 271390, 271415, 271402, 271394, 271397, 271403, 271391, 271395, 271413, 271414, 271412),
     "labels": ((680, 32, 890, 78), (490, 516, 750, 578)),
 }, {
-    "name": "Hillsbrad Foothills", "continent": 1415, "zone": "Hillsbrad Foothills",   # (uiMap 25)
-    "rect": (0.6881, 0.7969, 0.2824, 0.3912),
-    "files": (450653, 450657, 450658, 450659, 450660, 450661, 450662, 450663, 450664, 450654, 450655, 450656),
-    "labels": ((110, 82, 310, 158), (680, 42, 970, 108), (740, 502, 930, 578)),
-}, {
     "name": "Loch Modan", "continent": 1415, "zone": "Loch Modan",   # (uiMap 48)
-    "rect": (0.7741, 0.8359, 0.4827, 0.5445),
     "files": (252868, 252872, 252873, 252874, 252875, 252876, 252877, 252878, 252879, 252869, 252870, 252871),
 }, {
     "name": "Arathi Highlands", "continent": 1415, "zone": "Arathi Highlands",   # (uiMap 14)
-    "rect": (0.7547, 0.8325, 0.3369, 0.4147),
     "files": (270337, 270355, 270338, 270334, 270345, 270340, 270356, 270335, 270341, 270344, 270339, 270354),
     "labels": ((20, 86, 230, 132),),
 }, {
     "name": "Badlands", "continent": 1415, "zone": "Badlands",   # (uiMap 15)
-    "rect": (0.7721, 0.8408, 0.5286, 0.5972),
     "files": (270544, 270519, 270523, 270537, 270538, 270539, 270545, 270526, 270516, 270548, 270518, 270549),
     "labels": ((100, 62, 360, 112),),
 }, {
     "name": "Un'Goro Crater", "continent": 1414, "zone": "Un'Goro Crater",   # (uiMap 78)
-    "rect": (0.1825, 0.265, 0.695, 0.7774),
     "files": (253240, 253244, 253245, 253246, 253247, 253248, 253249, 253250, 253251, 253241, 253242, 253243),
 }, {
     "name": "Searing Gorge", "continent": 1415, "zone": "Searing Gorge",   # (uiMap 32)
-    "rect": (0.7367, 0.7867, 0.5368, 0.5868),
     "files": (254515, 254519, 254520, 254521, 254522, 254523, 254524, 254525, 254526, 254516, 254517, 254518),
 }, {
     "name": "The Barrens", "continent": 1414, "zone": "The Barrens",   # (uiMap 10)
-    "rect": (0.1899, 0.3179, 0.435, 0.5631),
     "files": (270575, 270555, 270556, 270557, 270588, 270576, 270582, 270583, 270562, 270566, 270587, 270581),
     "labels": ((100, 50, 310, 110), (630, 128, 770, 172), (160, 292, 350, 342), (220, 572, 380, 656), (860, 512, 975, 612)),
-}, {
-    "name": "Mulgore", "continent": 1414, "zone": "Mulgore",   # (uiMap 7)
-    "rect": (0.1453, 0.2667, 0.5012, 0.6226),
-    "files": (272166, 272184, 272164, 272174, 272167, 272175, 272162, 272182, 272163, 272160, 272161, 272183),
-    "labels": ((760, 326, 940, 398),),
 }]
 SOURCE_FRAME = (30, 140)        # source art px in from its edge where it takes over (a long fade: where it meets
                                 #  blank paper, its edge mustn't read as a line)
@@ -311,6 +290,24 @@ LABEL_SOFT = 10                 # source art px a left-out label's box fades ove
 PARCHMENT = ((0.228, 0.345, 0.288, 0.400),)
 SHARE = (6, 4)                  # world units a map's claim halves over (from its own zone's land), and how sharply
                                 # (the power) the nearest one leads
+SAME_ART = 0.85                 # how closely a source's ink lines must match its zone's own art (correlation)
+
+def ink(art):
+    """an art's ink lines: its brightness' gradient"""
+    L = ndimage.gaussian_filter(art[..., :3].mean(2), 1.5)
+    return np.hypot(ndimage.sobel(L, 0), ndimage.sobel(L, 1))
+
+def place_source(src):
+    """a zone's source map goes where Forever's tables place the zone: it's the same drawing as
+    Forever's own map of it (their ink lines correlate, inside their frames), or it's left out"""
+    if not src["zone"]: return True
+    z = next(z for z in g["zones"] if z["name"] == src["zone"])
+    src["rect"] = z["rect"]
+    a, b = ink(source_land(src)[0])[40:-40, 40:-40], ink(g["base"](z))[40:-40, 40:-40]
+    a, b = a - a.mean(), b - b.mean()
+    match = float((a * b).sum() / np.sqrt((a * a).sum() * (b * b).sum()))
+    if match < SAME_ART: print("   left out", src["name"], "(not its zone's drawing: %.2f)" % match, flush=True)
+    return match >= SAME_ART
 
 def source_land(src):
     """the source map's art and its land: a watershed between its coast's ink line (the ridge),
@@ -353,7 +350,7 @@ def apply_sources(m, L, A, OW, OH):
     (MapCoastArt): its land and shallows, inside its frame, less its labels, where no zone (A)
     paints, and its share where more than one reaches"""
     l, r, t, b = m["rect"]
-    srcs = [s for s in COAST_SOURCES if s["continent"] == m["id"]]
+    srcs = [s for s in COAST_SOURCES if s["continent"] == m["id"] and place_source(s)]
     if not srcs: return
     zones_by = {z["name"]: z for z in g["zones"]}
     # the shares, on a coarse grid (a world unit a cell): each map's claim, by its reach (its
@@ -418,7 +415,8 @@ def apply_sources(m, L, A, OW, OH):
         print("   coast from", src["name"], flush=True)
 
 over_dir, land_dir = os.path.join(TEX, "MapGap"), os.path.join(TEX, "MapGapLand")
-for d_ in (over_dir, land_dir):                         # (MapGap: what was laid over the paper; none now)
+# (MapGap: what was laid over the paper, none now; MapCoastArt: so a source left out leaves no mask behind)
+for d_ in (over_dir, land_dir, os.path.join(TEX, "MapCoastArt")):
     os.makedirs(d_, exist_ok=True)
     for f in os.listdir(d_):
         if f.endswith(".tga"): os.remove(os.path.join(d_, f))
