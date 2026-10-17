@@ -33,7 +33,7 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] A dungeon of several floors (Shadowfang Keep, Scarlet Monastery): the side panel opens on its Floors tab (the first), showing each floor as a small picture with its name, the one shown edged in gold; click one: that floor (the arrows and the floor list agree). One-floor dungeons have no Floors tab.
 - [ ] Click Blackrock Mountain's and Dire Maul's entrances: a list to pick from; Dire Maul - East opens on Warpwood Quarter, North on Gordok Commons, West on Capital Gardens. Scarlet Monastery's: its four wings to pick from, each opening on its own floor (Graveyard, Library, Armory, Cathedral).
 - [ ] A WoW Forever dungeon with no map in the client (City of Dalaran, The Drowned City ...): its entrance opens the same view on a blank parchment page saying there's no map of it yet, with its side panel (bosses, quests, loot) as any other's.
-- [ ] City of Dalaran's entrance (Alterac Mountains): Santiago's drawn map, "Map by Santiago Reyes" in its corner.
+- [ ] City of Dalaran's entrance (Alterac Mountains): Santiago's drawn map, "Map by Santiago Reyes" at the foot of the picture, clear of the edge tabs and the OpenMap button.
 - [ ] Forever's dungeons: City of Dalaran (Alterac Mountains), The Drowned City (Stranglethorn), Excavation Site: Wetlands, The Hall of Thanes (Ironforge), Ruins of Lordaeron (Undercity map) have an entrance icon where the portal is; click: their map if the client has one.
 - [ ] `/openmap entrance Test` standing anywhere outdoors: a line like `"Test": [(0, -8840.6, 489.7)],` in chat.
 

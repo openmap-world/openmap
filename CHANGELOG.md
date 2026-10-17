@@ -12,14 +12,14 @@
   terrain (used with his permission). The first of the gaps between zones to be filled; Options'
   **Filled gaps** turns them off.
 - **A map of City of Dalaran**, drawn by Santiago Reyes and used with his permission: click its
-  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" in its
-  corner, as with his others.
+  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" at its
+  foot, as with his others.
 - **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
   Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
   and Back takes you to the world where you were. (Under the Boats switch.)
 - **Maps of Ruins of Lordaeron and The Hall of Thanes**, two of WoW Forever's own dungeons, which
   the game has no map of: drawn by Santiago Reyes and used with his permission. Click their
-  entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" in its corner.
+  entrances in Undercity and Ironforge; the map shows "Map by Santiago Reyes" at its foot.
 - **Dungeon Journal**: with Exehn's Dungeon Journal installed, a dungeon's map has **Open in Dungeon
   Journal** on its Bosses tab, and clicking an entrance can open its page there instead of its map
   (the menu's **Entrances open Dungeon Journal**, or Options). Its map still opens where Dungeon
