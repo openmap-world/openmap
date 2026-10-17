@@ -995,7 +995,7 @@ local function OpenJournal(inst, quests)
 	if not key then return false end
 	-- (shown first: showing it puts up the page it was last on)
 	local frame, toggle = _G.ForeverDungeonJournalFrame, _G.ForeverDungeonJournal_Toggle
-	if frame and not frame:IsShown() and type(toggle) == "function" then pcall(toggle) end
+	if not (frame and frame:IsShown()) and type(toggle) == "function" then pcall(toggle) end
 	local open = quests and type(dj.OpenQuestPage) == "function" and dj.OpenQuestPage or dj.OpenBossPage
 	return (pcall(open, key))
 end

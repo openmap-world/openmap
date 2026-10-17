@@ -351,17 +351,27 @@ end
 -- the player's arrow on top of every other icon (#31): Blizzard's (its group members pin, the party's
 -- with it) and ours. Blizzard sets its level again as it reuses the pin, so it's checked each tick
 -- and your own blip on it sized away while your arrow is off (Your arrow): the pin draws the party
--- too, so it stays. Blizzard sizes it again as it updates the pin, so this is each tick as well
+-- too, so it stays. Blizzard sizes it again on every zoom step (SynchronizePinSizes): hooked, so it
+-- goes at once, and each tick as well where there's no such step to hook
 local blipHidden = setmetatable({}, { __mode = "k" })
+local blipHooked = setmetatable({}, { __mode = "k" })
 local function PlayerBlip(pin, shown)
 	if not pin.SetPinSize then return end
 	if not shown then
+		if not blipHooked[pin] and type(pin.SynchronizePinSizes) == "function" then
+			blipHooked[pin] = true
+			hooksecurefunc(pin, "SynchronizePinSizes", function(self)
+				if mod.db.playerArrow == false then pcall(self.SetPinSize, self, "player", 0) end
+			end)
+		end
 		pcall(pin.SetPinSize, pin, "player", 0)
 		blipHidden[pin] = true
 	elseif blipHidden[pin] then
+		-- (back at Blizzard's size for this zoom: its size over the canvas's scale, as it sets it)
 		local dp = pin.dataProvider
 		local sizes = dp and dp.GetUnitPinSizesTable and dp:GetUnitPinSizesTable()
-		if sizes and sizes.player then pcall(pin.SetPinSize, pin, "player", sizes.player) end
+		local scale = map.GetCanvasScale and map:GetCanvasScale() or 1
+		if sizes and sizes.player and scale and scale > 0 then pcall(pin.SetPinSize, pin, "player", sizes.player / scale) end
 		blipHidden[pin] = nil
 	end
 end

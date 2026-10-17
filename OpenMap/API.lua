@@ -52,6 +52,8 @@ end
 -- canvas itself, so they show over all of the stitched map, not only the map underneath
 function API.CanvasFromWorldPos(continent, x, y)
 	if type(continent) ~= "number" or type(x) ~= "number" or type(y) ~= "number" or not API.IsStitched() then return end
+	-- (UnitPosition's can be secret on this client: nothing can be done with those)
+	if ns.Safe.IsSecret(continent) or ns.Safe.IsSecret(x) or ns.Safe.IsSecret(y) then return end
 	local u, v = S.FromYards(continent, x, y)
 	local host = mod.HostMap and mod.HostMap()
 	if not u or not host then return end

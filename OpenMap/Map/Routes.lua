@@ -91,11 +91,12 @@ local function LevelOf(i)
 end
 
 -- every dot of every route; where two routes share water (out of Menethil, Grom'gol),
--- the second skips the dots the first already put there, so the spacing stays even
+-- the second skips the dots the first already put there, so the spacing stays even. Only
+-- a route of the same kind's: boats and zeppelins are shown and hidden apart (KindOn)
 local function Build(set)
 	local P = ns.MapPlaces or {}
 	local fine = STEP / 2 ^ (LEVELS - 1)
-	local taken = {}                -- grid cell -> { { u, v, level } }
+	local takenBy, taken = {}, nil  -- kind -> grid cell -> { { u, v, level } }
 	local function Taken(u, v, level)
 		local cx, cy = math.floor(u / STEP), math.floor(v * 1.5 / STEP)
 		local reach = (STEP / 2 ^ (level - 1)) * 0.6
@@ -113,6 +114,8 @@ local function Build(set)
 	for _, sail in ipairs(P.sailings or {}) do
 		local way = KINDS[sail[1]] and Way(sail) or {}
 		if #way > 1 then
+			takenBy[sail[1]] = takenBy[sail[1]] or {}
+			taken = takenBy[sail[1]]
 			local route = { way = way, kind = sail[1], name = sail[2], faction = Faction(sail), levels = {} }
 			route.frame = CreateFrame("Frame", nil, set.frame)
 			route.frame:SetAllPoints(set.frame)

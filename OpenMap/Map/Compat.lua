@@ -83,6 +83,7 @@ end
 -- canvas itself, under the art: they don't show.) Which books it shows is its own doing: those on
 -- the map underneath, or a continent's (docs/api.md)
 local books = setmetatable({}, { __mode = "k" })
+local booksLoaded               -- (SetupCompat)
 local function LiftBooks(scan)
 	local top = S.artTop
 	if not top or not Stitched() then return end
@@ -126,6 +127,7 @@ end
 function mod.OnStitchedChanged(on)
 	if not map then return end
 	if on then HoldAll() else Release() end
+	if on and booksLoaded then QueueBooks(true) end   -- (stitched with the window open: no map change of its own)
 end
 
 -- (their art comes back as the map changes underneath, from their own map-change hooks: once
@@ -181,6 +183,7 @@ function mod:SetupCompat(worldMap)
 	-- (Books on Map Forever redraws its icons from these: lifted once it has)
 	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 	if loaded and loaded("Books_on_map_Forever") then
+		booksLoaded = true
 		hooksecurefunc(map, "OnMapChanged", function() QueueBooks(true) end)
 		map:HookScript("OnShow", function() QueueBooks(true) end)
 		if map.OnCanvasScaleChanged then hooksecurefunc(map, "OnCanvasScaleChanged", function() QueueBooks(false) end) end
