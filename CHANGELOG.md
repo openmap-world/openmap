@@ -65,6 +65,8 @@
 
 ### Fixed
 
+- Zooming in quickly, the zones no longer flicker to blank parchment for a moment: the map's
+  pre-drawn tiles now stay until every zone coming into view has its art in.
 - Opening a dungeon's map no longer can raise a Lua error the first time (when the map window
   changed size as it opened, as in full screen).
 - **With a gamepad**: the cursor stays where you put it. It jumped back to the middle of the map

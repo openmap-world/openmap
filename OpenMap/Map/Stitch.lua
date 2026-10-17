@@ -179,6 +179,9 @@ local function ApplyDetail()
 	end
 	local live = Baked.use and Baked.live or 1
 	local warm = Baked.use and Baked.warm or false
+	-- (the tiles held while zones' files are still coming in, however they came to be wanted: a quick
+	-- zoom brings more zones into view after the live layers came on, and they'd show as parchment)
+	Baked.holding = d > 0.001 and (live > 0 or warm) and Baked.use and Baked.busy or false
 	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0)
 	if d == appliedDetail and key == Baked.applied then return end
 	appliedDetail, Baked.applied = d, key
@@ -190,7 +193,6 @@ local function ApplyDetail()
 		for mapID in pairs(zoneTex) do
 			if inView[mapID] == true then ShowZone(mapID) end
 		end
-		Baked.holding = on and Baked.use and Baked.busy or false
 	end
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
@@ -1247,7 +1249,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		f:SetScript("OnShow", function(self)
 			if self.omLoaded then return end
 			self.omLoaded = true
-			for _, tex in ipairs(texs) do tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR") end
+			for _, tex in ipairs(texs) do S.QueueLoad(tex) end   -- (the loader: faded in, the baked tiles held till then)
 		end)
 		culled[#culled + 1] = { f, r[1], r[2], r[3], r[4] }
 	end
@@ -1856,6 +1858,8 @@ local fading, fadingN = {}, 0   -- texture -> when it got its file
 local loader = CreateFrame("Frame")
 loader:Hide()
 loader:SetScript("OnUpdate", function(self)
+	-- (files wanted since the zoom last changed, by a pan or a cull: the tiles held over them too)
+	if Baked.busy and Baked.use and not Baked.holding then ApplyDetail() end
 	local n, now = 0, GetTime()
 	while loadAt <= #loadQueue and n < LOAD_PER_FRAME do
 		local tex = loadQueue[loadAt]
@@ -1889,6 +1893,16 @@ loader:SetScript("OnUpdate", function(self)
 		end
 	end
 end)
+
+-- a texture of a layer that isn't a zone's (the gaps painted by hand) through the same loader: the baked
+-- tiles stay over it till its file is in (Baked.holding)
+function S.QueueLoad(tex)
+	if not tex.omFile or tex.omQueued then return end
+	tex.omQueued = true
+	loadQueue[#loadQueue + 1] = tex
+	loader:Show()
+	Baked.busy = true
+end
 
 --------------------------------------------------------------------------------
 -- Unexplored land, darkened ("dim"). A zone you haven't found any of: a shade over its art and the
