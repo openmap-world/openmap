@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### New
+
+- **A map of City of Dalaran**, drawn by Santiago Reyes and used with his permission: click its
+  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" in its
+  corner, as with his others.
+
 ## v0.5.0-beta (2026-10-16)
 
 ### New

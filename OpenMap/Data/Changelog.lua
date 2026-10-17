@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
+		"|cff6e2c0aA map of City of Dalaran|r, drawn by Santiago Reyes and used with his permission: click its entrance in Alterac Mountains (it opened on a blank page before). \"Map by Santiago Reyes\" in its corner, as with his others.",
+	} },
 	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [10] = "Improved", [13] = "Fixed", }, items = {
 		"|cff6e2c0aAirships to Zephras Isle|r: the flying boats at the Dalaran skydock (Alterac Mountains) and in Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does, and Back takes you to the world where you were. (Under the Boats switch.)",
 		"|cff6e2c0aMaps of Ruins of Lordaeron and The Hall of Thanes|r, two of WoW Forever's own dungeons, which the game has no map of: drawn by Santiago Reyes and used with his permission. Click their entrances in Undercity and Ironforge; the map shows \"Map by Santiago Reyes\" in its corner.",

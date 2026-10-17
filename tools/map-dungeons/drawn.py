@@ -17,6 +17,7 @@ PIC_W, PIC_H = 1002, 668
 
 # instance mapID (Data/Places.lua's) -> (the drawing, its name, who drew it)
 DRAWN = {
+    2959: ("city-of-dalaran.png", "City of Dalaran", "Santiago Reyes"),
     2999: ("ruins-of-lordaeron.png", "Ruins of Lordaeron", "Santiago Reyes"),
     3065: ("hall-of-thanes.png", "The Hall of Thanes", "Santiago Reyes"),
 }

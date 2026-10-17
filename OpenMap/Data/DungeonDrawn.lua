@@ -9,6 +9,9 @@ local _, ns = ...
 local P = ns.Media.path .. "Textures\\MapDungeonDrawn\\"
 
 ns.MapDungeonDrawn = {
+	[2959] = { -- City of Dalaran
+		{ tiles = { P .. "2959_1", P .. "2959_2", P .. "2959_3", P .. "2959_4", P .. "2959_5", P .. "2959_6", P .. "2959_7", P .. "2959_8", P .. "2959_9", P .. "2959_10", P .. "2959_11", P .. "2959_12" }, credit = "Santiago Reyes" },
+	},
 	[2999] = { -- Ruins of Lordaeron
 		{ tiles = { P .. "2999_1", P .. "2999_2", P .. "2999_3", P .. "2999_4", P .. "2999_5", P .. "2999_6", P .. "2999_7", P .. "2999_8", P .. "2999_9", P .. "2999_10", P .. "2999_11", P .. "2999_12" }, credit = "Santiago Reyes" },
 	},
