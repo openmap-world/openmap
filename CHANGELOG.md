@@ -27,12 +27,11 @@
   hidden, no dungeon or flight master icons, no zone levels, the favourite buttons folded away) or
   **OpenMap** (as it comes). Settings you already have aren't asked about or changed;
   /openmap welcome asks again. Suggested in #24.
-- **Your arrow on top**: the player arrow is drawn over every other icon on the map (quest givers,
-  Questie's and other addons' icons), so you can always see which way you're facing (suggested in
-  #31). Your party's markers come up with it.
-- **Your arrow, or not**: the menu's Show tab (and Options) can take your own arrow off the world
-  map, to find your way old-school by the land around you. Your party still shows, and so does the
-  minimap.
+- **Your arrow on top, or off**: the player arrow is drawn over every other icon on the map (quest
+  givers, Questie's and other addons' icons), so you can always see which way you're facing
+  (suggested in #31); your party's markers come up with it. Or take it off the world map (the menu's
+  Show tab, **Your arrow**) and find your way old-school by the land around you: your party still
+  shows, and so does the minimap.
 - OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Improved
@@ -49,8 +48,6 @@
 
 ### Fixed
 
-- **Books on Map Forever**'s book icons show on the stitched map: they were drawn under its art.
-  Which ones show is still the addon's own choice (those of the zone or continent the map is on).
 - **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
   to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
   to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.
@@ -75,6 +72,8 @@
 - The cave maps of four places WoW Forever doesn't have are gone: Greymane Manor (Gilneas),
   Spitescale Cavern (the Echo Isles as Cataclysm remade them), and Legion's Keeper's Rest and
   Karazhan Catacombs.
+- **Books on Map Forever**'s book icons show on the stitched map: they were drawn under its art.
+  Which ones show is still the addon's own choice (those of the zone or continent the map is on).
 - The zone you're looking at has its name over the map again when you hover it, where the game
   names no place in it (Silverpine Forest's had gone; reported in #25). With Zone levels off, zone
   names still show, without their levels.

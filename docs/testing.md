@@ -37,10 +37,16 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 
 - [ ] The menu's "Minimap detail from" slider: lower, and the minimap's detail mixes in further out; higher, only right up close. At 1x it shows on the whole-world view, and zooming in from there it gets sharper with no pop or jump in strength. "Minimap opacity" caps it at every zoom. Both greyed out with Minimap detail off. Watch the frame rate (debug overlay) zoomed out with it at 1x.
 
-## 4. Icons and routes (2 min)
+## 4. Icons and routes (3 min)
 - [ ] Dungeon, boat and zeppelin icons; the zeppelin is a red-ballooned airship. Click one: it glides to the other end.
-- [ ] OpenMap menu → Boat and zeppelin routes: faint dotted routes, Alliance blue, others red. Hover near one: it lights up with a tooltip.
-- [ ] Flight masters: click two, the route and time show.
+- [ ] WoW Forever's boats: Steamwheedle Port (Tanaris) to Powderfuse Port (Riverglades), Stormwind to Auberdine, Menethil Harbor to Southshore and Auberdine, each with a dock at every stop.
+- [ ] The airship dock at the Dalaran skydock (Alterac Mountains) and the one in Mulgore: the tooltip says "To Zephras Isle"; click: Zephras Isle's map in the window; right-click or Back: the world where you were.
+- [ ] OpenMap menu → Boat and zeppelin routes: faint dotted routes, Alliance blue, others red (the new boats too). Hover near one: it lights up with a tooltip.
+- [ ] The menu's Show tab: Dungeons and raids, Boats and Zeppelins each switch only their own icons, and Boats / Zeppelins their routes too. An install from before (with the old "Dungeons, boats, zeppelins" off) comes up with all three off.
+- [ ] Flight masters: click two, the route and time show. Farholde Keep and Powderfuse Port (Alliance), Rog'mar and Powderfuse Port (Horde) are there, with their flights (the Horde's Powderfuse Port has none in the game's tables).
+- [ ] The Show tab's "Your arrow" off: your arrow goes from the world map (in a group, the party's markers stay); on again: back at its own size.
+- [ ] Right-click out of Stormwind, Ironforge, Orgrimmar, Undercity, Thunder Bluff or Darnassus: the map goes out to its zone (Elwynn Forest, Dun Morogh ...), not the continent.
+- [ ] The close-up minimap shows at Menethil Harbor, Darnassus, Feathermoon and Southshore; over Quel'Thalas there's no green retail terrain.
 
 ## 5. Getting around (3 min)
 - [ ] Search box: type "gadg", click Gadgetzan → glides there with a marker. Type "deadm" → the Deadmines entrance.
@@ -61,6 +67,9 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] With "Buttons as edge tabs" on (the look tab): no button in the bottom-left corner; instead tabs inside the map's right edge (the quest log's left while it's open), low down, flat to it: the OpenMap tab (its logo filling it; lit while the menu's open, pulsing with news), an arrow over it, the favourites as smaller tabs above (lit while on). The arrow folds them and back; right-click one takes it off. A short window shows only as many as fit. Drag the OpenMap tab round the map's edge: it follows along the nearest edge, the tabs turned flat to it (top and bottom too), the favourites going the way with more room; `/reload`: it stays there. A click after a drag doesn't open the menu. On a dungeon's map its two tabs are on the right edge, past the rail when it's there too. The menu opens beside the OpenMap tab, toward the map's middle.
 - [ ] With Questie: quest icons on the stitched map, including in the neighbouring zones and once the map has switched to a zone; the menu's "Questie icons" turns them off and on.
 - [ ] HandyNotes / GatherMate / TomTom (if you use them): their icons show on the stitched map, neighbouring zones' too, and nothing errors.
+- [ ] Books on Map Forever (if you use it): its book icons show over the stitched map (a zone's zoomed in, a continent's further out). Azeroth Tripview: its ships and docks show over the map.
+- [ ] Dungeon Journal (if you use it): a dungeon's Bosses tab has "Open in Dungeon Journal", which opens its page; the menu's "Entrances open Dungeon Journal" makes an entrance open it (one it has no page for still opens its map). With Questie off, the Quests tab has a button opening the dungeon's quests in Dungeon Journal (or NeedRoll); Options' "Dungeon quests from" picks which.
+- [ ] The minimap's AddOns list has OpenMap: click, the map and its menu; right-click, the options window. The Look tab's "Minimap button": a button on the minimap's edge that does the same, drags round it and stays put after `/reload`. With "OpenMap button on the map" off, both still open the menu.
 
 - [ ] Full screen: the Quest log button and the arrow button in the corner show and hide the quest log over the map's right side; leaving full screen, the window is as it was (quest log beside the map if it was). Make the window tall: the quest log's background fills it, no line. Click a quest: its details reach the window's foot (the parchment behind the text, and the text, longer; Abandon / Share / Track at the bottom, no gap under them); at Blizzard's own size they look as before.
 - [ ] Zoom in and out with the wheel, and drag the map, at the world and continent zooms: the

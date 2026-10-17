@@ -14,16 +14,16 @@ OpenMap stitches every zone map into one continuous map. Scroll out of Elwynn an
 - **Zone borders that blend.** Neighbouring zones fade into each other, and the border mountains are colour-matched.
 - **The whole map made visible.** Land Forever has no zone map for (Gilneas, the ridges round Orgrimmar, the mountains west of Searing Gorge, the edges of Stonetalon, Feralas, Silithus and more) is drawn from Blizzard's own classic and pre-Cataclysm maps of it, which ship with the game but the game doesn't show. Land no map ever drew is left as clean parchment, like an unfinished map.
 - **Ocean and continent names rebuilt** so they zoom properly, lettered in the game's own map font.
-- **Dungeon and raid entrances** with level ranges, coloured for your level. Click one and Blizzard's own map of that dungeon opens right in the map, every floor of it, with its bosses and (with Questie) its quests beside it. For loot, OpenMap recommends [NeedRoll](https://www.curseforge.com/wow/addons/needroll): every boss's drops, what you've collected and a wishlist.
-- **Boats and zeppelins**: click one to jump to the other end, and see their routes.
+- **Dungeon and raid entrances** with level ranges, coloured for your level. Click one and Blizzard's own map of that dungeon opens right in the map, every floor of it, with its bosses and its quests beside it (with Questie, Dungeon Journal or NeedRoll). With Dungeon Journal, an entrance can open its page there instead. For loot, OpenMap recommends [NeedRoll](https://www.curseforge.com/wow/addons/needroll): every boss's drops, what you've collected and a wishlist.
+- **Boats, zeppelins and airships**, WoW Forever's own too: click one to jump to the other end (the airships to Zephras Isle open its map), and see their routes. Dungeons, boats and zeppelins each have their own switch.
 - **Underground.** Zoom into a cave or a dungeon's entrance area and Blizzard's map of it appears.
 - **Flight paths.** Learned ones in colour, the rest greyed out. Click two flight masters to see the route you'd fly and roughly how long it takes.
-- **Getting around.** Search for a zone, city, dungeon or flight master; a "Find me" button (or middle-click the map); choose how the map reopens; party and raid members are shown across the whole map.
+- **Getting around.** Search for a zone, city, dungeon or flight master; a "Find me" button (or middle-click the map); choose how the map reopens; party and raid members are shown across the whole map. Or take your own arrow off the map and find your way old-school.
 - **Map pins and drawing.** Ctrl-click for as many pins as you like, each with a note and a colour, followed with Blizzard's waypoint (and TomTom's); share them with your group, guild or a friend. Draw on the map with a pen, lines, arrows, circles and raid marks, on its own or on a pin.
 - **Vendors, spirit healers and rares** (needs Questie): repair, innkeepers, trainers, bankers, auctioneers, stable masters, spirit healers and rare mobs. Questie's quest icons can be switched on or off from OpenMap's menu too. (Still working on performance here.)
 - **A map that fits your screen.** No more black bars at the sides: resize the window to any shape, or go full screen and the map fills it.
 
-Everything is in the **OpenMap** menu on the map (or type `/openmap`). OpenMap works alongside other map addons: on its seamless map the map art and the zoom are OpenMap's, and the rest of theirs keeps working (their icons too, from every zone in view). If one of their options still fights OpenMap's window, OpenMap names it at login. Addon authors: [docs/api.md](docs/api.md) has OpenMap's API.
+Everything is in the **OpenMap** menu on the map (or type `/openmap`, or use the minimap's AddOns list or OpenMap's optional minimap button). OpenMap works alongside other map addons: on its seamless map the map art and the zoom are OpenMap's, and the rest of theirs keeps working (their icons too, from every zone in view). If one of their options still fights OpenMap's window, OpenMap names it at login. Addon authors: [docs/api.md](docs/api.md) has OpenMap's API.
 
 ## Original game art
 

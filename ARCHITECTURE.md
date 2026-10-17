@@ -198,6 +198,10 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   sit flat to that edge (Dungeons.lua's `Atlas`: mirrored or a quarter round), and the favourites go
   the way along it with more room. Low on the right edge (the quest log's left while it's open) by
   default; a dungeon map's two tabs are on that edge, past the rail's end when it's there.
+- `Launcher.lua`: other ways into the menu, for when the OpenMap button on the map is hidden
+  (`mapButtons`): the game's addon compartment (the toc's `AddonCompartmentFunc`) and an optional
+  button on the minimap's edge (`minimapButton`, dragged round it: `minimapAngle`), in Blizzard's own
+  minimap-button art. Click: the map and its menu; right-click: the options window.
 - `Routes.lua`: boat and zeppelin routes as evenly spaced dots along the real paths, in
   nested densities; Alliance blue, others red; quiet until the cursor comes near one.
 - `Nav.lua`: find me, reopening where you left off, the waypoint followed (Blizzard's user
