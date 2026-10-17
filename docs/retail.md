@@ -1,0 +1,90 @@
+# OpenMap for retail
+
+OpenMap runs on retail World of Warcraft (Midnight, `## Interface: 120105`) as well as WoW Forever,
+from one codebase: retail's toc is `OpenMap/OpenMap_Mainline.toc`, its data `OpenMap/Data/Retail/`,
+its textures `OpenMap/Media/Textures/Retail/` (see [development.md](development.md#clients)). Its zip
+is a file of its own on CurseForge (`--client=retail`, [releasing.md](releasing.md)).
+
+## How retail's map differs
+
+Retail's maps aren't WoW Forever's, and the map is built from them differently:
+
+- **The world.** Azeroth's map (947) holds twelve continents, not two, and its art is 3840 x 2560
+  (Forever's 1002 x 668). A zone is about half as wide on it, so the layers' fades go by twice the zoom
+  (`Data/Retail/Client.lua`'s `zoom`), and the deepest zoom goes twice as far.
+- **Which maps are stitched** comes from `Data/Retail/World.lua` (`tools/map-data/world.py`, where
+  its rules are): the open-world zones on the game's navigation bar, one version of each. Left out:
+  Vashj'ir (under the sea), Khaz Algar's underground (right under the Isle of Dorn on Azeroth's map),
+  Quel'Thalas before Midnight (game map 530), class halls, scenarios, and the places Azeroth's map
+  doesn't place (Outland, Draenor, the Shadowlands, Argus, the Maelstrom, Nazjatar, K'aresh,
+  Undermine, the Emerald Dream ...): Blizzard's own map shows those as it always has.
+- **The art is painted whole.** Since the Cataclysm a zone's base art is the whole zone (its
+  explored-area pieces are the same art again), and the world's and continents' art paint their own
+  sea. So there's no sea of OpenMap's, no explored-area pieces over the zones, and no gap filling,
+  colour matching or hand-cleaned art: the map is Blizzard's art as it is, fitted together by masks
+  traced from it (`tools/map-preview/territory.py`): each continent's art on its land and shallows over
+  the world's, each zone's on its own land and what it paints round it over its continent's.
+- **The zones come in later.** Retail's continent art is four to eight times as fine, so it carries
+  the map further in; the zone maps fade in where it runs out (`detailFade`).
+- **World positions** (flight masters, entrances, docks, the minimap) go through each game map's
+  place on Azeroth's map (`World.lua`'s `yards`), worked out from the tables (`tools/uimap.py`).
+
+## What comes from where
+
+| Data | From | Made by |
+| --- | --- | --- |
+| `World.lua` | the map tables | `tools/map-data/world.py` |
+| `Reveal.lua`, `Places.lua` | the map tables; entrances from the encounter journal (`JournalInstanceEntrance`), docks from the map's own points of interest ("Boat to ...") | `tools/map-data/build.py` |
+| `Minimap.lua` | each game map's own world file | `tools/map-data/minimap.py` |
+| `FlightData.lua` | the taxi tables | `tools/map-flights/flights.py` |
+| `DungeonMaps.lua` | the dungeon maps and their floors in the map tables | `tools/map-dungeons/tables.py` |
+| `Territories.lua` and the masks | the zones' explored-area pieces | `tools/map-preview/territory.py` |
+
+Zone levels come from the game itself (`C_Map.GetMapLevels`), as its own map shows them.
+
+## Regenerating
+
+With retail's tables in a folder (`<db2>`: UiMap, UiMapArt, UiMapArtTile, UiMapArtStyleLayer,
+UiMapAssignment, UiMapGroupMember, UiMapXMapArt, WorldMapOverlay, WorldMapOverlayTile, Map, AreaTable,
+TaxiNodes, TaxiPath, TaxiPathNode, JournalInstance, JournalEncounter, JournalInstanceEntrance, AreaPOI,
+from `https://wago.tools/db2/<Table>/csv?build=12.1.5.70448`) and a texture cache (`<tex>`):
+
+```bash
+export OPENMAP_CLIENT=retail
+python -P tools/map-data/world.py <db2>
+python -P tools/map-data/build.py <cache>          # (fetches its tables into <cache>)
+python -P tools/map-data/minimap.py <cache>
+python -P tools/map-flights/flights.py <db2> OpenMap/Data/Retail/FlightData.lua
+python -P tools/map-dungeons/tables.py <db2>
+python -P tools/map-preview/territory.py <db2> <tex>
+python -P tools/map-textures/make.py
+python -P tools/map-art/border.py
+python -P tools/map-textures/shared.py
+```
+
+The build is `tools/clients.py`'s; a new one needs its tables and a rerun of all of these.
+
+## Checking
+
+As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=retail`, and:
+
+- `python -P tools/offline-test/world.py <db2>` builds the stitched world in the stub, with the map
+  answering from the tables, sweeps the view over every continent, and prints the textures drawn at
+  each zoom (it fails on any Lua error; run it for both clients after a change to the map code).
+- `python -P tools/map-preview/whole.py <db2> <tex> <out> name=u,v,zoom ...` renders retail's stitched
+  map out of game, as Stitch.lua draws it.
+
+## Not done, or not known yet
+
+- Nothing has been checked in game: the whole retail build needs a first look (and textures need a full
+  client restart).
+- Townsfolk (vendors, trainers, rares) and dungeon quests come from Questie, which retail doesn't have:
+  the menu leaves townsfolk out; dungeon quests work through Dungeon Journal or NeedRoll if a retail
+  version of either is installed.
+- Four dungeon floors drawn larger than the classic 1002 x 668 (Battle of Dazar'alor, The Nokhud
+  Offensive, Vault of the Incarnates' Valdrakken floor, Dawn of the Infinite) are left out of the
+  dungeon view; The Nokhud Offensive has no other floor, so its entrance opens nothing.
+- Khaz Algar's underground dungeons have no entrance pins (their zones aren't stitched).
+- No caves (Close.lua's underground), no shrunk minimap for the mid zooms (`MapMiniLOD`), no baked zone
+  tiles (`MapZones`) and no lettered names: retail's art letters its own.
+- The flight time estimate uses classic's flight speed.

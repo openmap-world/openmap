@@ -1219,7 +1219,9 @@ function S.BuildDungeonPins(set)
 		local unplaced = {}
 		for _, inst in ipairs(Places().unplaced or {}) do unplaced[inst[2]] = inst end
 		for _, zone in ipairs(C_Map.GetMapChildrenInfo(S.WORLD, Enum.UIMapType.Zone, true) or {}) do
-			local l, r, t, b = S.Rect(zone.mapID)
+			-- (the stitched zones': a client's world leaves some out, Khaz Algar's underground under the Isle of Dorn)
+			local l, r, t, b
+			if S.Stitched(zone.mapID) then l, r, t, b = S.Rect(zone.mapID) end
 			local ok, list = pcall(entrances, zone.mapID)
 			for _, e in ipairs(ok and l and list or {}) do
 				local name = Safe.Value(e.name)

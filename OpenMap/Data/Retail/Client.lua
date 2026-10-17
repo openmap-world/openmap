@@ -22,6 +22,7 @@ ns.ClientMaps = {
 	-- never muted to it), no explored-area pieces drawn over the zones' art (overlays = false), and the
 	-- world and continent art drawn only near the view (cullBackdrop: thousands of tiles at 3840 x 2560)
 	sea = false,
+	seaColor = { 0.52, 0.52, 0.41 },   -- (past the world art's edges: its open sea's colour, near them)
 	overlays = false,
 	cullBackdrop = true,
 	-- its continents' art is four to eight times as fine as WoW Forever's (3840 x 2560, a continent half
@@ -29,4 +30,7 @@ ns.ClientMaps = {
 	-- pixels run out (Stitch.lua's DETAIL_FADE, in the zoom above), with no faint hint of them before
 	detailFade = { 6, 9 },
 	detailHint = false,
+	-- townsfolk (vendors, trainers, rares) come from Questie's database, and Questie is classic's: the menu
+	-- leaves them out (Panel.lua)
+	townsfolk = false,
 }

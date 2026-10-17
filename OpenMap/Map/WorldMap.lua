@@ -1138,6 +1138,9 @@ function mod:Options()
 		desc = "Every slider here (and the OpenMap menu's) back to how OpenMap comes.",
 		confirm = true, confirmText = "Put every slider back to its default?",
 		func = function() mod:ResetSliders() end }
+	-- (a client whose zones' art is painted whole, retail's: no colour-match copies, explored-area pieces or
+	-- painted gaps to set: Data\<client>\Client.lua)
+	if ns.ClientMaps and ns.ClientMaps.overlays == false then opts.colorMatch, opts.gapFills, opts.unexplored = nil, nil, nil end
 	return opts
 end
 

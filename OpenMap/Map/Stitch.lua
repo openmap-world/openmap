@@ -430,10 +430,12 @@ local function PlaceBackdrop(parent, mapID, drawLayer, feather)
 	if not files or #files == 0 then return end
 	local mask = feather and Feather(parent, p, feather)
 	if ns.ClientMaps and ns.ClientMaps.sea == false then
-		-- (a client whose art paints its own sea: the art as it is, once; near the view only, its files
-		-- loaded as it comes near: S.Cull)
+		-- (a client whose art paints its own sea: the art as it is, once; a continent's on its land and the
+		-- shallows round it, ns.MapBackLands (territory.py), the world's art showing past it; near the view
+		-- only, its files loaded as it comes near: S.Cull)
 		local n = #backdrop
-		PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, backdrop, false)
+		local land = ns.MapBackLands and ns.MapBackLands[mapID] and Feather(parent, p, TEX .. "MapBackLand\\" .. mapID)
+		PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, backdrop, false, nil, land)
 		for i = n + 1, #backdrop do
 			local tex, rec = backdrop[i], backdrop[i].omRec
 			if ns.ClientMaps.cullBackdrop then

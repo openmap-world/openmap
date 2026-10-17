@@ -226,26 +226,35 @@ local function Rows()
 			function() return db.entranceClick == "journal" end,
 			function(v) db.entranceClick = v and "journal" or "map" if ns.NotifyOptions then ns.NotifyOptions() end end)
 	end
-	rows[#rows + 1] = { L["Townsfolk"] }
-	local kinds = {}
-	for _, k in ipairs(mod.TOWNSFOLK or {}) do kinds[k.key] = k end
-	local function folk(label, key)
-		return row(label, "townsfolk." .. key, kinds[key] and kinds[key].look or Icon("INV_Misc_QuestionMark"),
-			function() return db.townsfolk[key] end, function(v) db.townsfolk[key] = v mod:RefreshTownsfolk() end)
+	-- (townsfolk come from Questie's database, which a client may have none of: retail's, Client.lua)
+	local client = ns.ClientMaps or {}
+	if client.townsfolk ~= false then
+		rows[#rows + 1] = { L["Townsfolk"] }
+		local kinds = {}
+		for _, k in ipairs(mod.TOWNSFOLK or {}) do kinds[k.key] = k end
+		local function folk(label, key)
+			return row(label, "townsfolk." .. key, kinds[key] and kinds[key].look or Icon("INV_Misc_QuestionMark"),
+				function() return db.townsfolk[key] end, function(v) db.townsfolk[key] = v mod:RefreshTownsfolk() end)
+		end
+		for _, k in ipairs(mod.TOWNSFOLK or {}) do
+			if not k.rare and k.key ~= "spirit" then rows[#rows + 1] = folk(k.name, k.key) end
+		end
+		rows[#rows + 1] = folk(L["Spirit healers"], "spirit")
+		rows[#rows + 1] = folk(L["Rare mobs"], "rare")
 	end
-	for _, k in ipairs(mod.TOWNSFOLK or {}) do
-		if not k.rare and k.key ~= "spirit" then rows[#rows + 1] = folk(k.name, k.key) end
-	end
-	rows[#rows + 1] = folk(L["Spirit healers"], "spirit")
-	rows[#rows + 1] = folk(L["Rare mobs"], "rare")
 	-- the look
-	rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
-	-- (darkened or hidden; neither ticked: shown as they are)
-	for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
-		rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return db.unexplored == mode[1] end,
-			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
+	-- (darkened or hidden; neither ticked: shown as they are. A client whose zones' art is whole has no
+	-- explored-area pieces to darken or hide: its section starts with the map)
+	if client.overlays ~= false then
+		rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
+		for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
+			rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return db.unexplored == mode[1] end,
+				function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
+		end
+		rows[#rows + 1] = { L["The map"] }
+	else
+		rows[#rows + 1] = { L["The map"], tab = "look" }
 	end
-	rows[#rows + 1] = { L["The map"] }
 	rows[#rows + 1] = optRow(L["Parchment border"], "border", Icon("INV_Scroll_03"))
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels", Icon("Spell_ChargePositive"))
