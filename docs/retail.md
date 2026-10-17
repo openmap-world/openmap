@@ -98,7 +98,10 @@ As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=re
 - **Performance.** `tools/offline-test/world.py` counts up to about 1,100 art textures drawn at the
   zoom where the zones come in (retail's newer zones are 150 tiles each), against about 650 for
   Forever; at the zoom the continents come in, about 900. Measure with `/openmap bench` in game; if
-  it's slow there, baked zone tiles (Forever's `MapZones`) are the cure.
+  it's slow there, baked zone tiles (Forever's `MapZones`) are the cure, at a cost: retail's world
+  units are four times smaller, so tiles fine enough to carry the zooms where the zones are in (6 to 8
+  px per world unit) would add 100 to 200 MB to the download; at 4 px (about 50 MB) the live layers
+  take over again near zoom 10, where the count is still high.
 - From retail's UI source (the `live` branch of wow-ui-source), to look at in game:
   - its quest log shows its own Quests / Events / Map Legend tabs, which Forever hides: beside
     OpenMap's dungeon tabs there may be two "Quests";
