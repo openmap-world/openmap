@@ -14,7 +14,7 @@
 ## X-Category: Map
 ## X-License: MIT (code); map art is Blizzard's
 ## X-Curse-Project-ID: 1735937
-## X-Website: https://github.com/openmap-world/openmap
+## X-Website: https://www.curseforge.com/wow/addons/openmap
 
 Libs\Libs.xml
 
