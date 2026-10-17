@@ -1,16 +1,25 @@
-# Builds the release zip locally, as the packager does on a tag (.pkgmeta, .github/workflows/release.yml):
+# Builds a client's release zip locally, as the packager does on a tag (.pkgmeta, .github/workflows/release.yml):
 # one OpenMap/ folder, only the files git tracks under OpenMap/ as committed, the version in the toc
-# (@project-version@). Runs lint and the offline tests first. Writes dist/OpenMap-<version>.zip and,
+# (@project-version@). Each client gets a zip of its own (tools/clients.py): its toc, its data and
+# textures (Data/<folder>, Media/Textures/<folder>) and the shared files, not another client's. Runs
+# lint and the offline tests (for that client) first. Writes dist/OpenMap-<version>-<client>.zip and,
 # for the upload's changelog box, dist/OpenMap-<version>-changelog.md (that version's CHANGELOG.md
 # section). For uploading to CurseForge by hand (docs/releasing.md).
 #
-# usage: python -P tools/package/build.py <version> [--dirty] [--no-tests]
+# usage: python -P tools/package/build.py <version> [--client=forever|retail] [--dirty] [--no-tests]
 #   <version>: as CHANGELOG.md heads it, e.g. v0.5.0-beta
+#   --client: which client's zip (forever if not given)
 #   --dirty: allow uncommitted changes under OpenMap/ (the zip still takes the committed files)
 import os, re, subprocess, sys, zipfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DIST = os.path.join(ROOT, "dist")
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import clients
+client = next((a.split("=", 1)[1] for a in sys.argv[1:] if a.startswith("--client=")), "forever").lower()
+if client not in clients.CLIENTS:
+    sys.exit("--client: one of " + ", ".join(sorted(clients.CLIENTS)))
+CLIENT = clients.CLIENTS[client]
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 if len(args) != 1:
     sys.exit(__doc__ or "usage: python -P tools/package/build.py <version> [--dirty] [--no-tests]")
@@ -37,21 +46,27 @@ if dirty and "--dirty" not in sys.argv:
 if "--no-tests" not in sys.argv:
     checks = [["-P", "tools/offline-test/lint.py"]] + [["tools/offline-test/run.py", m_] for m_ in ("plain", "combat", "secret")]
     for c in checks:
-        r = subprocess.run([sys.executable] + c, cwd=ROOT, capture_output=True, text=True)
+        r = subprocess.run([sys.executable] + c, cwd=ROOT, capture_output=True, text=True,
+                           env=dict(os.environ, OPENMAP_CLIENT=client))
         if r.returncode != 0:
             sys.exit("failed: %s\n%s%s" % (" ".join(c), r.stdout[-3000:], r.stderr[-3000:]))
         print("ok:", " ".join(c))
 
 # the committed files (as the packager's git checkout has them), not the working tree's
 files = git("ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "OpenMap").decode().split("\0")
-files = sorted(f for f in files if f)
+# not the other clients' tocs, data or textures
+others = [c for n, c in clients.CLIENTS.items() if n != client]
+skip = ["OpenMap/" + c["toc"] for c in others]
+skip_dirs = [d % c["folder"] for c in others for d in ("OpenMap/Data/%s/", "OpenMap/Media/Textures/%s/")]
+files = sorted(f for f in files if f and f not in skip and not any(f.startswith(d) for d in skip_dirs))
+TOC = "OpenMap/" + CLIENT["toc"]
 os.makedirs(DIST, exist_ok=True)
-out = os.path.join(DIST, "OpenMap-%s.zip" % version)
+out = os.path.join(DIST, "OpenMap-%s-%s.zip" % (version, client))
 toc_seen = False
 with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for f in files:
         data = git("show", "HEAD:" + f)
-        if f == "OpenMap/OpenMap.toc":
+        if f == TOC:
             assert b"@project-version@" in data, "the toc has no @project-version@"
             data = data.replace(b"@project-version@", version.encode())
             toc_seen = True
@@ -60,9 +75,9 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         info.external_attr = 0o644 << 16
         z.writestr(info, data)
 if not toc_seen:
-    sys.exit("OpenMap/OpenMap.toc isn't committed")
+    sys.exit(TOC + " isn't committed")
 with open(os.path.join(DIST, "OpenMap-%s-changelog.md" % version), "w", encoding="utf-8", newline="\n") as f:
     f.write(notes)
 head = git("rev-parse", "--short", "HEAD").decode().strip()
 print("wrote %s (%d files, %.1f MB, from %s)" % (os.path.relpath(out, ROOT), len(files), os.path.getsize(out) / 1e6, head))
-print("changelog: %s" % os.path.relpath(out[:-4] + "-changelog.md", ROOT))
+print("changelog: %s" % os.path.relpath(os.path.join(DIST, "OpenMap-%s-changelog.md" % version), ROOT))

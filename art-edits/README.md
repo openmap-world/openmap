@@ -13,9 +13,9 @@ cleaning it out by hand.
    line up).
 3. `python -P tools/map-art/import.py <db2 dir> <texture cache>` compares each edited
    PNG with its source and writes only the 256-px tiles you changed to
-   `OpenMap/Media/Textures/MapArt/`, listed in `OpenMap/Data/ArtEdits.lua`. The addon
+   `OpenMap/Media/Textures/Forever/MapArt/`, listed in `OpenMap/Data/Forever/ArtEdits.lua`. The addon
    draws those tiles in place of the client's.
-   The names come back as live lettering (`OpenMap/Data/Labels.lua`, measured from this
+   The names come back as live lettering (`OpenMap/Data/Forever/Labels.lua`, measured from this
    art): one of each, fixed on the world, so they stay put as you zoom.
 4. Restart the game (new textures need a full restart, not `/reload`).
 

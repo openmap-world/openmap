@@ -88,7 +88,7 @@ local HATCH_W, HATCH_H = 34, 84 -- ... the wave strokes' tile
 local SEA_OCTAVE, HATCH_OCTAVE = 4, 7     -- zoom where each starts halving, to keep its size on screen
 local HATCH_ALPHA = 0.6
 
-local TEX = ns.Media.path .. "Textures\\"
+local TEX = ns.Media.tex
 local FEATHER, FEATHER_THIN, FEATHER_WIDE = TEX .. "MapFeather", TEX .. "MapFeatherThin", TEX .. "MapFeatherWide"
 local FEATHER_ROUND = TEX .. "MapFeatherRound"
 local LAND, GRAIN = TEX .. "MapLand\\", TEX .. "MapGrain"
@@ -1815,7 +1815,7 @@ function S.ToYards(cont, u, v)
 	return (du * by - bx * dv) / det, (ax * dv - du * ay) / det
 end
 
-S.CaveMasks = ns.Media.path .. "Textures\\MapCave\\"
+S.CaveMasks = ns.Media.tex .. "MapCave\\"
 
 -- our own player arrow, for when the host map can't show the player
 local player = {}

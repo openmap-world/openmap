@@ -6,7 +6,7 @@
 
 local _, ns = ...
 
-local P = ns.Media.path .. "Textures\\MapDungeonDrawn\\"
+local P = ns.Media.tex .. "MapDungeonDrawn\\"
 
 ns.MapDungeonDrawn = {
 	[2959] = { -- City of Dalaran

@@ -18,6 +18,6 @@ dungeon maps, they're used with the artist's permission and aren't covered by th
 | --- | --- | --- |
 | `gaps/G01_dun-morogh-riverglades.png` | Khaz Modan: round Dun Morogh, Loch Modan, Searing Gorge and the Badlands | Santiago Reyes |
 
-`python -P tools/map-dungeons/drawn.py` turns them into `OpenMap/Media/Textures/MapDungeonDrawn/`
-and `OpenMap/Data/DungeonDrawn.lua`. A new one: add the drawing here (a 3:2 picture, the dungeon
+`python -P tools/map-dungeons/drawn.py` turns them into `OpenMap/Media/Textures/Forever/MapDungeonDrawn/`
+and `OpenMap/Data/Forever/DungeonDrawn.lua`. A new one: add the drawing here (a 3:2 picture, the dungeon
 map's 1002 x 668 shape) and a line to the script's `DRAWN`.

@@ -53,17 +53,33 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    the results to copy (kept in the saved settings as `lastBench` too). Compare a run before
    and after a change that should make the map faster.
 
+## Clients
+
+OpenMap is built for more than one game client, each with its own map data and textures and
+one shared Lua codebase (`tools/clients.py` lists them, with their builds and products):
+
+- each client's toc (`OpenMap.toc` is WoW Forever's) loads `Data/<client>/Client.lua` first, which
+  names its folder, then its own `Data/<client>/*.lua`; its textures are
+  `Media/Textures/<client>/` (`ns.Media.tex`). `Data/Changelog.lua` is shared.
+- the tools build for the client `OPENMAP_CLIENT` names (`forever` if unset), and `run.py` loads
+  that client's toc. Tools for Forever's own content (Santiago Reyes' drawn dungeons and painted
+  gaps, `map-dungeons/`) always write Forever's folders.
+- each release is a zip per client (`tools/package/build.py <version> --client=<client>`), with
+  only its own toc, data and textures.
+
+Below, `Data/` and the texture folders are the client's.
+
 ## Regenerating data and textures
 
-Everything under `OpenMap/Data` (except `Levels.lua` and `Labels.lua`) and everything
-under `OpenMap/Media/Textures` is made by a script. `<db2>` is a folder of the build's
+Everything under `OpenMap/Data/<client>` (except `Levels.lua` and `Labels.lua`) and everything
+under `OpenMap/Media/Textures/<client>` is made by a script. `<db2>` is a folder of the build's
 table CSVs, `<tex>` a texture cache. Order matters where one step reads another's output:
 
 | Step | Script | Writes | Needs |
 | --- | --- | --- | --- |
 | 1 | `tools/map-data/build.py <cache>` | `Data/Reveal.lua`, `Data/Places.lua` | `ENTRANCES` (below) |
 | 2 | `tools/map-data/minimap.py <cache>` | `Data/Minimap.lua` | |
-| 3 | `tools/map-flights/flights.py <db2> OpenMap/Data/FlightData.lua` | `Data/FlightData.lua` | |
+| 3 | `tools/map-flights/flights.py <db2> OpenMap/Data/Forever/FlightData.lua` | `Data/FlightData.lua` | |
 | 4 | `tools/map-caves/build.py <cache>` | `Data/Caves.lua`, `MapCave/` | |
 | 5 | `tools/map-grade/fetch.py`, `grade.py` (see its README) | `Data/Grade.lua`, `MapBand/`, `MapCore/` | 1 |
 | 6 | `tools/map-textures/make.py` | `MapFeather*`, `MapGrain`, `MapTooth` | |
@@ -91,7 +107,7 @@ and rerun step 1.
 
 `gapfill.py --rerender` re-renders the zones (slow) after anything that changes them
 (steps 5, 7, 8, 11), and so does `--bake-zones` (step 15: the zones' art as the map draws it,
-baked into tiles; `OPENMAP_BAKED=1` renders from those tiles, to compare). Each texture in `OpenMap/Media/Textures` is listed in its
+baked into tiles; `OPENMAP_BAKED=1` renders from those tiles, to compare). Each texture in `OpenMap/Media/Textures/<client>` is listed in its
 `NOTICE.md` with the script that makes it: add a line when you add a texture.
 
 Hand edits of Blizzard's art (names painted out, the border) live in `art-edits/`

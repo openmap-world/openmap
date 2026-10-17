@@ -20,7 +20,7 @@ Then, with a painting here:
     python -P tools/map-preview/gapfills.py
     python -P tools/map-preview/render.py <db2 dir> <texture cache> <out> --bake-zones
 
-The first writes `OpenMap/Media/Textures/MapGapFill/` and `OpenMap/Data/GapFills.lua`; the second
+The first writes `OpenMap/Media/Textures/Forever/MapGapFill/` and `OpenMap/Data/Forever/GapFills.lua`; the second
 bakes the paintings into the zone tiles (`MapZones/`), which draw them at most zooms. Restart the
 game to see new textures. Options' Filled gaps turns them off.
 

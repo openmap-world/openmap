@@ -35,10 +35,13 @@ Tags with `-beta` or `-alpha` in them are uploaded to CurseForge as beta / alpha
 
 To upload without the workflow, do steps 1 and 2, commit, then
 
-    python -P tools/package/build.py v0.5.0-beta
+    python -P tools/package/build.py v0.5.0-beta --client=forever
 
-It runs lint and the offline tests, then writes `dist/OpenMap-v0.5.0-beta.zip`: what the packager
-would make, the `OpenMap/` folder as committed with the version in its toc. It also writes
+It runs lint and the offline tests, then writes `dist/OpenMap-v0.5.0-beta-forever.zip`: the
+`OpenMap/` folder as committed with the version in its toc, with only that client's toc, data and
+textures (`--client=retail` for retail's; each client's zip is a file of its own on CurseForge,
+named `v0.5.0-beta-forever` / `v0.5.0-beta-retail` and tagged with that client's game version and
+flavour). The workflow's packager doesn't split clients yet: it zips every folder. It also writes
 `dist/OpenMap-v0.5.0-beta-changelog.md`, that version's notes. On CurseForge, open the project's
 Files → Upload File, choose the zip, paste the notes as the changelog (Markdown), set the release
 type (Beta for a `-beta` version) and the game version, and upload. Tag the commit when you can

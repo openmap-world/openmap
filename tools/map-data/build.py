@@ -8,9 +8,11 @@
 import csv, math, os, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(HERE, "..", "..", "OpenMap", "Data")
+sys.path.insert(0, os.path.join(HERE, ".."))
+import clients   # the client the tools build for (OPENMAP_CLIENT)
+DATA = clients.DATA
 cache = sys.argv[1]
-BUILD = sys.argv[2] if len(sys.argv) > 2 else "1.60.1.70245"
+BUILD = sys.argv[2] if len(sys.argv) > 2 else clients.BUILD
 os.makedirs(cache, exist_ok=True)
 
 def table(name):

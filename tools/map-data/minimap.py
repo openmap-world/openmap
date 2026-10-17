@@ -13,9 +13,11 @@
 import csv, os, struct, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "..", "..", "OpenMap", "Data", "Minimap.lua")
+sys.path.insert(0, os.path.join(HERE, ".."))
+import clients   # the client the tools build for (OPENMAP_CLIENT)
+OUT = os.path.join(clients.DATA, "Minimap.lua")
 cache = sys.argv[1]
-BUILD = sys.argv[2] if len(sys.argv) > 2 else "1.60.1.70245"
+BUILD = sys.argv[2] if len(sys.argv) > 2 else clients.BUILD
 os.makedirs(cache, exist_ok=True)
 UA = {"User-Agent": "openmap-tools/1"}
 

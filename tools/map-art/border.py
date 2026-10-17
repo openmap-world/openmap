@@ -4,13 +4,15 @@
 # Writes OpenMap/Media/Textures/MapBorder/<piece>.tga (power-of-two canvases; Border.lua
 # crops each to its content with texture coordinates: CORNER, EDGE_W, EDGE_H below).
 # usage: python -P tools/map-art/border.py
-import os
+import os, sys
 from PIL import Image
 
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.join(here, "..", "..")
 src = Image.open(os.path.join(root, "art-edits", "border.png")).convert("RGBA")
-out = os.path.join(root, "OpenMap", "Media", "Textures", "MapBorder")
+sys.path.insert(0, os.path.join(root, "tools"))
+import clients   # the client the tools build for (OPENMAP_CLIENT)
+out = os.path.join(clients.TEX, "MapBorder")
 os.makedirs(out, exist_ok=True)
 W, H = src.size
 CORNER = 192                    # the corners: their metal fittings and curled paper, whole

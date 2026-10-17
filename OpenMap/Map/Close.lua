@@ -70,8 +70,8 @@ local function TileTone(u, v)
 	local chain = S.ChainAt(u, v)
 	return Tint(ns.MapTones and ns.MapTones[chain[#chain]] or DEFAULT_TONE)
 end
-local GRAIN = ns.Media.path .. "Textures\\MapGrain"
-local TOOTH = ns.Media.path .. "Textures\\MapTooth"
+local GRAIN = ns.Media.tex .. "MapGrain"
+local TOOTH = ns.Media.tex .. "MapTooth"
 local CONT_OF = { [1415] = 0, [1414] = 1 }
 local CONT_MAP = { [0] = 1415, [1] = 1414 }
 
@@ -141,7 +141,7 @@ end
 -- thousand). Each copy is cut into pieces of `per` tiles a side, tinted as the tiles are. Drawn
 -- coarse under fine under the game's own tiles, their strengths set so the three add up to `mix`:
 -- the finer takes over as fewer tiles are in view
-local LOD = ns.Media.path .. "Textures\\MapMiniLOD\\"
+local LOD = ns.Media.tex .. "MapMiniLOD\\"
 local NATIVE_FROM = { 64, 36 }  -- tiles in view where the game's own tiles start / finish taking over
 local FINE_FROM = { 40, 24 }    -- tiles across the view where the finer copy starts / finishes taking over
 local lodPieces, lodPool, wantedLOD = {}, {}, {}   -- key -> texture; free textures; (reused each update)

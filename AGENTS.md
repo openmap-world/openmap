@@ -23,7 +23,7 @@ the game's own files. The addon is `OpenMap/`; everything else is tooling and do
 2. **Generated files are generated.** Don't hand-edit anything a script writes (its first
    lines say which script). Change the script and rerun it, and commit both together.
 3. **Blizzard's art stays credited.** A new texture gets a line in
-   `OpenMap/Media/Textures/NOTICE.md` (what it's cut from, which script makes it).
+   its client's `OpenMap/Media/Textures/<client>/NOTICE.md` (what it's cut from, which script makes it).
 4. **Only MIT-compatible contributions.** Don't copy code, data or art from other addons
    unless their licence allows it under MIT (many map addons are "all rights reserved").
 5. **No secrets, no personal data** in the repo: no API keys, tokens, real names, emails

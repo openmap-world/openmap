@@ -291,7 +291,7 @@ local function BuildView()
 	-- a dungeon the client has no map of: the map's own parchment, blank, and a word on it
 	view.blank = view.page:CreateTexture(nil, "ARTWORK")
 	view.blank:SetAllPoints()
-	view.blank:SetTexture(ns.Media.path .. "Textures\\MapPaper", "REPEAT", "REPEAT")
+	view.blank:SetTexture(ns.Media.tex .. "MapPaper", "REPEAT", "REPEAT")
 	view.blank:SetTexCoord(0, 3, 0, 2)          -- (the paper's grain at about the zone maps' size)
 	view.blank:Hide()
 	view.blankText = Look:Font(view.page:CreateFontString(nil, "OVERLAY"), 16)

@@ -109,7 +109,7 @@ end
 -- seen only zoomed right out: it fades as you zoom in (BORDER_FADE). It takes no clicks.
 --------------------------------------------------------------------------------
 
-local BORDER = ns.Media.path .. "Textures\\MapBorder\\"
+local BORDER = ns.Media.tex .. "MapBorder\\"
 local CORNER, SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases (border.py)
 local EDGE_LONG, SIDE_LONG = 1024 / 192, 640 / 192   -- an edge piece's length, in corner sizes
 local BORDER_SCALE = 0.55       -- the corners' size: their own 192 px x this, per 1024 px of view height
