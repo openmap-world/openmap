@@ -114,6 +114,11 @@ C_Map = {
 	GetBestMapForUnit = function() return nil end,
 	GetPlayerMapPosition = function() return nil end,
 	GetMapLevels = function() return 10, 30 end,
+	-- (a stand-in: one highlight per zone under the point, for /openmap highlights' sake)
+	GetMapHighlightInfoAtPosition = function(id, x, y)
+		local z = C_Map.GetMapInfoAtPosition(id, x, y)
+		if z then return 100000 + z.mapID, nil, 0.8, 0.7, 0.2, 0.1, 0.3, 0.4 end
+	end,
 	GetMapGroupID = function() return nil end,
 }
 setmetatable(C_Map, { __index = function() return function() return nil end end })   -- (the rest: nothing)
@@ -244,6 +249,10 @@ def main():
             failed = True
             print("LOAD ERROR", rel, "\n", err)
     L.execute('FireEvent("ADDON_LOADED", "OpenMap") FireEvent("PLAYER_LOGIN") RunTimers(2)')
+    # /openmap highlights (a client with a world of its own): it runs to the end and keeps what it found
+    L.execute('SlashCmdList.OPENMAP("highlights") for _ = 1, 600 do RunTimers(0.02) end')
+    got = L.eval('(OpenMap.modules.worldmap.db.highlights and #OpenMap.modules.worldmap.db.highlights) or -1')
+    print("/openmap highlights:", got, "recorded")
     t = time.time()
     res = L.eval("SWEEP")(ns, L.table(1, 1.5, 2, 3, 4, 6, 9, 13, 20, 30, 48, 80))
     if not res["built"] is None and res["built"] is False:

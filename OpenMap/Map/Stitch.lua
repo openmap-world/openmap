@@ -175,6 +175,19 @@ end
 local appliedDetail, appliedSoft
 local function ApplyDetail()
 	local d = detailNow * (1 - 0.75 * underNow)
+	-- (a client whose zones come in continent by continent, ns.ClientMaps.detailDensity: each zone's frame at
+	-- its continent's fade, Live.contFade; one not come in yet is hidden, its files not wanted: ShowZone)
+	if Live.zones then
+		for mapID, z in pairs(Live.zones) do
+			local a = (Live.contFade[z.cont] or detailNow) * (1 - 0.75 * underNow)
+			Fade(z.frame, a)
+			local on = a > 0.003
+			if z.on ~= on then
+				z.on = on
+				if inView[mapID] == true then ShowZone(mapID) end
+			end
+		end
+	end
 	if blurRoot and softNow ~= appliedSoft then
 		appliedSoft = softNow
 		Fade(blurRoot, d * softNow)
@@ -198,7 +211,7 @@ local function ApplyDetail()
 	end
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
-	tilesRoot:SetAlpha(dl)
+	tilesRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)   -- (each zone's own, above, where they come in by continent)
 	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
 	overlayRoot:SetAlpha(dl)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
@@ -1079,6 +1092,24 @@ end
 -- Build, layout, zoom
 --------------------------------------------------------------------------------
 
+-- (ns.ClientMaps.detailDensity) a zone's frame, fading in with its continent's zones (ApplyDetail): Live.zones,
+-- and each continent's art's px per world unit over that density (Live.contK: S.SetZoom scales DETAIL_FADE by it)
+function S.ZoneByContinent(mapID, frame)
+	local cont = mapID
+	for _ = 1, 8 do
+		local info = C_Map.GetMapInfo(cont)
+		if not info or info.mapType == Enum.UIMapType.Continent or not info.parentMapID then break end
+		cont = info.parentMapID
+	end
+	Live.zones, Live.contK, Live.contFade = Live.zones or {}, Live.contK or {}, Live.contFade or {}
+	Live.zones[mapID] = { frame = frame, cont = cont }
+	if Live.contK[cont] == nil then
+		local aw = ArtSize(cont)
+		local l, r = S.Rect(cont)
+		Live.contK[cont] = aw and l and r > l and aw / ((r - l) * W) / ns.ClientMaps.detailDensity or 1
+	end
+end
+
 -- Builds everything on `parent` (Blizzard's canvas): art frames from `artLevel`
 -- (needs `range` levels), icons at `iconLevel`.
 function S.Build(parent, artLevel, range, iconLevel)
@@ -1254,6 +1285,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 				local zf = CreateFrame("Frame", nil, tilesRoot)
 				zf:SetAllPoints(root)
 				zf:SetFrameLevel(level)
+				if ns.ClientMaps and ns.ClientMaps.detailDensity then S.ZoneByContinent(info.mapID, zf) end
 				-- (a zone with neither pieces nor a territory of its own, an island: a round feather, off its frame)
 				local plain = n == 0 and not (ns.MapTerritories and ns.MapTerritories[info.mapID])
 				S.stats.tiles = S.stats.tiles + PlaceBase(zf, info.mapID, "ARTWORK", graded, plain and FEATHER_ROUND or FEATHER)
@@ -1682,6 +1714,15 @@ function S.SetZoom(zoom, scale)
 	end
 	Step("names")
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
+	if Live.contK then                          -- (each continent's zones by its own art's resolution: ApplyDetail)
+		local most = 0
+		for c, k in pairs(Live.contK) do
+			local f = Smooth(DETAIL_FADE[1] * k, DETAIL_FADE[2] * k)
+			Live.contFade[c] = f
+			if f > most then most = f end
+		end
+		detailNow = most
+	end
 	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
 		local _, ph = GetPhysicalScreenSize()
 		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
@@ -2191,10 +2232,12 @@ ShowZone = function(mapID)
 	local inside = inView[mapID] == true          -- (in view and drawn: its files are wanted)
 	local hide, strength = gradeNow[3] == "hide", gradeNow[1]
 	local box = cullBox
+	local z = Live.zones and Live.zones[mapID]       -- (a zone come in by its continent, ApplyDetail: not yet, not drawn)
+	local zoneOn = not z or z.on
 	for _, e in ipairs(zoneTex[mapID] or NONE) do
 		local tex = e[1]
 		local near = here and (not box or not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4]))
-		local drawn = not e.layer or detailLive       -- (the live layers: only while they show; the cities: always)
+		local drawn = (not e.layer or detailLive) and zoneOn   -- (the live layers: only while they show; the cities: always)
 		local un = e[3] and e[3].unexplored
 		if near and drawn and inside and (detailLive or Live.seen) and tex.omFile and not tex.omQueued then
 			tex.omQueued = true
@@ -2214,7 +2257,7 @@ ShowZone = function(mapID)
 			end
 		end
 	end
-	local want = (here and detailLive) and true or false
+	local want = (here and detailLive and zoneOn) and true or false
 	if Live.placed[mapID] ~= want then
 		Live.placed[mapID] = want
 		for _, rec in ipairs(Live.masks[mapID] or NONE) do
@@ -2279,7 +2322,7 @@ end
 -- margin: of the view's size, on every side; redone once the view comes `keep` near its edge (of
 -- the view's size), or has zoomed in `zoom` times since (the box would be much too big).
 -- (One table: the file is near Lua's limit of 200 locals)
-local CULL = { margin = 0.35, keep = 0.1, zoom = 1.6 }
+local CULL = { margin = ns.ClientMaps and ns.ClientMaps.cullMargin or 0.35, keep = 0.1, zoom = 1.6 }
 function S.Cull(u0, v0, u1, v1)
 	if not root then return end
 	local w, h = u1 - u0, v1 - v0

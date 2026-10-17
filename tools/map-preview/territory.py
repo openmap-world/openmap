@@ -33,6 +33,7 @@ CANVAS = (1002, 668)            # a zone's art is worked on at this size, whatev
 G = 2.0                         # grid px per world unit, laying a continent's zones out together
 REACH = (30.0, 45.0)            # world units off its own land where a zone's painting is full / gone (its sea out
                                 #  toward its frame: the continent's art is far coarser close in)
+REACH_AREA = (8.0, 16.0)        # ... past its whole area, where its highlight is known (its coasts)
 BLEND = 10.0                    # world units: how fast a zone's claim falls off past the nearer one's own land
 OTHERS = 3.0                    # world units over which a zone's painting gives way to another zone's own land
 SHALLOWS = (28.0, 40.0)         # world units off the land where a continent's art is full / gone (its shallows band)
@@ -57,9 +58,14 @@ def frame_mask():
 def main():
     db2, cache = sys.argv[1], sys.argv[2]
     preview = sys.argv[3] if len(sys.argv) > 3 else None
+    # (trying it out: OPENMAP_TERRITORY_OUT writes everything to that folder instead of the addon's, and
+    # OPENMAP_TERRITORY_ONLY=12,13 does only those continents)
+    only = [int(c) for c in os.environ.get("OPENMAP_TERRITORY_ONLY", "").split(",") if c]
     w = uimap.World(db2)
     world = uimap.read_world(os.path.join(clients.DATA, "World.lua"))
     if not world: sys.exit("no World.lua for %s: run tools/map-data/world.py first" % clients.NAME)
+    if os.environ.get("OPENMAP_TERRITORY_OUT"):
+        clients.TEX = clients.DATA = os.environ["OPENMAP_TERRITORY_OUT"]
     art = Art(db2, cache)
     read = lambda n: list(csv.DictReader(open(os.path.join(db2, n + ".csv"), encoding="utf-8")))
     pieces = {}
@@ -88,7 +94,8 @@ def main():
                 if X1 > X0 and Y1 > Y0:
                     alpha[Y0:Y1, X0:X1] = np.maximum(alpha[Y0:Y1, X0:X1], ta[:Y1 - Y0, :X1 - X0])
         o = np.asarray(Image.fromarray(alpha).resize(CANVAS, Image.BILINEAR)).astype(np.float32) / 255
-        land = ndimage.binary_fill_holes(ndimage.binary_closing(o * FRAME > 0.5, np.ones((3, 3)), iterations=6))
+        # (not cut at the frame: its territory fades out there by the frame's own wide fade, not at a line)
+        land = ndimage.binary_fill_holes(ndimage.binary_closing(o > 0.5, np.ones((3, 3)), iterations=6))
         return land if land.any() else None
 
     def continent_of(m):
@@ -99,6 +106,47 @@ def main():
 
     zones = [m for m, k in world["zones"].items() if k == 1]
     cities = [m for m, k in world["zones"].items() if k == 2]
+
+    # each zone's whole area as its continent's map draws it, where the zones' highlights have been recorded in
+    # game (/openmap highlights, highlights.py): its highlight, placed as the game places it (the part of the
+    # texture TexPercent of it, over its rectangle on the continent). With it a zone's painting reaches only
+    # REACH_AREA past its area; without, REACH past its own land
+    hl_path = os.path.join(HERE, "highlights", clients.NAME + ".txt")
+    hl_of = {}
+    if os.path.exists(hl_path):
+        fid_zone = {}
+        art_hl = {int(r["ID"]): int(r["HighlightFileDataID"]) for r in read("UiMapArt")}
+        for z in zones:
+            f = art_hl.get(w.art(z)[0])
+            if f: fid_zone[f] = z
+        for line in open(hl_path, encoding="utf-8"):
+            if line.startswith("#") or not line.strip(): continue
+            c, z, fid, atlas, px, py, tx, ty, sx, sy = line.split()
+            z = fid_zone.get(int(fid), int(z))
+            if z in zones and int(fid) and float(tx) > 0 and float(ty) > 0:
+                hl_of.setdefault(z, []).append((int(c), int(fid), float(px), float(py), float(tx), float(ty), float(sx), float(sy)))
+        print("highlights for %d zones" % len(hl_of), flush=True)
+
+    def area_of(m):
+        """the zone's highlight on its canvas (0..1), or None"""
+        if m not in hl_of: return None
+        l, r, t, b = w.rect(m)
+        xs = l + (np.arange(CANVAS[0]) + 0.5) / CANVAS[0] * (r - l)
+        ys = t + (np.arange(CANVAS[1]) + 0.5) / CANVAS[1] * (b - t)
+        out = np.zeros((CANVAS[1], CANVAS[0]), np.float32)
+        for c, fid, px, py, tx, ty, sx, sy in hl_of[m]:
+            img = art.fetch(fid)
+            cr_ = w.rect(c)
+            if img is None or not cr_: continue
+            a = np.asarray(img.convert("RGB")).astype(np.float32).max(2)
+            a /= max(1.0, a.max())
+            s = ((xs - cr_[0]) / (cr_[1] - cr_[0]) - sx) / tx * px        # (texture coordinates, 0..px, 0..py)
+            u = ((ys - cr_[2]) / (cr_[3] - cr_[2]) - sy) / ty * py
+            S, U = np.meshgrid(s, u)
+            inside = (S >= 0) & (S <= px) & (U >= 0) & (U <= py)
+            v = ndimage.map_coordinates(a, [U * a.shape[0] - 0.5, S * a.shape[1] - 0.5], order=1, mode="nearest") * inside
+            out = np.maximum(out, v)
+        return out
 
     memo = {}
     def land_of(m):
@@ -122,7 +170,7 @@ def main():
     for d in (terr_dir, land_dir, mini_dir): os.makedirs(d, exist_ok=True)
     done_terr, done_land = [], []
     shallows = {}                   # continent -> its land and shallows over its rectangle (LAND_PX square)
-    for c in world["continents"]:
+    for c in [c for c in world["continents"] if not only or c in only]:
         cl, cr, ct, cb = w.rect(c)
         gw, gh = int((cr - cl) * W * G), int((cb - ct) * H * G)
         mine = [m for m in zones if continent_of(m) == c]
@@ -158,8 +206,14 @@ def main():
                 others = np.zeros((gh, gw), np.float32)
                 for n in own:
                     if n != m: others = np.maximum(others, near[n] * frame[n])
-                u = np.clip(1 - (dist[m] - REACH[0]) / (REACH[1] - REACH[0]), 0, 1)
-                avail[m] = frame[m] * np.clip(1 - others, 0, 1) * u * u * (3 - 2 * u)
+                area = area_of(m)
+                if area is None:
+                    u = np.clip(1 - (dist[m] - REACH[0]) / (REACH[1] - REACH[0]), 0, 1)
+                    reach = u * u * (3 - 2 * u)
+                else:                                # (its whole area, as its continent draws it, and a little past)
+                    u = np.clip(1 - (dist[m] - REACH_AREA[0]) / (REACH_AREA[1] - REACH_AREA[0]), 0, 1)
+                    reach = np.maximum(u * u * (3 - 2 * u), np.clip(to_grid(area, m) * 2, 0, 1))
+                avail[m] = frame[m] * np.clip(1 - others, 0, 1) * reach
                 logw[m] = np.log(np.maximum(avail[m], 1e-9)) - dist[m] / BLEND
                 cover = np.maximum(cover, avail[m])
             # shared out by nearness (each one's weight: what it can show there, falling off with the distance
@@ -262,6 +316,7 @@ def main():
     # land), which Close.lua tints the close-up minimap toward
     tones = []
     for m in sorted(zones):
+        if only and continent_of(m) not in only: continue
         land = land_of(m)
         if land is None or land.sum() < 1000: continue
         a, aw, ah, tw, th = w.art(m)

@@ -25,8 +25,11 @@ Retail's maps aren't WoW Forever's, and the map is built from them differently:
   traced from it (`tools/map-preview/territory.py`): each continent's art over the world's (its sea
   too, but never over another continent's land and shallows), each zone's on its own land and what it
   paints round it over its continent's.
-- **No early hint of the zones.** They come in where the continents' art runs out of pixels, as on
-  Forever, but not faintly from further out (`detailHint`): that would load every zone in view early.
+- **The zones come in continent by continent.** Each continent's zones fade in where its own art runs
+  out of pixels (`Client.lua`'s `detailDensity`): Pandaria's and the Broken Isles' continent maps are
+  coarse (1002 px wide), so their zones come in soon; Quel'Thalas' and the Dragon Isles' are fine, so
+  theirs later. A zone that hasn't come in isn't drawn or loaded at all. The fade is slow (`detailFade`)
+  and starts with no faint hint from further out (`detailHint`).
 - **World positions** (flight masters, entrances, docks, the minimap) go through each game map's
   place on Azeroth's map (`World.lua`'s `yards`), worked out from the tables (`tools/uimap.py`).
 
@@ -67,6 +70,18 @@ python -P tools/map-textures/shared.py
 
 The build is `tools/clients.py`'s; a new one needs its tables and a rerun of all of these.
 
+### The zones' highlights (once, in game)
+
+A zone's territory reaches out from its own land (its explored-area pieces) by a fixed distance. Its
+whole area, as its continent's map draws it, is better: the glow the map shows on the zone under the
+cursor. Where the game draws that glow is only known in game, so it's recorded there once:
+
+1. In retail, with OpenMap on, type `/openmap highlights` (it takes a few seconds), then `/reload`.
+2. `python -P tools/map-preview/highlights.py <WoW>/_retail_/WTF/Account/<account>/SavedVariables/OpenMap.lua`
+   writes `tools/map-preview/highlights/retail.txt` (commit it: it's the game's own data).
+3. Rerun `territory.py`: with the highlights, a zone's painting covers its whole area and reaches only a
+   little past it (`REACH_AREA`), so zones meet along the continent map's own borders.
+
 ## Checking
 
 As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=retail`, and:
@@ -95,9 +110,10 @@ As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=re
   yellow beside Dragonblight's snow), and with no colour matching (Forever's `MapBand` / `Grade.lua`)
   they show as patches where a zone's art hands over to the next or to the continent's, most at the
   zoom where the zones come in. A colour match made for retail's art is the next step.
-- **Performance.** `tools/offline-test/world.py` counts up to about 1,100 art textures drawn at the
-  zoom where the zones come in (retail's newer zones are 150 tiles each), against about 650 for
-  Forever; at the zoom the continents come in, about 900. Measure with `/openmap bench` in game; if
+- **Performance.** `tools/offline-test/world.py` counts at most about 820 art textures drawn, where
+  the continents' art comes in (zoom 3; it's 3840 x 2560 a continent), and about 710 where the zones
+  are in (zoom 13), against about 650 at Forever's worst: the zones coming in continent by continent and
+  the tighter cull took retail's zone peak down from about 1,100. Measure with `/openmap bench` in game; if
   it's slow there, baked zone tiles (Forever's `MapZones`) are the cure, at a cost: retail's world
   units are four times smaller, so tiles fine enough to carry the zooms where the zones are in (6 to 8
   px per world unit) would add 100 to 200 MB to the download; at 4 px (about 50 MB) the live layers

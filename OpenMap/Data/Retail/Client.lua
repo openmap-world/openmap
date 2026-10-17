@@ -29,6 +29,17 @@ ns.ClientMaps = {
 	-- DETAIL_FADE, in the zoom above), but with no faint hint of them before: retail's continents' art
 	-- carries the mid zooms by itself, and the hint would load every zone's art in view from much further out
 	detailHint = false,
+	-- ... and on each continent where its own art runs out: its continent maps are drawn at very different
+	-- resolutions (Pandaria's 1002 px wide over a fifth of the world, the Dragon Isles' 3840 px over as
+	-- much), so each continent's zones fade in by DETAIL_FADE times its art's px per world unit over this
+	-- (the Eastern Kingdoms', where DETAIL_FADE fits): sooner on Pandaria, later on Quel'Thalas, and a zone
+	-- not come in yet isn't drawn (or loaded) at all. Over a wider span than WoW Forever's: retail's zone
+	-- maps are drawn in many hands, and a slow crossfade hides where one style gives way to the next
+	detailDensity = 2.5,
+	detailFade = { 3, 5.5 },
+	-- (only the art near the view is drawn: within this much of the view's size round it, less than WoW
+	-- Forever's 0.35; retail's newer zones are 150 tiles each)
+	cullMargin = 0.2,
 	-- townsfolk (vendors, trainers, rares) come from Questie's database, and Questie is classic's: the menu
 	-- leaves them out (Panel.lua)
 	townsfolk = false,

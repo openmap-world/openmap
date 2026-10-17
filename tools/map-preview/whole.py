@@ -34,7 +34,9 @@ def client_tune():
     zoom = re.search(r"\bzoom = ([\d.]+)", src)
     fade = re.search(r"detailFade = \{ ([\d.]+), ([\d.]+) \}", src)
     sea = re.search(r"seaColor = \{ ([\d.]+), ([\d.]+), ([\d.]+) \}", src)
-    global SEA_COLOR
+    dens = re.search(r"detailDensity = ([\d.]+)", src)
+    global SEA_COLOR, DETAIL_DENSITY
+    DETAIL_DENSITY = float(dens.group(1)) if dens else None
     SEA_COLOR = tuple(float(sea.group(i)) for i in (1, 2, 3)) if sea else (0.50, 0.49, 0.41)
     return float(zoom.group(1)) if zoom else 1.0, (float(fade.group(1)), float(fade.group(2))) if fade else (3, 4.5)
 
@@ -182,8 +184,17 @@ def main():
 
         place(uimap.WORLD, 1.0, wide)
         for m in conts: place(m, smooth(zf, CONT_IN), back_land)
-        d = smooth(zf, detail_fade)
-        for m in zones: place(m, d, territory)
+        def continent(m):
+            for _ in range(10):
+                if m in conts: return m
+                m = w.parent(m)
+        def zone_fade(m):                              # (Stitch.lua: by its continent's art's resolution, ZoneByContinent)
+            c = continent(m)
+            if not DETAIL_DENSITY or c is None: return smooth(zf, detail_fade)
+            l, r = w.rect(c)[:2]
+            k = w.art(c)[1] / ((r - l) * W_) / DETAIL_DENSITY
+            return smooth(zf, (detail_fade[0] * k, detail_fade[1] * k))
+        for m in zones: place(m, zone_fade(m), territory)
         for m in cities:
             l, r, _, _ = w.rect(m)
             f = 1 / (r - l)
