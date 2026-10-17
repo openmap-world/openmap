@@ -34,7 +34,8 @@ local mod = ns:NewModule("worldmap", {
 		desaturate = 0.1,
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
 		gapFills = true,        -- the gaps between zones painted by hand (art-drawn/gaps)
-		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
+		maxZoom = 48 * (ns.ClientMaps and ns.ClientMaps.zoom or 1),   -- x the whole-world view (MAX_ZOOM: what it can
+		                        --  be set to; a world of smaller zones goes as much further: Data\<client>\Client.lua)
 	},
 })
 
@@ -72,7 +73,7 @@ local function Stitchable(mapID)
 	local info = C_Map.GetMapInfo(mapID)
 	if not info then return false end
 	if info.mapType ~= Enum.UIMapType.Continent and info.mapType ~= Enum.UIMapType.Zone then return false end
-	return S.Rect(mapID) ~= nil and S.ArtSize(mapID) ~= nil
+	return S.Rect(mapID) ~= nil and S.ArtSize(mapID) ~= nil and S.Stitched(mapID)   -- (a client's own list: Stitch.lua)
 end
 
 -- view px per world unit when the whole world fits
@@ -94,12 +95,14 @@ local function ZoomFor(mapID, scale) return scale * K(mapID) / FitPx() end
 -- world is in view, its area, not how far it is from fitting it. A view the world map's shape (3:2)
 -- is the same; a tall one (or a very wide one) fits the world across its narrow side and shows much
 -- more of it the other way, so at the same zoom the zones would come in while it still shows a
--- continent's worth of map
+-- continent's worth of map. On a world of smaller zones (retail's twelve continents) by as much less
+-- (ns.ClientMaps.zoom), so each layer comes in on a zone the size it does on WoW Forever's
 local function DetailK()
 	local W, H = S.Size()
 	local w, h = sc:GetWidth(), sc:GetHeight()
-	if not W or w <= 0 or h <= 0 then return 1 end
-	return math.min(w / W, h / H) / math.sqrt(w * h / (W * H))
+	local k = ns.ClientMaps and ns.ClientMaps.zoom or 1
+	if not W or w <= 0 or h <= 0 then return 1 / k end
+	return math.min(w / W, h / H) / math.sqrt(w * h / (W * H)) / k
 end
 local function ScaleFor(mapID, zoom) return zoom * FitPx() / K(mapID) end
 
@@ -517,7 +520,7 @@ viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	live[1], live[2], live[3], live[4], live[5] = u, v, zoom, sc:GetWidth(), sc:GetHeight()
 	local pu, pv = PerPx(zoom)
 	local g, t0 = Before(), Clock()
-	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom * DetailK(), zoom)
+	S.SetView(u, v, sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv, zoom * DetailK(), zoom / (ns.ClientMaps and ns.ClientMaps.zoom or 1))
 	After("close-up", g)
 	Clocked("OpenMap's view update", t0)
 	if mod.OnViewMoved then mod.OnViewMoved() end   -- (API.lua: other addons told, a few times a second at most)

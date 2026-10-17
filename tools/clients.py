@@ -10,6 +10,7 @@ CLIENTS = {
     # folder: under Data/ and Media/Textures/; toc: in OpenMap/; build: the tables' and textures' on
     # wago.tools; product: the install's CASC product (tools/casc, OPENMAP_WOW)
     "forever": {"folder": "Forever", "toc": "OpenMap.toc", "build": "1.60.1.70245", "product": "wow_classic_beta"},
+    "retail": {"folder": "Retail", "toc": "OpenMap_Mainline.toc", "build": "12.1.5.70448", "product": "wow"},
 }
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

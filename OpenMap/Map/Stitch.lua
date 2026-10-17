@@ -65,13 +65,13 @@ local DETAIL_HINT = { 1.8, 3, 0.3 }   -- ... after a hint of it from further out
 local CITY_FADE = { 0.2, 0.4 }  -- (cities: share of the zoom where they fill the view: their own map takes over
                                 --  from the zone's painting of them once they fill a fifth to two fifths of it,
                                 --  big enough for its labels to read)
-local CITY_FADE_OF = {          -- ... sooner where the zone paints it as no more than a blur
-	[1454] = { 0.08, 0.25 },    --  (Orgrimmar, on Durotar's: a long fade, over its zone's painting of it)
+local CITY_FADE_OF = ns.ClientMaps and ns.ClientMaps.cityFadeOf or {   -- ... sooner where the zone paints it as no
+	[1454] = { 0.08, 0.25 },    --  more than a blur (Orgrimmar, on Durotar's: a long fade, over its zone's painting of it)
 	[1456] = { 0.08, 0.25 },    --  (Thunder Bluff, on Mulgore's: in before its zone's banner for it goes)
-}
+}                               -- (WoW Forever's maps; another client's: Data\<client>\Client.lua)
 local BANNER_OUT = { 0.25, 0.4 } -- ... and where the zone's banner for a city that keeps its own (ns.MapCityTitles)
                                 --  gives way to it: once that reads (tools/map-preview/render.py mirrors it)
-local UNDERGROUND_CITIES ={ [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
+local UNDERGROUND_CITIES = ns.ClientMaps and ns.ClientMaps.underground or { [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
                                 -- shows the surface, so their own map is drawn above it (and it's kept off them)
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
@@ -234,6 +234,20 @@ function S.Rect(mapID)
 end
 
 function S.Size() return W, H end
+
+-- whether a map is stitched into the world, and as what (1: a zone, 2: a city, 3: a continent): a
+-- client with a world of its own lists its maps (ns.MapWorld, tools/map-data/world.py); else every
+-- continent and zone on Azeroth's map is (nil: as its art makes it)
+function S.Stitched(mapID)
+	local world = ns.MapWorld
+	if not world then return true end
+	if not world.kind then
+		world.kind = {}
+		for _, id in ipairs(world.continents or {}) do world.kind[id] = 3 end
+		for id, k in pairs(world.zones or {}) do world.kind[id] = k end
+	end
+	return world.kind[mapID] ~= nil or mapID == WORLD, world.kind[mapID]
+end
 
 -- the map's art size (its canvas units)
 local function ArtSize(mapID)
@@ -914,8 +928,22 @@ local function Project(c, wx, wy, swap)
 end
 
 local swap
--- a world position (yards on continent 0 / 1) on Azeroth's map (normalized)
+-- a world position (yards on continent 0 / 1) on Azeroth's map (normalized). A client with a world of
+-- its own has each game map's regions on it (ns.MapWorld.yards, tools/map-data/world.py: in a region's
+-- world box, u = au + bu * y, v = av + bv * x); a position in none of them (Outland's, on the draenei
+-- isles' game map) isn't on the stitched world. (A little past a region's box still is: its map's
+-- land can run past the box Azeroth's map gives it, as Quel'Thalas does)
 function S.FromYards(cont, wx, wy)
+	local yards = ns.MapWorld and ns.MapWorld.yards
+	if yards then
+		for _, r in ipairs(yards[cont] or NONE) do
+			local mx, my = (r[2] - r[1]) * 0.2, (r[4] - r[3]) * 0.2
+			if wx >= r[1] - mx and wx <= r[2] + mx and wy >= r[3] - my and wy <= r[4] + my then
+				return r[5] + r[6] * wy, r[7] + r[8] * wx
+			end
+		end
+		return
+	end
 	local c = Corners(cont)
 	if not c then return end
 	if swap == nil then
@@ -1088,7 +1116,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	end
 	-- the sea's colour as the world and continent maps paint it (MapSeaField), so zooming
 	-- in keeps the colour the map had from afar; the continents' fade into the world's
-	for _, mapID in ipairs({ WORLD, 1414, 1415 }) do
+	for _, mapID in ipairs(ns.ClientMaps and ns.ClientMaps.seaFields or { WORLD, 1414, 1415 }) do
 		local p = Place(mapID)
 		if p then
 			local w, h = p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy
@@ -1111,7 +1139,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- carries it on, as part of the world's sea
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
 		local p, files = Place(info.mapID), ArtFiles(info.mapID)
-		if p and files and #files > 0 then
+		if p and files and #files > 0 and S.Stitched(info.mapID) then
 			PlaceTiles(root, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, "BACKGROUND", 0, false,
 				Feather(root, p, SEA_OUT .. info.mapID), backdropSea, false)
 		end
@@ -1119,13 +1147,15 @@ function S.Build(parent, artLevel, range, iconLevel)
 	for i = nb + 1, #backdrop do worldArt[backdrop[i]] = true end
 	for i = ns_ + 1, #backdropSea do worldArt[backdropSea[i]] = true end
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
-		PlaceBackdrop(contRoot, info.mapID, "ARTWORK", FEATHER_WIDE)
-		PlaceLand(info.mapID)
+		if S.Stitched(info.mapID) then
+			PlaceBackdrop(contRoot, info.mapID, "ARTWORK", FEATHER_WIDE)
+			PlaceLand(info.mapID)
+		end
 	end
-	-- the outer sea's mottling, at the same scale as the sea paper's first octave
+	-- the outer sea's mottling, at the same scale as the sea paper's first octave (the Eastern Kingdoms')
 	local size = SEA_TILE * 0.4
 	for _, h in ipairs(hatches) do
-		if h.mapID == 1415 then size = SEA_TILE * h.k end
+		if h.mapID == (ns.ClientMaps and ns.ClientMaps.seaScale or 1415) then size = SEA_TILE * h.k end
 	end
 	for _, tex in ipairs(outer) do
 		local x0, y0 = -SEA_REACH * W, -SEA_REACH * H
@@ -1184,9 +1214,11 @@ function S.Build(parent, artLevel, range, iconLevel)
 	table.sort(zones, function(a, b) return area[a.mapID] > area[b.mapID] end)
 	local level = artLevel + 2
 	for _, info in ipairs(zones) do
-		if area[info.mapID] > 0 then
-			local n = PlaceOverlays(info.mapID)
-			if n > 0 then
+		-- (a zone, or a city: as its client's list has it, else a zone without explored-area pieces is a city)
+		local stitched, kind = S.Stitched(info.mapID)
+		if area[info.mapID] > 0 and stitched then
+			local n = kind ~= 2 and PlaceOverlays(info.mapID) or 0
+			if kind == 1 or (not kind and n > 0) then
 				level = math.min(level + 1, artLevel + range - 17)
 				local zf = CreateFrame("Frame", nil, tilesRoot)
 				zf:SetAllPoints(root)
@@ -1767,7 +1799,7 @@ function S.SetSea(u, v, hu, hv)
 	sb[1], sb[2], sb[3], sb[4], sb.zoom, sb.m = u0, v0, u1, v1, zoomNow, m
 	local ek = hatches[1] and hatches[1].k or 0.4
 	for _, h in ipairs(hatches) do
-		if h.mapID == 1415 then ek = h.k end
+		if h.mapID == (ns.ClientMaps and ns.ClientMaps.seaScale or 1415) then ek = h.k end
 	end
 	local div, f = Octaves(SEA_OCTAVE)
 	local size = SEA_TILE * ek

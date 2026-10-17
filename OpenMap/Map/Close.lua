@@ -35,9 +35,9 @@ local MINI_FROM = { 1, 60, 1 }  -- minimapFrom's least (the whole world), most, 
 mod.MINI_FROM = MINI_FROM
 local miniFade, deepFade = { 20, 34 }, { 30, 48 }   -- (the fades as set: kept, not made each view)
 local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
-local CITY_MINI_OF = {          -- ... less over these: their own plan is detailed, and comes in from further out
-	[1454] = 0.15,              --  (Orgrimmar)
-	[1456] = 0.15,              --  (Thunder Bluff)
+local CITY_MINI_OF = ns.ClientMaps and ns.ClientMaps.cityMiniOf or {   -- ... less over these: their own plan is
+	[1454] = 0.15,              --  (Orgrimmar)                          detailed, and comes in from further out
+	[1456] = 0.15,              --  (Thunder Bluff)                      (another client's: Data\<client>\Client.lua)
 }
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
@@ -72,16 +72,26 @@ local function TileTone(u, v)
 end
 local GRAIN = ns.Media.tex .. "MapGrain"
 local TOOTH = ns.Media.tex .. "MapTooth"
-local CONT_OF = { [1415] = 0, [1414] = 1 }
-local CONT_MAP = { [0] = 1415, [1] = 1414 }
+-- each continent's game maps (its minimap tiles and caves) and each game map's continent (whose land its
+-- minimap is drawn through): WoW Forever's two, or a client's own (ns.MapWorld.minimap, world.py)
+local CONT_OF, CONT_MAP = { [1415] = { 0 }, [1414] = { 1 } }, { [0] = 1415, [1] = 1414 }
+if ns.MapWorld and ns.MapWorld.minimap then
+	CONT_OF, CONT_MAP = ns.MapWorld.minimap, {}
+	local ids = {}
+	for c in pairs(CONT_OF) do ids[#ids + 1] = c end
+	table.sort(ids)                 -- (a game map two continents share: the first's land, the Eastern Kingdoms')
+	for _, c in ipairs(ids) do
+		for _, g in ipairs(CONT_OF[c]) do CONT_MAP[g] = CONT_MAP[g] or c end
+	end
+end
 
 local function Smooth(x, r)
 	local t = math.max(0, math.min(1, (x - r[1]) / (r[2] - r[1])))
 	return t * t * (3 - 2 * t)
 end
 
--- the continent (0 / 1) the view's centre is on: looked up again only once the centre has
--- moved a little (the game's lookup makes tables, and this runs every frame of a pan or zoom)
+-- the game maps (continent 0 / 1 ...) of the continent the view's centre is on: looked up again only once
+-- the centre has moved a little (the game's lookup makes tables, and this runs every frame of a pan or zoom)
 local lastCU, lastCV, lastCont
 local function ContinentAt(u, v)
 	if lastCU and math.abs(u - lastCU) < 0.002 and math.abs(v - lastCV) < 0.002 then return lastCont end
@@ -92,14 +102,18 @@ local function ContinentAt(u, v)
 	return lastCont
 end
 
--- every continent (0 / 1) whose map the view overlaps (one list, reused)
+-- every game map (continent 0 / 1 ...) whose continent's map the view overlaps (one list, reused)
 local contsInView = {}
 local function ContinentsInView(u, v, hu, hv)
 	local out = contsInView
 	wipe(out)
-	for mapID, cont in pairs(CONT_OF) do
+	for mapID, conts in pairs(CONT_OF) do
 		local l, r, t, b = S.Rect(mapID)
-		if l and r > u - hu and l < u + hu and b > v - hv and t < v + hv then out[#out + 1] = cont end
+		if l and r > u - hu and l < u + hu and b > v - hv and t < v + hv then
+			for _, cont in ipairs(conts) do
+				if not tContains(out, cont) then out[#out + 1] = cont end
+			end
+		end
 	end
 	return out
 end
@@ -180,15 +194,17 @@ local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
 				wantedLOD[key] = true
 				local t = lodPieces[key]
 				if not t then
-					t = LODPiece(layer, cont, -level)
-					t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
-					lodPieces[key] = t
 					local u0, v0 = S.FromYards(cont, (32 - row * per) * TILE, (32 - col * per) * TILE)
 					local u1, v1 = S.FromYards(cont, (32 - (row + 1) * per) * TILE, (32 - (col + 1) * per) * TILE)
-					S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
-					t:Show()
+					if u0 and u1 then           -- (none for a piece off the stitched world: Outland's, on 530)
+						t = LODPiece(layer, cont, -level)
+						t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
+						lodPieces[key] = t
+						S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
+						t:Show()
+					end
 				end
-				t:SetAlpha(alpha)
+				if t then t:SetAlpha(alpha) end
 			end
 		end
 	end
@@ -226,6 +242,12 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 				for tx = tx0, tx1 do
 					for ty = ty0, ty1 do
 						local fid = list[tx * 64 + ty]
+						local u0, v0, u1, v1
+						if fid and not tiles[TileKey(cont, tx, ty)] then
+							u0, v0 = S.FromYards(cont, (32 - ty) * TILE, (32 - tx) * TILE)
+							u1, v1 = S.FromYards(cont, (31 - ty) * TILE, (31 - tx) * TILE)
+							if not (u0 and u1) then fid = nil end     -- (a tile off the stitched world)
+						end
 						if fid then
 							local key = TileKey(cont, tx, ty)
 							wanted[key] = true
@@ -233,8 +255,6 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 							if not t then
 								t = Tile(layer, fid, cont)
 								tiles[key] = t
-								local u0, v0 = S.FromYards(cont, (32 - ty) * TILE, (32 - tx) * TILE)
-								local u1, v1 = S.FromYards(cont, (31 - ty) * TILE, (31 - tx) * TILE)
 								t[1]:SetVertexColor(TileTone((u0 + u1) / 2, (v0 + v1) / 2))
 								for _, tex in ipairs(t) do
 									S.PlaceWorld(tex, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
@@ -470,12 +490,12 @@ end
 local underShown = {}           -- (reused each update)
 local underRange = {}           -- cave id -> its { full, start } (made once: no table a cave a frame)
 local FOCUS_RANGE = { 0.35, 0.8 }
-local function UpdateUnderground(layer, cont, u, v, hu, hv)
+local function UpdateUnderground(layer, conts, u, v, hu, hv)
 	local shown, focus = underShown, 0
 	wipe(shown)
-	if mod.db.underground and cont and ns.MapCaves then
+	if mod.db.underground and conts and ns.MapCaves then
 		for id, c in pairs(ns.MapCaves) do
-			if c[2] == cont and not UNDER_SKIP[id] and Primary(id, c) then
+			if tContains(conts, c[2]) and not UNDER_SKIP[id] and Primary(id, c) then
 				local u0, v0, u1, v1 = CaveRect(c)
 				if u0 and u1 > u - hu and u0 < u + hu and v1 > v - hv and v0 < v + hv then
 					local fill = (2 * hu) / (u1 - u0)          -- view width / cave width
