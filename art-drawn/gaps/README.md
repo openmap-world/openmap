@@ -27,3 +27,13 @@ game to see new textures. Options' Filled gaps turns them off.
 | Region | Painted by |
 | --- | --- |
 | G01 Khaz Modan: round Dun Morogh, Loch Modan, Searing Gorge and the Badlands | Santiago Reyes |
+| G02 Kalimdor: round Tanaris and Silithus | Santiago Reyes |
+| G03 Eastern Kingdoms: north of the Plaguelands | Santiago Reyes |
+| G04 Kalimdor: west of Stonetalon Mountains and the Barrens | Santiago Reyes |
+| G05 Eastern Kingdoms: round Silverpine Forest and Hillsbrad Foothills | Santiago Reyes |
+| G06 Kalimdor: between Thousand Needles and Feralas | Santiago Reyes |
+| G07 Kalimdor: between Winterspring and Darkshore | Santiago Reyes |
+| G08 Kalimdor: between Ashenvale and Azshara | Santiago Reyes |
+| G09 Eastern Kingdoms: between Stranglethorn Vale and the Blasted Lands | Santiago Reyes |
+| G10 Kalimdor: between Thousand Needles and Dustwallow Marsh | Santiago Reyes |
+| G11 Kalimdor: between Desolace and Feralas | Santiago Reyes |

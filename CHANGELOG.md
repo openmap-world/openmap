@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### New
+
+- **Ten more gaps painted**: the blank land between zones is painted by hand by Santiago Reyes
+  (used with his permission) round Tanaris and Silithus, the Plaguelands, Stonetalon and the
+  Barrens, Silverpine and Hillsbrad, Thousand Needles and Feralas, Winterspring and Darkshore,
+  Ashenvale and Azshara, Stranglethorn and the Blasted Lands, Thousand Needles and Dustwallow
+  Marsh, and Desolace and Feralas. Khaz Modan's comes back sharper, from his full-size painting.
+  Options' **Filled gaps** turns them all off.
+
 ## v0.5.0-beta (2026-10-16)
 
 ### New

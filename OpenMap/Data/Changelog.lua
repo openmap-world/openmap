@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
+		"|cff6e2c0aTen more gaps painted|r: the blank land between zones is painted by hand by Santiago Reyes (used with his permission) round Tanaris and Silithus, the Plaguelands, Stonetalon and the Barrens, Silverpine and Hillsbrad, Thousand Needles and Feralas, Winterspring and Darkshore, Ashenvale and Azshara, Stranglethorn and the Blasted Lands, Thousand Needles and Dustwallow Marsh, and Desolace and Feralas. Khaz Modan's comes back sharper, from his full-size painting. Options' |cff6e2c0aFilled gaps|r turns them all off.",
+	} },
 	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [18] = "Fixed", }, items = {
 		"|cff6e2c0aKhaz Modan's blank land painted|r: the stretches between Dun Morogh, Wetlands, Loch Modan, Searing Gorge and the Badlands that no zone map covers, and the coast round them, painted by hand by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's terrain (used with his permission). The first of the gaps between zones to be filled; Options' |cff6e2c0aFilled gaps|r turns them off.",
 		"|cff6e2c0aMaps of City of Dalaran and Excavation Site: Wetlands|r, drawn by Santiago Reyes and used with his permission: click their entrances in Alterac Mountains and the Wetlands (they opened on a blank page before). \"Map by Santiago Reyes\" at their foot, as with his others.",

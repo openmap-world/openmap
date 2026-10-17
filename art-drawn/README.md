@@ -17,6 +17,16 @@ dungeon maps, they're used with the artist's permission and aren't covered by th
 | File | Where | Painted by |
 | --- | --- | --- |
 | `gaps/G01_dun-morogh-riverglades.png` | Khaz Modan: round Dun Morogh, Loch Modan, Searing Gorge and the Badlands | Santiago Reyes |
+| `gaps/G02_tanaris-silithus.png` | Kalimdor: round Tanaris and Silithus | Santiago Reyes |
+| `gaps/G03_eastern-plaguelands-western-plaguelands.png` | Eastern Kingdoms: north of the Plaguelands | Santiago Reyes |
+| `gaps/G04_stonetalon-mountains-the-barrens.png` | Kalimdor: west of Stonetalon Mountains and the Barrens | Santiago Reyes |
+| `gaps/G05_silverpine-forest-hillsbrad-foothills.png` | Eastern Kingdoms: round Silverpine Forest and Hillsbrad Foothills | Santiago Reyes |
+| `gaps/G06_thousand-needles-feralas.png` | Kalimdor: between Thousand Needles and Feralas | Santiago Reyes |
+| `gaps/G07_winterspring-darkshore.png` | Kalimdor: between Winterspring and Darkshore | Santiago Reyes |
+| `gaps/G08_ashenvale-azshara.png` | Kalimdor: between Ashenvale and Azshara | Santiago Reyes |
+| `gaps/G09_stranglethorn-vale-blasted-lands.png` | Eastern Kingdoms: between Stranglethorn Vale and the Blasted Lands | Santiago Reyes |
+| `gaps/G10_thousand-needles-dustwallow-marsh.png` | Kalimdor: between Thousand Needles and Dustwallow Marsh | Santiago Reyes |
+| `gaps/G11_desolace-feralas.png` | Kalimdor: between Desolace and Feralas | Santiago Reyes |
 
 `python -P tools/map-dungeons/drawn.py` turns them into `OpenMap/Media/Textures/MapDungeonDrawn/`
 and `OpenMap/Data/DungeonDrawn.lua`. A new one: add the drawing here (a 3:2 picture, the dungeon

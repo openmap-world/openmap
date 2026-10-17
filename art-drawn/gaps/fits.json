@@ -1,11 +1,101 @@
 {
  "G01_dun-morogh-riverglades": {
   "fit": [
-   1.7984407800781606,
-   1.798676722193035,
-   0.0746418870359331,
-   -0.013889754049195435
+   1.9999632100669311,
+   2.0000299276742046,
+   0.6908374074834991,
+   0.48900071159978387
   ],
-  "match": 0.82
+  "match": 0.765
+ },
+ "G02_tanaris-silithus": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G03_eastern-plaguelands-western-plaguelands": {
+  "fit": [
+   1.0000010790125837,
+   0.9999921905473463,
+   -0.0011671560185064118,
+   0.00644260134602846
+  ],
+  "match": 1.0
+ },
+ "G04_stonetalon-mountains-the-barrens": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G05_silverpine-forest-hillsbrad-foothills": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G06_thousand-needles-feralas": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G07_winterspring-darkshore": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G08_ashenvale-azshara": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G09_stranglethorn-vale-blasted-lands": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G10_thousand-needles-dustwallow-marsh": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
+ },
+ "G11_desolace-feralas": {
+  "fit": [
+   1.0,
+   1.0,
+   0.0,
+   0.0
+  ],
+  "match": 1.0
  }
 }
