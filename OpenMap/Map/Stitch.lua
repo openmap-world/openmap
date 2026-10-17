@@ -60,8 +60,10 @@ local SEA_LABELS_OUT = { 3.5, 5 } -- ... and the seas' a little after (nothing c
 local WORLD_SEA_OUT = { 4, 7 }  -- the world art's sea (the whirlpool, the ship ...) stays the ocean until well in (its
                                 --  lettering is hand-cleaned: tools/map-art); the sea texture takes over after
 local WORLD_COAST_OUT = { 3, 5 } -- ... but off the coasts, where its hatching would grow huge, much sooner
-local DETAIL_FADE = { 3, 4.5 } -- (late: the continent art, all of a piece, carries the mid zooms)
-local DETAIL_HINT = { 1.8, 3, 0.3 }   -- ... after a hint of it from further out: where, and how strong
+local DETAIL_FADE = ns.ClientMaps and ns.ClientMaps.detailFade or { 3, 4.5 } -- (late: the continent art, all of a
+                                --  piece, carries the mid zooms; a client's own: Data\<client>\Client.lua)
+local DETAIL_HINT = { 1.8, 3, ns.ClientMaps and ns.ClientMaps.detailHint == false and 0 or 0.3 }   -- ... after a hint
+                                --  of it from further out: where, and how strong
 local CITY_FADE = { 0.2, 0.4 }  -- (cities: share of the zoom where they fill the view: their own map takes over
                                 --  from the zone's painting of them once they fill a fifth to two fifths of it,
                                 --  big enough for its labels to read)
@@ -358,7 +360,8 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 				local tx, ty = p.left + (x + (k - 1) * tw) * p.sx, p.top + (y + (j - 1) * th) * p.sy
 				-- a zone's textures get their file once the zone is in view (ShowZone): opening the
 				-- map loads what's there, not the whole world
-				local lazy = band or list == graded              -- (ShowZone queues them)
+				local lazy = band or list == graded              -- (ShowZone queues them; a culled backdrop's, S.Cull)
+					or list == backdrop and ns.ClientMaps and ns.ClientMaps.cullBackdrop
 				for copy = 1, band and 2 or 1 do
 					local tex = parent:CreateTexture(nil, drawLayer, nil, sub + (copy - 1) * 2)
 					if lazy then tex.omFile = file else tex:SetTexture(file, nil, nil, "TRILINEAR") end
@@ -398,9 +401,10 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 end
 
 -- the zone's generated masks (MapBand, MapTerritory, MapCore) on `parent`; only
--- colour-matched zones have them
+-- colour-matched zones have them (and a client's territories without the rest: ns.MapTerritories)
 local function ZoneMask(parent, p, folder)
 	if ns.MapGrade and ns.MapGrade[p.mapID] then return Feather(parent, p, folder .. p.mapID) end
+	if folder == TERRITORY and ns.MapTerritories and ns.MapTerritories[p.mapID] then return Feather(parent, p, folder .. p.mapID) end
 end
 
 -- A map's own base art (its whole layer), edges faded by `feather` when given;
@@ -425,6 +429,19 @@ local function PlaceBackdrop(parent, mapID, drawLayer, feather)
 	local files = ArtFiles(mapID)
 	if not files or #files == 0 then return end
 	local mask = feather and Feather(parent, p, feather)
+	if ns.ClientMaps and ns.ClientMaps.sea == false then
+		-- (a client whose art paints its own sea: the art as it is, once; near the view only, its files
+		-- loaded as it comes near: S.Cull)
+		local n = #backdrop
+		PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, backdrop, false)
+		for i = n + 1, #backdrop do
+			local tex, rec = backdrop[i], backdrop[i].omRec
+			if ns.ClientMaps.cullBackdrop then
+				culled[#culled + 1] = { tex, rec[2] / W, rec[3] / H, (rec[2] + rec[4]) / W, (rec[3] + rec[5]) / H, layer = parent }
+			end
+		end
+		return
+	end
 	local sea = Feather(parent, p, mapID == WORLD and SEA_OPEN or SEA_MASK .. mapID)
 	local land = Feather(parent, p, TEX .. "MapBackLand\\" .. mapID)   -- (its land and coastal band: they stay)
 	PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, backdrop, false, nil, land)
@@ -547,7 +564,7 @@ end
 -- interior (MapCore) on coreRoot, above every zone's halo.
 local function PlaceOverlays(mapID)
 	local p = Place(mapID)
-	if not p then return 0 end
+	if not p or ns.ClientMaps and ns.ClientMaps.overlays == false then return 0 end   -- (a client whose base art is whole)
 	local explored = C_MapExplorationInfo.GetExploredMapTextures(mapID) or {}
 	local reveal = ns.MapReveal and ns.MapReveal[C_Map.GetMapArtID(mapID) or 0]
 	if #explored == 0 and not reveal then return 0 end
@@ -1106,11 +1123,19 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- not the edge of the paper: its colour (the world's sea colours carried outward, keeping
 	-- the tints of the sea near its edges), and its mottling at the continents' scale (the
 	-- world art and its sea colour fade out into it at their edges)
+	-- (a client whose art paints its own sea, ns.ClientMaps.sea false: none of OpenMap's, only the
+	-- colour of its world art's sea past its edges)
+	local seaOn = not (ns.ClientMaps and ns.ClientMaps.sea == false)
 	local sea = root:CreateTexture(nil, "BACKGROUND", nil, -8)
-	sea:SetTexture(SEA_FIELD_OUT, nil, nil, "LINEAR")
+	if seaOn then
+		sea:SetTexture(SEA_FIELD_OUT, nil, nil, "LINEAR")
+	else
+		local c = ns.ClientMaps.seaColor or SEA
+		sea:SetColorTexture(c[1], c[2], c[3], 1)
+	end
 	Record(sea, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
 	local outer = {}
-	for i, file in ipairs({ SEA_DARK, SEA_LIGHT }) do
+	for i, file in ipairs(seaOn and { SEA_DARK, SEA_LIGHT } or NONE) do
 		local tex = root:CreateTexture(nil, "BACKGROUND", nil, -7)
 		tex:SetTexture(file, "REPEAT", "REPEAT")
 		Record(tex, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
@@ -1118,7 +1143,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	end
 	-- the sea's colour as the world and continent maps paint it (MapSeaField), so zooming
 	-- in keeps the colour the map had from afar; the continents' fade into the world's
-	for _, mapID in ipairs(ns.ClientMaps and ns.ClientMaps.seaFields or { WORLD, 1414, 1415 }) do
+	for _, mapID in ipairs(seaOn and (ns.ClientMaps and ns.ClientMaps.seaFields or { WORLD, 1414, 1415 }) or NONE) do
 		local p = Place(mapID)
 		if p then
 			local w, h = p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy
@@ -1129,7 +1154,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		end
 	end
 	-- and its mottling over that, dark and light, in two octaves
-	for i = 1, 4 do
+	for i = 1, seaOn and 4 or 0 do
 		local tex = root:CreateTexture(nil, "BACKGROUND", nil, -5 + i)
 		tex:SetTexture(i % 2 == 1 and SEA_DARK or SEA_LIGHT, "REPEAT", "REPEAT")
 		tex:Hide()
@@ -1141,7 +1166,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- carries it on, as part of the world's sea
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
 		local p, files = Place(info.mapID), ArtFiles(info.mapID)
-		if p and files and #files > 0 and S.Stitched(info.mapID) then
+		if p and files and #files > 0 and S.Stitched(info.mapID) and seaOn then
 			PlaceTiles(root, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, "BACKGROUND", 0, false,
 				Feather(root, p, SEA_OUT .. info.mapID), backdropSea, false)
 		end
@@ -1151,7 +1176,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
 		if S.Stitched(info.mapID) then
 			PlaceBackdrop(contRoot, info.mapID, "ARTWORK", FEATHER_WIDE)
-			PlaceLand(info.mapID)
+			if seaOn then PlaceLand(info.mapID) end   -- (its land kept as land over OpenMap's sea)
 		end
 	end
 	-- the outer sea's mottling, at the same scale as the sea paper's first octave (the Eastern Kingdoms')
@@ -1225,7 +1250,9 @@ function S.Build(parent, artLevel, range, iconLevel)
 				local zf = CreateFrame("Frame", nil, tilesRoot)
 				zf:SetAllPoints(root)
 				zf:SetFrameLevel(level)
-				S.stats.tiles = S.stats.tiles + PlaceBase(zf, info.mapID, "ARTWORK", graded, FEATHER)
+				-- (a zone with neither pieces nor a territory of its own, an island: a round feather, off its frame)
+				local plain = n == 0 and not (ns.MapTerritories and ns.MapTerritories[info.mapID])
+				S.stats.tiles = S.stats.tiles + PlaceBase(zf, info.mapID, "ARTWORK", graded, plain and FEATHER_ROUND or FEATHER)
 				S.stats.overlays = S.stats.overlays + n
 			else
 				tinsert(S.stats.cities, info.mapID)
@@ -1234,8 +1261,9 @@ function S.Build(parent, artLevel, range, iconLevel)
 				-- (an underground city above the minimap layer, which shows the surface over it)
 				cf:SetFrameLevel(UNDERGROUND_CITIES[info.mapID] and artLevel + range - 5 or citiesRoot:GetFrameLevel())
 				local l, r, t, b = S.Rect(info.mapID)
-				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID }
-				culled[#culled + 1] = { cf, l, t, r, b, city = true }
+				local cull = { cf, l, t, r, b, city = true }
+				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID, cull = cull }
+				culled[#culled + 1] = cull
 				-- (a city that comes in early is cut down to the city: ns.MapCityCuts, banners.py)
 				local cut = ns.MapCityCuts and ns.MapCityCuts[info.mapID] and TEX .. "MapCityMask\\" .. info.mapID
 				PlaceBase(cf, info.mapID, "ARTWORK", graded, cut or FEATHER_ROUND)
@@ -1634,6 +1662,10 @@ function S.SetZoom(zoom, scale)
 	Step()
 	zoomNow = zoom
 	Fade(contRoot, Smooth(CONT_IN))
+	if Live.contShown ~= contRoot:IsShown() then      -- (the continents' art in view gets its files as it comes in: S.Cull)
+		Live.contShown = contRoot:IsShown()
+		if Live.contShown then S.LoadCulled() end
+	end
 	fades.land = 1 - Smooth(LABELS_OUT)          -- the names (one of each, fixed on the world)
 	fades.sea = 1 - Smooth(SEA_LABELS_OUT)
 	for _, n in ipairs(names) do
@@ -1656,7 +1688,14 @@ function S.SetZoom(zoom, scale)
 	for _, c in ipairs(cities) do
 		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
 		local a = Smooth(fade[1] * c[2], fade[2] * c[2])
-		if c.alpha ~= a then c.alpha = a c[1]:SetAlpha(a) end   -- (shown / hidden by S.Cull)
+		-- (shown near the view, S.Cull, while it's faded in at all: at alpha 0 its textures still cost their
+		-- size to draw, and a retail city is 150 of them)
+		if c.alpha ~= a then
+			c.alpha = a
+			c[1]:SetAlpha(a)
+			local shown = a > 0.003 and c.cull.here ~= false
+			if c[1]:IsShown() ~= shown then c[1]:SetShown(shown) end
+		end
 	end
 	-- (the zone's banner for each city: the zone's art is drawn without it, so this is the banner, with
 	-- the zone's detail; the city's title once you're in it, unless the city's own map keeps its own)
@@ -1669,6 +1708,9 @@ function S.SetZoom(zoom, scale)
 	local wo = math.floor(Smooth(WORLD_OUT) * 20) / 20
 	local ws = math.floor(Smooth(WORLD_SEA_OUT) * 20) / 20
 	local wc = math.floor(Smooth(WORLD_COAST_OUT) * 20) / 20
+	-- (a client whose art paints its own sea: it stays as Blizzard painted it, never muted to OpenMap's sea,
+	-- and the world's art stays under the continents': there's no sea of OpenMap's under it)
+	if ns.ClientMaps and ns.ClientMaps.sea == false then m, sm, wo, ws, wc = muted, seaNow, worldOut, worldSea, worldCoastOut end
 	if m ~= muted or sm ~= seaNow or wo ~= worldOut or ws ~= worldSea or wc ~= worldCoastOut then
 		muted, seaNow, worldOut, worldSea, worldCoastOut = m, sm, wo, ws, wc
 		for _, tex in ipairs(worldCoast) do Fade(tex, 1 - wc) end
@@ -1789,7 +1831,7 @@ local function Tile(tex, u0, v0, u1, v1, sx, sy, alpha, shift)
 end
 
 function S.SetSea(u, v, hu, hv)
-	if not root then return end
+	if not root or not seaPaper[1] then return end   -- (none: a client whose art paints its own sea)
 	if u then seaView[1], seaView[2], seaView[3], seaView[4] = u, v, hu, hv end
 	u, v, hu, hv = seaView[1], seaView[2], seaView[3], seaView[4]
 	if not u then return end
@@ -2257,7 +2299,9 @@ function S.Cull(u0, v0, u1, v1)
 					r:ClearAllPoints()
 				end
 			end
-			r:SetShown(here)
+			r:SetShown(here and (not c.city or (r:GetAlpha() or 1) > 0.003))   -- (a city: while it's faded in, SetZoom)
+			-- (a culled backdrop tile: its file once it's near the view and its layer shows)
+			if here and r.omFile and (not c.layer or c.layer:IsShown()) then S.QueueLoad(r) end
 		end
 	end
 	Baked.Cull()
@@ -2285,6 +2329,13 @@ function S.Cull(u0, v0, u1, v1)
 		end
 	end
 	cullBox.done = true
+end
+
+-- the culled backdrop tiles near the view, once their layer shows (the continents' art as it comes in)
+function S.LoadCulled()
+	for _, c in ipairs(culled) do
+		if c.here and c.layer and c[1].omFile and c.layer:IsShown() then S.QueueLoad(c[1]) end
+	end
 end
 
 -- the map shown again: the next S.Cull runs in full, and the cities are shown afresh, their frames,
