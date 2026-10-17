@@ -25,10 +25,9 @@ ns.ClientMaps = {
 	seaColor = { 0.52, 0.52, 0.41 },   -- (past the world art's edges: its open sea's colour, near them)
 	overlays = false,
 	cullBackdrop = true,
-	-- its continents' art is four to eight times as fine as WoW Forever's (3840 x 2560, a continent half
-	-- as wide on the world), so it carries the zones much further in: they come in later, where its
-	-- pixels run out (Stitch.lua's DETAIL_FADE, in the zoom above), with no faint hint of them before
-	detailFade = { 6, 9 },
+	-- the zones come in where the continents' art runs out of pixels, as on WoW Forever (Stitch.lua's
+	-- DETAIL_FADE, in the zoom above), but with no faint hint of them before: retail's continents' art
+	-- carries the mid zooms by itself, and the hint would load every zone's art in view from much further out
 	detailHint = false,
 	-- townsfolk (vendors, trainers, rares) come from Questie's database, and Questie is classic's: the menu
 	-- leaves them out (Panel.lua)

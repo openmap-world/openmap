@@ -6,6 +6,8 @@
 #                                       walls, without the parchment, frame, title or corners
 # Placement and tiles come from retail's tables (the micro maps are retail-era; Classic's
 # tables don't have them); only caves whose every tile exists in the Forever build are kept.
+# For retail itself (OPENMAP_CLIENT=retail): its own build's tables and art, every micro map on its
+# stitched world (Data/Retail/World.lua: its game maps, the regions on them).
 #
 # usage: python -P tools/map-caves/build.py <cache dir> [contact sheet.png]
 #   (tables and textures are fetched from wago.tools into the cache)
@@ -19,7 +21,10 @@ sys.path.insert(0, os.path.join(HERE, ".."))
 import clients   # the client the tools build for (OPENMAP_CLIENT)
 cache = sys.argv[1]
 os.makedirs(cache, exist_ok=True)
-CATA, FOREVER = "retail", clients.BUILD
+FOREVER_CLIENT = clients.NAME == "forever"
+CATA, FOREVER = "retail" if FOREVER_CLIENT else clients.BUILD, clients.BUILD
+import uimap as tables   # (tools/uimap.py: `uimap` is the table below)
+WORLD = tables.read_world(os.path.join(clients.DATA, "World.lua"))
 UA = {"User-Agent": "openmap-tools/1"}
 
 def get(url, path):
@@ -74,13 +79,18 @@ KEEP_NAMES = {
     "Frostmane Hovel",              # Coldridge Valley's troll cave (kept until it's checked in game:
                                     #  classic has a troll cave there, its map may be Cataclysm's)
 }
-areas = {r["AreaName_lang"] for r in table("AreaTable", FOREVER)}
+areas = {r["AreaName_lang"] for r in table("AreaTable", FOREVER)} if FOREVER_CLIENT else set()
 caves = []
 for mid, u in uimap.items():
-    if u["Name_lang"] in SKIP_NAMES: continue
-    if u["Name_lang"] not in areas and u["Name_lang"] not in KEEP_NAMES: continue
+    if FOREVER_CLIENT:
+        if u["Name_lang"] in SKIP_NAMES: continue
+        if u["Name_lang"] not in areas and u["Name_lang"] not in KEEP_NAMES: continue
     if u["Type"] != "5" or mid not in art_of: continue           # micro maps: caves, pre-instance areas
-    rows = [a for a in assign.get(mid, []) if a["MapID"] in ("0", "1")]
+    if FOREVER_CLIENT:
+        rows = [a for a in assign.get(mid, []) if a["MapID"] in ("0", "1")]
+    else:                                                        # (on the stitched world)
+        rows = [a for a in assign.get(mid, []) if tables.on_world(WORLD, int(a["MapID"]),
+                (float(a["Region_0"]) + float(a["Region_3"])) / 2, (float(a["Region_1"]) + float(a["Region_4"])) / 2, 0)]
     if not rows: continue
     a = rows[0]
     t = tiles.get(art_of[mid], {})

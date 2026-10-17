@@ -40,13 +40,14 @@ for o in table("WorldMapOverlay"):
     if not t: continue
     key = "%s:%s:%s:%s" % (o["TextureWidth"], o["TextureHeight"], o["OffsetX"], o["OffsetY"])
     reveal.setdefault(int(o["UiMapArtID"]), {})[key] = ", ".join(f for _, _, f in sorted(t))
-with open(os.path.join(DATA, "Reveal.lua"), "w", encoding="utf-8", newline="\n") as f:
-    f.write("-- Explored-area pieces per zone art: [UiMapArtID] = { [\"w:h:x:y\"] = \"fileIDs, row-major\" }.\n")
-    f.write(HEADER + "ns.MapReveal = {\n")
-    for art in sorted(reveal):
-        f.write("\t[%d] = {" % art + ", ".join("[%s] = %s" % (lua_str(k), lua_str(v)) for k, v in sorted(reveal[art].items())) + "},\n")
-    f.write("}\n")
-print("reveal:", len(reveal), "zone arts,", sum(len(v) for v in reveal.values()), "pieces")
+if clients.CLIENTS[clients.NAME].get("pieces", True):     # (a client whose map draws none has no use for them)
+    with open(os.path.join(DATA, "Reveal.lua"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("-- Explored-area pieces per zone art: [UiMapArtID] = { [\"w:h:x:y\"] = \"fileIDs, row-major\" }.\n")
+        f.write(HEADER + "ns.MapReveal = {\n")
+        for art in sorted(reveal):
+            f.write("\t[%d] = {" % art + ", ".join("[%s] = %s" % (lua_str(k), lua_str(v)) for k, v in sorted(reveal[art].items())) + "},\n")
+        f.write("}\n")
+    print("reveal:", len(reveal), "zone arts,", sum(len(v) for v in reveal.values()), "pieces")
 
 # ------------------------------------------------------------------ instances
 # Each dungeon's level, from the game's group finder: LFGDungeons points at a ContentTuning

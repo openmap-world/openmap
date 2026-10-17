@@ -6,11 +6,12 @@
 #                               round them out to REACH world units, never onto another zone's own land;
 #                               where two zones paint the same place, the one whose land is nearer has
 #                               it (shared over BLEND); never on its frame (its burnt edge, its corners)
-#   MapBackLand/<continent>.tga where a continent's art shows over the world's: its zones' own land and
-#                               the band of shallows its art paints round it (SHALLOWS); the world's art
-#                               (its sea, its islands) shows past it
+#   MapBackLand/<continent>.tga where a continent's art shows over the world's: all of it but another
+#                               continent's land and the band of shallows round it (SHALLOWS): its sea,
+#                               over the world's (and its names), but never over a neighbour's coast
 #   MapMiniLand/<continent>.tga where the close-up minimap shows (Close.lua): its zones' own land
 #   Data/<client>/Territories.lua  which zones and continents have them (ns.MapTerritories, ns.MapBackLands)
+#   Data/<client>/Tones.lua     each zone's overall colour, for the close-up minimap's tint (as tone.py's)
 # Each zone's own land is its explored-area pieces (WorldMapOverlay), as render.py's own_land: zones
 # without any (islands, cities) have no territory and are drawn through a round feather (Stitch.lua).
 #
@@ -30,7 +31,8 @@ from whole import Art
 
 CANVAS = (1002, 668)            # a zone's art is worked on at this size, whatever its own (3:2, as all of them)
 G = 2.0                         # grid px per world unit, laying a continent's zones out together
-REACH = (6.0, 12.0)             # world units off its own land where a zone's painting is full / gone
+REACH = (30.0, 45.0)            # world units off its own land where a zone's painting is full / gone (its sea out
+                                #  toward its frame: the continent's art is far coarser close in)
 BLEND = 4.0                     # world units: how fast a zone's claim falls off past the nearer one's own land
 OTHERS = 1.5                    # world units over which a zone's painting gives way to another zone's own land
 SHALLOWS = (28.0, 40.0)         # world units off the land where a continent's art is full / gone (its shallows band)
@@ -119,6 +121,7 @@ def main():
     terr_dir, land_dir, mini_dir = (os.path.join(clients.TEX, d) for d in ("MapTerritory", "MapBackLand", "MapMiniLand"))
     for d in (terr_dir, land_dir, mini_dir): os.makedirs(d, exist_ok=True)
     done_terr, done_land = [], []
+    shallows = {}                   # continent -> its land and shallows over its rectangle (LAND_PX square)
     for c in world["continents"]:
         cl, cr, ct, cb = w.rect(c)
         gw, gh = int((cr - cl) * W * G), int((cb - ct) * H * G)
@@ -194,6 +197,9 @@ def main():
                 d = ndimage.distance_transform_edt(~ln) / G
                 t = np.clip(1 - (d - a0) / (a1 - a0), 0, 1)
                 a = Image.fromarray((t * t * (3 - 2 * t) * 255).astype(np.uint8)).resize((LAND_PX, LAND_PX), Image.LANCZOS)
+                if out_dir == land_dir:              # (each continent's land and shallows: below, once all are known)
+                    shallows[c] = np.asarray(a).astype(np.float32) / 255
+                    continue
                 Image.merge("RGBA", (Image.new("L", (LAND_PX, LAND_PX), 255),) * 3 + (a,)).save(os.path.join(out_dir, "%d.tga" % c))
             done_land.append(c)
             if preview:
@@ -206,6 +212,44 @@ def main():
                     sheet[..., i % 2] = np.maximum(sheet[..., i % 2], own[m] * (0.5 + 0.5 * (i % 3) / 2))
                 Image.fromarray((sheet * 255).astype(np.uint8)).save(os.path.join(preview, "land-%d.png" % c))
         print("  %s: %d zones, %d territories" % (w.uimap[c]["Name_lang"], len(mine), len(own)), flush=True)
+
+    # each continent's art: all of its rectangle but the other continents' land and shallows
+    N = LAND_PX
+    for c in shallows:
+        cl, cr, ct, cb = w.rect(c)
+        u = cl + (np.arange(N) + 0.5) / N * (cr - cl)
+        v = ct + (np.arange(N) + 0.5) / N * (cb - ct)
+        others = np.zeros((N, N), np.float32)
+        for o, a in shallows.items():
+            if o == c: continue
+            ol, orr, ot, ob = w.rect(o)
+            if orr <= cl or ol >= cr or ob <= ct or ot >= cb: continue
+            Y, X = np.meshgrid((v - ot) / (ob - ot) * N - 0.5, (u - ol) / (orr - ol) * N - 0.5, indexing="ij")
+            others = np.maximum(others, ndimage.map_coordinates(a, [Y, X], order=1, mode="constant", cval=0))
+        # (its own land always shows: where two continents' land overlaps, each keeps its own)
+        mask = np.maximum(1 - others, shallows[c])
+        a = Image.fromarray((np.clip(mask, 0, 1) * 255).astype(np.uint8))
+        Image.merge("RGBA", (Image.new("L", (N, N), 255),) * 3 + (a,)).save(os.path.join(land_dir, "%d.tga" % c))
+
+    # each zone's overall painted colour (as tone.py's for Forever: the median of its art on its own
+    # land), which Close.lua tints the close-up minimap toward
+    tones = []
+    for m in sorted(zones):
+        land = land_of(m)
+        if land is None or land.sum() < 1000: continue
+        a, aw, ah, tw, th = w.art(m)
+        scale = 1.0
+        while aw * scale / 2 >= CANVAS[0]: scale /= 2
+        img = art.image(a, aw, ah, tw, th, scale)
+        rgb = np.asarray(Image.fromarray((img * 255).astype(np.uint8)).resize(CANVAS, Image.BILINEAR)).astype(np.float32)[..., :3] / 255
+        tones.append((m, np.median(rgb[land], axis=0)))
+    with open(os.path.join(clients.DATA, "Tones.lua"), "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("-- Each zone's overall painted colour: [uiMapID] = { r, g, b }, the median of its base art on its own land.\n")
+        fh.write("-- Generated by tools/map-preview/territory.py (build %s); regenerate rather than edit.\n\n" % clients.BUILD)
+        fh.write("local _, ns = ...\n\nns.MapTones = {\n")
+        for m, c in tones:
+            fh.write("\t[%d] = { %.3f, %.3f, %.3f },  -- %s\n" % (m, c[0], c[1], c[2], w.uimap[m]["Name_lang"]))
+        fh.write("}\n")
 
     path = os.path.join(clients.DATA, "Territories.lua")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:

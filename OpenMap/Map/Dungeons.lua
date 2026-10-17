@@ -297,7 +297,8 @@ local function BuildView()
 	view.blankText = Look:Font(view.page:CreateFontString(nil, "OVERLAY"), 16)
 	view.blankText:SetPoint("CENTER")
 	view.blankText:SetTextColor(0.32, 0.22, 0.12)
-	view.blankText:SetText(L["WoW Forever has no map of this dungeon yet."])
+	view.blankText:SetText(ns.Client == "Forever" and L["WoW Forever has no map of this dungeon yet."]
+		or L["There's no map of this dungeon to show here."])
 	view.blankText:Hide()
 	-- who drew a map we didn't get from the game (Data/DungeonDrawn.lua): small, at the picture's foot,
 	-- in the middle (its corners have OpenMap's edge tabs, or its button)
@@ -1651,6 +1652,8 @@ FillSide = function()
 		if NeedRoll() then
 			Text(L["NeedRoll lists this dungeon's loot: what every boss drops, what you've collected, and a wishlist."])
 			items[#items + 1] = { kind = "button", L["Open NeedRoll"], click = function() OpenNeedRoll() end }
+		elseif ns.Client ~= "Forever" then           -- (NeedRoll is WoW Forever's; another client has its own guide)
+			Text(L["This dungeon's loot is in the game's Adventure Guide."])
 		else
 			Text(L["For loot, we recommend |cffffd100NeedRoll|r, by mikebvs: what every boss drops, what you've collected, and a wishlist, made for WoW Forever."])
 			Text("|cff998866" .. L["Get it from CurseForge (click, then Ctrl-C):"] .. "|r")

@@ -22,10 +22,11 @@ Retail's maps aren't WoW Forever's, and the map is built from them differently:
   explored-area pieces are the same art again), and the world's and continents' art paint their own
   sea. So there's no sea of OpenMap's, no explored-area pieces over the zones, and no gap filling,
   colour matching or hand-cleaned art: the map is Blizzard's art as it is, fitted together by masks
-  traced from it (`tools/map-preview/territory.py`): each continent's art on its land and shallows over
-  the world's, each zone's on its own land and what it paints round it over its continent's.
-- **The zones come in later.** Retail's continent art is four to eight times as fine, so it carries
-  the map further in; the zone maps fade in where it runs out (`detailFade`).
+  traced from it (`tools/map-preview/territory.py`): each continent's art over the world's (its sea
+  too, but never over another continent's land and shallows), each zone's on its own land and what it
+  paints round it over its continent's.
+- **No early hint of the zones.** They come in where the continents' art runs out of pixels, as on
+  Forever, but not faintly from further out (`detailHint`): that would load every zone in view early.
 - **World positions** (flight masters, entrances, docks, the minimap) go through each game map's
   place on Azeroth's map (`World.lua`'s `yards`), worked out from the tables (`tools/uimap.py`).
 
@@ -34,11 +35,12 @@ Retail's maps aren't WoW Forever's, and the map is built from them differently:
 | Data | From | Made by |
 | --- | --- | --- |
 | `World.lua` | the map tables | `tools/map-data/world.py` |
-| `Reveal.lua`, `Places.lua` | the map tables; entrances from the encounter journal (`JournalInstanceEntrance`), docks from the map's own points of interest ("Boat to ...") | `tools/map-data/build.py` |
+| `Places.lua` | the map tables; entrances from the encounter journal (`JournalInstanceEntrance`), docks from the map's own points of interest ("Boat to ..."); no `Reveal.lua` (no pieces drawn: `tools/clients.py`'s `pieces`) | `tools/map-data/build.py` |
 | `Minimap.lua` | each game map's own world file | `tools/map-data/minimap.py` |
 | `FlightData.lua` | the taxi tables | `tools/map-flights/flights.py` |
 | `DungeonMaps.lua` | the dungeon maps and their floors in the map tables | `tools/map-dungeons/tables.py` |
-| `Territories.lua` and the masks | the zones' explored-area pieces | `tools/map-preview/territory.py` |
+| `Territories.lua`, `Tones.lua` and the masks | the zones' explored-area pieces and art | `tools/map-preview/territory.py` |
+| `Caves.lua`, `MapCave/` | the cave maps (micro maps) on the stitched world | `tools/map-caves/build.py` |
 
 Zone levels come from the game itself (`C_Map.GetMapLevels`), as its own map shows them.
 
@@ -57,6 +59,7 @@ python -P tools/map-data/minimap.py <cache>
 python -P tools/map-flights/flights.py <db2> OpenMap/Data/Retail/FlightData.lua
 python -P tools/map-dungeons/tables.py <db2>
 python -P tools/map-preview/territory.py <db2> <tex>
+python -P tools/map-caves/build.py <cave cache>
 python -P tools/map-textures/make.py
 python -P tools/map-art/border.py
 python -P tools/map-textures/shared.py
@@ -85,6 +88,6 @@ As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=re
   Offensive, Vault of the Incarnates' Valdrakken floor, Dawn of the Infinite) are left out of the
   dungeon view; The Nokhud Offensive has no other floor, so its entrance opens nothing.
 - Khaz Algar's underground dungeons have no entrance pins (their zones aren't stitched).
-- No caves (Close.lua's underground), no shrunk minimap for the mid zooms (`MapMiniLOD`), no baked zone
-  tiles (`MapZones`) and no lettered names: retail's art letters its own.
+- No shrunk minimap for the mid zooms (`MapMiniLOD`: the game's own tiles show from close in), no baked
+  zone tiles (`MapZones`) and no lettered names: retail's art letters its own.
 - The flight time estimate uses classic's flight speed.
