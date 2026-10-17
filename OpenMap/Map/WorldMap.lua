@@ -28,6 +28,7 @@ local mod = ns:NewModule("worldmap", {
 		zeppelins = true,       -- zeppelin towers (Horde's) and routes
 		flight = true,
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
+		iconsFrom = 1,          -- the places' icons from this zoom (ICONS_FROM); 1: each from its own (as they come)
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
@@ -40,6 +41,9 @@ local mod = ns:NewModule("worldmap", {
 function mod.Migrate(db)
 	if db.boats == nil and db.icons ~= nil then db.boats, db.zeppelins = db.icons, db.icons end
 end
+
+local ICONS_FROM = { 1, 20, 0.5 }   -- iconsFrom's least, most, step (zoom: times the whole-world view)
+mod.ICONS_FROM = ICONS_FROM
 
 local ZOOM_STEP = 1.25          -- each wheel notch
 local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step (the minimap's own detail runs out
@@ -959,6 +963,7 @@ function mod:Refresh()
 	end
 	if S.RefreshRoutes then S.RefreshRoutes() end
 	S.SetPlayerHidden(self.db.playerArrow == false)
+	S.SetPlacesFrom(self.db.iconsFrom)
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
@@ -1068,6 +1073,9 @@ function mod:Options()
 			desc = "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown." },
 		flight = { type = "toggle", name = "Flight masters", order = 32, get = get, set = set,
 			disabled = off },
+		iconsFrom = { type = "range", name = "Icons from zoom", order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
+			get = get, set = set, disabled = off,
+			desc = "Zoomed out further than this (in times the whole-world view), the map's icons for places are hidden: dungeons, boats, zeppelins, flight masters and townsfolk. At 1x each shows from its own zoom, as it comes. Your pins, drawings and party always show." },
 		playerArrow = { type = "toggle", name = "Your arrow", order = 33, get = get, set = set, disabled = off,
 			desc = "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap." },
 	}

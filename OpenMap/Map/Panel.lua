@@ -1311,6 +1311,12 @@ function mod:SetupPanel(worldMap)
 	local options = mod.Options and mod:Options() or {}
 	local made = { zoom = zoomRow, from = miniRow, opacity = opacityRow }
 	menu.extraRows = {}
+	made.icons = SliderRow(sliders, COL, { label = L["Icons from"], icon = Icon("INV_Misc_Spyglass_03"), range = mod.ICONS_FROM,
+		get = function() return mod.db.iconsFrom or 1 end,
+		set = function(v) mod.db.iconsFrom = v mod:Refresh() if ns.NotifyOptions then ns.NotifyOptions() end end,
+		fmt = "%.1fx",
+		tip = L["Zoomed out further than this, the icons for places are hidden: dungeons, boats, zeppelins, flight masters and townsfolk. At 1x each shows from its own zoom. Your pins, drawings and party always show."] })
+	menu.extraRows[#menu.extraRows + 1] = made.icons
 	for _, s in ipairs({
 		{ "windowScale", L["Map size"], Icon("INV_Misc_Spyglass_02") },
 		{ "colorMatch", L["Colour matching"], Icon("INV_Misc_Map_01") },
@@ -1331,7 +1337,7 @@ function mod:SetupPanel(worldMap)
 	end
 	-- each column's, top down
 	local height = 0
-	for col, list in ipairs({ { "zoom", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade" } }) do
+	for col, list in ipairs({ { "zoom", "icons", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade" } }) do
 		local y = -22
 		for _, key in ipairs(list) do
 			local r = made[key]

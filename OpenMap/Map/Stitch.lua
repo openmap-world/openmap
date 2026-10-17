@@ -778,9 +778,16 @@ function S.ClearPinSet(set)
 end
 
 -- a set with `build` makes its pins the first time it shows
+-- the places' icons (dungeons, boats, zeppelins, flight masters, townsfolk) from this zoom at the least:
+-- the menu's Icons from (WorldMap.lua). Yours (pins, drawings, the party, the waypoint) aren't held back
+-- (one local: this file is near Lua's 200 a chunk)
+local places = { from = 1, sets = { dungeons = true, boats = true, zeppelins = true, flight = true } }
+
 local function ShowSets()
-	for _, set in pairs(sets) do
-		local shown = set.on and zoomNow >= set.minZoom and (not set.maxZoom or zoomNow < set.maxZoom)
+	for key, set in pairs(sets) do
+		local from = set.minZoom
+		if places.from > from and (places.sets[key] or key:sub(1, 3) == "tf_") then from = places.from end
+		local shown = set.on and zoomNow >= from and (not set.maxZoom or zoomNow < set.maxZoom)
 		if shown and set.build then
 			local build = set.build
 			set.build = nil
@@ -791,6 +798,11 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+
+function S.SetPlacesFrom(zoom)
+	places.from = tonumber(zoom) or 1
+	ShowSets()
+end
 
 -- the shown pin nearest a screen point (px, as GetCursorPosition) within `reach` px: for the
 -- gamepad's cursor, which has no mouse-over of its own
