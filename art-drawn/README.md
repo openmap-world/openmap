@@ -7,6 +7,7 @@ and not covered by OpenMap's MIT licence: ask the artist before using them anywh
 | File | Dungeon | Drawn by |
 | --- | --- | --- |
 | `dungeons/city-of-dalaran.png` | City of Dalaran | Santiago Reyes |
+| `dungeons/excavation-site-wetlands.png` | Excavation Site: Wetlands | Santiago Reyes |
 | `dungeons/ruins-of-lordaeron.png` | Ruins of Lordaeron | Santiago Reyes |
 | `dungeons/hall-of-thanes.png` | The Hall of Thanes | Santiago Reyes |
 

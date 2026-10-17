@@ -11,9 +11,9 @@
   by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's
   terrain (used with his permission). The first of the gaps between zones to be filled; Options'
   **Filled gaps** turns them off.
-- **A map of City of Dalaran**, drawn by Santiago Reyes and used with his permission: click its
-  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" at its
-  foot, as with his others.
+- **Maps of City of Dalaran and Excavation Site: Wetlands**, drawn by Santiago Reyes and used with
+  his permission: click their entrances in Alterac Mountains and the Wetlands (they opened on a blank
+  page before). "Map by Santiago Reyes" at their foot, as with his others.
 - **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
   Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
   and Back takes you to the world where you were. (Under the Boats switch.)
