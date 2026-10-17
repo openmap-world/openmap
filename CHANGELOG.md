@@ -65,6 +65,8 @@
 
 ### Fixed
 
+- Opening a dungeon's map no longer can raise a Lua error the first time (when the map window
+  changed size as it opened, as in full screen).
 - **With a gamepad**: the cursor stays where you put it. It jumped back to the middle of the map
   each time the map underneath changed (shortly after every zoom or pan), so the next zoom was about
   the middle. And in combat, a dungeon's or Zephras Isle's map waits until you're out of it (a line

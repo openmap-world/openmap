@@ -195,7 +195,8 @@ end
 local BLANK = { { blank = true } }    -- (the floors of a dungeon the client has no map of: one blank page)
 
 local function LayoutView()
-	if not view or not view:IsShown() then return end
+	-- (no floor shown yet: showing the view can size its port before ShowFloor sets the zoom, and lays it out)
+	if not view or not view:IsShown() or not view.zoom then return end
 	local w, h = view.port:GetWidth(), view.port:GetHeight()
 	if not w or w <= 0 or not h or h <= 0 then return end
 	local s = math.min(w / PIC_W, h / PIC_H) * view.zoom
