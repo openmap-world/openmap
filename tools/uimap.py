@@ -18,9 +18,9 @@ def _f(r, k):
 
 
 class World:
-    def __init__(self, db2):
+    def __init__(self, db2, suffix=""):
         def read(name):
-            p = os.path.join(db2, name + ".csv")
+            p = os.path.join(db2, name + suffix + ".csv")     # (suffix: a cache's "-<build>")
             return list(csv.DictReader(open(p, encoding="utf-8"))) if os.path.exists(p) else []
         self.uimap = {int(r["ID"]): r for r in read("UiMap")}
         self.assign = {}
@@ -137,3 +137,39 @@ class World:
             if host == WORLD and out:
                 break                            # (Azeroth's own rows place the whole map)
         return out
+
+
+def read_world(path):
+    """a client's World.lua (tools/map-data/world.py) as { zones, continents, yards, minimap }, or None"""
+    import re
+    if not os.path.exists(path): return None
+    src = open(path, encoding="utf-8").read()
+    part = lambda a, b: src.split(a, 1)[1].split(b, 1)[0]
+    num = r"[-\d.e+]+"
+    out = {"continents": [int(v) for v in re.findall(r"\d+", part("continents = {", "}"))],
+           "zones": {int(m): int(k) for m, k in re.findall(r"\[(\d+)\] = ([12]),", part("zones = {", "yards = {"))},
+           "yards": {}, "minimap": {}}
+    for g, body in re.findall(r"\[(\d+)\] = \{ ((?:\{ [^}]+ \},? ?)+)\},", part("yards = {", "minimap = {")):
+        out["yards"][int(g)] = [tuple(float(v) for v in re.findall(num, r)) for r in re.findall(r"\{ ([^}]+) \}", body)]
+    for c, body in re.findall(r"\[(\d+)\] = \{ ([\d, ]+) \},", part("minimap = {", "\n}")):
+        out["minimap"][int(c)] = [int(v) for v in re.findall(r"\d+", body)]
+    return out
+
+
+def on_world(world, c, x, y, margin=0.2):
+    """whether a world position is on a client's stitched world (always, without a World.lua): as
+    Stitch.lua's S.FromYards, a little past each region's box"""
+    if not world: return True
+    for r in world["yards"].get(c, []):
+        mx, my = (r[1] - r[0]) * margin, (r[3] - r[2]) * margin
+        if r[0] - mx <= x <= r[1] + mx and r[2] - my <= y <= r[3] + my: return True
+    return False
+
+
+def from_yards(world, c, x, y):
+    """as Stitch.lua's S.FromYards (a client with a World.lua): (u, v) on Azeroth's map, or None"""
+    for r in (world or {}).get("yards", {}).get(c, []):
+        mx, my = (r[1] - r[0]) * 0.2, (r[3] - r[2]) * 0.2
+        if r[0] - mx <= x <= r[1] + mx and r[2] - my <= y <= r[3] + my:
+            return r[4] + r[5] * y, r[6] + r[7] * x
+    return None
