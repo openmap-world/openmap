@@ -322,7 +322,7 @@ local function UpdateGapMinimap(conts, u, v, hu, hv, alpha)
 	for _, cont in ipairs(conts) do
 		local list = ns.MapMinimap and ns.MapMinimap[cont]
 		local mapID = CONT_MAP[cont]
-		local landMask = mapID and S.GapMask and S.GapMask(mapID)
+		local landMask = mapID and ns.MapGaps and S.GapMask and S.GapMask(mapID)   -- (a client with gaps only)
 		local xa, ya, xb, yb
 		if list and alpha > 0.01 and layer and landMask and ns.MapGaps then
 			xa, ya = S.ToYards(cont, u - hu, v - hv)
@@ -640,6 +640,7 @@ function mod:CloseOptions(opts, get, set, off)
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
 		desc = "The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this." }
 	opts.gapMinimap = { type = "toggle", name = "Minimap in the gaps (experimental)", order = 51.5, get = get, set = set, disabled = noMinimap,
+		hidden = function() return not ns.MapGaps end,   -- (a client with no gaps between its zones)
 		desc = "Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper." }
 	opts.soften = { type = "toggle", name = "Soften and add paper grain", order = 52, get = get, set = set, disabled = off,
 		desc = "At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it." }

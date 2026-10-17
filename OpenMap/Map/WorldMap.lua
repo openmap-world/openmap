@@ -73,7 +73,7 @@ local function Stitchable(mapID)
 	local info = C_Map.GetMapInfo(mapID)
 	if not info then return false end
 	if info.mapType ~= Enum.UIMapType.Continent and info.mapType ~= Enum.UIMapType.Zone then return false end
-	return S.Rect(mapID) ~= nil and S.ArtSize(mapID) ~= nil and S.Stitched(mapID)   -- (a client's own list: Stitch.lua)
+	return S.Rect(mapID) ~= nil and S.ArtSize(mapID) ~= nil and S.Stitched(mapID, true)   -- (a client's own list: Stitch.lua)
 end
 
 -- view px per world unit when the whole world fits

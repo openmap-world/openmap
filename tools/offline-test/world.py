@@ -132,6 +132,18 @@ function SWEEP(ns, zooms)
 	local t0 = os.clock()
 	if not S.Build(canvas, 100, 80, 2000) then return { built = false } end
 	out.build = os.clock() - t0
+	-- every game map's yards there and back (S.FromYards, S.ToYards: the minimap and the caves go by them)
+	local yards = ns.MapWorld and ns.MapWorld.yards or { [0] = { { -1e4, 1e4, -1e4, 1e4 } }, [1] = { { -1e4, 1e4, -1e4, 1e4 } } }
+	for cont, regions in pairs(yards) do
+		local r = regions[1]
+		local x, y = (r[1] + r[2]) / 2, (r[3] + r[4]) / 2
+		local u, v = S.FromYards(cont, x, y)
+		local x2, y2
+		if u then x2, y2 = S.ToYards(cont, u, v) end
+		if not x2 or math.abs(x2 - x) > 1 or math.abs(y2 - y) > 1 then
+			ERRORS[#ERRORS + 1] = ("yards on game map %d don't come back: %s, %s -> %s, %s -> %s, %s"):format(cont, x, y, tostring(u), tostring(v), tostring(x2), tostring(y2))
+		end
+	end
 	S.Layout(S.WORLD)
 	S.ApplyGrade(1, 0.1, "show")
 	local function shown(r)
@@ -171,9 +183,24 @@ function SWEEP(ns, zooms)
 			S.SetView(c[1], c[2], hu, hv, z / k, z / k)
 			for _ = 1, 30 do RunOnUpdate(0.016) end      -- (the loader sets files a few dozen a frame)
 			local a, i = count()
+			if a > worstArt then
+				-- (that view's art by layer: the world's, the continents', the zones', the cities')
+				local by = {}
+				for _, part in ipairs(S.Parts()) do
+					local n = 0
+					for _, f in ipairs(FRAMES) do
+						if f.__kind == "Texture" and shown(f) then
+							for _, top in ipairs(part[2]) do if under(f, top) then n = n + 1 break end end
+						end
+					end
+					by[#by + 1] = part[1]:sub(1, 12) .. "=" .. n
+				end
+				out.split = out.split or {}
+				out.split[z] = table.concat(by, " ", 2, 10)
+			end
 			worstArt, worstIcons = math.max(worstArt, a), math.max(worstIcons, i)
 		end
-		out.rows[#out.rows + 1] = { z, worstArt, worstIcons }
+		out.rows[#out.rows + 1] = { z, worstArt, worstIcons, out.split and out.split[z] or "" }
 	end
 	return out
 end
@@ -226,7 +253,7 @@ def main():
         print("zoom   textures drawn, the most over the views: art, icons")
         for i in range(1, len(res["rows"]) + 1):
             row = res["rows"][i]
-            print("%5g  %5d %5d" % (row[1], row[2], row[3]))
+            print("%5g  %5d %5d   %s" % (row[1], row[2], row[3], row[4]))
     errs = L.eval("ERRORS")
     seen = set()
     for i in range(1, len(errs) + 1):

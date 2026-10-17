@@ -91,3 +91,22 @@ As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=re
 - No shrunk minimap for the mid zooms (`MapMiniLOD`: the game's own tiles show from close in), no baked
   zone tiles (`MapZones`) and no lettered names: retail's art letters its own.
 - The flight time estimate uses classic's flight speed.
+- **Seams between zones.** Retail's zone maps are each toned their own way (Crystalsong Forest's
+  yellow beside Dragonblight's snow), and with no colour matching (Forever's `MapBand` / `Grade.lua`)
+  they show as patches where a zone's art hands over to the next or to the continent's, most at the
+  zoom where the zones come in. A colour match made for retail's art is the next step.
+- **Performance.** `tools/offline-test/world.py` counts up to about 1,100 art textures drawn at the
+  zoom where the zones come in (retail's newer zones are 150 tiles each), against about 650 for
+  Forever; at the zoom the continents come in, about 900. Measure with `/openmap bench` in game; if
+  it's slow there, baked zone tiles (Forever's `MapZones`) are the cure.
+- From retail's UI source (the `live` branch of wow-ui-source), to look at in game:
+  - its quest log shows its own Quests / Events / Map Legend tabs, which Forever hides: beside
+    OpenMap's dungeon tabs there may be two "Quests";
+  - the map's "World" button goes to the cosmic map (946), leaving the stitched map;
+  - the zone highlight on hover ("Highlight the zone", off by default) only shows over the host
+    map's own rectangle;
+  - Blizzard's filter and pin buttons sit at the map's top right (the dungeon card is moved below
+    them), and its own dungeon entrance pins are hidden while the map is stitched;
+  - the gamepad cursor code is Forever's: on retail it does nothing.
+- Three caves' masks came out as most of their page (their art is pale): they show as a parchment
+  rectangle when they surface.

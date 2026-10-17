@@ -33,8 +33,8 @@ CANVAS = (1002, 668)            # a zone's art is worked on at this size, whatev
 G = 2.0                         # grid px per world unit, laying a continent's zones out together
 REACH = (30.0, 45.0)            # world units off its own land where a zone's painting is full / gone (its sea out
                                 #  toward its frame: the continent's art is far coarser close in)
-BLEND = 4.0                     # world units: how fast a zone's claim falls off past the nearer one's own land
-OTHERS = 1.5                    # world units over which a zone's painting gives way to another zone's own land
+BLEND = 10.0                    # world units: how fast a zone's claim falls off past the nearer one's own land
+OTHERS = 3.0                    # world units over which a zone's painting gives way to another zone's own land
 SHALLOWS = (28.0, 40.0)         # world units off the land where a continent's art is full / gone (its shallows band)
 MINI = (2.0, 4.0)               # ... and the minimap's land
 TERR_PX, LAND_PX = 256, 1024    # the masks' sizes
@@ -45,7 +45,7 @@ def frame_mask():
     w, h = CANVAS
     ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
     d = np.minimum(np.minimum(xs, w - 1 - xs) / w, np.minimum(ys, h - 1 - ys) / h)
-    t = np.clip((d - 0.02) / 0.03, 0, 1)
+    t = np.clip((d - 0.02) / 0.13, 0, 1)        # (a wide fade: where it hands over to a neighbour, no line)
     # the corners' ornaments (Blizzard's gold knots, a dragon's head ...): an ellipse off each
     cx = np.minimum(xs, w - 1 - xs) / (0.17 * w)
     cy = np.minimum(ys, h - 1 - ys) / (0.2 * h)
@@ -152,23 +152,24 @@ def main():
         if own:
             dist = {m: ndimage.distance_transform_edt(own[m] < 0.5) / G for m in own}
             near = {m: ndimage.gaussian_filter((dist[m] <= 0).astype(np.float32), OTHERS * G / 2) for m in own}
-            dmin = np.full((gh, gw), 1e6, np.float32)
-            avail = {}
+            avail, logw = {}, {}
+            cover = np.zeros((gh, gw), np.float32)
             for m in own:
                 others = np.zeros((gh, gw), np.float32)
                 for n in own:
                     if n != m: others = np.maximum(others, near[n] * frame[n])
                 u = np.clip(1 - (dist[m] - REACH[0]) / (REACH[1] - REACH[0]), 0, 1)
                 avail[m] = frame[m] * np.clip(1 - others, 0, 1) * u * u * (3 - 2 * u)
-                dmin = np.minimum(dmin, np.where(avail[m] > 0.01, dist[m], 1e6))
-            claim, total = {}, np.zeros((gh, gw), np.float32)
-            for m in own:
-                claim[m] = avail[m] * np.exp(-np.clip(dist[m] - dmin, 0, 60) / BLEND)
-                total += claim[m]
-            norm = np.maximum(total, 1)
+                logw[m] = np.log(np.maximum(avail[m], 1e-9)) - dist[m] / BLEND
+                cover = np.maximum(cover, avail[m])
+            # shared out by nearness (each one's weight: what it can show there, falling off with the distance
+            # from its own land; its share, its weight's part of them all, in logs), as much as any of them can
+            # show there: where one fades out at its frame the next takes over, with no gap and no line
+            top = np.maximum.reduce(list(logw.values()))
+            total = sum(np.exp(l - top) for l in logw.values())
             for m in own:
                 soft = np.clip(1 - dist[m], 0, 1)                    # (its own land, a little past it)
-                terr = np.maximum(soft * frame[m], claim[m] / norm)
+                terr = np.maximum(soft * frame[m], np.exp(logw[m] - top) / total * cover)
                 a = Image.fromarray((np.clip(to_art(terr, m), 0, 1) * 255).astype(np.uint8)).resize((TERR_PX, TERR_PX), Image.LANCZOS)
                 Image.merge("RGBA", (Image.new("L", (TERR_PX, TERR_PX), 255),) * 3 + (a,)).save(os.path.join(terr_dir, "%d.tga" % m))
                 done_terr.append(m)
@@ -213,21 +214,47 @@ def main():
                 Image.fromarray((sheet * 255).astype(np.uint8)).save(os.path.join(preview, "land-%d.png" % c))
         print("  %s: %d zones, %d territories" % (w.uimap[c]["Name_lang"], len(mine), len(own)), flush=True)
 
-    # each continent's art: all of its rectangle but the other continents' land and shallows
+    # each continent's art: its land and shallows, and the sea round them shared with the other continents
+    # whose maps reach it by nearness (as the zones share theirs): the sea goes to the continent whose land
+    # is nearest, each one's claim fading at its map's edge (MapFeatherWide's), so no continent's page
+    # (its insets, frame, lettering) paints over a neighbour's coast, and no map's edge shows as a line
     N = LAND_PX
+    GW = 0.5                                     # world grid px per world unit
+    ww, wh = int(W * GW), int(H * GW)
+    def on_world(c, img):
+        cl, cr, ct, cb = w.rect(c)
+        x0, x1 = int(round(cl * ww)), int(round(cr * ww))
+        y0, y1 = int(round(ct * wh)), int(round(cb * wh))
+        dst = np.zeros((wh, ww), np.float32)
+        a = np.asarray(Image.fromarray(img.astype(np.float32), "F").resize((max(1, x1 - x0), max(1, y1 - y0)), Image.BILINEAR))
+        X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(ww, x1), min(wh, y1)
+        if X1 > X0 and Y1 > Y0: dst[Y0:Y1, X0:X1] = a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0]
+        return dst
+    ys, xs = np.mgrid[0:N, 0:N].astype(np.float32)
+    edge = np.minimum(np.minimum(xs + 0.5, N - xs - 0.5), np.minimum(ys + 0.5, N - ys - 0.5)) / N
+    fw = np.clip(edge / 0.18, 0, 1)
+    fw = fw * fw * (3 - 2 * fw)
+    # (weights: how far in its map a spot is, times a falloff with the distance from its land; each
+    # continent's share is its weight's part of them all, in logs, so far from every land none underflows)
+    logw, cover = {}, np.zeros((wh, ww), np.float32)
+    for c, a in shallows.items():
+        inside = on_world(c, fw)
+        near = ndimage.distance_transform_edt(on_world(c, a) < 0.5) / GW
+        logw[c] = np.log(np.maximum(inside, 1e-9)) - near / 15.0
+        cover = np.maximum(cover, inside)
+    top = np.maximum.reduce(list(logw.values()))
+    total = sum(np.exp(l - top) for l in logw.values())
     for c in shallows:
         cl, cr, ct, cb = w.rect(c)
-        u = cl + (np.arange(N) + 0.5) / N * (cr - cl)
-        v = ct + (np.arange(N) + 0.5) / N * (cb - ct)
-        others = np.zeros((N, N), np.float32)
-        for o, a in shallows.items():
-            if o == c: continue
-            ol, orr, ot, ob = w.rect(o)
-            if orr <= cl or ol >= cr or ob <= ct or ot >= cb: continue
-            Y, X = np.meshgrid((v - ot) / (ob - ot) * N - 0.5, (u - ol) / (orr - ol) * N - 0.5, indexing="ij")
-            others = np.maximum(others, ndimage.map_coordinates(a, [Y, X], order=1, mode="constant", cval=0))
-        # (its own land always shows: where two continents' land overlaps, each keeps its own)
-        mask = np.maximum(1 - others, shallows[c])
+        share = np.exp(logw[c] - top) / total * cover
+        u = (cl + (np.arange(N) + 0.5) / N * (cr - cl)) * ww - 0.5
+        v = (ct + (np.arange(N) + 0.5) / N * (cb - ct)) * wh - 0.5
+        Y, X = np.meshgrid(v, u, indexing="ij")
+        mask = ndimage.map_coordinates(share, [Y, X], order=1, mode="constant", cval=0)
+        # (its own land and shallows always, where two overlap each keeping its own; but not on its page's frame,
+        # which its land can run right up to: Quel'Thalas')
+        inner = np.clip((edge - 0.04) / 0.06, 0, 1)
+        mask = np.maximum(mask, shallows[c] * inner * inner * (3 - 2 * inner))
         a = Image.fromarray((np.clip(mask, 0, 1) * 255).astype(np.uint8))
         Image.merge("RGBA", (Image.new("L", (N, N), 255),) * 3 + (a,)).save(os.path.join(land_dir, "%d.tga" % c))
 

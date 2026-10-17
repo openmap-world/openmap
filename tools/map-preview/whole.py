@@ -187,7 +187,7 @@ def main():
         for m in cities:
             l, r, _, _ = w.rect(m)
             f = 1 / (r - l)
-            place(m, smooth(zf, (CITY_FADE[0] * f, CITY_FADE[1] * f)), roundf)   # (Stitch.lua: by the layers' zoom)
+            place(m, smooth(zf, (CITY_FADE[0] * f / zk, CITY_FADE[1] * f / zk)), roundf)   # (Stitch.lua: where it fills that much of the view)
         p = os.path.join(outdir, name + ".png")
         Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8)).save(p)
         print("wrote", p, "(zoom %g, layers at %.2f)" % (zoom, zf), flush=True)

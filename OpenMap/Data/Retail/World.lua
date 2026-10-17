@@ -3,6 +3,7 @@
 --   continents: stitched (their art and land); zones: [uiMapID] = 1 a zone, 2 a city (over its zone)
 --   yards: [game map] = { { x0, x1, y0, y1, au, bu, av, bv } }: in that world box, u = au + bu * y, v = av + bv * x
 --   minimap: [continent] = the game maps whose minimap tiles show on it
+--   alias: [uiMapID] = the stitched map it's another version of (a player phased into it sees ours)
 
 local _, ns = ...
 
@@ -152,5 +153,9 @@ ns.MapWorld = {
 		[1978] = { 2444 },
 		[2274] = { 2552 },
 		[2537] = { 0 },
+	},
+	alias = {
+		[1527] = 249,   -- Uldum
+		[1530] = 390,   -- Vale of Eternal Blossoms
 	},
 }

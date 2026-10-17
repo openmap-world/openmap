@@ -34,7 +34,7 @@ def minimap_tiles():
     src_ = open(os.path.join(g["WM"], "Minimap.lua"), encoding="utf-8").read()
     out, cur = {}, None
     for line in src_.split("\n"):
-        m_ = re.match(r"\s*\[(\d)\] = \{", line)
+        m_ = re.match(r"\s*\[(\d+)\] = \{$", line)          # (a game map's list: retail's are 530, 2444 ...)
         if m_: cur = out.setdefault(int(m_.group(1)), {}); continue
         if cur is not None:
             for k, v in re.findall(r"\[(\d+)\] = (\d+)", line): cur[int(k)] = int(v)

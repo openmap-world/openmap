@@ -239,8 +239,9 @@ function S.Size() return W, H end
 
 -- whether a map is stitched into the world, and as what (1: a zone, 2: a city, 3: a continent): a
 -- client with a world of its own lists its maps (ns.MapWorld, tools/map-data/world.py); else every
--- continent and zone on Azeroth's map is (nil: as its art makes it)
-function S.Stitched(mapID)
+-- continent and zone on Azeroth's map is (nil: as its art makes it). `host`: as the map Blizzard's shows,
+-- which can be another version of one stitched (ns.MapWorld.alias: Uldum under N'Zoth's assault)
+function S.Stitched(mapID, host)
 	local world = ns.MapWorld
 	if not world then return true end
 	if not world.kind then
@@ -248,6 +249,7 @@ function S.Stitched(mapID)
 		for _, id in ipairs(world.continents or {}) do world.kind[id] = 3 end
 		for id, k in pairs(world.zones or {}) do world.kind[id] = k end
 	end
+	if host and world.alias and world.alias[mapID] then mapID = world.alias[mapID] end
 	return world.kind[mapID] ~= nil or mapID == WORLD, world.kind[mapID]
 end
 
@@ -1264,7 +1266,9 @@ function S.Build(parent, artLevel, range, iconLevel)
 				cf:SetFrameLevel(UNDERGROUND_CITIES[info.mapID] and artLevel + range - 5 or citiesRoot:GetFrameLevel())
 				local l, r, t, b = S.Rect(info.mapID)
 				local cull = { cf, l, t, r, b, city = true }
-				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID, cull = cull }
+				-- (the zoom where it fills the view, in the zoom the layers fade by: on a world of smaller
+				-- zones, ns.ClientMaps.zoom, that's less of it)
+				cities[#cities + 1] = { cf, 1 / (r - l) / (ns.ClientMaps and ns.ClientMaps.zoom or 1), mapID = info.mapID, cull = cull }
 				culled[#culled + 1] = cull
 				-- (a city that comes in early is cut down to the city: ns.MapCityCuts, banners.py)
 				local cut = ns.MapCityCuts and ns.MapCityCuts[info.mapID] and TEX .. "MapCityMask\\" .. info.mapID
@@ -1881,6 +1885,14 @@ end
 
 -- a world point (normalized) in yards on continent 0 / 1 (the inverse of FromYards)
 function S.ToYards(cont, u, v)
+	-- (a client's own yards: its region's linear map, inverted; sampling it at the origin, below, finds
+	-- nothing where a game map's region doesn't reach it: the draenei isles', the Isle of Thunder's)
+	local yards = ns.MapWorld and ns.MapWorld.yards
+	if yards then
+		local r = (yards[cont] or NONE)[1]
+		if not r or r[6] == 0 or r[8] == 0 then return end
+		return (v - r[7]) / r[8], (u - r[5]) / r[6]
+	end
 	local x0, y0 = S.FromYards(cont, 0, 0)
 	local x1, y1 = S.FromYards(cont, 1000, 0)
 	local x2, y2 = S.FromYards(cont, 0, 1000)
