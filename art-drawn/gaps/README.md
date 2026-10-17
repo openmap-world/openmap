@@ -7,7 +7,9 @@ minimap for what's there. No generated art, and no places or landmarks the game 
 - `regions.json`: the regions, each with its place on its continent (world units from the
   continent map's top-left), its scale and its size. Kept fixed, so a painting always lines up.
 - `G01_<zones>.png` ...: the paintings, named after their region. One may come back at another size
-  (a whole-number scale is best); only the part inside the region's fill area is used.
+  (a whole-number scale is best). On the game's land only the part inside the region's fill area
+  is used; out at sea the painter's own coast is: the land he painted, his coastline and shallows,
+  fading out into the game's sea past them (his open sea isn't used).
 - `fits.json`: how each painting lines up with its region (found once; delete an entry to fit again).
 
 To export the plates an artist paints on (each region's zone art, its fill area, the minimap and

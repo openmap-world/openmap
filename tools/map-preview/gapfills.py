@@ -4,8 +4,9 @@
 #      size or framing), found by matching the zone art's edges and kept in fits.json,
 #      so it's found once (delete a region's entry to find it again)
 #   2. cut to the region's fill area (source/<region>_fill.png: the continent's land the zone maps
-#      don't fully cover, and a little sea past its coast, less Blizzard's own classic maps), faded
-#      out over its own edge where it stops short of the region's
+#      don't fully cover, less Blizzard's own classic maps), faded out over its own edge where it
+#      stops short of the region's; out in the open sea, to the painter's own coast: the land he
+#      painted (found by its colour) and his coastline, faded out over the shallows past it
 #   3. written as 256-px tiles at up to MAX_PX px a world unit (only those it shows anything in) to
 #      OpenMap/Media/Textures/MapGapFill/<Gnn>_<tile>.tga, listed in OpenMap/Data/GapFills.lua
 # Run gapregions.py first (it writes source/: each region's zone art and fill area).
@@ -27,8 +28,12 @@ TILE = 256
 FRAME_FADE = 40                 # region px a fill fades out over at its own edge (inside the region)
 BOX_FADE = 3                    # world units a fill fades out over towards its region's own edge (where the gap
                                 #  runs on past it, unpainted yet: no hard line; a neighbour's fill overlaps it)
-COAST_KEEP = 8                  # world units past the fill area that a painted coastline is kept out to, into the sea
-COAST_DIFF = 0.04               # how much a painting must differ from the map as it was to count as painted there
+LAND_SAT = 0.5                  # a painting's land: saturation above this (its warm browns and greens; its sea is grey)
+LAND_BLUR = 0.25                # world units the saturation is smoothed over first (the sea's hatching, the land's outlines)
+LAND_SPECK = 2                  # world units: painted land smaller across than this is left out (a stray stroke)
+COAST_LINE = 1.5                # world units past the painted land kept whole: his coastline and the shallows by it
+SHORE_FADE = 2.5                # world units past that the painting fades out over, into the game's sea
+SEA_BLEND = 1                   # world units where the fill area hands over to the painter's coast at the open sea's edge
 MAX_PX = 10                     # px a world unit at most, as written: about the zone maps' own at the zooms
                                 #  the gaps show at (closer in, the minimap mixes in over them); finer is only size
 
@@ -104,26 +109,23 @@ for f in sorted(os.listdir(EDITED)):
     if y0 > 3: dist = np.minimum(dist, yy - y0)
     if y1 < H - 4: dist = np.minimum(dist, y1 - yy)
     inside = np.clip(dist / FRAME_FADE, 0, 1) * ((xx >= x0 - 1) & (xx <= x1 + 1) & (yy >= y0 - 1) & (yy <= y1 + 1))
-    a = np.clip(mask, 0, 1) * inside * own
     to_box = np.minimum(np.minimum(xx, W - 1 - xx), np.minimum(yy, H - 1 - yy))
     box_fade = np.clip(to_box / (BOX_FADE * e["pxPerUnit"]), 0, 1)
     box_fade = box_fade * box_fade * (3 - 2 * box_fade)
-    a = a * box_fade
-    # the painter's coastline and shallows past the fill area, out into the open sea (source/_sea.png:
-    # no land, no zone art): what the painting changed there from how the map looked (source/_now.png),
-    # joined to the fill area and within COAST_KEEP of it, specks left out
-    sea_p = os.path.join(SRC, stem + "_sea.png")
-    if os.path.exists(sea_p):
-        sea = load(sea_p, "L") > 0.5
-        now = load(os.path.join(SRC, stem + "_now.png"), "RGB")
-        changed = ndimage.gaussian_filter(np.abs(rgb - now).mean(axis=2), 2) > COAST_DIFF
-        near = ndimage.distance_transform_edt(mask < 0.5) <= COAST_KEEP * e["pxPerUnit"]
-        coast = ndimage.binary_opening(changed & sea & near, iterations=2)
-        lab, _ = ndimage.label(coast | (mask > 0.5))
-        coast &= np.isin(lab, np.unique(lab[mask > 0.5]))
-        coast = ndimage.gaussian_filter(ndimage.binary_dilation(coast, iterations=2).astype(np.float32), 1.5)
-        a = np.maximum(a, np.clip(coast, 0, 1) * inside * own * box_fade)
-        print("  coastline past the fill area kept: %.1f%% of the region" % (100 * float((coast > 0.5).mean())))
+    # the coast is the painter's: in the open sea (source/_sea.png: no continent land, no zone art) the
+    # land he painted, his coastline round it, and his shallows fading out past that; the fill area
+    # (the game's coast) only on the game's land, so neither his sea nor a cut-off coast shows
+    ppu = e["pxPerUnit"]
+    hi, lo = rgb.max(axis=2), rgb.min(axis=2)
+    sat = ndimage.gaussian_filter((hi - lo) / (hi + 1e-6), LAND_BLUR * ppu)
+    land = ndimage.binary_closing((sat > LAND_SAT) & (own > 0.5), iterations=max(1, round(LAND_BLUR * ppu)))
+    land = ndimage.binary_fill_holes(land)
+    lab, n = ndimage.label(land)
+    land = np.isin(lab, 1 + np.nonzero(ndimage.sum(land, lab, range(1, n + 1)) >= (LAND_SPECK * ppu) ** 2)[0])
+    shore = np.clip(1 - (ndimage.distance_transform_edt(~land) / ppu - COAST_LINE) / SHORE_FADE, 0, 1)
+    shore = shore * shore * (3 - 2 * shore)
+    sea = ndimage.gaussian_filter((load(os.path.join(SRC, stem + "_sea.png"), "L") > 0.5).astype(np.float32), SEA_BLEND * ppu)
+    a = (sea * shore + (1 - sea) * np.clip(mask, 0, 1)) * inside * own * box_fade
     k = min(1.0, MAX_PX / e["pxPerUnit"])
     if k < 1:
         W, H = max(1, round(W * k)), max(1, round(H * k))
