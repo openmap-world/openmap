@@ -58,9 +58,12 @@ def main():
         a = w.art(m)
         return a is not None and a[0] in tiles
 
+    # (its first game map open world: a zone's own map can also be a scenario's, the Valley of the Four
+    # Winds' Halfhill)
     def open_world(m):
-        maps = {int(r["MapID"]) for r in w.assign.get(m, [])}
-        return maps and all(g in w.gamemap and w.gamemap[g]["InstanceType"] == "0" for g in maps)
+        rows = sorted(w.assign.get(m, []), key=lambda r: int(r["OrderIndex"]))
+        g = rows and int(rows[0]["MapID"])
+        return bool(rows) and g in w.gamemap and w.gamemap[g]["InstanceType"] == "0"
 
     # (all of them in its tree, as C_Map.GetMapChildrenInfo(947, Continent, true): Quel'Thalas is under
     # the Eastern Kingdoms)

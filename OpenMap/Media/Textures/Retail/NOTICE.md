@@ -12,10 +12,10 @@ that fit them together.
 | Texture | What it is | Made by |
 | --- | --- | --- |
 | `MapTerritory/` | where each zone map's art shows over its continent's: its own land (its explored-area pieces, filled) and cities, and what it paints round them, shared with its neighbours | `tools/map-preview/territory.py` |
-| `MapBackLand/` | where each continent map's art shows over the world map's: all of it but the other continents' land and the band of shallows round it | `tools/map-preview/territory.py` |
+| `MapBackLand/` | where each continent map's art shows over the world map's: all of it but the other continents' land and the band of shallows round it; and the world map's own (`947`): all of it but its metal frame and burnt edge | `tools/map-preview/territory.py` |
 | `MapMiniLand/` | where the close-up minimap shows: the zones' own land on each continent's map | `tools/map-preview/territory.py` |
 | `MapCave/` | masks traced from the cave maps (Blizzard's micro maps): the cave without its parchment, frame, title or corners | `tools/map-caves/build.py` |
-| `MapPaper` | blank map parchment, from the classic Westfall zone map (WoW Forever's, as it is): the dungeon map's and What's new's page | `tools/map-textures/shared.py` (cut by `tools/map-preview/gapfill.py`) |
+| `MapPaper` | blank map parchment, from the classic Westfall zone map (WoW Forever's, as it is): the dungeon map's and What's new's page, and the parchment past the world map's edges | `tools/map-textures/shared.py` (cut by `tools/map-preview/gapfill.py`) |
 | `MapBorder/` | the map art's parchment frame (cut out by hand from the classic continent map), in nine pieces | `tools/map-art/border.py` |
 
 **Generated** (no game art in them): `MapGrain`, `MapTooth` (paper grain, from noise)

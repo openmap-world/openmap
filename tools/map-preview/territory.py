@@ -9,8 +9,12 @@
 #   MapBackLand/<continent>.tga where a continent's art shows over the world's: all of it but another
 #                               continent's land and the band of shallows round it (SHALLOWS): its sea,
 #                               over the world's (and its names), but never over a neighbour's coast
+#   MapBackLand/947.tga         where the world's art shows: all of it but its metal frame and burnt edge
 #   MapMiniLand/<continent>.tga where the close-up minimap shows (Close.lua): its zones' own land
-#   Data/<client>/Territories.lua  which zones and continents have them (ns.MapTerritories, ns.MapBackLands)
+#   Data/<client>/Territories.lua  which zones and continents have them (ns.MapTerritories, ns.MapBackLands),
+#                               the tint of MapPaper past the world's art (ns.MapPaperOut), and the tiles
+#                               drawn for nothing: empty pieces' or off the territory (ns.MapBlank), base off
+#                               it (ns.MapOff) or under the pieces (ns.MapUnder)
 #   Data/<client>/Tones.lua     each zone's overall colour, for the close-up minimap's tint (as tone.py's)
 # Each zone's own land is its explored-area pieces (WorldMapOverlay), as render.py's own_land: zones
 # without any (islands, cities) have no territory and are drawn through a round feather (Stitch.lua).
@@ -39,6 +43,7 @@ OTHERS = 3.0                    # world units over which a zone's painting gives
 SHALLOWS = (28.0, 40.0)         # world units off the land where a continent's art is full / gone (its shallows band)
 MINI = (2.0, 4.0)               # ... and the minimap's land
 TERR_PX, LAND_PX = 256, 1024    # the masks' sizes
+PAPER_OUT = 512                 # world units a tile of MapPaper past the world art (its mottling the size of the art's)
 
 
 def frame_mask():
@@ -312,6 +317,32 @@ def main():
         a = Image.fromarray((np.clip(mask, 0, 1) * 255).astype(np.uint8))
         Image.merge("RGBA", (Image.new("L", (N, N), 255),) * 3 + (a,)).save(os.path.join(land_dir, "%d.tga" % c))
 
+    # the world's art: all of it but its frame (the metal corners and bars, their jewels) and its burnt edge,
+    # traced from the art (what's dark or cool, joined to the art's edge, and what that rings round), so its
+    # parchment shows right up to where it's torn; and the colour of its margin there, which MapPaper is
+    # tinted to past it (ns.MapPaperOut)
+    a, aw, ah, tw, th = w.art(uimap.WORLD)
+    img = np.asarray(Image.fromarray((art.image(a, aw, ah, tw, th, 0.5) * 255).astype(np.uint8)).resize((1920, 1280), Image.BILINEAR)).astype(np.float32)[..., :3] / 255
+    r, g, b = img[..., 0], img[..., 1], img[..., 2]
+    lum = 0.3 * r + 0.59 * g + 0.11 * b
+    cut = (lum < 0.28) | (b > np.maximum(r, g) + 0.03) | ((b > r + 0.01) & (g < r + 0.02) & (lum < 0.7)) | ((r - g > 0.08) & (b > 0.9 * g))
+    lab, _ = ndimage.label(cut)
+    edge_lab = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))) - {0}
+    off = ndimage.binary_closing(np.isin(lab, list(edge_lab)), iterations=4)
+    off[:3] = off[-3:] = True
+    off[:, :3] = off[:, -3:] = True
+    keep, _ = ndimage.label(ndimage.binary_erosion(~off, iterations=24))   # (the page itself: what's left once
+    big = np.argmax(np.bincount(keep.ravel())[1:]) + 1                        #  thin bridges to the frame are cut)
+    off = ndimage.binary_dilation(~(ndimage.binary_dilation(keep == big, iterations=24) & ~off), iterations=5)
+    page = np.clip((1 - ndimage.gaussian_filter(off.astype(np.float32), 5) - 0.5) * 2, 0, 1)
+    mask = Image.fromarray((page * 255).astype(np.uint8)).resize((LAND_PX, LAND_PX), Image.LANCZOS)
+    Image.merge("RGBA", (Image.new("L", (LAND_PX, LAND_PX), 255),) * 3 + (mask,)).save(os.path.join(land_dir, "%d.tga" % uimap.WORLD))
+    done_land.append(uimap.WORLD)
+    inside = ndimage.distance_transform_edt(page > 0.5)
+    margin = np.median(img[(inside > 8) & (inside < 60)], axis=0)
+    paper = np.asarray(Image.open(os.path.join(clients.TEX, "MapPaper.tga")).convert("RGB")).astype(np.float32) / 255
+    tint = np.clip(margin / paper.reshape(-1, 3).mean(0), 0, 1)
+
     # each zone's overall painted colour (as tone.py's for Forever: the median of its art on its own
     # land), which Close.lua tints the close-up minimap toward
     tones = []
@@ -333,6 +364,39 @@ def main():
             fh.write("\t[%d] = { %.3f, %.3f, %.3f },  -- %s\n" % (m, c[0], c[1], c[2], w.uimap[m]["Name_lang"]))
         fh.write("}\n")
 
+    # what's drawn for nothing (Stitch.lua leaves it out): the explored-area pieces' tiles with nothing in
+    # them (MapBlank, by file), and the zones' base tiles that lie wholly under their pieces' opaque
+    # painting, inside their territory (MapUnder: hidden while the unexplored pieces show; Hide
+    # unexplored areas shows them again)
+    # (and, drawn through its territory, a zone's tiles wholly outside it: MapBlank for a piece's, MapOff for
+    # its base art's, always left out)
+    blank, under, off = set(), {}, {}
+    terr_px = lambda m: np.asarray(Image.open(os.path.join(terr_dir, "%d.tga" % m)).getchannel("A"))
+    for m in sorted(done_terr):
+        a, aw, ah, tw, th = w.art(m)
+        own = np.asarray(Image.fromarray(terr_px(m)).resize((aw, ah), Image.BILINEAR))
+        cover = np.zeros((ah, aw), np.uint8)
+        for o in pieces.get(a, []):
+            x, y = int(o["OffsetX"]), int(o["OffsetY"])
+            for (row, col), fid in ptiles.get(o["ID"], {}).items():
+                t = art.fetch(fid)
+                if t is None: continue
+                ta = np.asarray(t.getchannel("A"))
+                X0, Y0 = x + col * 256, y + row * 256
+                X1, Y1 = min(aw, X0 + ta.shape[1]), min(ah, Y0 + ta.shape[0])
+                if ta.max() < 8 or X1 <= X0 or Y1 <= Y0 or own[Y0:Y1, X0:X1].max() < 3:
+                    blank.add(fid); continue
+                cover[Y0:Y1, X0:X1] = np.maximum(cover[Y0:Y1, X0:X1], ta[:Y1 - Y0, :X1 - X0])
+        cols = -(-aw // tw)
+        for (row, col) in art.tiles.get(a, {}):
+            c, t = cover[row * th:(row + 1) * th, col * tw:(col + 1) * tw], own[row * th:(row + 1) * th, col * tw:(col + 1) * tw]
+            if not t.size or t.max() < 3:
+                off.setdefault(m, []).append(row * cols + col + 1)
+            elif c.min() >= 250 and t.min() >= 250:
+                under.setdefault(m, []).append(row * cols + col + 1)
+    print("%d piece tiles empty or off their territory, %d base tiles off it, %d under the pieces" % (
+        len(blank), sum(len(v) for v in off.values()), sum(len(v) for v in under.values())), flush=True)
+
     path = os.path.join(clients.DATA, "Territories.lua")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("-- Which zones have a territory (Media/Textures/<client>/MapTerritory) and which continents a land mask\n")
@@ -340,7 +404,16 @@ def main():
         fh.write("-- Generated by tools/map-preview/territory.py from the game's art (build %s); regenerate rather than edit.\n\n" % clients.BUILD)
         fh.write("local _, ns = ...\n\n")
         fh.write("ns.MapTerritories = {\n%s}\n\n" % "".join("\t[%d] = true,   -- %s\n" % (m, w.uimap[m]["Name_lang"]) for m in sorted(done_terr)))
-        fh.write("ns.MapBackLands = {\n%s}\n" % "".join("\t[%d] = true,   -- %s\n" % (m, w.uimap[m]["Name_lang"]) for m in sorted(done_land)))
+        fh.write("ns.MapBackLands = {\n%s}\n\n" % "".join("\t[%d] = true,   -- %s\n" % (m, w.uimap[m]["Name_lang"]) for m in sorted(done_land)))
+        fh.write("-- past the world art's edges: MapPaper, a tile this many world units, tinted to the world art's margin\n")
+        fh.write("ns.MapPaperOut = { %d, %.3f, %.3f, %.3f }\n\n" % (PAPER_OUT, tint[0], tint[1], tint[2]))
+        fh.write("-- explored-area pieces' tiles with nothing in them, or wholly off their zone's territory (file IDs), left out\n")
+        fh.write("ns.MapBlank = {%s}\n\n" % ", ".join("[%d] = true" % f for f in sorted(blank)))
+        fh.write("-- each zone's base tiles (row-major, from 1) wholly off its territory, left out\n")
+        fh.write("ns.MapOff = {\n%s}\n\n" % "".join("\t[%d] = { %s },   -- %s\n" % (m, ", ".join("[%d] = true" % i for i in sorted(v)), w.uimap[m]["Name_lang"]) for m, v in sorted(off.items())))
+        fh.write("-- each zone's base tiles (row-major, from 1) wholly under its pieces' opaque painting, left out while\n")
+        fh.write("-- they show\n")
+        fh.write("ns.MapUnder = {\n%s}\n" % "".join("\t[%d] = { %s },   -- %s\n" % (m, ", ".join("[%d] = true" % i for i in sorted(v)), w.uimap[m]["Name_lang"]) for m, v in sorted(under.items())))
     print("wrote %s: %d territories, %d continents' land" % (os.path.relpath(path, clients.REPO), len(done_terr), len(done_land)))
 
 

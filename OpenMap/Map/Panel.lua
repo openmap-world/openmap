@@ -243,18 +243,16 @@ local function Rows()
 		rows[#rows + 1] = folk(L["Rare mobs"], "rare")
 	end
 	-- the look
-	-- (darkened or hidden; neither ticked: shown as they are. A client whose zones' art is whole has no
-	-- explored-area pieces to darken or hide: its section starts with the map)
-	if client.overlays ~= false then
-		rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
-		for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
+	-- (darkened or hidden; neither ticked: shown as they are. Darkened takes the colour-matched zones' land
+	-- masks, which retail's data has none of: hidden only, there)
+	rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
+	for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
+		if mode[1] ~= "dim" or ns.MapGrade then
 			rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return db.unexplored == mode[1] end,
 				function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
 		end
-		rows[#rows + 1] = { L["The map"] }
-	else
-		rows[#rows + 1] = { L["The map"], tab = "look" }
 	end
+	rows[#rows + 1] = { L["The map"] }
 	rows[#rows + 1] = optRow(L["Parchment border"], "border", Icon("INV_Scroll_03"))
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels", Icon("Spell_ChargePositive"))

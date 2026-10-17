@@ -10,7 +10,7 @@ import csv, math, os, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
-import clients   # the client the tools build for (OPENMAP_CLIENT)
+import clients, uimap   # the client the tools build for (OPENMAP_CLIENT)
 DATA = clients.DATA
 cache = sys.argv[1]
 BUILD = sys.argv[2] if len(sys.argv) > 2 else clients.BUILD
@@ -40,14 +40,18 @@ for o in table("WorldMapOverlay"):
     if not t: continue
     key = "%s:%s:%s:%s" % (o["TextureWidth"], o["TextureHeight"], o["OffsetX"], o["OffsetY"])
     reveal.setdefault(int(o["UiMapArtID"]), {})[key] = ", ".join(f for _, _, f in sorted(t))
-if clients.CLIENTS[clients.NAME].get("pieces", True):     # (a client whose map draws none has no use for them)
-    with open(os.path.join(DATA, "Reveal.lua"), "w", encoding="utf-8", newline="\n") as f:
-        f.write("-- Explored-area pieces per zone art: [UiMapArtID] = { [\"w:h:x:y\"] = \"fileIDs, row-major\" }.\n")
-        f.write(HEADER + "ns.MapReveal = {\n")
-        for art in sorted(reveal):
-            f.write("\t[%d] = {" % art + ", ".join("[%s] = %s" % (lua_str(k), lua_str(v)) for k, v in sorted(reveal[art].items())) + "},\n")
-        f.write("}\n")
-    print("reveal:", len(reveal), "zone arts,", sum(len(v) for v in reveal.values()), "pieces")
+# (a client with a world of its own, World.lua: only its stitched zones' arts, which its map draws)
+_world_zones = (uimap.read_world(os.path.join(DATA, "World.lua")) or {}).get("zones")
+if _world_zones:
+    _arts = {int(r["UiMapArtID"]) for r in table("UiMapXMapArt") if int(r["UiMapID"]) in _world_zones}
+    reveal = {a: v for a, v in reveal.items() if a in _arts}
+with open(os.path.join(DATA, "Reveal.lua"), "w", encoding="utf-8", newline="\n") as f:
+    f.write("-- Explored-area pieces per zone art: [UiMapArtID] = { [\"w:h:x:y\"] = \"fileIDs, row-major\" }.\n")
+    f.write(HEADER + "ns.MapReveal = {\n")
+    for art in sorted(reveal):
+        f.write("\t[%d] = {" % art + ", ".join("[%s] = %s" % (lua_str(k), lua_str(v)) for k, v in sorted(reveal[art].items())) + "},\n")
+    f.write("}\n")
+print("reveal:", len(reveal), "zone arts,", sum(len(v) for v in reveal.values()), "pieces")
 
 # ------------------------------------------------------------------ instances
 # Each dungeon's level, from the game's group finder: LFGDungeons points at a ContentTuning
@@ -100,7 +104,7 @@ def levels(name, raid):
 
 FOREVER_CLIENT = clients.NAME == "forever"
 # a client's own world (World.lua): which positions are on it
-import re, uimap
+import re
 _world = os.path.join(DATA, "World.lua")
 WORLD = uimap.read_world(_world)
 YARDS = WORLD["yards"] if WORLD else {}

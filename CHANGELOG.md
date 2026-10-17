@@ -5,9 +5,11 @@
 ### New
 
 - **OpenMap for retail** (Midnight): the same seamless map, from retail's own maps. Every continent on
-  Azeroth's map, its zones stitched in as you zoom, Blizzard's art as it is (retail paints its maps
-  whole); dungeon and raid entrances from the encounter journal with every floor of their maps, flight
-  masters, boats and zeppelins, the close-up minimap. A download of its own on CurseForge.
+  Azeroth's map, its zones stitched in as you zoom with their explored areas painted (or hidden until
+  you've been there, as Blizzard's own map does), Blizzard's art as it is; the world's parchment out to
+  its torn edge and on past it; dungeon and raid entrances from the encounter journal with every floor
+  of their maps, flight masters, boats and zeppelins, the close-up minimap. A download of its own on
+  CurseForge.
 
 ### Improved
 

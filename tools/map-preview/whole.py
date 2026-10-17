@@ -1,7 +1,9 @@
-# Out-of-game preview of the stitched map for a client whose art is painted whole (retail: its
-# Client.lua says sea = false, overlays = false): the world's art, each continent's over it, each
-# zone's base art through its territory (MapTerritory, tools/map-preview/territory.py), the cities over
-# their zones, each fading in by the zoom as Stitch.lua fades them (its constants mirrored below).
+# Out-of-game preview of the stitched map for a client whose world and continent art is painted whole
+# (retail: its Client.lua says sea = false): MapPaper past the world's art (Territories.lua's
+# MapPaperOut), the world's art to its torn edge (MapBackLand/947), each continent's over it, each
+# zone's base art with its explored-area pieces through its territory (MapTerritory,
+# tools/map-preview/territory.py), the cities over their zones, each fading in by the zoom as Stitch.lua
+# fades them (its constants mirrored below).
 # WoW Forever's map is render.py's.
 #
 # usage: python -P tools/map-preview/whole.py <db2 dir> <texture cache> <out dir> name=u,v,zoom ...
@@ -35,7 +37,11 @@ def client_tune():
     fade = re.search(r"detailFade = \{ ([\d.]+), ([\d.]+) \}", src)
     sea = re.search(r"seaColor = \{ ([\d.]+), ([\d.]+), ([\d.]+) \}", src)
     dens = re.search(r"detailDensity = ([\d.]+)", src)
-    global SEA_COLOR, DETAIL_DENSITY
+    global SEA_COLOR, DETAIL_DENSITY, PAPER_OUT, PAPER
+    terr = os.path.join(clients.DATA, "Territories.lua")
+    out = re.search(r"MapPaperOut = \{ ([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+) \}", open(terr, encoding="utf-8").read()) if os.path.exists(terr) else None
+    PAPER_OUT = tuple(float(out.group(i)) for i in range(1, 5)) if out else None
+    PAPER = np.asarray(Image.open(os.path.join(clients.TEX, "MapPaper.tga")).convert("RGB")).astype(np.float32) / 255 if out else None
     DETAIL_DENSITY = float(dens.group(1)) if dens else None
     SEA_COLOR = tuple(float(sea.group(i)) for i in (1, 2, 3)) if sea else (0.50, 0.49, 0.41)
     return float(zoom.group(1)) if zoom else 1.0, (float(fade.group(1)), float(fade.group(2))) if fade else (3, 4.5)
@@ -50,6 +56,20 @@ class Art:
             if r["LayerIndex"] == "0":
                 self.tiles.setdefault(int(r["UiMapArtID"]), {})[(int(r["RowIndex"]), int(r["ColIndex"]))] = int(r["FileDataID"])
         self.memo = {}
+        self.db2 = db2
+        self.pieces = None
+
+    def pieces_of(self, art):
+        """a zone art's explored-area pieces: [(x, y, {(row, col): file})] (WorldMapOverlay)"""
+        if self.pieces is None:
+            self.pieces, tiles = {}, {}
+            for r in csv.DictReader(open(os.path.join(self.db2, "WorldMapOverlayTile.csv"), encoding="utf-8")):
+                if r["LayerIndex"] == "0":
+                    tiles.setdefault(r["WorldMapOverlayID"], {})[(int(r["RowIndex"]), int(r["ColIndex"]))] = int(r["FileDataID"])
+            for r in csv.DictReader(open(os.path.join(self.db2, "WorldMapOverlay.csv"), encoding="utf-8")):
+                if r["ID"] in tiles:
+                    self.pieces.setdefault(int(r["UiMapArtID"]), []).append((int(r["OffsetX"]), int(r["OffsetY"]), tiles[r["ID"]]))
+        return self.pieces.get(art, [])
 
     def fetch(self, fid):
         p = os.path.join(self.cache, "%d.blp" % fid)
@@ -67,9 +87,9 @@ class Art:
         except Exception:
             return None
 
-    def image(self, art, w, h, tw, th, scale):
-        """the art at `scale` of its size (RGBA float array)"""
-        key = (art, round(scale, 3))
+    def image(self, art, w, h, tw, th, scale, pieces=False):
+        """the art at `scale` of its size (RGBA float array); `pieces`: with its explored-area pieces over it"""
+        key = (art, round(scale, 3), pieces)
         if key not in self.memo:
             out = Image.new("RGBA", (max(1, int(w * scale)), max(1, int(h * scale))))
             for (row, col), fid in self.tiles.get(art, {}).items():
@@ -77,6 +97,12 @@ class Art:
                 if t is None: continue
                 if scale != 1: t = t.resize((max(1, round(t.width * scale)), max(1, round(t.height * scale))), Image.BILINEAR)
                 out.paste(t, (round(col * tw * scale), round(row * th * scale)))
+            for x, y, tiles in (self.pieces_of(art) if pieces else []):
+                for (row, col), fid in tiles.items():
+                    t = self.fetch(fid)
+                    if t is None: continue
+                    if scale != 1: t = t.resize((max(1, round(t.width * scale)), max(1, round(t.height * scale))), Image.BILINEAR)
+                    out.alpha_composite(t, (round((x + col * 256) * scale), round((y + row * 256) * scale)))
             self.memo[key] = np.asarray(out).astype(np.float32) / 255
         return self.memo[key]
 
@@ -121,8 +147,15 @@ def main():
         zf = zoom * min(OW / W_, OH / H_) / math.sqrt(OW * OH / (W_ * H_)) / zk   # (WorldMap.lua's DetailK)
         out = np.zeros((OH, OW, 3), np.float32)
         out[:] = SEA_COLOR                              # (Stitch.lua: past the world art, its sea's colour)
+        if PAPER_OUT:                                   # (... and MapPaper over it, tinted: ns.MapPaperOut)
+            k, tint = PAPER_OUT[0], np.array(PAPER_OUT[1:], np.float32)
+            gy = ((np.arange(OH) + 0.5 - OH / 2) / px + v * H_) / k
+            gx = ((np.arange(OW) + 0.5 - OW / 2) / px + u * W_) / k
+            iy = ((gy % 1) * PAPER.shape[0]).astype(np.int32)
+            ix = ((gx % 1) * PAPER.shape[1]).astype(np.int32)
+            out[:] = PAPER[iy[:, None], ix[None, :]] * tint
 
-        def place(m, alpha, mask_fn):
+        def place(m, alpha, mask_fn, pieces=False):
             if alpha <= 0.003: return
             l, r, t, b = w.rect(m)
             x0, x1 = (l * W_ - u * W_) * px + OW / 2, (r * W_ - u * W_) * px + OW / 2
@@ -134,7 +167,7 @@ def main():
             want = (x1 - x0) / a_[1]
             scale = 1.0
             while scale / 2 >= want and scale > 1 / 16: scale /= 2
-            img = art.image(a_[0], a_[1], a_[2], a_[3], a_[4], scale)
+            img = art.image(a_[0], a_[1], a_[2], a_[3], a_[4], scale, pieces)
             ih, iw = img.shape[:2]
             ys = ((np.arange(vy0, vy1) + 0.5 - y0) / (y1 - y0) * (a_[2] * scale)).astype(np.int32).clip(0, ih - 1)
             xs = ((np.arange(vx0, vx1) + 0.5 - x0) / (x1 - x0) * (a_[1] * scale)).astype(np.int32).clip(0, iw - 1)
@@ -176,13 +209,14 @@ def main():
             if m not in land_cache:
                 p = os.path.join(clients.TEX, "MapBackLand", "%d.tga" % m)
                 land_cache[m] = np.asarray(Image.open(p).getchannel("A")).astype(np.float32) / 255 if os.path.exists(p) else None
-            t, f = land_cache[m], wide(m, shape, fy, fx)
+            t, f = land_cache[m], wide(m, shape, fy, fx) if m != uimap.WORLD else 1   # (the world's: its outline alone)
             if t is None: return f
             ty = (fy * t.shape[0]).astype(np.int32).clip(0, t.shape[0] - 1)
             tx = (fx * t.shape[1]).astype(np.int32).clip(0, t.shape[1] - 1)
             return f * t[ty[:, None], tx[None, :]]
 
-        place(uimap.WORLD, 1.0, wide)
+        world_out = os.path.exists(os.path.join(clients.TEX, "MapBackLand", "%d.tga" % uimap.WORLD))
+        place(uimap.WORLD, 1.0, back_land if world_out else wide)
         for m in conts: place(m, smooth(zf, CONT_IN), back_land)
         def continent(m):
             for _ in range(10):
@@ -194,7 +228,7 @@ def main():
             l, r = w.rect(c)[:2]
             k = w.art(c)[1] / ((r - l) * W_) / DETAIL_DENSITY
             return smooth(zf, (detail_fade[0] * k, detail_fade[1] * k))
-        for m in zones: place(m, zone_fade(m), territory)
+        for m in zones: place(m, zone_fade(m), territory, True)
         for m in cities:
             l, r, _, _ = w.rect(m)
             f = 1 / (r - l)

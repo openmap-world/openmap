@@ -181,6 +181,7 @@ local function ApplyDetail()
 		for mapID, z in pairs(Live.zones) do
 			local a = (Live.contFade[z.cont] or detailNow) * (1 - 0.75 * underNow)
 			Fade(z.frame, a)
+			if z.pieces then Fade(z.pieces, a) end
 			local on = a > 0.003
 			if z.on ~= on then
 				z.on = on
@@ -213,7 +214,7 @@ local function ApplyDetail()
 	overlayRoot:SetShown(on)
 	tilesRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)   -- (each zone's own, above, where they come in by continent)
 	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
-	overlayRoot:SetAlpha(dl)
+	overlayRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
 	-- under the faint hint from further out they'd hardly show, over both continents at once
 	Fade(coreRoot, on and math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])) or 0)
@@ -371,7 +372,9 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 			local file = tonumber(f) or f              -- (a file ID, or a hand-edited tile's path)
 			local pw = (k < cols) and tw or (w - (cols - 1) * tw)
 			local fw = (k < cols or not overlay) and tw or Pow2(pw)
-			if file and pw > 0 and ph > 0 then
+			-- (a tile its mask leaves nothing of, or with nothing in it: none, ns.MapBlank and ns.MapOff)
+			if file and pw > 0 and ph > 0 and not (overlay and ns.MapBlank and ns.MapBlank[file])
+				and not (p.off and not overlay and p.off[(j - 1) * cols + k]) then
 				local tx, ty = p.left + (x + (k - 1) * tw) * p.sx, p.top + (y + (j - 1) * th) * p.sy
 				-- a zone's textures get their file once the zone is in view (ShowZone): opening the
 				-- map loads what's there, not the whole world
@@ -398,7 +401,8 @@ local function PlaceTiles(parent, p, files, x, y, w, h, drawLayer, sub, overlay,
 					else
 						if mask2 then tex:AddMaskTexture(mask2) end
 						if list == graded then
-							local e = { tex, p.mapID, piece, layer = layer, u0 = u0, v0 = v0, u1 = u1, v1 = v1 }
+							local e = { tex, p.mapID, piece, layer = layer, u0 = u0, v0 = v0, u1 = u1, v1 = v1,
+								under = not overlay and p.under and p.under[(j - 1) * cols + k] }
 							graded[#graded + 1] = e
 							local list = zoneTex[p.mapID] or {}
 							zoneTex[p.mapID] = list
@@ -432,6 +436,8 @@ local function PlaceBase(parent, mapID, drawLayer, list, feather)
 	local mask = feather and Feather(parent, p, feather)
 	local band = list == graded and ZoneMask(parent, p, BAND)
 	local territory = list == graded and ZoneMask(parent, p, TERRITORY)
+	p.under = ns.MapUnder and ns.MapUnder[mapID]   -- (its tiles wholly under its pieces' painting: ShowZone)
+	p.off = territory and ns.MapOff and ns.MapOff[mapID]   -- (... and wholly off its territory: none)
 	return PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, list, false, band, territory)
 end
 
@@ -581,17 +587,30 @@ end
 -- interior (MapCore) on coreRoot, above every zone's halo.
 local function PlaceOverlays(mapID)
 	local p = Place(mapID)
-	if not p or ns.ClientMaps and ns.ClientMaps.overlays == false then return 0 end   -- (a client whose base art is whole)
+	if not p then return 0 end
 	local explored = C_MapExplorationInfo.GetExploredMapTextures(mapID) or {}
 	local reveal = ns.MapReveal and ns.MapReveal[C_Map.GetMapArtID(mapID) or 0]
 	if #explored == 0 and not reveal then return 0 end
+	-- (a client whose zones come in continent by continent: each zone's on a frame of its own, faded with
+	-- its base art's, S.ZoneByContinent)
+	local parent = overlayRoot
+	if ns.ClientMaps and ns.ClientMaps.detailDensity then
+		parent = CreateFrame("Frame", nil, overlayRoot)
+		parent:SetAllPoints(root)
+		parent:SetFrameLevel(overlayRoot:GetFrameLevel())
+		Live.overlayOf = Live.overlayOf or {}
+		Live.overlayOf[mapID] = parent
+	end
 	-- inside the zone's own frame (measured per zone: what it paints right up to it shows)
-	local mask = ZoneMask(overlayRoot, p, EDGE) or Feather(overlayRoot, p, FEATHER_THIN)
-	local band = ZoneMask(overlayRoot, p, BAND)
-	local coreThin, core = ZoneMask(coreRoot, p, EDGE) or Feather(coreRoot, p, FEATHER_THIN), ZoneMask(coreRoot, p, CORE)
+	local mask = ZoneMask(parent, p, EDGE) or Feather(parent, p, FEATHER_THIN)
+	local band = ZoneMask(parent, p, BAND)
+	local core = ZoneMask(coreRoot, p, CORE)
+	local coreThin = core and (ZoneMask(coreRoot, p, EDGE) or Feather(coreRoot, p, FEATHER_THIN))
+	-- (without the interiors, on its territory where it has one: its halos never over a neighbour's land)
+	local territory = not core and ZoneMask(parent, p, TERRITORY) or nil
 	local n = 0
 	ForEachPiece(mapID, function(files, x, y, w, h, sub, piece)
-		n = n + PlaceTiles(overlayRoot, p, files, x, y, w, h, "ARTWORK", sub, true, mask, graded, piece, band)
+		n = n + PlaceTiles(parent, p, files, x, y, w, h, "ARTWORK", sub, true, mask, graded, piece, band, territory)
 		if core then
 			PlaceTiles(coreRoot, p, files, x, y, w, h, "ARTWORK", sub, true, coreThin, graded, piece, nil, core)
 		end
@@ -1102,7 +1121,7 @@ function S.ZoneByContinent(mapID, frame)
 		cont = info.parentMapID
 	end
 	Live.zones, Live.contK, Live.contFade = Live.zones or {}, Live.contK or {}, Live.contFade or {}
-	Live.zones[mapID] = { frame = frame, cont = cont }
+	Live.zones[mapID] = { frame = frame, cont = cont, pieces = Live.overlayOf and Live.overlayOf[mapID] }
 	if Live.contK[cont] == nil then
 		local aw = ArtSize(cont)
 		local l, r = S.Rect(cont)
@@ -1169,6 +1188,16 @@ function S.Build(parent, artLevel, range, iconLevel)
 		sea:SetColorTexture(c[1], c[2], c[3], 1)
 	end
 	Record(sea, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
+	-- (and the world art's parchment running on past its torn edge, MapPaper tinted to its margin:
+	-- ns.MapPaperOut, territory.py)
+	local paperOut = not seaOn and ns.MapPaperOut
+	if paperOut then
+		local tex, k = root:CreateTexture(nil, "BACKGROUND", nil, -7), paperOut[1]
+		tex:SetTexture(PAPER, "REPEAT", "REPEAT")
+		tex:SetVertexColor(paperOut[2], paperOut[3], paperOut[4], 1)
+		Record(tex, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
+		tex:SetTexCoord(-SEA_REACH * W / k, (1 + SEA_REACH) * W / k, -SEA_REACH * H / k, (1 + SEA_REACH) * H / k)
+	end
 	local outer = {}
 	for i, file in ipairs(seaOn and { SEA_DARK, SEA_LIGHT } or NONE) do
 		local tex = root:CreateTexture(nil, "BACKGROUND", nil, -7)
@@ -1196,7 +1225,8 @@ function S.Build(parent, artLevel, range, iconLevel)
 		seaPaper[i] = tex
 	end
 	local nb, ns_ = #backdrop, #backdropSea
-	PlaceBackdrop(root, WORLD, "BACKGROUND", FEATHER_WIDE)
+	-- (to its own torn edge where a client has its outline, MapBackLand: territory.py)
+	PlaceBackdrop(root, WORLD, "BACKGROUND", not (ns.MapBackLands and ns.MapBackLands[WORLD]) and FEATHER_WIDE or nil)
 	-- past its edges, the continents' own sea (their compass roses, ship and sea serpent)
 	-- carries it on, as part of the world's sea
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
@@ -2239,6 +2269,8 @@ ShowZone = function(mapID)
 		local near = here and (not box or not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4]))
 		local drawn = (not e.layer or detailLive) and zoneOn   -- (the live layers: only while they show; the cities: always)
 		local un = e[3] and e[3].unexplored
+		-- (a base tile under its zone's pieces only when the unexplored ones are hidden: ns.MapUnder)
+		drawn = drawn and not (e.under and not hide)
 		if near and drawn and inside and (detailLive or Live.seen) and tex.omFile and not tex.omQueued then
 			tex.omQueued = true
 			loadQueue[#loadQueue + 1] = tex
@@ -2293,7 +2325,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	lastGrade = { strength, desat, unexplored }
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
-	Shade.on = unexplored == "dim"
+	Shade.on = unexplored == "dim" and ns.MapGrade ~= nil   -- (the shades need its zones' land masks)
 	for _, g in ipairs(graded) do GradeEntry(g, desat) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]

@@ -61,6 +61,7 @@ ns.MapTones = {
 	[241] = { 0.533, 0.424, 0.220 },  -- Twilight Highlands
 	[249] = { 0.533, 0.431, 0.220 },  -- Uldum
 	[371] = { 0.553, 0.439, 0.196 },  -- The Jade Forest
+	[376] = { 0.565, 0.431, 0.188 },  -- Valley of the Four Winds
 	[379] = { 0.565, 0.439, 0.188 },  -- Kun-Lai Summit
 	[388] = { 0.565, 0.439, 0.188 },  -- Townlong Steppes
 	[390] = { 0.522, 0.424, 0.220 },  -- Vale of Eternal Blossoms

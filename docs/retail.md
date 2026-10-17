@@ -18,13 +18,20 @@ Retail's maps aren't WoW Forever's, and the map is built from them differently:
   Quel'Thalas before Midnight (game map 530), class halls, scenarios, and the places Azeroth's map
   doesn't place (Outland, Draenor, the Shadowlands, Argus, the Maelstrom, Nazjatar, K'aresh,
   Undermine, the Emerald Dream ...): Blizzard's own map shows those as it always has.
-- **The art is painted whole.** Since the Cataclysm a zone's base art is the whole zone (its
-  explored-area pieces are the same art again), and the world's and continents' art paint their own
-  sea. So there's no sea of OpenMap's, no explored-area pieces over the zones, and no gap filling,
-  colour matching or hand-cleaned art: the map is Blizzard's art as it is, fitted together by masks
-  traced from it (`tools/map-preview/territory.py`): each continent's art over the world's (its sea
-  too, but never over another continent's land and shallows), each zone's on its own land and what it
-  paints round it over its continent's.
+- **The world and continents are painted whole.** Their art paints its own sea and coasts, so there's
+  no sea of OpenMap's, and no gap filling, colour matching or hand-cleaned art: the map is Blizzard's art
+  as it is, fitted together by masks traced from it (`tools/map-preview/territory.py`): each
+  continent's art over the world's (its sea too, but never over another continent's land and
+  shallows), each zone's on its own land and what it paints round it over its continent's.
+- **The zones are as WoW Forever's**: their base art is blank parchment (the coasts, rivers and
+  mountains), painted by their explored-area pieces (`Reveal.lua`), which OpenMap draws whether you've
+  explored them or not, unless "Hide unexplored areas" is on (blank parchment till you've been there,
+  as Blizzard's own map). "Darken unexplored areas" takes Forever's colour-matched zones' land masks, so
+  retail's menu doesn't offer it.
+- **The world's edge.** Azeroth's art is a torn parchment with a metal frame at two corners: it's drawn
+  out to its torn edge (`MapBackLand/947`, traced from the art: what's dark or cool and joined to the
+  art's edge, and what that rings round), and past it the parchment runs on (`MapPaper`, tinted to the
+  art's margin: `Territories.lua`'s `MapPaperOut`), so a wide map window shows more parchment, not a fade.
 - **The zones come in continent by continent.** Each continent's zones fade in where its own art runs
   out of pixels (`Client.lua`'s `detailDensity`): Pandaria's and the Broken Isles' continent maps are
   coarse (1002 px wide), so their zones come in soon; Quel'Thalas' and the Dragon Isles' are fine, so
@@ -38,11 +45,12 @@ Retail's maps aren't WoW Forever's, and the map is built from them differently:
 | Data | From | Made by |
 | --- | --- | --- |
 | `World.lua` | the map tables | `tools/map-data/world.py` |
-| `Places.lua` | the map tables; entrances from the encounter journal (`JournalInstanceEntrance`), docks from the map's own points of interest ("Boat to ..."); no `Reveal.lua` (no pieces drawn: `tools/clients.py`'s `pieces`) | `tools/map-data/build.py` |
+| `Places.lua` | the map tables; entrances from the encounter journal (`JournalInstanceEntrance`), docks from the map's own points of interest ("Boat to ...") | `tools/map-data/build.py` |
+| `Reveal.lua` | the stitched zones' explored-area pieces (`WorldMapOverlay`) | `tools/map-data/build.py` |
 | `Minimap.lua` | each game map's own world file | `tools/map-data/minimap.py` |
 | `FlightData.lua` | the taxi tables | `tools/map-flights/flights.py` |
 | `DungeonMaps.lua` | the dungeon maps and their floors in the map tables | `tools/map-dungeons/tables.py` |
-| `Territories.lua`, `Tones.lua` and the masks | the zones' explored-area pieces and art | `tools/map-preview/territory.py` |
+| `Territories.lua`, `Tones.lua` and the masks | the zones' explored-area pieces and art; the world's art (its outline and margin colour) | `tools/map-preview/territory.py` |
 | `Caves.lua`, `MapCave/` | the cave maps (micro maps) on the stitched world | `tools/map-caves/build.py` |
 
 Zone levels come from the game itself (`C_Map.GetMapLevels`), as its own map shows them.
@@ -110,14 +118,17 @@ As for Forever (lint, `run.py` plain / combat / secret), with `OPENMAP_CLIENT=re
   yellow beside Dragonblight's snow), and with no colour matching (Forever's `MapBand` / `Grade.lua`)
   they show as patches where a zone's art hands over to the next or to the continent's, most at the
   zoom where the zones come in. A colour match made for retail's art is the next step.
-- **Performance.** `tools/offline-test/world.py` counts at most about 820 art textures drawn, where
-  the continents' art comes in (zoom 3; it's 3840 x 2560 a continent), and about 710 where the zones
-  are in (zoom 13), against about 650 at Forever's worst: the zones coming in continent by continent and
-  the tighter cull took retail's zone peak down from about 1,100. Measure with `/openmap bench` in game; if
-  it's slow there, baked zone tiles (Forever's `MapZones`) are the cure, at a cost: retail's world
-  units are four times smaller, so tiles fine enough to carry the zooms where the zones are in (6 to 8
-  px per world unit) would add 100 to 200 MB to the download; at 4 px (about 50 MB) the live layers
-  take over again near zoom 10, where the count is still high.
+- **Performance.** `tools/offline-test/world.py` counts at most about 1,030 art textures drawn where
+  the continents' art comes in (zoom 3; it's 3840 x 2560 a continent) and about 1,200 where the zones
+  are in (zoom 13, over a continent of the newer 3840 x 2560 zone maps: about 150 base tiles and 250
+  piece tiles each), against about 650 at Forever's worst (with its baked tiles). What's drawn for
+  nothing is left out (`Territories.lua`: empty piece tiles and tiles off a zone's territory, and base
+  tiles under opaque pieces while the unexplored areas show), which took the zone peak down from about
+  1,550. Measure with `/openmap bench` in game; if it's slow there, baked zone tiles (Forever's
+  `MapZones`) are the cure, at a cost: retail's world units are four times smaller, so tiles fine
+  enough to carry the zooms where the zones are in (6 to 8 px per world unit) would add 100 to 200 MB
+  to the download; at 4 px (about 50 MB) the live layers take over again near zoom 10, where the count
+  is still high.
 - From retail's UI source (the `live` branch of wow-ui-source), to look at in game:
   - its quest log shows its own Quests / Events / Map Legend tabs, which Forever hides: beside
     OpenMap's dungeon tabs there may be two "Quests";

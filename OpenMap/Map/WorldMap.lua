@@ -1138,9 +1138,14 @@ function mod:Options()
 		desc = "Every slider here (and the OpenMap menu's) back to how OpenMap comes.",
 		confirm = true, confirmText = "Put every slider back to its default?",
 		func = function() mod:ResetSliders() end }
-	-- (a client whose zones' art is painted whole, retail's: no colour-match copies, explored-area pieces or
-	-- painted gaps to set: Data\<client>\Client.lua)
-	if ns.ClientMaps and ns.ClientMaps.overlays == false then opts.colorMatch, opts.gapFills, opts.unexplored = nil, nil, nil end
+	-- (what a client's data has none of isn't offered: retail's has no colour matching or painted gaps, and
+	-- darkening the unexplored areas takes the colour-matched zones' land masks: hidden or shown, there)
+	if not ns.MapGrade then
+		opts.colorMatch = nil
+		opts.unexplored.values, opts.unexplored.sorting = { show = "Show", hide = "Hide" }, { "show", "hide" }
+		opts.unexplored.desc = "Areas you haven't explored yet: shown as they are, or hidden like Blizzard's own map (blank parchment until you get there)."
+	end
+	if not ns.MapGaps then opts.gapFills = nil end
 	return opts
 end
 
