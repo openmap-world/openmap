@@ -28,7 +28,7 @@ local mod = ns:NewModule("worldmap", {
 		zeppelins = true,       -- zeppelin towers (Horde's) and routes
 		flight = true,
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
-		iconsFrom = 1,          -- the places' icons from this zoom (ICONS_FROM); 1: each from its own (as they come)
+		iconsFrom = 0,          -- the places' icons from this zoom (ICONS_FROM; 1: the whole world); 0: each from its own (Auto)
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
@@ -43,7 +43,7 @@ function mod.Migrate(db)
 	if db.boats == nil and db.icons ~= nil then db.boats, db.zeppelins = db.icons, db.icons end
 end
 
-local ICONS_FROM = { 1, 20, 0.5 }   -- iconsFrom's least, most, step (zoom: times the whole-world view)
+local ICONS_FROM = { 0, 20, 0.5 }   -- iconsFrom's least (0: Auto), most, step (zoom: times the whole-world view)
 mod.ICONS_FROM = ICONS_FROM
 
 local ZOOM_STEP = 1.25          -- each wheel notch
@@ -1117,7 +1117,7 @@ function mod:Options()
 			disabled = off },
 		iconsFrom = { type = "range", name = "Icons from zoom", order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
 			get = get, set = set, disabled = off,
-			desc = "Zoomed out further than this (in times the whole-world view), the map's icons for places are hidden: dungeons, boats, zeppelins, flight masters and townsfolk. At 1x each shows from its own zoom, as it comes. Your pins, drawings and party always show." },
+			desc = "The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show." },
 		playerArrow = { type = "toggle", name = "Your arrow", order = 33, get = get, set = set, disabled = off,
 			desc = "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap." },
 	}

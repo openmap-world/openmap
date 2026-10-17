@@ -1015,7 +1015,10 @@ local function SliderRow(parent, width, spec)
 		if step < 1 then v = math.floor(v * 1000 + 0.5) / 1000 end      -- (no float dust in a saved 0.85)
 		return v
 	end
-	local function Shown(v) return (spec.fmt or "%dx"):format(spec.show and spec.show(v) or v) end
+	local function Shown(v)
+		if spec.text then return spec.text(v) end
+		return (spec.fmt or "%dx"):format(spec.show and spec.show(v) or v)
+	end
 	-- the game's settings' own slider, with its arrows (Forever's options panel), where the client has it
 	local Mixin = _G.MinimalSliderWithSteppersMixin
 	local ok, ms = pcall(CreateFrame, "Frame", nil, f, "MinimalSliderWithSteppersTemplate")
@@ -1312,10 +1315,10 @@ function mod:SetupPanel(worldMap)
 	local made = { zoom = zoomRow, from = miniRow, opacity = opacityRow }
 	menu.extraRows = {}
 	made.icons = SliderRow(sliders, COL, { label = L["Icons from"], icon = Icon("INV_Misc_Spyglass_03"), range = mod.ICONS_FROM,
-		get = function() return mod.db.iconsFrom or 1 end,
+		get = function() return mod.db.iconsFrom or 0 end,
 		set = function(v) mod.db.iconsFrom = v mod:Refresh() if ns.NotifyOptions then ns.NotifyOptions() end end,
-		fmt = "%.1fx",
-		tip = L["Zoomed out further than this, the icons for places are hidden: dungeons, boats, zeppelins, flight masters and townsfolk. At 1x each shows from its own zoom. Your pins, drawings and party always show."] })
+		text = function(v) return v <= 0 and L["Auto"] or ("%.1fx"):format(math.max(1, v)) end,
+		tip = L["The zoom the icons for places show from: dungeons, boats, zeppelins and flight masters. 1x: from the whole world; higher: only further in. Auto: each from its own zoom. Townsfolk never show further out than their own; your pins, drawings and party always show."] })
 	menu.extraRows[#menu.extraRows + 1] = made.icons
 	for _, s in ipairs({
 		{ "windowScale", L["Map size"], Icon("INV_Misc_Spyglass_02") },

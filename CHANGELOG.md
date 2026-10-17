@@ -40,10 +40,10 @@
   (suggested in #31); your party's markers come up with it. Or take it off the world map (the menu's
   Show tab, **Your arrow**) and find your way old-school by the land around you: your party still
   shows, and so does the minimap.
-- **Icons from zoom**: a slider (the menu's Look tab, or Options) hides the icons for places
-  (dungeons, boats, zeppelins, flight masters and townsfolk) while you're zoomed out further than
-  it, for a clean map from afar. At 1x, as before, each comes in at its own zoom. Your pins,
-  drawings and party always show.
+- **Icons from zoom**: a slider (the menu's Look tab, or Options) for the zoom the icons for places
+  (dungeons, boats, zeppelins and flight masters) show from: 1x has them from the whole world, higher
+  keeps the map clean further out. Auto, as before, brings each in at its own zoom. Townsfolk never
+  come in further out than their own; your pins, drawings and party always show.
 - OpenMap shows under a **Map** category in the game's AddOns list.
 
 ### Improved
