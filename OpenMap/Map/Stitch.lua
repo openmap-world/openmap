@@ -857,6 +857,13 @@ function S.SetMarksShown(shown)
 	if marksRoot then marksRoot:SetShown(shown) end
 end
 
+-- the gaps painted by hand on or off (Options' Filled gaps; off: the gaps' paper, as before). The
+-- baked tiles have them in, so off the live layers draw (S.ApplyGrade: call it after this)
+function S.SetGapFillsShown(shown)
+	Baked.noFills = not shown
+	if S.fillRoot then S.fillRoot:SetShown(shown and true or false) end
+end
+
 function S.SetPinSetOn(set, on)
 	set.on = on and true or false
 	ShowSets()
@@ -1211,6 +1218,38 @@ function S.Build(parent, artLevel, range, iconLevel)
 		f:SetFrameLevel(tilesRoot:GetFrameLevel())
 		PlaceTiles(f, p, files, 0, 0, 1002, 668, "ARTWORK", 0, false, Feather(f, p, TEX .. "MapCoastArt\\" .. name))
 		culled[#culled + 1] = { f, r[1], r[3], r[2], r[4] }
+	end
+
+	-- the gaps painted by hand (ns.MapGapFills, tools/map-preview/gapfills.py: land no zone map covers,
+	-- painted in the zone maps' style from Blizzard's art), over the gaps' paper and Blizzard's finer
+	-- maps, under every zone. Each shows near the view only (S.Cull), its files loading the first time
+	-- it does; S.SetGapFillsShown turns them all off (the baked tiles have them in: Baked.noFills)
+	S.fillRoot = CreateFrame("Frame", nil, tilesRoot)
+	S.fillRoot:SetAllPoints(root)
+	S.fillRoot:SetFrameLevel(tilesRoot:GetFrameLevel())
+	for _, x in ipairs(ns.MapGapFills or {}) do
+		local num, r, fw, fh, cols, list = unpack(x)
+		local sx, sy = (r[3] - r[1]) * W / fw, (r[4] - r[2]) * H / fh
+		local f = CreateFrame("Frame", nil, S.fillRoot)
+		f:SetAllPoints(root)
+		f:SetFrameLevel(tilesRoot:GetFrameLevel())
+		f:Hide()
+		local texs = {}
+		for _, i in ipairs(list) do
+			local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
+			local pw, ph = math.min(256, fw - col * 256), math.min(256, fh - row * 256)
+			local tex = f:CreateTexture(nil, "ARTWORK", nil, 1)
+			tex.omFile = TEX .. "MapGapFill\\" .. num .. "_" .. i
+			tex:SetTexCoord(0, pw / 256, 0, ph / 256)
+			Record(tex, r[1] * W + col * 256 * sx, r[2] * H + row * 256 * sy, pw * sx, ph * sy)
+			texs[#texs + 1] = tex
+		end
+		f:SetScript("OnShow", function(self)
+			if self.omLoaded then return end
+			self.omLoaded = true
+			for _, tex in ipairs(texs) do tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR") end
+		end)
+		culled[#culled + 1] = { f, r[1], r[2], r[3], r[4] }
 	end
 
 	-- a zone's name banner for a city (ns.MapBanners, tools/map-preview/banners.py), cut from
@@ -2119,7 +2158,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and math.abs(desat - art.desaturate) < 0.001
-		and unexplored ~= "hide") and true or false
+		and unexplored ~= "hide" and not Baked.noFills) and true or false
 	if root then
 		appliedDetail = nil
 		ApplyDetail()

@@ -36,7 +36,8 @@ permission, credited on the map in game, and not covered by OpenMap's MIT licenc
 
 | Texture | What it is | Made by |
 | --- | --- | --- |
-| `MapDungeonDrawn/` | maps of Ruins of Lordaeron (`2999_*`) and The Hall of Thanes (`3065_*`), drawn by Santiago Reyes (originals in `art-drawn/dungeons/`), in the dungeon map layout: 4 x 3 tiles of 256 px | `tools/map-dungeons/drawn.py` |
+| `MapDungeonDrawn/` | maps of City of Dalaran (`2959_*`), Ruins of Lordaeron (`2999_*`) and The Hall of Thanes (`3065_*`), drawn by Santiago Reyes (originals in `art-drawn/dungeons/`), in the dungeon map layout: 4 x 3 tiles of 256 px | `tools/map-dungeons/drawn.py` |
+| `MapGapFill/` | land no zone map covers, painted by hand by Santiago Reyes in the zone maps' style from Blizzard's own art, following the game's minimap (originals in `art-drawn/gaps/`), cut to that land and tiled; with it, the `MapZones/` tiles it shows in | `tools/map-preview/gapfills.py` |
 
 **Generated** (no game art in them): `MapGrain`, `MapTooth` (paper grain, from noise)
 and the `MapFeather*` edge masks (`tools/map-textures/make.py`).

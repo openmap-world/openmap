@@ -170,6 +170,25 @@ def gap_art():
         _cache["gap_art"] = out_
     return _cache["gap_art"]
 
+USE_FILLS = os.environ.get("OPENMAP_FILLS", "1") == "1"     # (Options' "Filled gaps")
+def gap_fills():
+    """GapFills.lua (gapfills.py): the gaps painted by hand, each as a map of its own (its tiles put together)"""
+    if "gap_fills" not in _cache:
+        out_ = []
+        p = os.path.join(WM, "GapFills.lua")
+        src_ = open(p, encoding="utf-8").read() if os.path.exists(p) else ""
+        for num, rect, w, h, cols, tl in re.findall(r'\{ "(\w+)", \{ ([-\d., ]+) \}, (\d+), (\d+), (\d+), \{ ([\d, ]*) \} \}', src_):
+            w, h, cols = int(w), int(h), int(cols)
+            img = Image.new("RGBA", (cols * 256, -(-h // 256) * 256))
+            for t in (int(s_) for s_ in tl.split(",") if s_.strip()):
+                f_ = os.path.join(TEXDIR, "MapGapFill", "%s_%d.tga" % (num, t))
+                if os.path.exists(f_): img.paste(Image.open(f_).convert("RGBA"), (((t - 1) % cols) * 256, ((t - 1) // cols) * 256))
+            img = img.crop((0, 0, w, h)).resize((1002, 668), Image.LANCZOS)
+            u0, v0, u1, v1 = (float(v_) for v_ in rect.split(","))
+            out_.append({"id": "fill" + num, "rect": (u0, u1, v0, v1), "img": np.asarray(img).astype(np.float32) / 255})
+        _cache["gap_fills"] = out_
+    return _cache["gap_fills"]
+
 def banner(city):
     """a city's banner (Data/Banners.lua, MapBanner/<city>), as a map of its own: its rectangle on
     the world and its image stretched to the 1002 x 668 canvas place() expects"""
@@ -524,6 +543,8 @@ def render(cu, cv, zoom, path):
     if USE_GAP and not ZONES_ONLY and not USE_BAKED:
         for x in gap_art():                               # finer maps of land no zone covers (Gilneas), under every zone
             place(x, x["img"], x["mask"], alpha=d)
+        for x in (gap_fills() if USE_FILLS else []):      # the gaps painted by hand (Stitch.lua's fillRoot), over those
+            place(x, x["img"], None, alpha=d)
     has_over = {m["id"]: bool(reveal.get(m["art"])) for m in zones}
     for m in zones:                                       # base art, biggest zone first, with its border copy
         if not has_over[m["id"]] or not USE_BASE or USE_BAKED: continue
@@ -1314,6 +1335,8 @@ def bake_zones():
     layers = []
     for x in gap_art():                                  # (tilesRoot, under every zone's frame; not graded)
         layers.append((x["rect"], lambda x=x: x["img"], lambda x=x: x["mask"], None, 0))
+    for x in gap_fills():                                # (fillRoot, in tilesRoot over those; the tiles are baked with them:
+        layers.append((x["rect"], lambda x=x: x["img"], lambda: None, None, 0))   #  Filled gaps off draws the live layers)
     for m in live:                                       # (a frame each, biggest first: base, then its copy)
         g = grade.get(m["id"])
         layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: M_FEATHER * terr(m) if g and terr(m) is not None else M_FEATHER, None, ZONE_DESAT))

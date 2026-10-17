@@ -1,0 +1,339 @@
+[
+ {
+  "file": "G01_dun-morogh-riverglades.png",
+  "continent": 1415,
+  "continentName": "Eastern Kingdoms",
+  "box": [
+   300.75,
+   217.25,
+   493.75,
+   374.0
+  ],
+  "pxPerUnit": 24,
+  "size": [
+   4632,
+   3762
+  ],
+  "zones": [
+   "Dun Morogh",
+   "Riverglades",
+   "Wetlands",
+   "Burning Steppes",
+   "Loch Modan"
+  ],
+  "gapArea": 6648,
+  "rank": 1,
+  "world": [
+   0.671633,
+   0.406726,
+   0.864248,
+   0.641381
+  ]
+ },
+ {
+  "file": "G02_tanaris-silithus.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   297.75,
+   412.0,
+   438.25,
+   531.25
+  ],
+  "pxPerUnit": 13,
+  "size": [
+   1826,
+   1550
+  ],
+  "zones": [
+   "Tanaris",
+   "Silithus",
+   "Un'Goro Crater",
+   "Feralas",
+   "Thousand Needles"
+  ],
+  "gapArea": 6132,
+  "rank": 2,
+  "world": [
+   0.111262,
+   0.684443,
+   0.251482,
+   0.862961
+  ]
+ },
+ {
+  "file": "G03_eastern-plaguelands-western-plaguelands.png",
+  "continent": 1415,
+  "continentName": "Eastern Kingdoms",
+  "box": [
+   369.0,
+   14.5,
+   544.0,
+   116.0
+  ],
+  "pxPerUnit": 10,
+  "size": [
+   1750,
+   1015
+  ],
+  "zones": [
+   "Eastern Plaguelands",
+   "Western Plaguelands",
+   "Tirisfal Glades"
+  ],
+  "gapArea": 5446,
+  "rank": 3,
+  "world": [
+   0.739747,
+   0.103208,
+   0.914397,
+   0.255154
+  ]
+ },
+ {
+  "file": "G04_stonetalon-mountains-the-barrens.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   302.75,
+   203.75,
+   372.25,
+   293.0
+  ],
+  "pxPerUnit": 10,
+  "size": [
+   695,
+   892
+  ],
+  "zones": [
+   "Stonetalon Mountains",
+   "The Barrens",
+   "Ashenvale",
+   "Desolace",
+   "Mulgore"
+  ],
+  "gapArea": 1312,
+  "rank": 4,
+  "world": [
+   0.116252,
+   0.372692,
+   0.185614,
+   0.5063
+  ]
+ },
+ {
+  "file": "G05_silverpine-forest-hillsbrad-foothills.png",
+  "continent": 1415,
+  "continentName": "Eastern Kingdoms",
+  "box": [
+   284.0,
+   171.75,
+   359.0,
+   232.75
+  ],
+  "pxPerUnit": 16,
+  "size": [
+   1200,
+   976
+  ],
+  "zones": [
+   "Silverpine Forest",
+   "Hillsbrad Foothills",
+   "Alterac Mountains"
+  ],
+  "gapArea": 1273,
+  "rank": 5,
+  "world": [
+   0.654916,
+   0.338612,
+   0.729767,
+   0.429929
+  ]
+ },
+ {
+  "file": "G06_thousand-needles-feralas.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   350.25,
+   384.5,
+   465.25,
+   437.5
+  ],
+  "pxPerUnit": 13,
+  "size": [
+   1495,
+   689
+  ],
+  "zones": [
+   "Thousand Needles",
+   "Feralas",
+   "The Barrens",
+   "Tanaris",
+   "Dustwallow Marsh"
+  ],
+  "gapArea": 1123,
+  "rank": 6,
+  "world": [
+   0.163658,
+   0.643276,
+   0.278428,
+   0.722617
+  ]
+ },
+ {
+  "file": "G07_winterspring-darkshore.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   392.5,
+   83.75,
+   516.5,
+   143.5
+  ],
+  "pxPerUnit": 19,
+  "size": [
+   2356,
+   1135
+  ],
+  "zones": [
+   "Winterspring",
+   "Darkshore",
+   "Moonglade",
+   "Felwood",
+   "Teldrassil"
+  ],
+  "gapArea": 949,
+  "rank": 7,
+  "world": [
+   0.205823,
+   0.193051,
+   0.329576,
+   0.282497
+  ]
+ },
+ {
+  "file": "G08_ashenvale-azshara.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   411.25,
+   177.5,
+   502.75,
+   226.5
+  ],
+  "pxPerUnit": 13,
+  "size": [
+   1190,
+   637
+  ],
+  "zones": [
+   "Ashenvale",
+   "Azshara",
+   "Winterspring",
+   "Felwood",
+   "Mount Hyjal"
+  ],
+  "gapArea": 835,
+  "rank": 8,
+  "world": [
+   0.224536,
+   0.333395,
+   0.315853,
+   0.406749
+  ]
+ },
+ {
+  "file": "G09_stranglethorn-vale-blasted-lands.png",
+  "continent": 1415,
+  "continentName": "Eastern Kingdoms",
+  "box": [
+   342.25,
+   404.5,
+   424.75,
+   471.5
+  ],
+  "pxPerUnit": 19,
+  "size": [
+   1568,
+   1273
+  ],
+  "zones": [
+   "Stranglethorn Vale",
+   "Blasted Lands",
+   "Duskwood",
+   "Deadwind Pass",
+   "Westfall"
+  ],
+  "gapArea": 685,
+  "rank": 9,
+  "world": [
+   0.71305,
+   0.68704,
+   0.795385,
+   0.787339
+  ]
+ },
+ {
+  "file": "G10_thousand-needles-dustwallow-marsh.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   421.25,
+   375.25,
+   501.25,
+   446.0
+  ],
+  "pxPerUnit": 12,
+  "size": [
+   960,
+   849
+  ],
+  "zones": [
+   "Thousand Needles",
+   "Dustwallow Marsh",
+   "Tanaris",
+   "The Barrens",
+   "Un'Goro Crater"
+  ],
+  "gapArea": 616,
+  "rank": 10,
+  "world": [
+   0.234516,
+   0.629428,
+   0.314356,
+   0.735341
+  ]
+ },
+ {
+  "file": "G11_desolace-feralas.png",
+  "continent": 1414,
+  "continentName": "Kalimdor",
+  "box": [
+   295.5,
+   324.75,
+   353.25,
+   363.0
+  ],
+  "pxPerUnit": 22,
+  "size": [
+   1270,
+   842
+  ],
+  "zones": [
+   "Feralas",
+   "The Barrens",
+   "Mulgore",
+   "Desolace",
+   "Shen'dralas"
+  ],
+  "gapArea": 257,
+  "rank": 11,
+  "world": [
+   0.109017,
+   0.55383,
+   0.166652,
+   0.61109
+  ]
+ }
+]

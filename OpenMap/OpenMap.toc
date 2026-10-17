@@ -32,6 +32,7 @@ Data\Minimap.lua
 Data\MinimapLOD.lua
 Data\Caves.lua
 Data\Gaps.lua
+Data\GapFills.lua
 Data\Tones.lua
 Data\ArtEdits.lua
 Data\Labels.lua

@@ -10,3 +10,5 @@ __pycache__/
 /art-edits/source/
 # release zips built locally (tools/package/build.py)
 /dist/
+# gap regions exported for painting (tools/map-preview/gapregions.py): regenerate, don't commit
+/art-drawn/gaps/source/

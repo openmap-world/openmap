@@ -73,10 +73,12 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 10 | `tools/map-preview/sea_world.py <db2> <tex>` | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/`, `MapSeaFieldOut` | 9 |
 | 11 | `tools/map-preview/banners.py <db2> <tex>` | `MapBanner/`, `MapBannerHole/`, `MapCityMask/`, `Data/Banners.lua` | |
 | 12 | `tools/map-preview/gapfill.py <db2> <tex> [--rerender]` | `MapGapLand/`, `MapGapMask/`, `MapPaper`, `MapCoastArt/`, `Data/Gaps.lua` | 8, 11 |
+| 12a | `tools/map-preview/gapregions.py <db2> <tex> [--only G01]` | `art-drawn/gaps/source/` (not committed: the plates to paint on, each region's fill area and sea) | 12, `art-drawn/gaps/regions.json` |
+| 12b | `tools/map-preview/gapfills.py` | `MapGapFill/`, `Data/GapFills.lua`, `art-drawn/gaps/fits.json` | 12a, `art-drawn/gaps/` |
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |
 | 13a | `tools/map-preview/minimaplod.py <db2> <tex>` | `MapMiniLOD/`, `Data/MinimapLOD.lua` | 13 |
 | 14 | `tools/map-art/border.py` | `MapBorder/` | `art-edits/border.png` |
-| 15 | `tools/map-preview/render.py <db2> <tex> <out> --bake-zones` | `MapZones/`, `Data/ZoneArt.lua` | 5, 7, 8, 11, 12 |
+| 15 | `tools/map-preview/render.py <db2> <tex> <out> --bake-zones` | `MapZones/`, `Data/ZoneArt.lua` | 5, 7, 8, 11, 12, 12b |
 | 16 | `tools/changelog/build.py` (after any change to `CHANGELOG.md`) | `Data/Changelog.lua` | |
 | 17 | `tools/map-dungeons/build.py <cache> <WoW folder> [preview dir]` | `Data/DungeonMaps.lua` | 1 |
 | 17a | `tools/map-dungeons/drawn.py` | `MapDungeonDrawn/`, `Data/DungeonDrawn.lua` | `art-drawn/dungeons/` |

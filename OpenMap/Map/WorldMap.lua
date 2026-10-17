@@ -33,6 +33,7 @@ local mod = ns:NewModule("worldmap", {
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
+		gapFills = true,        -- the gaps between zones painted by hand (art-drawn/gaps)
 		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
 	},
 })
@@ -1001,6 +1002,7 @@ function mod:Refresh()
 	if S.RefreshRoutes then S.RefreshRoutes() end
 	S.SetPlayerHidden(self.db.playerArrow == false)
 	S.SetPlacesFrom(self.db.iconsFrom)
+	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
@@ -1094,6 +1096,8 @@ function mod:Options()
 			desc = "How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours." },
 		desaturate = { type = "range", name = "Take colour out", order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
+		gapFills = { type = "toggle", name = "Filled gaps", order = 23.5, get = get, set = set, disabled = off,
+			desc = "Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there." },
 		unexplored = { type = "select", name = "Unexplored areas", order = 23, get = get, set = set, disabled = off,
 			values = { show = "Show", dim = "Darken", hide = "Hide" }, sorting = { "show", "dim", "hide" },
 			desc = "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)." },
