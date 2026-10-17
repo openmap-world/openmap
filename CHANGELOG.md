@@ -53,6 +53,8 @@
   the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling
   the card's power). Your own frame rate setting comes back as the map closes.
 - Up close, a layer of the paper grain that has faded out is no longer drawn.
+- **Report a problem** sends you to OpenMap's comments on CurseForge for now, to post its code in.
+  Its window, and the bench's and the map notes' to copy from, are in the map window's own frame.
 - **Dungeons, boats and zeppelins each have their own switch** in the menu's Show tab and in
   Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's
   off takes its routes with it when routes are shown. Your old setting carries over to all three.

@@ -2,7 +2,7 @@
 -- Report a problem (beta feedback), from the map's menu: draw where it's wrong if it's about a spot
 -- (the quill, Sketch.lua, in red; on a dungeon's map, on its picture: Dungeons.lua's markup), or
 -- nothing (the menu, settings, another addon), say what's wrong, and get a short report code to paste
--- into a GitHub issue (addons can't send anything themselves). The code carries the place, zoom, what
+-- into a comment on OpenMap's CurseForge page (ns.ISSUES_URL; addons can't send anything themselves). The code carries the place, zoom, what
 -- was drawn and the note, so tools/map-preview/report.py can render what the player saw.
 --
 -- Code: OM1|<version>|<mapID>|<u>|<v>|<zoom>|<marks>|<note>
@@ -120,20 +120,25 @@ function mod:ShowReportCode(code)
 	while #mod.char.reports > 10 do tremove(mod.char.reports, 1) end
 	if not codeFrame then
 		codeFrame = CreateFrame("Frame", "OpenMapReport", UIParent)
-		codeFrame:SetSize(520, 200)
 		codeFrame:SetPoint("CENTER")
 		codeFrame:SetFrameStrata("DIALOG")
 		codeFrame:EnableMouse(true)
-		ns.Look:Panel(codeFrame, { inset = 0, alpha = 0.95 })
+		codeFrame:SetMovable(true)
+		codeFrame:SetClampedToScreen(true)
+		codeFrame:RegisterForDrag("LeftButton")
+		codeFrame:SetScript("OnDragStart", codeFrame.StartMoving)
+		codeFrame:SetScript("OnDragStop", codeFrame.StopMovingOrSizing)
+		-- (the map window's own frame, its title bar and X, as What's new's)
+		local top = ns.Look:Window(codeFrame, L["Report a problem"])
+		codeFrame:SetSize(540, 196 + top)
 		tinsert(UISpecialFrames, "OpenMapReport")
-		local close = CreateFrame("Button", nil, codeFrame, "UIPanelCloseButton")
-		close:SetPoint("TOPRIGHT", 2, 2)
 		local function Field(label, y)
+			y = y - top
 			local fs = codeFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 			fs:SetPoint("TOPLEFT", 14, y)
 			fs:SetText(label)
 			local box = CreateFrame("EditBox", nil, codeFrame, "InputBoxTemplate")
-			box:SetSize(480, 22)
+			box:SetSize(500, 22)
 			box:SetPoint("TOPLEFT", 20, y - 18)
 			box:SetAutoFocus(false)
 			box:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
@@ -141,13 +146,13 @@ function mod:ShowReportCode(code)
 			box:SetScript("OnTextChanged", function(self, user) if user then self:SetText(self.value) self:HighlightText() end end)
 			return box
 		end
-		codeFrame.url = Field("1. Open this page (Ctrl-C, then paste in your browser):", -16)
-		codeFrame.code = Field("2. Paste this code into the report, with a screenshot if you can:", -76)
+		codeFrame.url = Field(L["1. Open OpenMap's comments on CurseForge (Ctrl-C, then paste in your browser):"], -16)
+		codeFrame.code = Field(L["2. Post this code in a comment there, with a screenshot if you can:"], -76)
 		local tip = codeFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		tip:SetPoint("TOPLEFT", 14, -140)
-		tip:SetWidth(490)
+		tip:SetPoint("TOPLEFT", 14, -140 - top)
+		tip:SetWidth(510)
 		tip:SetJustifyH("LEFT")
-		tip:SetText("Thanks! The code says where you were looking (and what you drew, if anything), so we can see what you saw.")
+		tip:SetText(L["Thanks! The code says where you were looking (and what you drew, if anything), so we can see what you saw."])
 		codeFrame:SetScript("OnHide", function() EndReport() end)   -- (its drawing kept on show till then)
 	end
 	codeFrame.url.value = ns.ISSUES_URL

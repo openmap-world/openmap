@@ -4,7 +4,7 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [17] = "Fixed", }, items = {
+	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [18] = "Fixed", }, items = {
 		"|cff6e2c0aKhaz Modan's blank land painted|r: the stretches between Dun Morogh, Wetlands, Loch Modan, Searing Gorge and the Badlands that no zone map covers, and the coast round them, painted by hand by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's terrain (used with his permission). The first of the gaps between zones to be filled; Options' |cff6e2c0aFilled gaps|r turns them off.",
 		"|cff6e2c0aMaps of City of Dalaran and Excavation Site: Wetlands|r, drawn by Santiago Reyes and used with his permission: click their entrances in Alterac Mountains and the Wetlands (they opened on a blank page before). \"Map by Santiago Reyes\" at their foot, as with his others.",
 		"|cff6e2c0aAirships to Zephras Isle|r: the flying boats at the Dalaran skydock (Alterac Mountains) and in Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does, and Back takes you to the world where you were. (Under the Boats switch.)",
@@ -18,6 +18,7 @@ ns.MapChangelog = {
 		"OpenMap shows under a |cff6e2c0aMap|r category in the game's AddOns list.",
 		"|cff6e2c0aMap frame rate cap|r (the menu's Look tab, or Options; off unless you set it): the frame rate at most while the map is open. A big map draws many layers over the whole screen every frame; at 60 the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling the card's power). Your own frame rate setting comes back as the map closes.",
 		"Up close, a layer of the paper grain that has faded out is no longer drawn.",
+		"|cff6e2c0aReport a problem|r sends you to OpenMap's comments on CurseForge for now, to post its code in. Its window, and the bench's and the map notes' to copy from, are in the map window's own frame.",
 		"|cff6e2c0aDungeons, boats and zeppelins each have their own switch|r in the menu's Show tab and in Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's off takes its routes with it when routes are shown. Your old setting carries over to all three.",
 		"|cff6e2c0aOut of a city to its zone|r: right-click out of Stormwind, Ironforge, Darnassus, Orgrimmar, Thunder Bluff or Undercity and the map goes out to the zone around it (Elwynn Forest, Dun Morogh ...), as it does from anywhere else in that zone, not the whole continent.",
 		"|cff6e2c0aAzeroth Tripview|r: its live ships and docks are kept above the map's art. For other addons, OpenMapAPI (version 2) can now place a point of the game's world anywhere on the stitched map, for frames they put on the world map themselves (docs/api.md).",
