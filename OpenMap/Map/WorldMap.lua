@@ -379,6 +379,7 @@ end
 -- and your own blip on it sized away while your arrow is off (Your arrow): the pin draws the party
 -- too, so it stays. Blizzard sizes it again on every zoom step (SynchronizePinSizes): hooked, so it
 -- goes at once, and each tick as well where there's no such step to hook
+local BLIP_GONE = 0.01            -- (a size too small to draw: 0 is taken as the texture's own size, a huge arrow)
 local blipHidden = setmetatable({}, { __mode = "k" })
 local blipHooked = setmetatable({}, { __mode = "k" })
 local function PlayerBlip(pin, shown)
@@ -388,11 +389,11 @@ local function PlayerBlip(pin, shown)
 			blipHooked[pin] = true
 			hooksecurefunc(pin, "SynchronizePinSizes", function(self)
 				if mod.db.playerArrow == false and not (self:IsProtected() and InCombatLockdown()) then
-					pcall(self.SetPinSize, self, "player", 0)
+					pcall(self.SetPinSize, self, "player", BLIP_GONE)
 				end
 			end)
 		end
-		pcall(pin.SetPinSize, pin, "player", 0)
+		pcall(pin.SetPinSize, pin, "player", BLIP_GONE)
 		blipHidden[pin] = true
 	elseif blipHidden[pin] then
 		-- (back at Blizzard's size for this zoom: its size over the canvas's scale, as it sets it)
