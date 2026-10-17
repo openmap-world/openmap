@@ -8,6 +8,14 @@
   entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" in its
   corner, as with his others.
 
+### Improved
+
+- **Map frame rate cap** (the menu's Look tab, or Options; off unless you set it): the frame rate at
+  most while the map is open. A big map draws many layers over the whole screen every frame; at 60
+  the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling
+  the card's power). Your own frame rate setting comes back as the map closes.
+- Up close, a layer of the paper grain that has faded out is no longer drawn.
+
 ## v0.5.0-beta (2026-10-16)
 
 ### New

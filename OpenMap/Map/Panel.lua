@@ -1323,13 +1323,14 @@ function mod:SetupPanel(worldMap)
 		{ "desaturate", L["Take colour out"], Icon("Spell_Shadow_Twilight") },
 		{ "minimapMix", L["Minimap strength"], Icon("Spell_Nature_FarSight") },
 		{ "moveFade", L["Fade while moving"], Icon("Ability_Stealth") },
+		{ "mapFpsCap", L["Map frame rate cap"], Icon("Spell_Nature_Sleep") },
 	}) do
 		local key, o = s[1], options[s[1]]
 		if o and o.type == "range" then
 			local r = SliderRow(sliders, COL, { label = s[2], icon = s[3], range = { o.min, o.max, o.step },
 				get = function() return mod:Options()[key].get({ key }) end,
 				set = function(v) mod:Options()[key].set({ key }, v) end,
-				fmt = o.isPercent and "%d%%" or "%.2f", show = o.isPercent and function(v) return math.floor(v * 100 + 0.5) end or nil,
+				fmt = o.isPercent and "%d%%" or (o.step or 0) >= 1 and "%d" or "%.2f", show = o.isPercent and function(v) return math.floor(v * 100 + 0.5) end or nil,
 				tip = o.desc or s[2] })
 			made[key] = r
 			menu.extraRows[#menu.extraRows + 1] = r
@@ -1337,7 +1338,7 @@ function mod:SetupPanel(worldMap)
 	end
 	-- each column's, top down
 	local height = 0
-	for col, list in ipairs({ { "zoom", "icons", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade" } }) do
+	for col, list in ipairs({ { "zoom", "icons", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade", "mapFpsCap" } }) do
 		local y = -22
 		for _, key in ipairs(list) do
 			local r = made[key]

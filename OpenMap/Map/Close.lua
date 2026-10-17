@@ -402,7 +402,7 @@ local function UpdateGrain(layer, u, v, hu, hv, amount)
 		g.tex:SetTexCoord(u0 * W / size, u1 * W / size, v0 * H / size, v1 * H / size)
 		S.PlaceWorld(g.tex, u0, v0, u1, v1)
 		g.tex:SetAlpha(a)
-		g.tex:Show()
+		g.tex:SetShown(a > 0.004)   -- (an octave crossfaded out still costs the whole view: hidden)
 	end
 end
 

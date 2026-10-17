@@ -18,6 +18,7 @@ local d = mod.defaults
 d.coords = true
 d.zoneLevels = true
 d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
+d.mapFpsCap = 0                 -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off)
 
 local map, sc, bar
 local labelProvider                     -- Blizzard's area label
@@ -427,8 +428,26 @@ fader:SetScript("OnUpdate", function(_, elapsed)
 	map:SetAlpha(faded)
 end)
 
+-- the frame rate capped while the map shows (Map frame rate cap): a big map is many layers over the
+-- whole screen, every frame, and a still map needn't be drawn 120 times a second. The game's own
+-- maxFPS is held then (lower already: left as it is), and put back as the map goes and at logout.
+-- (Not set in combat: what the game blocks then isn't worth the risk)
+local function ApplyFpsCap()
+	if not map or loggingOut then return end
+	local cap = mod.db.mapFpsCap or 0
+	if map:IsShown() and cap > 0 then
+		if InCombatLockdown() then return end
+		local ok, now = pcall(GetCVar, "maxFPS")
+		now = ok and tonumber(now) or 0
+		if Kept().maxFPS ~= nil or now == 0 or now > cap then HoldCVar("maxFPS", tostring(cap)) end
+	else
+		LetGoCVar("maxFPS")
+	end
+end
+
 local function ApplyExtras()
 	if not map or loggingOut then return end
+	ApplyFpsCap()
 	SetUpCoords()
 	SetUpZoneLevels()
 	-- (from the old on / off setting: fading back on was the game's half-fade)
@@ -444,8 +463,8 @@ end
 
 function mod:SetupExtras(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
-	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) end)
-	map:HookScript("OnHide", function() fader:Hide() faded = 1 map:SetAlpha(1) end)
+	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) ApplyFpsCap() end)
+	map:HookScript("OnHide", function() fader:Hide() faded = 1 map:SetAlpha(1) ApplyFpsCap() end)
 	SetUpAllPins()
 	map:HookScript("OnShow", SetUpAllPins)            -- (a copy an addon loaded since brought)
 	ApplyExtras()
@@ -465,6 +484,9 @@ function mod:ExtraOptions(opts, get, set, off)
 		desc = "A bar along the map's foot: your position, and the zone and position under the cursor." }
 	opts.zoneLevels = { type = "toggle", name = "Zone levels", order = 42, get = get, set = setApply, disabled = off,
 		desc = "Hovering a zone shows its level range, coloured for your level." }
+	opts.mapFpsCap = { type = "range", name = "Map frame rate cap", order = 44.5, min = 0, max = 144, step = 6,
+		get = get, set = setApply, disabled = off,
+		desc = "The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes." }
 	opts.moveFade = { type = "range", name = "Fade while moving", order = 44, min = 0, max = 0.9, step = 0.05, isPercent = true,
 		get = get, set = setApply, disabled = off,
 		desc = "How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it." }
