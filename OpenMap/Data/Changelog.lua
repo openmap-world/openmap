@@ -4,12 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [2] = "Improved", }, items = {
+	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [17] = "Fixed", }, items = {
+		"|cff6e2c0aKhaz Modan's blank land painted|r: the stretches between Dun Morogh, Wetlands, Loch Modan, Searing Gorge and the Badlands that no zone map covers, and the coast round them, painted by hand by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's terrain (used with his permission). The first of the gaps between zones to be filled; Options' |cff6e2c0aFilled gaps|r turns them off.",
 		"|cff6e2c0aA map of City of Dalaran|r, drawn by Santiago Reyes and used with his permission: click its entrance in Alterac Mountains (it opened on a blank page before). \"Map by Santiago Reyes\" in its corner, as with his others.",
-		"|cff6e2c0aMap frame rate cap|r (the menu's Look tab, or Options; off unless you set it): the frame rate at most while the map is open. A big map draws many layers over the whole screen every frame; at 60 the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling the card's power). Your own frame rate setting comes back as the map closes.",
-		"Up close, a layer of the paper grain that has faded out is no longer drawn.",
-	} },
-	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [10] = "Improved", [13] = "Fixed", }, items = {
 		"|cff6e2c0aAirships to Zephras Isle|r: the flying boats at the Dalaran skydock (Alterac Mountains) and in Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does, and Back takes you to the world where you were. (Under the Boats switch.)",
 		"|cff6e2c0aMaps of Ruins of Lordaeron and The Hall of Thanes|r, two of WoW Forever's own dungeons, which the game has no map of: drawn by Santiago Reyes and used with his permission. Click their entrances in Undercity and Ironforge; the map shows \"Map by Santiago Reyes\" in its corner.",
 		"|cff6e2c0aDungeon Journal|r: with Exehn's Dungeon Journal installed, a dungeon's map has |cff6e2c0aOpen in Dungeon Journal|r on its Bosses tab, and clicking an entrance can open its page there instead of its map (the menu's |cff6e2c0aEntrances open Dungeon Journal|r, or Options). Its map still opens where Dungeon Journal has no page for it.",
@@ -19,6 +16,8 @@ ns.MapChangelog = {
 		"|cff6e2c0aYour arrow on top, or off|r: the player arrow is drawn over every other icon on the map (quest givers, Questie's and other addons' icons), so you can always see which way you're facing (suggested in #31); your party's markers come up with it. Or take it off the world map (the menu's Show tab, |cff6e2c0aYour arrow|r) and find your way old-school by the land around you: your party still shows, and so does the minimap.",
 		"|cff6e2c0aIcons from zoom|r: a slider (the menu's Look tab, or Options) hides the icons for places (dungeons, boats, zeppelins, flight masters and townsfolk) while you're zoomed out further than it, for a clean map from afar. At 1x, as before, each comes in at its own zoom. Your pins, drawings and party always show.",
 		"OpenMap shows under a |cff6e2c0aMap|r category in the game's AddOns list.",
+		"|cff6e2c0aMap frame rate cap|r (the menu's Look tab, or Options; off unless you set it): the frame rate at most while the map is open. A big map draws many layers over the whole screen every frame; at 60 the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling the card's power). Your own frame rate setting comes back as the map closes.",
+		"Up close, a layer of the paper grain that has faded out is no longer drawn.",
 		"|cff6e2c0aDungeons, boats and zeppelins each have their own switch|r in the menu's Show tab and in Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's off takes its routes with it when routes are shown. Your old setting carries over to all three.",
 		"|cff6e2c0aOut of a city to its zone|r: right-click out of Stormwind, Ironforge, Darnassus, Orgrimmar, Thunder Bluff or Undercity and the map goes out to the zone around it (Elwynn Forest, Dun Morogh ...), as it does from anywhere else in that zone, not the whole continent.",
 		"|cff6e2c0aAzeroth Tripview|r: its live ships and docks are kept above the map's art. For other addons, OpenMapAPI (version 2) can now place a point of the game's world anywhere on the stitched map, for frames they put on the world map themselves (docs/api.md).",

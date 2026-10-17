@@ -2,24 +2,18 @@
 
 ## Unreleased
 
-### New
-
-- **A map of City of Dalaran**, drawn by Santiago Reyes and used with his permission: click its
-  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" in its
-  corner, as with his others.
-
-### Improved
-
-- **Map frame rate cap** (the menu's Look tab, or Options; off unless you set it): the frame rate at
-  most while the map is open. A big map draws many layers over the whole screen every frame; at 60
-  the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling
-  the card's power). Your own frame rate setting comes back as the map closes.
-- Up close, a layer of the paper grain that has faded out is no longer drawn.
-
 ## v0.5.0-beta (2026-10-16)
 
 ### New
 
+- **Khaz Modan's blank land painted**: the stretches between Dun Morogh, Wetlands, Loch Modan,
+  Searing Gorge and the Badlands that no zone map covers, and the coast round them, painted by hand
+  by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's
+  terrain (used with his permission). The first of the gaps between zones to be filled; Options'
+  **Filled gaps** turns them off.
+- **A map of City of Dalaran**, drawn by Santiago Reyes and used with his permission: click its
+  entrance in Alterac Mountains (it opened on a blank page before). "Map by Santiago Reyes" in its
+  corner, as with his others.
 - **Airships to Zephras Isle**: the flying boats at the Dalaran skydock (Alterac Mountains) and in
   Mulgore are on the map; click one and Zephras Isle's map opens in the window, as a dungeon's does,
   and Back takes you to the world where you were. (Under the Boats switch.)
@@ -54,6 +48,11 @@
 
 ### Improved
 
+- **Map frame rate cap** (the menu's Look tab, or Options; off unless you set it): the frame rate at
+  most while the map is open. A big map draws many layers over the whole screen every frame; at 60
+  the graphics card does about half the work it does at 120 (reported: a full-screen 4K map doubling
+  the card's power). Your own frame rate setting comes back as the map closes.
+- Up close, a layer of the paper grain that has faded out is no longer drawn.
 - **Dungeons, boats and zeppelins each have their own switch** in the menu's Show tab and in
   Options, so you can keep dungeon and raid entrances and hide the boats or zeppelins. A kind that's
   off takes its routes with it when routes are shown. Your old setting carries over to all three.
