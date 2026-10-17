@@ -21,3 +21,13 @@ cleaning it out by hand.
 
 Edits are of Blizzard's own art, and stay true to its style: they take out what's in the way
 and add nothing the game's maps don't have.
+
+## Retail
+
+Retail's plates are in `art-edits/retail/` (the same steps, with `OPENMAP_CLIENT=retail`):
+`export.py` takes the maps to export by uiMapID and writes each one's base art at its own
+size (1002 × 668, or 3840 × 2560 for the newer maps) to `art-edits/retail/source/`; edited copies
+go in `art-edits/retail/edited/`, and `import.py` writes the changed tiles to
+`OpenMap/Media/Textures/Retail/MapArt/` and `OpenMap/Data/Retail/ArtEdits.lua`. Retail has no
+live lettering: paint out only what shows where it doesn't belong (a neighbouring zone's name
+left on the stitched map, an inset of a place that isn't there), not the names the map needs.

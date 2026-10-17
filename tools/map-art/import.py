@@ -11,14 +11,16 @@ from PIL import Image
 
 here = os.path.dirname(os.path.abspath(__file__))
 root = os.path.join(here, "..", "..")
-src_dir, edit_dir = os.path.join(root, "art-edits", "source"), os.path.join(root, "art-edits", "edited")
 sys.path.insert(0, os.path.join(root, "tools"))
 import clients   # the client the tools build for (OPENMAP_CLIENT)
+# (WoW Forever's in art-edits/ itself, another client's in art-edits/<client>/)
+edits_root = os.path.join(root, "art-edits", *([] if clients.NAME == "forever" else [clients.NAME]))
+src_dir, edit_dir = os.path.join(edits_root, "source"), os.path.join(edits_root, "edited")
 tex = os.path.join(clients.TEX, "MapArt")
 os.makedirs(tex, exist_ok=True)
 for f in os.listdir(tex):
     if f.endswith(".tga"): os.remove(os.path.join(tex, f))
-TILE, COLS = 256, 4                       # the art's tiles: 256 px, 4 across (1002 x 668 -> 4 x 3)
+TILE = 256                                # the art's tiles: 256 px (1002 x 668 -> 4 x 3, 3840 x 2560 -> 15 x 10)
 
 edits = {}
 for f in sorted(os.listdir(edit_dir)) if os.path.isdir(edit_dir) else []:
@@ -34,6 +36,7 @@ for f in sorted(os.listdir(edit_dir)) if os.path.isdir(edit_dir) else []:
         print("size changed:", f, a.shape, "vs", b.shape, "- keep the export's size"); continue
     changed = []
     h, w = a.shape[:2]
+    COLS = (w + TILE - 1) // TILE
     for row in range((h + TILE - 1) // TILE):
         for col in range(COLS):
             ys, xs = slice(row * TILE, min(h, (row + 1) * TILE)), slice(col * TILE, min(w, (col + 1) * TILE))
