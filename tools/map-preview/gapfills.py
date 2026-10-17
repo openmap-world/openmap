@@ -25,6 +25,8 @@ OUT = os.path.join(root, "OpenMap", "Media", "Textures", "MapGapFill")
 LUA = os.path.join(root, "OpenMap", "Data", "GapFills.lua")
 TILE = 256
 FRAME_FADE = 40                 # region px a fill fades out over at its own edge (inside the region)
+BOX_FADE = 3                    # world units a fill fades out over towards its region's own edge (where the gap
+                                #  runs on past it, unpainted yet: no hard line; a neighbour's fill overlaps it)
 COAST_KEEP = 8                  # world units past the fill area that a painted coastline is kept out to, into the sea
 COAST_DIFF = 0.04               # how much a painting must differ from the map as it was to count as painted there
 MAX_PX = 10                     # px a world unit at most, as written: about the zone maps' own at the zooms
@@ -94,7 +96,7 @@ for f in sorted(os.listdir(EDITED)):
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     rgb = np.dstack([sample(p, F[..., c], yy, xx) for c in range(3)])
     own = sample(p, F[..., 3], yy, xx)
-    # fading out over its own edge where that's inside the region (to the region's edge, it runs on)
+    # fading out over its own edge where that's inside the region (and towards the region's: BOX_FADE)
     x0, x1, y0, y1 = tx, tx + sx * (fw - 1), ty, ty + sy * (fh - 1)
     dist = np.full((H, W), 1e9, np.float32)
     if x0 > 3: dist = np.minimum(dist, xx - x0)
@@ -103,6 +105,10 @@ for f in sorted(os.listdir(EDITED)):
     if y1 < H - 4: dist = np.minimum(dist, y1 - yy)
     inside = np.clip(dist / FRAME_FADE, 0, 1) * ((xx >= x0 - 1) & (xx <= x1 + 1) & (yy >= y0 - 1) & (yy <= y1 + 1))
     a = np.clip(mask, 0, 1) * inside * own
+    to_box = np.minimum(np.minimum(xx, W - 1 - xx), np.minimum(yy, H - 1 - yy))
+    box_fade = np.clip(to_box / (BOX_FADE * e["pxPerUnit"]), 0, 1)
+    box_fade = box_fade * box_fade * (3 - 2 * box_fade)
+    a = a * box_fade
     # the painter's coastline and shallows past the fill area, out into the open sea (source/_sea.png:
     # no land, no zone art): what the painting changed there from how the map looked (source/_now.png),
     # joined to the fill area and within COAST_KEEP of it, specks left out
@@ -116,7 +122,7 @@ for f in sorted(os.listdir(EDITED)):
         lab, _ = ndimage.label(coast | (mask > 0.5))
         coast &= np.isin(lab, np.unique(lab[mask > 0.5]))
         coast = ndimage.gaussian_filter(ndimage.binary_dilation(coast, iterations=2).astype(np.float32), 1.5)
-        a = np.maximum(a, np.clip(coast, 0, 1) * inside * own)
+        a = np.maximum(a, np.clip(coast, 0, 1) * inside * own * box_fade)
         print("  coastline past the fill area kept: %.1f%% of the region" % (100 * float((coast > 0.5).mean())))
     k = min(1.0, MAX_PX / e["pxPerUnit"])
     if k < 1:
