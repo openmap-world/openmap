@@ -52,6 +52,11 @@
 
 ### Fixed
 
+- **With a gamepad**: the cursor stays where you put it. It jumped back to the middle of the map
+  each time the map underneath changed (shortly after every zoom or pan), so the next zoom was about
+  the middle. And in combat, a dungeon's or Zephras Isle's map waits until you're out of it (a line
+  in chat says so): opened then, the game set the map's gamepad buttons again in a way it blocks in
+  combat, which could leave them wrong until a /reload.
 - **WoW Forever's boats** are on the map, with their docks and routes: Steamwheedle Port (Tanaris)
   to Powderfuse Port (Riverglades), for both factions; Stormwind to Auberdine; and Menethil Harbor
   to Southshore and Auberdine, which takes the place of the old Menethil to Auberdine boat.

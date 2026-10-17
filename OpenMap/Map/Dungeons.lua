@@ -971,6 +971,18 @@ function mod.DungeonViewShown() return view and view:IsShown() or false end
 
 local function NeedRoll() return SlashCmdList and SlashCmdList.NEEDROLL end
 
+-- (in combat with the gamepad's UI the game's own map isn't changed by OpenMap: WorldMap.lua's
+-- mod.PadCombat; once a while, said why)
+local padSaid = 0
+local function PadWaits()
+	if not (mod.PadCombat and mod.PadCombat()) then return false end
+	if GetTime() - padSaid > 10 then
+		padSaid = GetTime()
+		ns:Print(L["With a gamepad, that map opens once you're out of combat."])
+	end
+	return true
+end
+
 -- Dungeon Journal (by Exehn, for WoW Forever: /dj): its pages are by its own names for the
 -- dungeons ("Scarlet Monastery: Graveyard", "Hall of Thanes"), matched to ours loosely
 local function Journal()
@@ -1019,6 +1031,7 @@ local function Open(inst, pin)
 		end
 		return
 	end
+	if PadWaits() then return end
 	local u, v, zoom = mod.ViewNow()
 	returnTo = u and { u, v, zoom, maps = MapsOf(id) } or nil
 	S.OpenMap(id)
@@ -1048,6 +1061,7 @@ end
 -- a dungeon's is: the game's own map of it in the window, the world as it was on the way back out
 function mod.OpenAwayMap(mapID)
 	if not C_Map.GetMapInfo(mapID) then return false end
+	if PadWaits() then return true end
 	local u, v, zoom = mod.ViewNow()
 	away[mapID] = true
 	returnTo = u and { u, v, zoom, maps = MapsOf(mapID) } or nil
@@ -1057,7 +1071,7 @@ end
 
 local function Back()
 	if view and view:IsShown() then CloseView() return end
-	if map and not mod.IsStitched() then map:NavigateToParentMap() end
+	if map and not mod.IsStitched() and not PadWaits() then map:NavigateToParentMap() end
 end
 
 --------------------------------------------------------------------------------

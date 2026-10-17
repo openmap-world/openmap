@@ -218,6 +218,31 @@ local function PadCursor()
 	return (l + w / 2) * es, (b + h / 2) * es
 end
 
+-- Blizzard puts the gamepad's cursor back in the middle of the map whenever the canvas changes
+-- (its scroll container's OnCanvasSizeChanged: RefreshBounds, ResetPosition). OpenMap changes the
+-- map underneath as you look round (and lays the canvas out again), so the cursor is put back where
+-- it was, as the cursor places itself (SoftCursorMixin:OnUpdate), within its new bounds
+local function KeepPadCursor(fn, ...)
+	local soft = _G.SoftCursor
+	local x, y
+	if soft and soft:IsShown() then x, y = soft:GetCenter() end
+	local a, b = fn(...)
+	if x and soft:IsShown() then
+		if soft.bounds and soft.bounds.ClampPointInBounds then x, y = soft.bounds:ClampPointInBounds(x, y) end
+		soft:ClearAllPoints()
+		soft:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+	end
+	return a, b
+end
+mod.KeepPadCursor = KeepPadCursor
+
+-- in combat in the gamepad's UI: a map change of OpenMap's then would have Blizzard set the map's
+-- gamepad bindings again (its footer, OnMapChanged) from OpenMap's code, which the game blocks in
+-- combat, leaving the pad's buttons wrong. Such changes wait (Dungeons.lua)
+function mod.PadCombat()
+	return InCombatLockdown() and InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled() or false
+end
+
 -- the cursor in view px from the view's centre (y down)
 local function CursorOffset()
 	local x, y = PadCursor()
@@ -332,7 +357,7 @@ local function Switch(target)
 	local u, v, zoom = View()
 	switching = true
 	local g = Before()
-	local ok, err = pcall(map.SetMapID, map, target)
+	local ok, err = KeepPadCursor(pcall, map.SetMapID, map, target)
 	After("map switch (all addons)", g)
 	switching = false
 	if not ok then geterrorhandler()(err) return end
@@ -361,7 +386,9 @@ local function PlayerBlip(pin, shown)
 		if not blipHooked[pin] and type(pin.SynchronizePinSizes) == "function" then
 			blipHooked[pin] = true
 			hooksecurefunc(pin, "SynchronizePinSizes", function(self)
-				if mod.db.playerArrow == false then pcall(self.SetPinSize, self, "player", 0) end
+				if mod.db.playerArrow == false and not (self:IsProtected() and InCombatLockdown()) then
+					pcall(self.SetPinSize, self, "player", 0)
+				end
 			end)
 		end
 		pcall(pin.SetPinSize, pin, "player", 0)
@@ -780,7 +807,7 @@ local function Setup()
 		local z = math.min(sc:GetWidth() / ((u1 - u0) * W), sc:GetHeight() / ((v1 - v0) * H)) / FitPx()
 		GlideTo((u0 + u1) / 2, (v0 + v1) / 2, z * (fill or 1))
 	end
-	S.OpenMap = function(mapID) map:SetMapID(mapID) end
+	S.OpenMap = function(mapID) KeepPadCursor(map.SetMapID, map, mapID) end
 	S.Switching = function() return switching end   -- (the map underneath following the view, not another map put up)
 	hooksecurefunc(sc, "CreateZoomLevels", Ours("zoom levels", OnCreateZoomLevels))
 	local blizzardReset, ourReset = sc.ResetZoom, Ours("reset zoom", ResetView)
@@ -946,7 +973,7 @@ function mod.FitZoom(mapID) return FitZoom(mapID) end
 -- the deepest zoom (the menu's slider and the options): the zoom levels are rebuilt for it
 function mod.SetMaxZoom(v)
 	mod.db.maxZoom = math.max(MAX_ZOOM[1], math.min(MAX_ZOOM[2], v))
-	if map and active then sc:OnCanvasSizeChanged() end
+	if map and active then KeepPadCursor(sc.OnCanvasSizeChanged, sc) end
 end
 function mod.HostMap() return active and map:GetMapID() or nil end
 -- the close-up layers again, for the view as it is (a setting changed)

@@ -40,7 +40,9 @@ end
 
 local function Refit()
 	local sc = map.ScrollContainer
-	if sc and sc.OnCanvasSizeChanged then sc:OnCanvasSizeChanged() end
+	if sc and sc.OnCanvasSizeChanged then
+		if mod.KeepPadCursor then mod.KeepPadCursor(sc.OnCanvasSizeChanged, sc) else sc:OnCanvasSizeChanged() end
+	end
 end
 
 local function Maximized()
