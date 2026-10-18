@@ -35,7 +35,7 @@ if dirty and "--dirty" not in sys.argv:
     sys.exit("uncommitted changes (commit them, or --dirty to package what's committed):\n" + dirty)
 
 if "--no-tests" not in sys.argv:
-    checks = [["-P", "tools/offline-test/lint.py"]] + [["tools/offline-test/run.py", m_] for m_ in ("plain", "combat", "secret")]
+    checks = [["-P", "tools/offline-test/lint.py"]] + [["tools/offline-test/run.py", m_] for m_ in ("plain", "combat", "secret", "pad")]
     for c in checks:
         r = subprocess.run([sys.executable] + c, cwd=ROOT, capture_output=True, text=True)
         if r.returncode != 0:
