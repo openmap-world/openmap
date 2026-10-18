@@ -4,6 +4,8 @@ WoW Forever's own dungeons have no map in the game. The maps here were drawn by 
 OpenMap use them; each is credited on the map in game ("Map by ..."). They are not Blizzard's art
 and not covered by OpenMap's MIT licence: ask the artist before using them anywhere else.
 
+Santiago Reyes's Ko-fi: https://ko-fi.com/sr433_20
+
 | File | Dungeon | Drawn by |
 | --- | --- | --- |
 | `dungeons/city-of-dalaran.png` | City of Dalaran | Santiago Reyes |
