@@ -11,6 +11,25 @@
   Marsh, and Desolace and Feralas. Their coasts are his own coastlines, fading out into the sea.
   Khaz Modan's comes back sharper, from his full-size painting.
   Options' **Filled gaps** turns them all off.
+- **Mailboxes** in the menu's Townsfolk (from Questie's list of them, as its own map shows them).
+- **Map pins into chat**: Shift-click a pin (on the map or in the Pins list) to put it in chat, as
+  Blizzard's map pin link where the game takes one (whoever clicks it gets the waypoint), with its
+  note; else its note, zone and position as text.
+- **Icon size** (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.
+
+### Improved
+
+- **Smoother zooming with Questie**: other addons' map icons (Questie's, TomTom's ...) rest while
+  the map zooms and come back as soon as it stops. Each was laid out again on every frame of a zoom,
+  which with Questie's hundreds cost a lot of frame rate. Options' **Other addons' icons rest while
+  zooming** keeps them up.
+- **Questie's icons across the view**: zoomed out over a zone, the quests of every zone in view show,
+  not only those of the zone underneath and the next one.
+- **Shortest Path Forever works on the map**: Shift-click the map to plan a journey (OpenMap's
+  click-to-zoom took every click first).
+- **The menu's buttons on the map come off with Shift-right-click** only, not a plain right-click.
+- **The map opens no further in than the deepest zoom**: centred on you in a city, it opened as far
+  in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).
 
 ## v0.5.0-beta (2026-10-16)
 

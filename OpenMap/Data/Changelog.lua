@@ -4,8 +4,16 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [5] = "Improved", }, items = {
 		"|cff6e2c0aTen more gaps painted|r: the blank land between zones is painted by hand by Santiago Reyes (used with his permission) round Tanaris and Silithus, the Plaguelands, Stonetalon and the Barrens, Silverpine and Hillsbrad, Thousand Needles and Feralas, Winterspring and Darkshore, Ashenvale and Azshara, Stranglethorn and the Blasted Lands, Thousand Needles and Dustwallow Marsh, and Desolace and Feralas. Their coasts are his own coastlines, fading out into the sea. Khaz Modan's comes back sharper, from his full-size painting. Options' |cff6e2c0aFilled gaps|r turns them all off.",
+		"|cff6e2c0aMailboxes|r in the menu's Townsfolk (from Questie's list of them, as its own map shows them).",
+		"|cff6e2c0aMap pins into chat|r: Shift-click a pin (on the map or in the Pins list) to put it in chat, as Blizzard's map pin link where the game takes one (whoever clicks it gets the waypoint), with its note; else its note, zone and position as text.",
+		"|cff6e2c0aIcon size|r (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.",
+		"|cff6e2c0aSmoother zooming with Questie|r: other addons' map icons (Questie's, TomTom's ...) rest while the map zooms and come back as soon as it stops. Each was laid out again on every frame of a zoom, which with Questie's hundreds cost a lot of frame rate. Options' |cff6e2c0aOther addons' icons rest while zooming|r keeps them up.",
+		"|cff6e2c0aQuestie's icons across the view|r: zoomed out over a zone, the quests of every zone in view show, not only those of the zone underneath and the next one.",
+		"|cff6e2c0aShortest Path Forever works on the map|r: Shift-click the map to plan a journey (OpenMap's click-to-zoom took every click first).",
+		"|cff6e2c0aThe menu's buttons on the map come off with Shift-right-click|r only, not a plain right-click.",
+		"|cff6e2c0aThe map opens no further in than the deepest zoom|r: centred on you in a city, it opened as far in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).",
 	} },
 	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [18] = "Fixed", }, items = {
 		"|cff6e2c0aKhaz Modan's blank land painted|r: the stretches between Dun Morogh, Wetlands, Loch Modan, Searing Gorge and the Badlands that no zone map covers, and the coast round them, painted by hand by Santiago Reyes in the zone maps' own style, from Blizzard's art and following the game's terrain (used with his permission). The first of the gaps between zones to be filled; Options' |cff6e2c0aFilled gaps|r turns them off.",

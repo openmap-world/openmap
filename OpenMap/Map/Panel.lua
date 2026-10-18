@@ -455,7 +455,7 @@ end
 --------------------------------------------------------------------------------
 -- The bar: the OpenMap button in the map's bottom-left corner, then a button for each favourite
 -- (the arrow beside it folds them away). Lit while it's on; click to use it,
--- right-click to take it off the bar.
+-- Shift-right-click to take it off the bar.
 --------------------------------------------------------------------------------
 
 local Fill, RefreshTiles, SetOpen, LightToggle
@@ -493,10 +493,13 @@ end
 
 local RefreshFavorites, RefreshRail
 
--- a favourite's button (in the row or on the rail): click to use it, right-click to take it off
+-- a favourite's button (in the row or on the rail): click to use it, Shift-right-click to take it
+-- off (a plain right-click took it off too easily)
 local function FavClick(self, button)
-	if button == "RightButton" and (IsShiftKeyDown() or not self.entry.right) then
+	if button == "RightButton" and IsShiftKeyDown() then
 		SetFavorite(self.entry.id, false)
+	elseif button == "RightButton" and not self.entry.right then
+		return
 	elseif self.entry.run then
 		self.entry.run(button)
 	else
@@ -509,7 +512,7 @@ end
 local function FavEnter(self)
 	local e2 = self.entry
 	local state = State(e2)
-	local off = e2.right and L["Shift-right-click: take it off the map"] or L["Right-click: take it off the map"]
+	local off = L["Shift-right-click: take it off the map"]
 	Tip(self, self.tipAnchor or "ANCHOR_TOP", e2[1],
 		e2.run and { e2.tip } or { state == "on" and L["On: click to turn it off"] or L["Off: click to turn it on"] },
 		{ off .. " " .. L["(the stars in the OpenMap menu put buttons here)"], 0.6, 0.6, 0.6 })
@@ -649,7 +652,7 @@ local function BuildRail()
 	end)
 	rail.arrow:SetScript("OnEnter", function(self)
 		Tip(self, self.tipAnchor or "ANCHOR_LEFT", mod.db.trayOpen and L["Fold your buttons away"] or L["Your buttons"],
-			{ L["The stars in the OpenMap menu put buttons here; right-click one to take it off."], 0.8, 0.8, 0.8 })
+			{ L["The stars in the OpenMap menu put buttons here; Shift-right-click one to take it off."], 0.8, 0.8, 0.8 })
 	end)
 	rail.arrow:SetScript("OnLeave", GameTooltip_Hide)
 	rail.favs = {}
@@ -1129,7 +1132,7 @@ function mod:SetupPanel(worldMap)
 	end)
 	trayArrow:SetScript("OnEnter", function(self)
 		Tip(self, "ANCHOR_TOP", mod.db.trayOpen and L["Fold your buttons away"] or L["Your buttons"],
-			{ L["The stars in the OpenMap menu put buttons here; right-click one to take it off."], 0.8, 0.8, 0.8 })
+			{ L["The stars in the OpenMap menu put buttons here; Shift-right-click one to take it off."], 0.8, 0.8, 0.8 })
 	end)
 	trayArrow:SetScript("OnLeave", GameTooltip_Hide)
 	favBar = CreateFrame("Frame", nil, map)
@@ -1320,6 +1323,12 @@ function mod:SetupPanel(worldMap)
 		text = function(v) return v <= 0 and L["Auto"] or ("%.1fx"):format(math.max(1, v)) end,
 		tip = L["The zoom the icons for places show from: dungeons, boats, zeppelins and flight masters. 1x: from the whole world; higher: only further in. Auto: each from its own zoom. Townsfolk never show further out than their own; your pins, drawings and party always show."] })
 	menu.extraRows[#menu.extraRows + 1] = made.icons
+	made.iconSize = SliderRow(sliders, COL, { label = L["Icon size"], icon = Icon("INV_Misc_Spyglass_01"), range = mod.ICON_SCALE,
+		get = function() return mod.db.iconScale or 1 end,
+		set = function(v) mod.db.iconScale = v mod:Refresh() if ns.NotifyOptions then ns.NotifyOptions() end end,
+		fmt = "%d%%", show = function(v) return math.floor(v * 100 + 0.5) end,
+		tip = L["OpenMap's icons on the map at this size: dungeons, flight masters, boats, townsfolk, your pins. Questie's icons have their own size, in Questie's options."] })
+	menu.extraRows[#menu.extraRows + 1] = made.iconSize
 	for _, s in ipairs({
 		{ "windowScale", L["Map size"], Icon("INV_Misc_Spyglass_02") },
 		{ "colorMatch", L["Colour matching"], Icon("INV_Misc_Map_01") },
@@ -1341,7 +1350,7 @@ function mod:SetupPanel(worldMap)
 	end
 	-- each column's, top down
 	local height = 0
-	for col, list in ipairs({ { "zoom", "icons", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade", "mapFpsCap" } }) do
+	for col, list in ipairs({ { "zoom", "icons", "iconSize", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade", "mapFpsCap" } }) do
 		local y = -22
 		for _, key in ipairs(list) do
 			local r = made[key]

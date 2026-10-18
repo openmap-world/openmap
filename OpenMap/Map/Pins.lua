@@ -118,10 +118,37 @@ local function PinEnter(self)
 	if p.from then GameTooltip:AddLine(L["Shared by %s"]:format(p.from), 0.6, 0.8, 1) end
 	if Followed(p) then GameTooltip:AddLine(L["Followed (the waypoint)"], 0.5, 0.95, 0.4) end
 	GameTooltip:AddLine(L["Click to edit its note, follow, share or delete it"], 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 end
 
-local function PinClick(self) if self.data then Edit(self.data) end end
+-- Shift-click (the game's chat-link click): the pin into chat. Blizzard's own map pin link where the
+-- game takes a waypoint on its map (whoever clicks it gets the waypoint: the waypoint is set to the
+-- pin for the link, then put back as it was), with its note; else its note and place, as text
+local function ChatLink(p)
+	local link
+	if C_Map.GetUserWaypointHyperlink and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates
+		and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(p.map)) then
+		local before = C_Map.GetUserWaypoint and C_Map.GetUserWaypoint()
+		if pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(p.map, p.x, p.y)) then
+			local ok, l = pcall(C_Map.GetUserWaypointHyperlink)
+			if ok and type(l) == "string" and l ~= "" then link = l end
+		end
+		if before then pcall(C_Map.SetUserWaypoint, before) elseif C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
+	end
+	local note = (p.note or ""):gsub("|", "||")
+	local place = ("%s %.1f, %.1f"):format(ZoneName(p.map), p.x * 100, p.y * 100)
+	local text = link and (note ~= "" and (link .. " " .. note) or link) or (note ~= "" and (note .. " (" .. place .. ")") or place)
+	local insert = (ChatFrameUtil and ChatFrameUtil.InsertLink) or ChatEdit_InsertLink
+	local open = _G.ChatFrame_OpenChat                 -- (no chat box open: one opened with it)
+	if not (insert and insert(text)) and open then open(text) end
+end
+local function Chatting() return IsModifiedClick and IsModifiedClick("CHATLINK") end
+
+local function PinClick(self)
+	if not self.data then return end
+	if Chatting() then ChatLink(self.data) else Edit(self.data) end
+end
 
 function mod.RefreshPins()
 	if not set then return end
@@ -614,6 +641,7 @@ local function BuildList()
 			local p = self.pin
 			if not p then return end
 			if button == "RightButton" then Edit(p) return end
+			if Chatting() then ChatLink(p) return end
 			if S.Rect(p.map) then
 				local u, v = mod.ToWorld(p.map, p.x, p.y)
 				mod.Glide(u, v, math.max(select(3, mod.ViewNow()) or 1, mod.FitZoom(p.map) * 1.5))
@@ -627,6 +655,7 @@ local function BuildList()
 			GameTooltip:AddLine(("%s  %.1f, %.1f"):format(ZoneName(p.map), p.x * 100, p.y * 100), 1, 1, 1)
 			if p.from then GameTooltip:AddLine(L["Shared by %s"]:format(p.from), 0.6, 0.8, 1) end
 			GameTooltip:AddLine(L["Click to go there, right-click to open its card"], 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
 			GameTooltip:Show()
 		end)
 		row:SetScript("OnLeave", GameTooltip_Hide)

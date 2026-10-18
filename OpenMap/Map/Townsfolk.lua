@@ -18,6 +18,9 @@ local KINDS = {
 		look = { texture = "Interface\\Minimap\\Tracking\\Innkeeper", fallback = "Interface\\GossipFrame\\BinderGossipIcon", size = 16 } },
 	{ key = "banker", name = "Bankers", flag = "BANKER", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Banker", fallback = "Interface\\GossipFrame\\BankerGossipIcon", size = 16 } },
+	-- mailboxes: objects, not NPCs (Questie's list of them, Townsfolk.GetMailboxes)
+	{ key = "mailbox", name = "Mailboxes", mailbox = true, zoom = 6,
+		look = { texture = "Interface\\Minimap\\Tracking\\Mailbox", fallback = "Interface\\Icons\\INV_Letter_15", size = 16 } },
 	{ key = "auctioneer", name = "Auctioneers", flag = "AUCTIONEER", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Auctioneer", fallback = "Interface\\GossipFrame\\VendorGossipIcon", size = 16 } },
 	{ key = "stable", name = "Stable masters", flag = "STABLEMASTER", zoom = 6,
@@ -74,6 +77,42 @@ local function Build(kinds, done)
 	local classNames = {}
 	for _, n in pairs(LOCALIZED_CLASS_NAMES_MALE or {}) do classNames[n] = true end
 
+	-- a kind's pins at each of its spawns ({ [areaID] = { { x, y }, ... } }, as Questie keeps them)
+	local function Pins(k, spawns, info)
+		local set = S.PinSet("tf_" .. k.key, k.zoom, 3)
+		for areaID, coords in pairs(spawns) do
+			local uiMapID = ZoneDB:GetUiMapIdByAreaId(areaID)
+			local l, r, t, b
+			if uiMapID then l, r, t, b = S.Rect(uiMapID) end
+			if l then
+				for _, c in ipairs(coords) do
+					if c[1] and c[1] >= 0 then
+						local pin = S.AddPin(set, l + c[1] / 100 * (r - l), t + c[2] / 100 * (b - t), k.look, info)
+						pin:SetScript("OnEnter", PinEnter)
+						pin:SetScript("OnLeave", GameTooltip_Hide)
+					end
+				end
+			end
+		end
+	end
+	-- the mailboxes, all at once (a few dozen objects): your faction's, as Questie sorts them, or
+	-- every one where it can't
+	local function Mailboxes(k)
+		local folk = _G.QuestieLoader and select(2, pcall(_G.QuestieLoader.ImportModule, _G.QuestieLoader, "Townsfolk"))
+		if type(folk) ~= "table" or not folk.GetMailboxes or not QDB.QueryObjectSingle then return end
+		local list
+		if folk.GetFactionSpecificMailboxes then
+			local ok, alliance, horde = pcall(folk.GetFactionSpecificMailboxes)
+			if ok then list = faction == "H" and horde or alliance end
+		end
+		list = (type(list) == "table" and #list > 0) and list or folk.GetMailboxes() or {}
+		local info = { name = MINIMAP_TRACKING_MAILBOX or "Mailbox" }
+		for _, id in ipairs(list) do
+			local spawns = QDB.QueryObjectSingle(id, "spawns")
+			if spawns then Pins(k, spawns, info) end
+		end
+	end
+
 	local ids = {}
 	for id in pairs(QDB.NPCPointers) do ids[#ids + 1] = id end
 	local i = 0
@@ -113,27 +152,21 @@ local function Build(kinds, done)
 					min = QDB.QueryNPCSingle(id, "minLevel"), max = QDB.QueryNPCSingle(id, "maxLevel"), rank = RANK[rank],
 				}
 				for _, k in ipairs(want) do
-					if (k.hostile or friendly:find(faction, 1, true)) and spawns then
-						local set = S.PinSet("tf_" .. k.key, k.zoom, 3)
-						for areaID, coords in pairs(spawns) do
-							local uiMapID = ZoneDB:GetUiMapIdByAreaId(areaID)
-							local l, r, t, b
-							if uiMapID then l, r, t, b = S.Rect(uiMapID) end
-							if l then
-								for _, c in ipairs(coords) do
-									if c[1] and c[1] >= 0 then
-										local pin = S.AddPin(set, l + c[1] / 100 * (r - l), t + c[2] / 100 * (b - t), k.look, info)
-										pin:SetScript("OnEnter", PinEnter)
-										pin:SetScript("OnLeave", GameTooltip_Hide)
-									end
-								end
-							end
-						end
-					end
+					if (k.hostile or friendly:find(faction, 1, true)) and spawns then Pins(k, spawns, info) end
 				end
 			end
 		end
 	end
+	local npcs = false              -- (any kind picked from the NPCs: else no NPC to go through)
+	for _, k in ipairs(kinds) do
+		if k.mailbox then
+			local ok, err = pcall(Mailboxes, k)
+			if not ok then geterrorhandler()(err) end
+		else
+			npcs = true
+		end
+	end
+	if not npcs then return done(true) end
 	function Step()
 		local ok, finished = pcall(Chunk)
 		if not ok then

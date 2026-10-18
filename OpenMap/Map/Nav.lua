@@ -101,8 +101,10 @@ function mod.SavedView(mapID, onlySaved)
 		return saved[1], saved[2], saved[3]
 	end
 	if mapID and mapID ~= zone and mapID ~= display then return end
+	-- (where your map fits, but never past the deepest zoom set: a city fits further in than that, its
+	-- own extra half that the wheel can still go to)
 	local u, v, best = UnitWorld("player")
-	if u then return u, v, mod.FitZoom(best) end
+	if u then return u, v, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
 end
 
 function mod:OnMapShown()

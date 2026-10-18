@@ -19,6 +19,7 @@ d.coords = true
 d.zoneLevels = true
 d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
 d.mapFpsCap = 0                 -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off)
+d.zoomHidePins = true           -- other addons' icons (Questie's ...) hidden while the map zooms
 
 local map, sc, bar
 local labelProvider                     -- Blizzard's area label
@@ -316,6 +317,47 @@ local function Lift(icon)
 end
 local NEAR = 0.5                        -- how far round the map underneath (its widths) pins are placed (each pin
                                         --  on the map is laid out again on every frame of a pan or zoom: /openmap bench)
+local VIEW_NEAR = 1.5                   -- ... and wherever the view is, out to this many times its half-size (zoomed
+                                        --  out over a zone, its neighbours' quests too, not only the next zone's)
+
+-- a world point (normalized) in the view, or near it
+local function InView(wu, wv)
+	if not mod.PinView then return false end
+	local u, v, hu, hv = mod.PinView()
+	if not u then return false end
+	return math.abs(wu - u) <= hu * VIEW_NEAR and math.abs(wv - v) <= hv * VIEW_NEAR
+end
+
+-- Other addons' icons hidden while the map zooms (the menu's option, on by default): every pin on the
+-- canvas is laid out again on each frame of a zoom, and with Questie's hundreds that costs the frame
+-- rate; back as soon as the zoom stops (ZOOM_REST). Pins only: Blizzard's own icons stay
+local ZOOM_REST = 0.15
+local pinTemplates = {}                 -- the pin templates of the copies set up (SetUpPins)
+local zoomHid = {}                      -- pin -> true: hidden by us for a zoom
+local zoomAt = 0
+local zoomWatch = CreateFrame("Frame")
+zoomWatch:Hide()
+zoomWatch:SetScript("OnUpdate", function(self)
+	if GetTime() - zoomAt < ZOOM_REST then return end
+	self:Hide()
+	-- (only the pins still on the map: one let go meanwhile is the pool's again)
+	for template in pairs(pinTemplates) do
+		for pin in map:EnumeratePinsByTemplate(template) do
+			if zoomHid[pin] then pin:Show() end
+		end
+	end
+	wipe(zoomHid)
+end)
+local function OnZoomStep()
+	if mod.db.zoomHidePins == false or not mod.IsStitched() or not map:IsShown() then return end
+	zoomAt = GetTime()
+	for template in pairs(pinTemplates) do
+		for pin in map:EnumeratePinsByTemplate(template) do
+			if pin:IsShown() then pin:Hide() zoomHid[pin] = true end
+		end
+	end
+	zoomWatch:Show()
+end
 
 local questie = { placed = 0, ours = 0, moved = 0 }   -- for /openmap status: since the map last changed
 
@@ -334,6 +376,7 @@ local function SetUpPins(name, pins)
 	if not provider or not provider.HandlePin or provider.openmapPins then return end
 	if not (map.pinPools and map.pinPools[spec.template]) then return end   -- (a copy this doesn't know the pins of)
 	provider.openmapPins = true
+	pinTemplates[spec.template] = true
 	local count = spec.questie and questie or { placed = 0, ours = 0, moved = 0 }
 	if spec.questie then questie.pins = pins end
 	-- each icon's map point as it was added (the library keeps only its world position and uiMapID;
@@ -374,7 +417,7 @@ local function SetUpPins(name, pins)
 		if not info then return end
 		local profile = spec.questie and _G.Questie and Questie.db and Questie.db.profile
 		if profile and profile.hideIconsOnContinents and info.mapType == Enum.UIMapType.Continent then return end
-		if x < -NEAR or x > 1 + NEAR or y < -NEAR or y > 1 + NEAR then return end
+		if (x < -NEAR or x > 1 + NEAR or y < -NEAR or y > 1 + NEAR) and not InView(l + mx * (r - l), t + my * (b - t)) then return end
 		self:GetMap():AcquirePin(spec.template, icon, x, y, data.frameLevelType)
 		if spec.questie then Lift(icon) end
 		count.ours = count.ours + 1
@@ -467,6 +510,7 @@ function mod:SetupExtras(worldMap)
 	map:HookScript("OnHide", function() fader:Hide() faded = 1 map:SetAlpha(1) ApplyFpsCap() end)
 	SetUpAllPins()
 	map:HookScript("OnShow", SetUpAllPins)            -- (a copy an addon loaded since brought)
+	if type(map.OnCanvasScaleChanged) == "function" then hooksecurefunc(map, "OnCanvasScaleChanged", OnZoomStep) end
 	ApplyExtras()
 	-- (before the game saves its settings: the player's own back; Compat.lua's reassertion stands down)
 	ns.RegisterEvent(cvarOwner, "PLAYER_LOGOUT", function()
@@ -484,6 +528,9 @@ function mod:ExtraOptions(opts, get, set, off)
 		desc = "A bar along the map's foot: your position, and the zone and position under the cursor." }
 	opts.zoneLevels = { type = "toggle", name = "Zone levels", order = 42, get = get, set = setApply, disabled = off,
 		desc = "Hovering a zone shows its level range, coloured for your level." }
+	opts.zoomHidePins = { type = "toggle", name = "Other addons' icons rest while zooming", order = 43, width = "full",
+		get = get, set = set, disabled = off,
+		desc = "Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate." }
 	opts.mapFpsCap = { type = "range", name = "Map frame rate cap", order = 44.5, min = 0, max = 144, step = 6,
 		get = get, set = setApply, disabled = off,
 		desc = "The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes." }

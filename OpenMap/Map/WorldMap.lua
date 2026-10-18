@@ -29,6 +29,7 @@ local mod = ns:NewModule("worldmap", {
 		flight = true,
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
 		iconsFrom = 0,          -- the places' icons from this zoom (ICONS_FROM; 1: the whole world); 0: each from its own (Auto)
+		iconScale = 1,          -- OpenMap's icons at this times their own size (ICON_SCALE)
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
@@ -45,6 +46,8 @@ end
 
 local ICONS_FROM = { 0, 20, 0.5 }   -- iconsFrom's least (0: Auto), most, step (zoom: times the whole-world view)
 mod.ICONS_FROM = ICONS_FROM
+local ICON_SCALE = { 0.6, 2, 0.05 } -- iconScale's least, most, step
+mod.ICON_SCALE = ICON_SCALE
 
 local ZOOM_STEP = 1.25          -- each wheel notch
 local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step (the minimap's own detail runs out
@@ -354,13 +357,16 @@ local function PickMap(u, v, zoom, current)
 	return pick
 end
 
+local switchView                  -- the view a switch is for, while the new map's icons are placed (mod.PinView)
 local function Switch(target)
 	local u, v, zoom = View()
 	switching = true
+	switchView = { u, v, zoom }
 	local g = Before()
 	local ok, err = KeepPadCursor(pcall, map.SetMapID, map, target)
 	After("map switch (all addons)", g)
 	switching = false
+	switchView = nil
 	if not ok then geterrorhandler()(err) return end
 	if active then
 		local x, y = FromWorld(target, u, v)
@@ -720,12 +726,15 @@ local function DropAtCursor()
 end
 
 -- clicks: in = the next map down under the cursor, out = the map above
-local function OnCanvasClick(_, button)
+local function OnCanvasClick(from, button)
 	if not active then return false end
 	if Dropping(button) then
 		DropAtCursor()
 		return true
 	end
+	-- (Shift-click is other addons' first, Shortest Path Forever's journeys: handled by none of them,
+	-- it comes back here through NavigateToCursor, `from` nil, and zooms in as a click)
+	if from and button == "LeftButton" and IsShiftKeyDown() then return false end
 	local u, v = mod.CursorWorld()
 	local _, _, zoom = View()
 	local chain = S.ChainAt(u, v)
@@ -983,6 +992,15 @@ function mod.RefreshView() ApplyView() end
 mod.FromWorld = function(mapID, u, v) return FromWorld(mapID, u, v) end
 -- the view now: centre (normalized), zoom; nil when the map isn't stitched
 function mod.ViewNow() if active then return View() end end
+-- for Extras.lua, placing other addons' icons: the view's centre and half extents (world, normalized),
+-- the one a map switch is for while it puts the new map up (the view is set after it)
+function mod.PinView()
+	if not active then return end
+	local u, v, zoom
+	if switchView then u, v, zoom = switchView[1], switchView[2], switchView[3] else u, v, zoom = View() end
+	local hu, hv = mod.ViewHalfExtents(zoom)
+	return u, v, hu, hv
+end
 
 function mod:OnEnable()
 	if _G.WorldMapFrame then
@@ -1003,6 +1021,7 @@ function mod:Refresh()
 	if S.RefreshRoutes then S.RefreshRoutes() end
 	S.SetPlayerHidden(self.db.playerArrow == false)
 	S.SetPlacesFrom(self.db.iconsFrom)
+	S.SetIconScale(self.db.iconScale or 1)
 	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
@@ -1118,6 +1137,9 @@ function mod:Options()
 		iconsFrom = { type = "range", name = "Icons from zoom", order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
 			get = get, set = set, disabled = off,
 			desc = "The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show." },
+		iconScale = { type = "range", name = "Icon size", order = 33.6, min = ICON_SCALE[1], max = ICON_SCALE[2], step = ICON_SCALE[3],
+			isPercent = true, get = get, set = set, disabled = off,
+			desc = "OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options." },
 		playerArrow = { type = "toggle", name = "Your arrow", order = 33, get = get, set = set, disabled = off,
 			desc = "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap." },
 	}
