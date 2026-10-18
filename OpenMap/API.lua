@@ -19,7 +19,7 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 
-local API = { major = 1, version = 2 }
+local API = { major = 1, version = 3 }
 OpenMapAPI = API
 
 local CBH = LibStub and LibStub("CallbackHandler-1.0", true)
@@ -69,6 +69,17 @@ function API.MapAt(u, v)
 	if type(u) ~= "number" or type(v) ~= "number" or not S.IsBuilt() then return end
 	local chain = S.ChainAt(u, v)
 	return chain[#chain]
+end
+
+-- the point of the stitched world under the cursor (u, v); nil when not stitched, or the cursor's off
+-- the map. With MapAt: the zone under the cursor at any zoom (the map underneath follows the view,
+-- so it's a zone, not the continent, once you're zoomed in: its GetMapInfoAtPosition sees no other)
+function API.CursorPosition()
+	if not API.IsStitched() or not mod.CursorWorld then return end
+	local map = _G.WorldMapFrame
+	if not (map and map:IsShown() and map.ScrollContainer and map.ScrollContainer:IsMouseOver()) then return end
+	local u, v = mod.CursorWorld()
+	return u, v
 end
 
 -- the stitched view: its centre (u, v) and zoom (1: the whole world fits); nil when not stitched

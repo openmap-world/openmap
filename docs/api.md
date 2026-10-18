@@ -32,6 +32,7 @@ map isn't showing.
 | `OM.CanvasFromWorldPos(continent, x, y)` | (version 2) where a point in the game's world (continent and yards, as `UnitPosition` gives them) is on the world map's canvas: `x, y` of the map underneath the stitched view, outside 0..1 where the view shows past it. See below |
 | `OM.ArtTopLevel()` | (version 2) the highest frame level the stitched art takes on the canvas |
 | `OM.MapAt(u, v)` | the uiMapID of the zone (or city) at that point |
+| `OM.CursorPosition()` | (version 3) `u, v` under the cursor, or nil (not stitched, or the cursor's off the map). With `MapAt`: the zone under the cursor at any zoom. The map underneath follows the view, so zoomed in it's a zone and `C_Map.GetMapInfoAtPosition` on it sees no other: a zone-hover tooltip should ask this instead while `OM.IsStitched()` |
 | `OM.GetView()` | the view's centre `u, v` and its zoom (1: the whole world fits) |
 | `OM.ShowWorld(u, v [, zoom])` | glides the stitched map there; false if it isn't showing |
 
