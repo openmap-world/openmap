@@ -29,6 +29,7 @@ L["A circle: drag from its middle out."] = "원: 중심에서 바깥쪽으로 �
 L["A code to copy and paste anywhere: another player adds it with their OpenMap (Pins, Import)."] = "어디에나 복사해 붙여넣을 수 있는 코드입니다. 다른 플레이어는 자신의 OpenMap에서 추가할 수 있습니다 (핀, 가져오기)."
 L["A dungeon's map has a Quests tab: with Questie, the quests for it that you can take, marked done or in your log; with Dungeon Journal or NeedRoll, a button that opens them there."] = "던전 지도에 퀘스트 탭이 생깁니다. Questie가 있으면 그 던전에서 받을 수 있는 퀘스트를 완료했는지, 퀘스트 목록에 있는지와 함께 보여 주고, Dungeon Journal이나 NeedRoll이 있으면 그 애드온에서 퀘스트를 여는 버튼을 보여 줍니다."
 L["A dungeon's map lists its bosses, in the game's order."] = "던전 지도에 우두머리 목록을 게임의 순서대로 표시합니다."
+L["A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement."] = "지도 애드온이 OpenMap이 알지 못하는 자체 HereBeDragons(%s)를 사용합니다. 해당 아이콘은 게임의 기본 위치에 표시됩니다."
 L["A raid mark: click to set it down. Right-click this button for another mark."] = "대상 표시기: 클릭하여 놓습니다. 이 버튼을 오른쪽 클릭하면 다른 표시기로 바뀝니다."
 L["A smaller brush"] = "더 작은 붓"
 L["A star puts that action or setting on the map as a button of its own."] = "별표를 누르면 그 기능이나 설정이 지도 위에 별도의 버튼으로 추가됩니다."

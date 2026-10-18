@@ -426,5 +426,6 @@
  "Upcoming": "下个版本",
  "Quests from every zone": "所有区域的任务",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "在地图上显示任务日志中所有区域的任务，任何缩放级别下都可见。暴雪的地图只有在你放大到某个区域后，才会显示该区域的任务。",
- "Click: the quest in your quest log": "点击：在任务日志中查看该任务"
+ "Click: the quest in your quest log": "点击：在任务日志中查看该任务",
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "某个地图插件自带了OpenMap无法识别的HereBeDragons（%s）：它的图标将保持游戏默认的位置。"
 }

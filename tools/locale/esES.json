@@ -426,5 +426,6 @@
  "Upcoming": "Próxima",
  "Quests from every zone": "Misiones de todas las zonas",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Las misiones de tu registro en el mapa, de todas las zonas y con cualquier zoom. El mapa de Blizzard solo muestra las misiones de una zona cuando acercas el zoom sobre ella.",
- "Click: the quest in your quest log": "Clic: ver la misión en tu registro de misiones"
+ "Click: the quest in your quest log": "Clic: ver la misión en tu registro de misiones",
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Un addon de mapas trae su propia versión de HereBeDragons (%s), que OpenMap no conoce: sus iconos se quedan donde los coloca el juego."
 }

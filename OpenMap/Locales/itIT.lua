@@ -29,6 +29,7 @@ L["A circle: drag from its middle out."] = "Un cerchio: trascina dal centro vers
 L["A code to copy and paste anywhere: another player adds it with their OpenMap (Pins, Import)."] = "Un codice da copiare e incollare ovunque: un altro giocatore lo aggiunge con il suo OpenMap (Segnalini, Importa)."
 L["A dungeon's map has a Quests tab: with Questie, the quests for it that you can take, marked done or in your log; with Dungeon Journal or NeedRoll, a button that opens them there."] = "La mappa di una spedizione ha la scheda Missioni: con Questie, le missioni che puoi accettare per quella spedizione, segnate come completate o nel Registro missioni; con Dungeon Journal o NeedRoll, un pulsante che le apre lì."
 L["A dungeon's map lists its bosses, in the game's order."] = "La mappa di una spedizione elenca i suoi boss, nell'ordine del gioco."
+L["A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement."] = "Un add-on per la mappa usa una propria versione di HereBeDragons (%s), che OpenMap non conosce: le sue icone restano dove le colloca il gioco."
 L["A raid mark: click to set it down. Right-click this button for another mark."] = "Un'icona del bersaglio: clicca per posizionarla. Clic destro su questo pulsante per un'altra icona."
 L["A smaller brush"] = "Pennello più piccolo"
 L["A star puts that action or setting on the map as a button of its own."] = "Una stella mette quell'azione o impostazione sulla mappa come pulsante a sé."

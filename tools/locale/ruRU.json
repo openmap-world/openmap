@@ -426,5 +426,6 @@
  "Upcoming": "Скоро",
  "Quests from every zone": "Задания всех зон",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Задания из вашего журнала на карте — из всех зон и при любом масштабе. Карта Blizzard показывает задания зоны, только когда вы ее приблизите.",
- "Click: the quest in your quest log": "Щелчок: задание в журнале заданий"
+ "Click: the quest in your quest log": "Щелчок: задание в журнале заданий",
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Модификация карты использует собственную версию HereBeDragons (%s), неизвестную OpenMap: ее значки остаются там, где их размещает игра."
 }

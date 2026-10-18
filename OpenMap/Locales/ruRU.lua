@@ -29,6 +29,7 @@ L["A circle: drag from its middle out."] = "Круг: тяните от цент
 L["A code to copy and paste anywhere: another player adds it with their OpenMap (Pins, Import)."] = "Код, который можно скопировать и вставить куда угодно: другой игрок добавит его в своем OpenMap (Метки, Импорт)."
 L["A dungeon's map has a Quests tab: with Questie, the quests for it that you can take, marked done or in your log; with Dungeon Journal or NeedRoll, a button that opens them there."] = "На карте подземелья есть вкладка «Задания»: с Questie — доступные вам задания этого подземелья с отметкой, выполнено ли задание или есть ли оно в журнале; с Dungeon Journal или NeedRoll — кнопка, открывающая их там."
 L["A dungeon's map lists its bosses, in the game's order."] = "На карте подземелья перечислены его боссы в том же порядке, что и в игре."
+L["A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement."] = "Модификация карты использует собственную версию HereBeDragons (%s), неизвестную OpenMap: ее значки остаются там, где их размещает игра."
 L["A raid mark: click to set it down. Right-click this button for another mark."] = "Метка цели: щелкните, чтобы поставить ее. Щелкните по этой кнопке правой кнопкой мыши, чтобы выбрать другую метку."
 L["A smaller brush"] = "Кисть поменьше"
 L["A star puts that action or setting on the map as a button of its own."] = "Звездочка выносит это действие или настройку на карту отдельной кнопкой."

@@ -810,8 +810,14 @@ local function Setup()
 
 	-- our art sits just above Blizzard's exploration overlays, our icons above the highlight
 	local fl = map:GetPinFrameLevelsManager()
-	if not fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_STITCH", "PIN_FRAME_LEVEL_MAP_EXPLORATION", ART_RANGE)
-		or not fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_ICONS", "PIN_FRAME_LEVEL_MAP_HIGHLIGHT", 6) then
+	local okArt = fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_STITCH", "PIN_FRAME_LEVEL_MAP_EXPLORATION", ART_RANGE)
+	local okIcons = fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_ICONS", "PIN_FRAME_LEVEL_MAP_HIGHLIGHT", 6)
+	-- (and where they came out: the art over the exploration overlays, the icons over all of the art.
+	-- Said, not acted on, till the real levels are known in game: /openmap status prints them. PR #22)
+	local art = okArt and fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_STITCH")
+	local icons = okIcons and fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_ICONS")
+	local explore = fl:GetValidFrameLevel("PIN_FRAME_LEVEL_MAP_EXPLORATION")
+	if not (art and icons and explore and art > explore and icons > art + ART_RANGE) then
 		ns:Print(ns.L["World map: Blizzard's map layers aren't the expected ones; the stitched art may cover some map icons."])
 	end
 
@@ -1061,6 +1067,13 @@ function mod:Diag()
 	if not map or not sc or not S.IsBuilt() then
 		ns:Print("World map: not built yet (it's built the first time the map opens).")
 		return
+	end
+	local fl = map.GetPinFrameLevelsManager and map:GetPinFrameLevelsManager()
+	if fl then
+		local _, explore = pcall(fl.GetValidFrameLevel, fl, "PIN_FRAME_LEVEL_MAP_EXPLORATION")
+		local _, art = pcall(fl.GetValidFrameLevel, fl, "PIN_FRAME_LEVEL_OPENMAP_STITCH")
+		local _, icons = pcall(fl.GetValidFrameLevel, fl, "PIN_FRAME_LEVEL_OPENMAP_ICONS")
+		ns:Print("Frame levels: exploration %s, art %s (+%d), icons %s.", tostring(explore), tostring(art), ART_RANGE, tostring(icons))
 	end
 	local mapID = map:GetMapID()
 	local info = C_Map.GetMapInfo(mapID)

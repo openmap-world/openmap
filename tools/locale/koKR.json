@@ -426,5 +426,6 @@
  "Upcoming": "다음 버전",
  "Quests from every zone": "모든 지역의 퀘스트",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "퀘스트 목록의 퀘스트를 모든 지역에서, 확대 수준과 관계없이 지도에 표시합니다. 블리자드 지도는 해당 지역을 확대해야만 그 지역의 퀘스트를 표시합니다.",
- "Click: the quest in your quest log": "클릭: 퀘스트 목록에서 퀘스트 보기"
+ "Click: the quest in your quest log": "클릭: 퀘스트 목록에서 퀘스트 보기",
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "지도 애드온이 OpenMap이 알지 못하는 자체 HereBeDragons(%s)를 사용합니다. 해당 아이콘은 게임의 기본 위치에 표시됩니다."
 }

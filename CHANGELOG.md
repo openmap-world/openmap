@@ -41,6 +41,12 @@
   the pad on the quest log, OpenMap no longer shows tooltips under the map's parked cursor or takes
   X; the left stick's waypoint lands under the cursor, not at the edge of the map underneath; and A
   on one of Blizzard's icons no longer also presses an OpenMap icon at the same spot.
+- **In combat, fewer "action blocked" errors** from the map's own icons: the super-trackable ones
+  (quests, points of interest) wait out combat to set their clicks, as the rest already did, and
+  addons loaded later are covered too. Other addons' icons lifted over the map (Leatrix Maps',
+  Azeroth Tripview's, Books on Map Forever's) are lifted as combat ends, not during it.
+  **RareScanner's** rare icons show over the map (they were under its art). A map addon with a
+  HereBeDragons OpenMap can't take over is said once in chat, not passed over. Thanks to Ironship.
 - **For other addons**: `OpenMapAPI.CursorPosition()` (API version 3), the point under the cursor;
   with `MapAt`, the zone under it at any zoom, so a zone-hover tooltip (Zonewise's) can keep working
   zoomed in, where the map underneath is the zone, not the continent.

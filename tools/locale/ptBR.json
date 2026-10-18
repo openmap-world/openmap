@@ -426,5 +426,6 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Passo 1 de 2:|r desenhe onde está errado (arrastar com o botão direito move o mapa)",
  "Quests from every zone": "Missões de todas as zonas",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "As missões do seu Registro de Missões no mapa, de todas as zonas e em qualquer zoom. O mapa da Blizzard só mostra as missões de uma zona depois que você aproxima o zoom nela.",
- "Click: the quest in your quest log": "Clique: ver a missão no Registro de Missões"
+ "Click: the quest in your quest log": "Clique: ver a missão no Registro de Missões",
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Um addon de mapa traz sua própria versão do HereBeDragons (%s), que o OpenMap não conhece: os ícones dele ficam onde o jogo os coloca."
 }

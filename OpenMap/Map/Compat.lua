@@ -7,8 +7,10 @@
 --     approach and dungeon maps (over it, catching clicks)
 --   * Leatrix Maps' icons (its points of interest: dungeons, flight points, boats, portals ...) are
 --     lifted above the stitched art (they're made at a fixed low frame level on the canvas, under it);
---     so are Azeroth Tripview's live ships and docks, should the art reach their levels, and Books on
---     Map Forever's book icons (made under it each time it draws them)
+--     so are Azeroth Tripview's live ships and docks, should the art reach their levels, Books on
+--     Map Forever's book icons (made under it each time it draws them) and RareScanner's rare icons;
+--     in combat they wait (a frame level change on the map is restricted then: PR #22, Ironship's)
+--     and are lifted as it ends
 --   * their view changes (zoom remembered per map, keep centred, a jump into a cave) and their
 --     zoom steps past OpenMap's deepest don't apply there (WorldMap.lua)
 --   * the zone label, the coordinates CVars and the game's map fade are set again after theirs:
@@ -53,7 +55,7 @@ end
 -- the cursor itself, from where it placed it, so its tooltips go with them
 local function LeatrixPins()
 	local top = S.artTop
-	if not top then return end
+	if not top or InCombatLockdown() then return end   -- (a frame level: restricted in combat, lifted when it ends)
 	local kids = { map:GetCanvas():GetChildren() }     -- (once a map change: every pin is a child)
 	for _, f in ipairs(kids) do
 		if f.isLeaMapsPin and f:GetFrameLevel() <= top then f:SetFrameLevel(top + 2) end
@@ -66,7 +68,7 @@ end
 -- are there.) Where its ships show is its own doing: the map underneath only (docs/api.md)
 local function TripviewLayers()
 	local top = S.artTop
-	if not top then return end
+	if not top or InCombatLockdown() then return end
 	for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
 		local lvl = f:GetFrameLevel()
 		if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
@@ -86,7 +88,7 @@ local books = setmetatable({}, { __mode = "k" })
 local booksLoaded               -- (SetupCompat)
 local function LiftBooks(scan)
 	local top = S.artTop
-	if not top or not Stitched() then return end
+	if not top or not Stitched() or InCombatLockdown() then return end
 	if scan then
 		for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
 			if f.book and f.loc then books[f] = true end
@@ -107,6 +109,25 @@ local function QueueBooks(scan)
 	if scan or not booksQueued then booksQueued = scan and "scan" or "lift" end
 end
 
+-- RareScanner's rare icons: its map frame is a plain unnamed frame on the canvas, made at the canvas's
+-- level + 10 (its icons above that), so under the stitched art: lifted above it while stitched, as
+-- Leatrix's are; icons made later hang off the lifted frame and come out above it themselves. (Found
+-- by its place: any other addon's unnamed frame at exactly that level would be lifted too.)
+local function RareScannerPins()
+	local top = S.artTop
+	if not top or InCombatLockdown() then return end
+	local canvas = map:GetCanvas()
+	local made = canvas:GetFrameLevel() + 10
+	for _, f in ipairs({ canvas:GetChildren() }) do
+		if not f:GetName() and not f.isLeaMapsPin and f:GetFrameLevel() == made then
+			f:SetFrameLevel(top + 3)
+			for _, p in ipairs({ f:GetChildren() }) do
+				if p:GetFrameLevel() <= top then p:SetFrameLevel(top + 4) end
+			end
+		end
+	end
+end
+
 local function HoldAll()
 	if not Stitched() then return end
 	for name, reshow in pairs(FRAMES) do
@@ -115,6 +136,8 @@ local function HoldAll()
 	end
 	if _G.LeaMapsDB then LeatrixPins() end
 	if _G.AzerothTripview then TripviewLayers() end
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+	if loaded and loaded("RareScanner") then RareScannerPins() end
 end
 
 local function Release()
@@ -179,6 +202,12 @@ function mod:SetupCompat(worldMap)
 	map:HookScript("OnShow", function() if first then first = false Reassert() end end)
 	C_Timer.After(1, Reassert)
 	ns.RegisterEvent(owner, "CVAR_UPDATE", OnCVar)
+	-- (the lifts wait out combat: done as it ends)
+	ns.RegisterEvent(owner, "PLAYER_REGEN_ENABLED", function()
+		if not Stitched() then return end
+		HoldAll()
+		if booksLoaded then QueueBooks(true) end
+	end)
 	C_Timer.After(3, Warn)
 	-- (Books on Map Forever redraws its icons from these: lifted once it has)
 	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
