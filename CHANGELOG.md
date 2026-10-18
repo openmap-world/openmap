@@ -72,6 +72,10 @@
   straight away; on Darken, the unexplored parts of zones you've been to came up undarkened. Up
   close, unexplored land is now blank parchment (Hide) or darkened (Darken), the minimap's detail
   with it, as from further out; on Hide a cave under it stays underground.
+- **Santiago Reyes's coastline round Silithus and Ahn'Qiraj.** His painting leaves its sea clear, and
+  past his coast, where the game's own map has land, the map's blank paper showed through: an orange
+  band down Silithus's and Ahn'Qiraj's west coast in place of his shallows. His shallows and the ink
+  line he draws off the shore show now, there and round every painted gap's coast.
 - **Caves come up at the usual deepest zoom.** A cave's map surfaced only once it nearly filled the
   view, which at the default deepest zoom (48x, where a mine is a speck) most never could: clicking
   a dungeon entrance glided in and stopped short of it. Over a cave the zoom now goes on past the

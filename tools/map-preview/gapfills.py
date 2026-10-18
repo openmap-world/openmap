@@ -6,7 +6,8 @@
 #   2. cut to the region's fill area (source/<region>_fill.png: the continent's land the zone maps
 #      don't fully cover, less Blizzard's own classic maps), faded out over its own edge where it
 #      stops short of the region's; out in the open sea, to the painter's own coast: the land he
-#      painted (found by its colour) and his coastline, faded out over the shallows past it
+#      painted (found by its colour), his shallows and the ink line off his shore, faded out past
+#      them. A painting that leaves its sea clear has its colours there used all the same
 #   3. written as 256-px tiles at up to MAX_PX px a world unit (only those it shows anything in) to
 #      OpenMap/Media/Textures/MapGapFill/<Gnn>_<tile>.tga, listed in OpenMap/Data/GapFills.lua
 # Run gapregions.py first (it writes source/: each region's zone art and fill area).
@@ -31,7 +32,8 @@ BOX_FADE = 3                    # world units a fill fades out over towards its 
 LAND_SAT = 0.5                  # a painting's land: saturation above this (its warm browns and greens; its sea is grey)
 LAND_BLUR = 0.25                # world units the saturation is smoothed over first (the sea's hatching, the land's outlines)
 LAND_SPECK = 2                  # world units: painted land smaller across than this is left out (a stray stroke)
-COAST_LINE = 1.5                # world units past the painted land kept whole: his coastline and the shallows by it
+COAST_LINE = 3                  # world units past the painted land kept whole: his shallows and the ink line he draws
+                                #  off the shore (about 2 out, up to 3 or 4 in places)
 SHORE_FADE = 2.5                # world units past that the painting fades out over, into the game's sea
 SEA_BLEND = 1                   # world units where the fill area hands over to the painter's coast at the open sea's edge
 MAX_PX = 10                     # px a world unit at most, as written: about the zone maps' own at the zooms
@@ -101,6 +103,10 @@ for f in sorted(os.listdir(EDITED)):
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     rgb = np.dstack([sample(p, F[..., c], yy, xx) for c in range(3)])
     own = sample(p, F[..., 3], yy, xx)
+    # a painting may leave its sea clear (G02's): his colours there are still his shallows, his coastline
+    # and his sea as he drew them, and they're used as the opaque ones' are (not where it's empty canvas)
+    drawn = np.clip((rgb.sum(axis=2) - 0.15) / 0.15, 0, 1)
+    paint = np.maximum(own, drawn)
     # fading out over its own edge where that's inside the region (and towards the region's: BOX_FADE)
     x0, x1, y0, y1 = tx, tx + sx * (fw - 1), ty, ty + sy * (fh - 1)
     dist = np.full((H, W), 1e9, np.float32)
@@ -125,7 +131,11 @@ for f in sorted(os.listdir(EDITED)):
     shore = np.clip(1 - (ndimage.distance_transform_edt(~land) / ppu - COAST_LINE) / SHORE_FADE, 0, 1)
     shore = shore * shore * (3 - 2 * shore)
     sea = ndimage.gaussian_filter((load(os.path.join(SRC, stem + "_sea.png"), "L") > 0.5).astype(np.float32), SEA_BLEND * ppu)
-    a = (sea * shore + (1 - sea) * np.clip(mask, 0, 1)) * inside * own * box_fade
+    a = (sea * shore + (1 - sea) * np.clip(mask, 0, 1)) * inside * paint * box_fade
+    # his clear sea over the game's land (it reaches further out there: G02's west of Ahn'Qiraj) is whole up
+    # to the game's coast, so the gaps' paper under it doesn't show where the two edges' fades meet
+    near = ndimage.binary_dilation(mask > 0.1, iterations=round(SHORE_FADE * ppu))
+    a = np.maximum(a, (1 - sea) * (own < 0.5) * drawn * near * inside * box_fade)
     k = min(1.0, MAX_PX / e["pxPerUnit"])
     if k < 1:
         W, H = max(1, round(W * k)), max(1, round(H * k))
