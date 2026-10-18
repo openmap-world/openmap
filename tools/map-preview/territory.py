@@ -52,11 +52,12 @@ def frame_mask():
     ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
     d = np.minimum(np.minimum(xs, w - 1 - xs) / w, np.minimum(ys, h - 1 - ys) / h)
     t = np.clip((d - 0.02) / 0.13, 0, 1)        # (a wide fade: where it hands over to a neighbour, no line)
-    # the corners' ornaments (Blizzard's gold knots, a dragon's head ...): an ellipse off each
+    # the corners' ornaments (Blizzard's gold knots, a dragon's head, Kul Tiras' brass machinery ...): an
+    # ellipse round each corner, off inside it and back over a quarter of its size past it
     cx = np.minimum(xs, w - 1 - xs) / (0.17 * w)
     cy = np.minimum(ys, h - 1 - ys) / (0.2 * h)
-    c = np.clip((np.hypot(np.clip(1 - cx, 0, None), np.clip(1 - cy, 0, None)) * -1 + 1) / 0.25, 0, 1)
-    m = t * np.where((cx < 1) & (cy < 1), c, 1)
+    c = np.clip((np.hypot(cx, cy) - 1) / 0.25, 0, 1)
+    m = t * c
     return m * m * (3 - 2 * m)
 
 
