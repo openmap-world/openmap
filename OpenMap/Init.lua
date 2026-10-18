@@ -19,10 +19,10 @@ local ADDON, ns = ...
 local function Options()
 	local mod = ns:GetModule("worldmap")
 	local args = mod.Options and mod:Options() or {}
-	args.enabled = { type = "toggle", name = "Enable OpenMap", order = 0, width = "full",
-		desc = "Turning OpenMap off takes a reload.",
+	args.enabled = { type = "toggle", name = ns.L["Enable OpenMap"], order = 0, width = "full",
+		desc = ns.L["Turning OpenMap off takes a reload."],
 		get = function() return mod.db.enabled end,
-		set = function(_, v) mod.db.enabled = v; ns:Print("Takes effect after a /reload.") end }
+		set = function(_, v) mod.db.enabled = v; ns:Print(ns.L["Takes effect after a /reload."]) end }
 	return { type = "group", name = "|cff" .. ns.ACCENT .. "OpenMap|r " .. ns.version, args = args }
 end
 
@@ -49,7 +49,7 @@ local function Slash(msg)
 		welcome = "ShowWelcome",
 	}
 	if run[msg] then
-		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod, takes[msg] and rest or nil) else ns:Print("The map is off.") end
+		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod, takes[msg] and rest or nil) else ns:Print(ns.L["The map is off."]) end
 	else
 		OpenOptions()
 	end
@@ -75,7 +75,7 @@ boot:SetScript("OnEvent", function(self, event, name)
 			local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 			button:SetSize(180, 26)
 			button:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
-			button:SetText("Open OpenMap's settings")
+			button:SetText(ns.L["Open OpenMap's settings"])
 			button:SetScript("OnClick", function()
 				if SettingsPanel then HideUIPanel(SettingsPanel) end
 				OpenOptions()

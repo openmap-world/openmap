@@ -523,18 +523,18 @@ mod.RefreshExtras = ApplyExtras
 
 function mod:ExtraOptions(opts, get, set, off)
 	local function setApply(info, v) set(info, v) ApplyExtras() end
-	opts.extrasHeader = ns.Header("On the map", 40)
-	opts.coords = { type = "toggle", name = "Coordinates", order = 41, get = get, set = setApply, disabled = off,
-		desc = "A bar along the map's foot: your position, and the zone and position under the cursor." }
-	opts.zoneLevels = { type = "toggle", name = "Zone levels", order = 42, get = get, set = setApply, disabled = off,
-		desc = "Hovering a zone shows its level range, coloured for your level." }
-	opts.zoomHidePins = { type = "toggle", name = "Other addons' icons rest while zooming", order = 43, width = "full",
+	opts.extrasHeader = ns.Header(ns.L["On the map"], 40)
+	opts.coords = { type = "toggle", name = ns.L["Coordinates"], order = 41, get = get, set = setApply, disabled = off,
+		desc = ns.L["A bar along the map's foot: your position, and the zone and position under the cursor."] }
+	opts.zoneLevels = { type = "toggle", name = ns.L["Zone levels"], order = 42, get = get, set = setApply, disabled = off,
+		desc = ns.L["Hovering a zone shows its level range, coloured for your level."] }
+	opts.zoomHidePins = { type = "toggle", name = ns.L["Other addons' icons rest while zooming"], order = 43, width = "full",
 		get = get, set = set, disabled = off,
-		desc = "Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate." }
-	opts.mapFpsCap = { type = "range", name = "Map frame rate cap", order = 44.5, min = 0, max = 144, step = 6,
+		desc = ns.L["Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate."] }
+	opts.mapFpsCap = { type = "range", name = ns.L["Map frame rate cap"], order = 44.5, min = 0, max = 144, step = 6,
 		get = get, set = setApply, disabled = off,
-		desc = "The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes." }
-	opts.moveFade = { type = "range", name = "Fade while moving", order = 44, min = 0, max = 0.9, step = 0.05, isPercent = true,
+		desc = ns.L["The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes."] }
+	opts.moveFade = { type = "range", name = ns.L["Fade while moving"], order = 44, min = 0, max = 0.9, step = 0.05, isPercent = true,
 		get = get, set = setApply, disabled = off,
-		desc = "How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it." }
+		desc = ns.L["How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it."] }
 end

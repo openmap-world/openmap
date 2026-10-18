@@ -58,5 +58,6 @@ in-game check (textures need a full client restart), and don't claim it works in
 ## Style
 
 Match the surrounding code: tabs in Lua, short comments that say why (not what), plain
-names, no new dependencies without a reason. Keep changes focused; no drive-by
+names, no new dependencies without a reason. Text the player reads goes through `ns.L["..."]`
+(it's translated: `tools/locale/README.md`); a new or changed text needs its translations too. Keep changes focused; no drive-by
 reformatting. Docs are plain and specific: say what a thing does, not how great it is.

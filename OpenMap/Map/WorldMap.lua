@@ -797,7 +797,7 @@ local function Setup()
 	map = _G.WorldMapFrame
 	sc = map and map.ScrollContainer
 	if not sc or not sc.CreateZoomLevels or not map.GetPinFrameLevelsManager or not map:GetPinFrameLevelsManager() then
-		ns:Print("World map: Blizzard's map isn't the expected kind; the seamless map is off.")
+		ns:Print(ns.L["World map: Blizzard's map isn't the expected kind; the seamless map is off."])
 		return
 	end
 	wheelMode = sc.mouseWheelZoomMode or MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_FULL
@@ -807,7 +807,7 @@ local function Setup()
 	local fl = map:GetPinFrameLevelsManager()
 	if not fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_STITCH", "PIN_FRAME_LEVEL_MAP_EXPLORATION", ART_RANGE)
 		or not fl:InsertFrameLevelAbove("PIN_FRAME_LEVEL_OPENMAP_ICONS", "PIN_FRAME_LEVEL_MAP_HIGHLIGHT", 6) then
-		ns:Print("World map: Blizzard's map layers aren't the expected ones; the stitched art may cover some map icons.")
+		ns:Print(ns.L["World map: Blizzard's map layers aren't the expected ones; the stitched art may cover some map icons."])
 	end
 
 	S.OnPinMouseDown, S.OnPinMouseUp = OnPinMouseDown, OnPinMouseUp
@@ -1106,42 +1106,42 @@ function mod:Options()
 	local function off() return not mod.db.enabled end
 	local opts = {
 		intro = ns.Desc("Blizzard's world map with every zone stitched together: scroll out of a zone into the next, drag across the whole world. The quest log, the map's controls and Questie all keep working.\n\n|cffffd100Wheel|r zooms at the cursor, |cffffd100drag|r pans, |cffffd100left-click|r zooms into the place under the cursor, |cffffd100right-click|r zooms out a level.\n\nIf you use Leatrix Maps or another world map addon, turn it off.", 1),
-		autoSwitch = { type = "toggle", name = "Follow the view", order = 10, width = "full", get = get, set = set, disabled = off,
-			desc = "Once the map stops moving, the map underneath becomes the zone or continent you're looking at, so quest areas, coordinates and the zone name match what's on screen." },
-		hoverHighlight = { type = "toggle", name = "Highlight the zone under the cursor", order = 11, width = "full", get = get, set = set, disabled = off,
-			desc = "Blizzard's glow on the zone you're pointing at." },
-		lookHeader = ns.Header("Look", 20),
-		colorMatch = { type = "range", name = "Colour matching", order = 21, min = 0, max = 1, step = 0.05, isPercent = true,
+		autoSwitch = { type = "toggle", name = ns.L["Follow the view"], order = 10, width = "full", get = get, set = set, disabled = off,
+			desc = ns.L["Once the map stops moving, the map underneath becomes the zone or continent you're looking at, so quest areas, coordinates and the zone name match what's on screen."] },
+		hoverHighlight = { type = "toggle", name = ns.L["Highlight the zone under the cursor"], order = 11, width = "full", get = get, set = set, disabled = off,
+			desc = ns.L["Blizzard's glow on the zone you're pointing at."] },
+		lookHeader = ns.Header(ns.L["Look"], 20),
+		colorMatch = { type = "range", name = ns.L["Colour matching"], order = 21, min = 0, max = 1, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off,
-			desc = "How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours." },
-		desaturate = { type = "range", name = "Take colour out", order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
+			desc = ns.L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours."] },
+		desaturate = { type = "range", name = ns.L["Take colour out"], order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
-		gapFills = { type = "toggle", name = "Filled gaps", order = 23.5, get = get, set = set, disabled = off,
-			desc = "Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there." },
-		unexplored = { type = "select", name = "Unexplored areas", order = 23, get = get, set = set, disabled = off,
-			values = { show = "Show", dim = "Darken", hide = "Hide" }, sorting = { "show", "dim", "hide" },
-			desc = "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)." },
-		maxZoom = { type = "range", name = "Deepest zoom", order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
+		gapFills = { type = "toggle", name = ns.L["Filled gaps"], order = 23.5, get = get, set = set, disabled = off,
+			desc = ns.L["Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there."] },
+		unexplored = { type = "select", name = ns.L["Unexplored areas"], order = 23, get = get, set = set, disabled = off,
+			values = { show = ns.L["Show"], dim = ns.L["Darken"], hide = ns.L["Hide"] }, sorting = { "show", "dim", "hide" },
+			desc = ns.L["Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)."] },
+		maxZoom = { type = "range", name = ns.L["Deepest zoom"], order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
 			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,
-			desc = "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged." },
-		iconHeader = ns.Header("Icons", 30),
-		routes = { type = "toggle", name = "Boat and zeppelin routes", order = 34, get = get, set = set, disabled = off },
-		icons = { type = "toggle", name = "Dungeons and raids", order = 31, get = get, set = set, disabled = off,
-			desc = "Dungeon and raid entrances, with their levels (click one: its map)." },
-		boats = { type = "toggle", name = "Boats", order = 31.4, get = get, set = set, disabled = off,
-			desc = "Boat docks (click one: the other end), and boats' routes when routes are shown." },
-		zeppelins = { type = "toggle", name = "Zeppelins", order = 31.6, get = get, set = set, disabled = off,
-			desc = "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown." },
-		flight = { type = "toggle", name = "Flight masters", order = 32, get = get, set = set,
+			desc = ns.L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] },
+		iconHeader = ns.Header(ns.L["Icons"], 30),
+		routes = { type = "toggle", name = ns.L["Boat and zeppelin routes"], order = 34, get = get, set = set, disabled = off },
+		icons = { type = "toggle", name = ns.L["Dungeons and raids"], order = 31, get = get, set = set, disabled = off,
+			desc = ns.L["Dungeon and raid entrances, with their levels (click one: its map)."] },
+		boats = { type = "toggle", name = ns.L["Boats"], order = 31.4, get = get, set = set, disabled = off,
+			desc = ns.L["Boat docks (click one: the other end), and boats' routes when routes are shown."] },
+		zeppelins = { type = "toggle", name = ns.L["Zeppelins"], order = 31.6, get = get, set = set, disabled = off,
+			desc = ns.L["Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown."] },
+		flight = { type = "toggle", name = ns.L["Flight masters"], order = 32, get = get, set = set,
 			disabled = off },
-		iconsFrom = { type = "range", name = "Icons from zoom", order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
+		iconsFrom = { type = "range", name = ns.L["Icons from zoom"], order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
 			get = get, set = set, disabled = off,
-			desc = "The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show." },
-		iconScale = { type = "range", name = "Icon size", order = 33.6, min = ICON_SCALE[1], max = ICON_SCALE[2], step = ICON_SCALE[3],
+			desc = ns.L["The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show."] },
+		iconScale = { type = "range", name = ns.L["Icon size"], order = 33.6, min = ICON_SCALE[1], max = ICON_SCALE[2], step = ICON_SCALE[3],
 			isPercent = true, get = get, set = set, disabled = off,
-			desc = "OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options." },
-		playerArrow = { type = "toggle", name = "Your arrow", order = 33, get = get, set = set, disabled = off,
-			desc = "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap." },
+			desc = ns.L["OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options."] },
+		playerArrow = { type = "toggle", name = ns.L["Your arrow"], order = 33, get = get, set = set, disabled = off,
+			desc = ns.L["Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap."] },
 	}
 	if mod.ExtraOptions then mod:ExtraOptions(opts, get, set, off) end
 	if mod.NavOptions then mod:NavOptions(opts, get, set, off) end
@@ -1151,11 +1151,11 @@ function mod:Options()
 	if mod.SketchOptions then mod:SketchOptions(opts, get, set, off) end
 	if mod.WindowOptions then mod:WindowOptions(opts, get, set, off) end
 	if mod.CloseOptions then mod:CloseOptions(opts, get, set, off) end
-	opts.news = { type = "execute", name = "What's new", order = 1.5, func = function() mod:ToggleNews(true) end,
-		desc = "This version's changes, and the versions before." }
-	opts.resetSliders = { type = "execute", name = "Reset sliders to defaults", order = 2, disabled = off,
-		desc = "Every slider here (and the OpenMap menu's) back to how OpenMap comes.",
-		confirm = true, confirmText = "Put every slider back to its default?",
+	opts.news = { type = "execute", name = ns.L["What's new"], order = 1.5, func = function() mod:ToggleNews(true) end,
+		desc = ns.L["This version's changes, and the versions before."] }
+	opts.resetSliders = { type = "execute", name = ns.L["Reset sliders to defaults"], order = 2, disabled = off,
+		desc = ns.L["Every slider here (and the OpenMap menu's) back to how OpenMap comes."],
+		confirm = true, confirmText = ns.L["Put every slider back to its default?"],
 		func = function() mod:ResetSliders() end }
 	return opts
 end

@@ -354,7 +354,7 @@ local function BuildView()
 	view.wing:SetTextColor(0.8, 0.7, 0.5)
 	function view.FloorName(i)
 		local f = view.floors[i]
-		return f.name or (#view.floors > 1 and L["Level %d"]:format(i)) or S.InstanceName(view.inst)
+		return f.name or (#view.floors > 1 and L["Floor %d"]:format(i)) or S.InstanceName(view.inst)
 	end
 	-- every floor by name, to go straight to one
 	view.floorButton:SetScript("OnClick", function(self)
@@ -1637,7 +1637,7 @@ FillSide = function()
 							end
 							local okReq, req = pcall(QDB.QueryQuestSingle, q.id, "requiredLevel")
 							GameTooltip:AddLine((LEVEL or "Level") .. " " .. q.level .. (okReq and req and req > 0 and ("  (" .. L["from %d"]:format(req) .. ")") or ""), 0.8, 0.8, 0.8)
-							GameTooltip:AddLine(q.done and L["Done"] or q.inLog and L["In your quest log"] or "", 0.5, 0.95, 0.4)
+							GameTooltip:AddLine(q.done and L["Completed"] or q.inLog and L["In your quest log"] or "", 0.5, 0.95, 0.4)
 							GameTooltip:Show()
 						end }
 				end

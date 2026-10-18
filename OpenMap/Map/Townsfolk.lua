@@ -10,30 +10,30 @@ local mod = ns:GetModule("worldmap")
 
 -- kind -> look, the zoom it shows from, and what picks its NPCs
 local KINDS = {
-	{ key = "vendor", name = "Vendors", flag = "VENDOR", zoom = 8,
+	{ key = "vendor", name = ns.L["Vendors"], flag = "VENDOR", zoom = 8,
 		look = { texture = "Interface\\GossipFrame\\VendorGossipIcon", size = 14 } },
-	{ key = "repair", name = "Repair", flag = "REPAIR", zoom = 6,
+	{ key = "repair", name = ns.L["Repair"], flag = "REPAIR", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Repair", fallback = "Interface\\GossipFrame\\VendorGossipIcon", size = 16 } },
-	{ key = "innkeeper", name = "Innkeepers", flag = "INNKEEPER", zoom = 4,
+	{ key = "innkeeper", name = ns.L["Innkeepers"], flag = "INNKEEPER", zoom = 4,
 		look = { texture = "Interface\\Minimap\\Tracking\\Innkeeper", fallback = "Interface\\GossipFrame\\BinderGossipIcon", size = 16 } },
-	{ key = "banker", name = "Bankers", flag = "BANKER", zoom = 6,
+	{ key = "banker", name = ns.L["Bankers"], flag = "BANKER", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Banker", fallback = "Interface\\GossipFrame\\BankerGossipIcon", size = 16 } },
 	-- mailboxes: objects, not NPCs (Questie's list of them, Townsfolk.GetMailboxes)
-	{ key = "mailbox", name = "Mailboxes", mailbox = true, zoom = 6,
+	{ key = "mailbox", name = ns.L["Mailboxes"], mailbox = true, zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Mailbox", fallback = "Interface\\Icons\\INV_Letter_15", size = 16 } },
-	{ key = "auctioneer", name = "Auctioneers", flag = "AUCTIONEER", zoom = 6,
+	{ key = "auctioneer", name = ns.L["Auctioneers"], flag = "AUCTIONEER", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Auctioneer", fallback = "Interface\\GossipFrame\\VendorGossipIcon", size = 16 } },
-	{ key = "stable", name = "Stable masters", flag = "STABLEMASTER", zoom = 6,
+	{ key = "stable", name = ns.L["Stable masters"], flag = "STABLEMASTER", zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\StableMaster", fallback = "Interface\\GossipFrame\\PetitionGossipIcon", size = 16 } },
-	{ key = "classTrainer", name = "Class trainers", flag = "TRAINER", class = true, zoom = 6,
+	{ key = "classTrainer", name = ns.L["Class trainers"], flag = "TRAINER", class = true, zoom = 6,
 		look = { texture = "Interface\\Minimap\\Tracking\\Class", fallback = "Interface\\GossipFrame\\TrainerGossipIcon", size = 16 } },
-	{ key = "profTrainer", name = "Profession trainers", flag = "TRAINER", profession = true, zoom = 8,
+	{ key = "profTrainer", name = ns.L["Profession trainers"], flag = "TRAINER", profession = true, zoom = 8,
 		look = { texture = "Interface\\Minimap\\Tracking\\Profession", fallback = "Interface\\GossipFrame\\TrainerGossipIcon", size = 14 } },
 	-- spirit healers: the game ships no graveyard table for this client, so they come from
 	-- Questie's NPC spawns too (the Spirit Healer NPC; both factions use the same ones)
-	{ key = "spirit", name = "Spirit healers", ids = { [6491] = true }, zoom = 3, hostile = true,
+	{ key = "spirit", name = ns.L["Spirit healers"], ids = { [6491] = true }, zoom = 3, hostile = true,
 		look = { atlas = "poi-soulspiritghost", texture = "Interface\\Minimap\\ObjectIcons", size = 16 } },
-	{ key = "rare", name = "Rare mobs", rare = true, zoom = 3, hostile = true,
+	{ key = "rare", name = ns.L["Rare mobs"], rare = true, zoom = 3, hostile = true,
 		look = { atlas = "VignetteKillElite", texture = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8", size = 18 } },
 }
 mod.TOWNSFOLK = KINDS
@@ -45,7 +45,7 @@ for _, k in ipairs(KINDS) do d.townsfolk[k.key] = false end
 local built = {}                -- kind key -> true once its pins exist
 local building = false
 local tries = 0                 -- retries while Questie's database loads
-local RANK = { [2] = "Rare Elite", [4] = "Rare" }
+local RANK = { [2] = ns.L["Rare Elite"], [4] = ns.L["Rare"] }
 
 local function Questie()
 	local loader = _G.QuestieLoader
@@ -203,7 +203,7 @@ function mod:RefreshTownsfolk()
 			end
 			tries = tries + 1
 			if tries <= 12 then C_Timer.After(5, function() self:RefreshTownsfolk() end)
-			else ns:Print("World map: townsfolk and rares need Questie's database, which isn't available.") end
+			else ns:Print(ns.L["World map: townsfolk and rares need Questie's database, which isn't available."]) end
 			return
 		end
 		tries = 0

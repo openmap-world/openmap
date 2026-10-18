@@ -607,22 +607,22 @@ end
 
 function mod:CloseOptions(opts, get, set, off)
 	local function noMinimap() return off() or not mod.db.minimap end
-	opts.closeHeader = ns.Header("Up close", 50)
-	opts.minimap = { type = "toggle", name = "Minimap detail", order = 50.5, width = "full", get = get, set = set, disabled = off,
-		desc = "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom." }
-	opts.minimapMix = { type = "range", name = "Minimap strength", order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
+	opts.closeHeader = ns.Header(ns.L["Up close"], 50)
+	opts.minimap = { type = "toggle", name = ns.L["Minimap detail"], order = 50.5, width = "full", get = get, set = set, disabled = off,
+		desc = ns.L["At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom."] }
+	opts.minimapMix = { type = "range", name = ns.L["Minimap strength"], order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
 		get = get, set = set, disabled = noMinimap,
-		desc = "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads." }
-	opts.minimapFrom = { type = "range", name = "Minimap detail from zoom", order = 51.1, min = MINI_FROM[1], max = MINI_FROM[2], step = MINI_FROM[3],
+		desc = ns.L["At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads."] }
+	opts.minimapFrom = { type = "range", name = ns.L["Minimap detail from zoom"], order = 51.1, min = MINI_FROM[1], max = MINI_FROM[2], step = MINI_FROM[3],
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
-		desc = "How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show." }
-	opts.minimapDeep = { type = "range", name = "Minimap detail, most opacity", order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
+		desc = ns.L["How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show."] }
+	opts.minimapDeep = { type = "range", name = ns.L["Minimap detail, most opacity"], order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
-		desc = "The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this." }
-	opts.gapMinimap = { type = "toggle", name = "Minimap in the gaps (experimental)", order = 51.5, get = get, set = set, disabled = noMinimap,
-		desc = "Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper." }
-	opts.soften = { type = "toggle", name = "Soften and add paper grain", order = 52, get = get, set = set, disabled = off,
-		desc = "At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it." }
-	opts.underground = { type = "toggle", name = "Caves and dungeon entrances", order = 53, get = get, set = set, disabled = off,
-		desc = "Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground." }
+		desc = ns.L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] }
+	opts.gapMinimap = { type = "toggle", name = ns.L["Minimap in the gaps (experimental)"], order = 51.5, get = get, set = set, disabled = noMinimap,
+		desc = ns.L["Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper."] }
+	opts.soften = { type = "toggle", name = ns.L["Soften and add paper grain"], order = 52, get = get, set = set, disabled = off,
+		desc = ns.L["At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it."] }
+	opts.underground = { type = "toggle", name = ns.L["Caves and dungeon entrances"], order = 53, get = get, set = set, disabled = off,
+		desc = ns.L["Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground."] }
 end

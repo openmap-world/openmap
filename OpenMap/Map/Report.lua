@@ -92,7 +92,8 @@ local function Code(note)
 end
 
 StaticPopupDialogs.OPENMAP_REPORT_NOTE = {
-	text = "|cffffd100Report, step 2 of 2:|r what's wrong?\n|cffaaaaaa(the map, the menu, a setting ... anything: a sentence is plenty)|r",
+	text = "|cffffd100" .. L["Report, step 2 of 2:"] .. "|r " .. L["what's wrong?"] .. "\n|cffaaaaaa"
+		.. L["(the map, the menu, a setting ... anything: a sentence is plenty)"] .. "|r",
 	hasEditBox = true,
 	editBoxWidth = 340,
 	button1 = CONTINUE or "Continue",

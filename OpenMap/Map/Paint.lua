@@ -594,11 +594,11 @@ function mod:IsPainting() return painting end
 function mod:TogglePaint(on)
 	if on == nil then on = not painting end
 	if not map or not S.IsBuilt() then
-		ns:Print("Open the world map first.")
+		ns:Print(L["Open the world map first."])
 		return
 	end
 	if on and not mod.IsStitched() then
-		ns:Print("Map notes work on the world, continent and zone maps.")
+		ns:Print(L["Map notes work on the world, continent and zone maps."])
 		return
 	end
 	if on and mod.ToggleReport then mod:ToggleReport(false) end

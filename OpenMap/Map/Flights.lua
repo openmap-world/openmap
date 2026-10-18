@@ -149,7 +149,7 @@ local function ShowRoute(from, to)
 	local legs, knownOnly = Route(from, to, true), true
 	if not legs then legs, knownOnly = Route(from, to, false), false end
 	if not legs then
-		ns:Print("No flight route from %s to %s.", F.nodes[from][1], F.nodes[to][1])
+		ns:Print(ns.L["No flight route from %s to %s."], F.nodes[from][1], F.nodes[to][1])
 		return
 	end
 	-- (the learned-only search lets the ends through unlearned, to keep to learned stops between
@@ -187,11 +187,12 @@ local function ShowRoute(from, to)
 	end
 	local fs = label.caption
 	local stops = #legs - 1
-	fs:SetText(("%s%s  |cffffffff%s%s|r%s"):format(
-		F.nodes[from][1]:match("^[^,]+"), " > " .. F.nodes[to][1]:match("^[^,]+"),
-		measured and "" or "about ", Clock(total),
-		stops > 0 and ("  |cffaaaaaa(" .. stops .. (stops == 1 and " stop" or " stops") .. ")|r") or "")
-		.. (knownOnly and "" or "\n|cffff8060needs flight masters you haven't learned|r"))
+	local L = ns.L
+	fs:SetText(("%s > %s  |cffffffff%s|r%s"):format(
+		F.nodes[from][1]:match("^[^,]+"), F.nodes[to][1]:match("^[^,]+"),
+		measured and Clock(total) or L["about %s"]:format(Clock(total)),
+		stops > 0 and ("  |cffaaaaaa(" .. (stops == 1 and L["1 stop"] or L["%d stops"]:format(stops)) .. ")|r") or "")
+		.. (knownOnly and "" or ("\n|cffff8060" .. L["needs flight masters you haven't learned"] .. "|r")))
 end
 
 local function NodeClick(pin)
@@ -212,17 +213,17 @@ local function NodeEnter(pin)
 	local n = F.nodes[pin.node]
 	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
 	GameTooltip:AddLine(n[1], 1, 0.82, 0)
-	GameTooltip:AddLine(Known(pin.node) and "Learned" or "Not learned", 0.8, 0.8, 0.8)
+	GameTooltip:AddLine(Known(pin.node) and ns.L["Learned"] or ns.L["Not learned"], 0.8, 0.8, 0.8)
 	if selected and selected ~= pin.node then
 		local legs = Route(selected, pin.node, true) or Route(selected, pin.node, false)
 		if legs then
 			local total = 0
 			for _, path in ipairs(legs) do total = total + LegTime(path) end
-			GameTooltip:AddLine(("From %s: about %s"):format(F.nodes[selected][1]:match("^[^,]+"), Clock(total)), 1, 1, 1)
+			GameTooltip:AddLine(ns.L["From %s: about %s"]:format(F.nodes[selected][1]:match("^[^,]+"), Clock(total)), 1, 1, 1)
 		end
-		GameTooltip:AddLine("Click: show the route", 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(ns.L["Click: show the route"], 0.6, 0.6, 0.6)
 	else
-		GameTooltip:AddLine("Click, then click another flight master: the route and its time", 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(ns.L["Click, then click another flight master: the route and its time"], 0.6, 0.6, 0.6)
 	end
 	GameTooltip:Show()
 end

@@ -82,6 +82,12 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 16 | `tools/changelog/build.py` (after any change to `CHANGELOG.md`) | `Data/Changelog.lua` | |
 | 17 | `tools/map-dungeons/build.py <cache> <WoW folder> [preview dir]` | `Data/DungeonMaps.lua` | 1 |
 | 17a | `tools/map-dungeons/drawn.py` | `MapDungeonDrawn/`, `Data/DungeonDrawn.lua` | `art-drawn/dungeons/` |
+| 18 | `tools/locale/translate.py build` (after any change to the translations or to the English in `L[...]`) | `Locales/`, the toc's `## Notes-<locale>` lines | `tools/locale/*.json` |
+
+Text the player reads goes through `ns.L["English"]` (or `L[...]`), never a bare string: the
+translations are keyed by that English (`tools/locale/README.md`). Changing the English of a text
+leaves its translations behind until they're redone for the new English; `translate.py status` and
+`check <locale>` say which.
 
 A dungeon entrance the game's tables don't have (a Dire Maul wing's own door, a second way in,
 WoW Forever's new dungeons): stand in the portal in game and type `/openmap entrance <name>`, with

@@ -170,8 +170,20 @@ def check_shared(path):
     return found
 
 
+def check_untranslated(path):
+    # an option's name or description, or a section heading, as a bare English string: it's
+    # never translated (text the player reads goes through ns.L: tools/locale/README.md)
+    out = []
+    for i, line in enumerate(open(path, encoding="utf-8"), 1):
+        code = line.split("--")[0]
+        if re.search(r'\b(?:name|desc)\s*=\s*"[A-Za-z]', code) or re.search(r'ns\.Header\(\s*"', code):
+            out.append(f"{os.path.relpath(path, ROOT)}:{i}: text not through ns.L (it won't be translated)")
+    return out
+
+
 problems = []
 for path in sorted(glob.glob(os.path.join(ROOT, "*.lua")) + glob.glob(os.path.join(ROOT, "Map", "*.lua"))):
+    problems += check_untranslated(path)
     problems += check(path)
     problems += check_values(path)
     problems += check_escapes(path)
@@ -185,6 +197,11 @@ import build as changelog
 _have = os.path.join(ROOT, "Data", "Changelog.lua")
 if not os.path.exists(_have) or open(_have, encoding="utf-8").read() != changelog.build():
     problems.append("Data/Changelog.lua is out of date with CHANGELOG.md: run python -P tools/changelog/build.py")
+# the translations: their placeholders and colour codes as the English's (a wrong one errors or shows
+# garbled in that language only), and Locales/ built from them as they are
+sys.path.insert(0, os.path.join(ROOT, "..", "tools", "locale"))
+import translate
+problems += translate.problems()
 for p in problems:
     print(p)
 print(f"lint: {len(problems)} problem(s)")

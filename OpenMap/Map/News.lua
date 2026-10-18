@@ -20,7 +20,9 @@ local ROW_H = 26
 local INK = { 0.2, 0.12, 0.05 }       -- (the quest text's)
 local TITLE = { 0.24, 0.13, 0.04 }
 local GOLD = { 1, 0.82, 0 }
-local TITLE_FONT = "Fonts\\MORPHEUS.TTF"
+-- (Morpheus has the Latin alphabet only: the client's own font in Korean, Chinese and Russian)
+local NON_LATIN = { koKR = true, zhCN = true, zhTW = true, ruRU = true }
+local TITLE_FONT = NON_LATIN[GetLocale and GetLocale() or ""] and STANDARD_TEXT_FONT or "Fonts\\MORPHEUS.TTF"
 local URL = "https://www.curseforge.com/wow/addons/openmap"   -- (OpenMap's page: its GitHub repository is out of reach for now)
 local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September",
 	"October", "November", "December" }
@@ -42,17 +44,17 @@ local function Font(fs, face, size)
 	return fs
 end
 
--- "2026-10-16" as "16 October 2026"
+-- "2026-10-16" as "16 October 2026" (day, month's name, year: a language's own order, L)
 local function Day(date)
 	local y, m, d = (date or ""):match("^(%d+)-(%d+)-(%d+)$")
 	if not y then return date or "" end
 	local names = _G.CALENDAR_FULLDATE_MONTH_NAMES
-	return ("%d %s %s"):format(tonumber(d), names and names[tonumber(m)] or MONTHS[tonumber(m)] or m, y)
+	return L["%d %s %s"]:format(tonumber(d), names and names[tonumber(m)] or MONTHS[tonumber(m)] or m, y)
 end
 
 -- a version's short name for the list: "v0.4.0-beta" as "0.4.0"
 local function Short(sec)
-	if sec.version == "Unreleased" then return L["Next"] end
+	if sec.version == "Unreleased" then return L["Upcoming"] end
 	return (sec.version:gsub("^v", ""):gsub("%-.*$", ""))
 end
 

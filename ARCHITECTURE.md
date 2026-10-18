@@ -259,8 +259,11 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   (instance coordinates, not world): open them from the entrance's cave map.
 - Other addons' pins (HandyNotes, GatherMate) only show on the map underneath, as Questie's
   did before `Extras.lua` widened it; the same trick could cover HereBeDragons generally.
-- Translations: `ns.L` is in place and the panel, tooltips and newer options go through
-  it; no translations exist yet, and the older option descriptions don't use it.
+- Translations: every text the player reads goes through `ns.L`, translated into the game's ten
+  other languages (`OpenMap/Locales/`, from `tools/locale/`: its README). Left in English: the
+  `/openmap status` and bench diagnostics (read in bug reports), What's new's notes (the
+  changelog), and the game's own data that the tables give in English only (boss names, boat
+  routes, flight masters' names); place names come from the client in its own language.
 
 ## Things that can break with game or addon updates
 
