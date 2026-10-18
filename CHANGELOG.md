@@ -73,6 +73,11 @@
   floors and lost darker rooms and passages' ends: Night Web's Hollow's great chamber, Burning Blade
   Coven's west loop, Ban'ethil Barrow Den's lower tunnel and more. They're traced now from where the
   caves' own rooms lie in the game, leaving out only the page's title ribbon and corner knots.
+- **The map window resizes by its corners again.** OpenMap put the window back to its saved size
+  in the middle of a drag; now the drag sizes it, the map staying where it is on screen as more or
+  less of it comes into the window, and the drop lays it out at that same scale, with no jump.
+- **Townsfolk without Questie**: they come from Questie's database, so without Questie the menu
+  says so instead of offering switches that showed nothing, and turning one on says so once in chat.
 
 ## v0.5.0-beta (2026-10-16)
 

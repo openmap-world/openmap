@@ -26,6 +26,7 @@ local map, handle, grip, border  -- (grip: both corners' grips)
 local FillScreen, SetupBorder, SetupQuestLog, TurnArrows
 local blizzardSize              -- the windowed map's own size, for a reset
 local ours = false              -- OpenMap is moving / sizing the window itself (not to be undone)
+local sizing = false            -- a grip is being dragged: the drag sizes the window, nothing puts it back
 local moveAny = false           -- Move Any moves and sizes the window: OpenMap leaves it be
 
 -- Move Any loaded, or on to load for this character (it may load after OpenMap sets the window up)
@@ -50,7 +51,7 @@ local function Maximized()
 end
 
 local function Apply()
-	if not map or Maximized() or ours or moveAny then return end
+	if not map or Maximized() or ours or moveAny or sizing then return end
 	ours = true
 	local w = mod.db.window
 	if w then
@@ -239,16 +240,23 @@ local function Grip(corner)
 		if Maximized() then return end
 		local x, y = GetCursorPosition()
 		start = { x = x, y = y, w = map:GetWidth(), h = map:GetHeight(), left = map:GetLeft(), right = map:GetRight(), top = map:GetTop() }
+		sizing = true
+		if mod.BeginResize then mod.BeginResize() end
 	end)
 	local function Finish()
 		if not start then return end
 		local was = start
 		start = nil
+		sizing = false
 		-- (a click, no drag: nothing; a refit at the same size puts the whole map up again)
-		if math.abs(map:GetWidth() - was.w) < 0.5 and math.abs(map:GetHeight() - was.h) < 0.5 then return end
+		if math.abs(map:GetWidth() - was.w) < 0.5 and math.abs(map:GetHeight() - was.h) < 0.5 then
+			if mod.EndResize then mod.EndResize() end
+			return
+		end
 		mod.db.windowSize = { math.floor(map:GetWidth() + 0.5), math.floor(map:GetHeight() + 0.5) }
 		Save()
-		if map:IsShown() then Refit() end
+		if map:IsShown() then Refit() end   -- (laid out at the scale the drag showed: WorldMap.lua)
+		if mod.EndResize then mod.EndResize() end
 	end
 	g:SetScript("OnMouseUp", Finish)
 	-- (the map closed mid-drag: the mouse-up never comes here, so the drag ends with the map, or
@@ -268,6 +276,7 @@ local function Grip(corner)
 		map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left and start.right - w or start.left, start.top)
 		map:SetSize(w, h)
 		ours = false
+		if mod.FollowResize then mod.FollowResize() end
 	end)
 	g:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, left and "ANCHOR_LEFT" or "ANCHOR_RIGHT")

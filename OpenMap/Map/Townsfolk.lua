@@ -46,6 +46,7 @@ local built = {}                -- kind key -> true once its pins exist
 local building = false
 local tries = 0                 -- retries while Questie's database loads
 local RANK = { [2] = ns.L["Rare Elite"], [4] = ns.L["Rare"] }
+local told = false              -- said once this session that Questie isn't installed
 
 local function Questie()
 	local loader = _G.QuestieLoader
@@ -190,6 +191,15 @@ function mod:RefreshTownsfolk()
 		if set then S.SetPinSetOn(set, on) end
 	end
 	if #todo == 0 or building then return end
+	-- no Questie at all (not just its database still loading): nothing to wait for
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+	if loaded and not loaded("Questie") then
+		if not told then
+			told = true
+			ns:Print(ns.L["World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them."])
+		end
+		return
+	end
 	building = true
 	for _, k in ipairs(todo) do built[k.key] = true end
 	Build(todo, function(ok)

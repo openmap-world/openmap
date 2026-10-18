@@ -637,15 +637,19 @@ end
 -- our way while the map is stitched: straight to where you left off, in one step (not the
 -- whole world and then there: every addon's icons rescaled twice); and if the map is still
 -- there (closed and reopened without moving), nothing at all. The window resized while open
--- (full screen and back, or dragged): where you were looking, at the same framing. Another
+-- (full screen and back): where you were looking, at the same framing; its corner dragged: the
+-- map as it is on screen (the drag shows more or less of it, at the same scale). Another
 -- map put up while it's open (the quest log's, the dropdown's) shows whole, as Blizzard's does
 local beforeReset                 -- the view on screen when Blizzard last put up a map: { u, v, zoom, at = GetTime() }
+local resize                      -- the window's corner being dragged: { left, scroll } (FollowResize)
 local function ResetView(self)
 	userMoved = false
 	anim = nil
 	if live and map:IsShown() then beforeReset = { live[1], live[2], live[3], at = GetTime() } end
 	local u, v, zoom
-	if live and map:IsShown() and (math.abs(sc:GetWidth() - live[4]) > 0.5 or math.abs(sc:GetHeight() - live[5]) > 0.5) then
+	if resize and live and map:IsShown() then
+		u, v, zoom = View()
+	elseif live and map:IsShown() and (math.abs(sc:GetWidth() - live[4]) > 0.5 or math.abs(sc:GetHeight() - live[5]) > 0.5) then
 		u, v, zoom = live[1], live[2], live[3]
 	elseif not live and mod.SavedView then          -- (no view drawn yet: the map is opening)
 		u, v, zoom = mod.SavedView(self.mapID)
@@ -654,7 +658,7 @@ local function ResetView(self)
 	if u then
 		zoom = Clamp(zoom, 1, MaxZoomAt(u, v))
 		local nu, nv, nz = View()
-		if not (nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3) then
+		if resize or not (nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3) then
 			ShowWorld(u, v, zoom)
 		end
 		userMoved = true
@@ -663,6 +667,30 @@ local function ResetView(self)
 	local aw, ah = S.ArtSize(self.mapID)
 	SetView(math.min(self:GetWidth() / aw, self:GetHeight() / ah), 0.5, 0.5)
 end
+
+-- the window's corner dragged (Window.lua): Blizzard isn't told the view's size changed until the
+-- drop (laying the map out again takes every addon's icons with it), so each frame of the drag the
+-- map is kept where it is on screen, under the window's edge that stays put, and the view's centre
+-- and extents follow what's now in the window (the close-up art filling in as it grows); the drop
+-- lays it out at that same scale (ResetView), so nothing jumps
+function mod.BeginResize()
+	resize = nil
+	if not active or not map:IsShown() or not sc:GetLeft() then return end
+	resize = { left = sc:GetLeft(), scroll = sc:GetHorizontalScroll() }
+end
+function mod.FollowResize()
+	if not resize or not active or not map:IsShown() then return end
+	local left = sc:GetLeft()
+	if not left then return end
+	sc:SetHorizontalScroll(resize.scroll + (left - resize.left) / sc:GetCanvasScale())
+	sc:CalculateScrollExtents()
+	local x, y = sc:GetNormalizedHorizontalScroll(), sc:GetNormalizedVerticalScroll()
+	sc.currentScrollX, sc.targetScrollX, sc.currentScrollY, sc.targetScrollY = x, x, y, y
+	sc:MarkAreaTriggersDirty()
+	sc:MarkViewRectDirty()
+	ApplyView()
+end
+function mod.EndResize() resize = nil end
 
 -- pan anywhere on the world, not just this map. Zoomed right out the world is centred;
 -- zooming in, the view gains room to go past its edges (EDGE_SLACK, in by CENTRE_UNTIL), so

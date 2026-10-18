@@ -445,5 +445,7 @@
  "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "手柄界面已启用，因此OpenMap将世界地图交还给暴雪：使用OpenMap的地图时，游戏会阻止手柄按键（按B关闭地图）。关闭手柄界面即可使用OpenMap的地图。",
  "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "手柄界面已启用：请输入/reload，让OpenMap将世界地图交还给暴雪（在此之前，游戏可能会阻止用手柄关闭地图）。",
  "The Gamepad UI is off: OpenMap's map is back.": "手柄界面已关闭：OpenMap的地图已恢复。",
- "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "将洞穴、矿洞、墓穴或地下城入口一带放大到最大，其地下的地图就会浮现出来：有暴雪绘制的地图就用它，否则用游戏的小地图。在其上方可放大到超过最大缩放。"
+ "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "将洞穴、矿洞、墓穴或地下城入口一带放大到最大，其地下的地图就会浮现出来：有暴雪绘制的地图就用它，否则用游戏的小地图。在其上方可放大到超过最大缩放。",
+ "Townsfolk (needs Questie)": "镇民（需要Questie）",
+ "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "世界地图：镇民和稀有怪物来自Questie的数据库。安装并启用Questie即可看到它们。"
 }
