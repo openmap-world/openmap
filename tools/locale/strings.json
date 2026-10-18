@@ -21,7 +21,7 @@
  {
   "en": "%d changes, newest first.",
   "where": [
-   "Map/News.lua:185"
+   "Map/News.lua:214"
   ]
  },
  {
@@ -45,7 +45,7 @@
  {
   "en": "%d versions",
   "where": [
-   "Map/News.lua:211"
+   "Map/News.lua:240"
   ]
  },
  {
@@ -582,7 +582,7 @@
  {
   "en": "Close",
   "where": [
-   "Map/News.lua:275"
+   "Map/News.lua:306"
   ]
  },
  {
@@ -608,7 +608,7 @@
  {
   "en": "Coming in the next version.",
   "where": [
-   "Map/News.lua:74"
+   "Map/News.lua:98"
   ]
  },
  {
@@ -629,6 +629,13 @@
   "where": [
    "Map/Extras.lua:569",
    "Map/Panel.lua:253"
+  ]
+ },
+ {
+  "en": "Credits",
+  "where": [
+   "Map/News.lua:94",
+   "Map/News.lua:304"
   ]
  },
  {
@@ -931,6 +938,12 @@
   ]
  },
  {
+  "en": "Everyone who reports problems and ideas on CurseForge.",
+  "where": [
+   "Credits.lua:33"
+  ]
+ },
+ {
   "en": "Export",
   "where": [
    "Map/Paint.lua:525"
@@ -1197,6 +1210,12 @@
   ]
  },
  {
+  "en": "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.",
+  "where": [
+   "Credits.lua:30"
+  ]
+ },
+ {
   "en": "Ignore",
   "where": [
    "Map/Pins.lua:274"
@@ -1275,6 +1294,12 @@
   ]
  },
  {
+  "en": "Libraries",
+  "where": [
+   "Credits.lua:25"
+  ]
+ },
+ {
   "en": "Line",
   "where": [
    "Map/Sketch.lua:41"
@@ -1312,9 +1337,21 @@
   ]
  },
  {
+  "en": "Made by",
+  "where": [
+   "Credits.lua:12"
+  ]
+ },
+ {
   "en": "Mailboxes",
   "where": [
    "Map/Townsfolk.lua:22"
+  ]
+ },
+ {
+  "en": "Map art",
+  "where": [
+   "Credits.lua:22"
   ]
  },
  {
@@ -1387,6 +1424,12 @@
   "where": [
    "Map/Panel.lua:1334",
    "Map/Window.lua:519"
+  ]
+ },
+ {
+  "en": "Maps painted by hand",
+  "where": [
+   "Credits.lua:15"
   ]
  },
  {
@@ -1503,7 +1546,7 @@
  {
   "en": "Newer",
   "where": [
-   "Map/News.lua:271"
+   "Map/News.lua:300"
   ]
  },
  {
@@ -1570,7 +1613,7 @@
  {
   "en": "Older",
   "where": [
-   "Map/News.lua:273"
+   "Map/News.lua:302"
   ]
  },
  {
@@ -1658,7 +1701,7 @@
  {
   "en": "OpenMap is made by |cffe6b85cJi|r: ideas and reports are welcome on CurseForge",
   "where": [
-   "Map/News.lua:279"
+   "Map/News.lua:310"
   ]
  },
  {
@@ -1752,6 +1795,12 @@
   "en": "Profession trainers",
   "where": [
    "Map/Townsfolk.lua:30"
+  ]
+ },
+ {
+  "en": "Programming",
+  "where": [
+   "Credits.lua:18"
   ]
  },
  {
@@ -1862,7 +1911,7 @@
  {
   "en": "Released %s.",
   "where": [
-   "Map/News.lua:75"
+   "Map/News.lua:99"
   ]
  },
  {
@@ -1902,6 +1951,12 @@
   "en": "Report, step 2 of 2:",
   "where": [
    "Map/Report.lua:95"
+  ]
+ },
+ {
+  "en": "Reports and ideas",
+  "where": [
+   "Credits.lua:32"
   ]
  },
  {
@@ -2101,6 +2156,12 @@
   ]
  },
  {
+  "en": "Thank you to everyone who has made OpenMap better.",
+  "where": [
+   "Map/News.lua:95"
+  ]
+ },
+ {
   "en": "Thanks! The code says where you were looking (and what you drew, if anything), so we can see what you saw.",
   "where": [
    "Map/Report.lua:157"
@@ -2267,6 +2328,12 @@
   ]
  },
  {
+  "en": "Translations",
+  "where": [
+   "Credits.lua:29"
+  ]
+ },
+ {
   "en": "Turning OpenMap off takes a reload.",
   "where": [
    "Init.lua:23"
@@ -2296,8 +2363,8 @@
  {
   "en": "Unreleased",
   "where": [
-   "Map/News.lua:73",
-   "Map/News.lua:228"
+   "Map/News.lua:97",
+   "Map/News.lua:257"
   ]
  },
  {
@@ -2316,7 +2383,7 @@
  {
   "en": "Updated to %s: see What's new in the OpenMap menu.",
   "where": [
-   "Map/News.lua:318"
+   "Map/News.lua:349"
   ]
  },
  {
@@ -2328,7 +2395,7 @@
  {
   "en": "Versions: |cffffffff%d|r",
   "where": [
-   "Map/News.lua:180"
+   "Map/News.lua:209"
   ]
  },
  {
@@ -2359,7 +2426,7 @@
  {
   "en": "What's new in OpenMap",
   "where": [
-   "Map/News.lua:166"
+   "Map/News.lua:195"
   ]
  },
  {
@@ -2558,7 +2625,7 @@
  {
   "en": "click, then Ctrl-C",
   "where": [
-   "Map/News.lua:292"
+   "Map/News.lua:323"
   ]
  },
  {
@@ -2599,6 +2666,12 @@
   ]
  },
  {
+  "en": "how the map reopens, and middle-click to center on you",
+  "where": [
+   "Credits.lua:20"
+  ]
+ },
+ {
   "en": "in your log",
   "where": [
    "Map/Dungeons.lua:1386",
@@ -2615,6 +2688,24 @@
   "en": "none to speak of",
   "where": [
    "Map/Debug.lua:47"
+  ]
+ },
+ {
+  "en": "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission",
+  "where": [
+   "Credits.lua:16"
+  ]
+ },
+ {
+  "en": "the map art is the game's own",
+  "where": [
+   "Credits.lua:23"
+  ]
+ },
+ {
+  "en": "the map in combat, RareScanner's icons over the map and other map addons' pins",
+  "where": [
+   "Credits.lua:19"
   ]
  },
  {

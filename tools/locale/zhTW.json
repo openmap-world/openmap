@@ -427,5 +427,20 @@
  "Quests from every zone": "所有區域的任務",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "在地圖上顯示任務日誌中所有區域的任務，任何縮放程度皆可見。Blizzard 的地圖只有在你放大到某個區域後，才會顯示該區域的任務。",
  "Click: the quest in your quest log": "點擊：在任務日誌中查看該任務",
- "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "某個地圖插件自帶了 OpenMap 無法辨識的 HereBeDragons（%s）：它的圖示會維持遊戲預設的位置。"
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "某個地圖插件自帶了 OpenMap 無法辨識的 HereBeDragons（%s）：它的圖示會維持遊戲預設的位置。",
+ "Credits": "致謝",
+ "Thank you to everyone who has made OpenMap better.": "感謝每一位讓 OpenMap 變得更好的人。",
+ "Made by": "製作",
+ "Maps painted by hand": "手繪地圖",
+ "Programming": "程式設計",
+ "Map art": "地圖美術",
+ "Libraries": "函式庫",
+ "Translations": "翻譯",
+ "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "區域之間的空白地帶，以及 WoW Forever 獨有地城的地圖，經他許可使用",
+ "the map art is the game's own": "地圖美術皆來自遊戲本身",
+ "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "如果某個詞在你的語言中讀起來不對，請到 CurseForge 告訴我們：下個版本會修正。",
+ "Reports and ideas": "回報與建議",
+ "Everyone who reports problems and ideas on CurseForge.": "所有在 CurseForge 回報問題、提出建議的人。",
+ "the map in combat, RareScanner's icons over the map and other map addons' pins": "戰鬥中的地圖、地圖上方的 RareScanner 圖示，以及其他地圖插件的圖示",
+ "how the map reopens, and middle-click to center on you": "地圖重新開啟的方式，以及點擊滑鼠中鍵以你為中心"
 }

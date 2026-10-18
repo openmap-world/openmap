@@ -15,3 +15,4 @@
 - [ ] No art or map content made up: art from the game files or a hand edit, facts from the game's tables or a cited source
 - [ ] My own work, or from an MIT-compatible source (named here)
 - [ ] User-visible changes noted under "Unreleased" in `CHANGELOG.md`
+- [ ] My line in `OpenMap/Credits.lua`, if I'd like to be named in game

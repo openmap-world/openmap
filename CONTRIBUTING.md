@@ -40,6 +40,12 @@ All three must pass (they also run on every pull request). They load the addon
 in a stubbed client: they catch load errors, bad options and broken slash
 commands, but not how the map looks or behaves. Check that in game.
 
+## Credits
+
+What's new in game has a Credits page, from `OpenMap/Credits.lua`. Add your line there in your
+pull request: the name you go by here or on CurseForge, and a few words on what you made, through
+`L[...]` so it's translated. If you'd rather not be named, leave it out.
+
 ## Triaging reports from players
 
 Players report from the map itself (**Report a problem**): their issue carries a code

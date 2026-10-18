@@ -427,5 +427,20 @@
  "Quests from every zone": "Задания всех зон",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Задания из вашего журнала на карте — из всех зон и при любом масштабе. Карта Blizzard показывает задания зоны, только когда вы ее приблизите.",
  "Click: the quest in your quest log": "Щелчок: задание в журнале заданий",
- "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Модификация карты использует собственную версию HereBeDragons (%s), неизвестную OpenMap: ее значки остаются там, где их размещает игра."
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Модификация карты использует собственную версию HereBeDragons (%s), неизвестную OpenMap: ее значки остаются там, где их размещает игра.",
+ "Credits": "Авторы",
+ "Thank you to everyone who has made OpenMap better.": "Спасибо всем, кто сделал OpenMap лучше.",
+ "Made by": "Создатель",
+ "Maps painted by hand": "Карты, нарисованные вручную",
+ "Programming": "Программирование",
+ "Map art": "Графика карты",
+ "Libraries": "Библиотеки",
+ "Translations": "Переводы",
+ "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "пустые земли между зонами и карты собственных подземелий WoW Forever, используются с его разрешения",
+ "the map art is the game's own": "графика карты взята из самой игры",
+ "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "Если какое-то слово на вашем языке звучит неверно, сообщите об этом на CurseForge: в следующей версии его исправят.",
+ "Reports and ideas": "Сообщения и идеи",
+ "Everyone who reports problems and ideas on CurseForge.": "Все, кто сообщает о проблемах и предлагает идеи на CurseForge.",
+ "the map in combat, RareScanner's icons over the map and other map addons' pins": "карта в бою, значки RareScanner поверх карты и значки других модификаций карты",
+ "how the map reopens, and middle-click to center on you": "повторное открытие карты и центрирование на вас щелчком средней кнопки мыши"
 }

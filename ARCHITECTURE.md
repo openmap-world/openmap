@@ -20,6 +20,7 @@ OpenMap/
   Map/            the map (one module, "worldmap")
   Media/Textures/ masks and textures (made by tools/; NOTICE.md says from what)
   Init.lua        starts it at PLAYER_LOGIN; options; /openmap
+  Credits.lua     who has made OpenMap (What's new's Credits page): a contribution adds its line
 tools/
   map-data/       Data/Reveal.lua, Data/Places.lua from the game's tables
   map-flights/    Data/FlightData.lua (the flight network)
@@ -219,7 +220,8 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   `CHANGELOG.md` by `tools/changelog/build.py`), laid out like the quest log (as the website's
   changelog is): the versions listed on the log's dark page, the one picked on a quest's parchment
   (`questbg-parchment`), Newer and Older; after an update the OpenMap button pulses and the
-  menu's What's new glows until the window's been opened.
+  menu's What's new glows until the window's been opened. Its Credits button shows `Credits.lua`'s
+  names on the same parchment.
 - `Report.lua`: beta feedback: draw where it's wrong with the quill (a Sketch.lua session: red,
   its strokes its own, never kept; on a dungeon's map, Dungeons.lua's markup on its picture), add a
   note, get a report code (`OM1|...`) to paste into a GitHub issue; `tools/map-preview/report.py`

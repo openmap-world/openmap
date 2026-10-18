@@ -427,5 +427,20 @@
  "Quests from every zone": "Missioni di tutte le zone",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Le missioni del tuo Registro missioni sulla mappa, da tutte le zone e a qualsiasi zoom. La mappa di Blizzard mostra le missioni di una zona solo dopo che hai fatto lo zoom su quella zona.",
  "Click: the quest in your quest log": "Clic: la missione nel Registro missioni",
- "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Un add-on per la mappa usa una propria versione di HereBeDragons (%s), che OpenMap non conosce: le sue icone restano dove le colloca il gioco."
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Un add-on per la mappa usa una propria versione di HereBeDragons (%s), che OpenMap non conosce: le sue icone restano dove le colloca il gioco.",
+ "Credits": "Riconoscimenti",
+ "Thank you to everyone who has made OpenMap better.": "Grazie a tutti quelli che hanno reso OpenMap migliore.",
+ "Made by": "Creato da",
+ "Maps painted by hand": "Mappe dipinte a mano",
+ "Programming": "Programmazione",
+ "Map art": "Grafica della mappa",
+ "Libraries": "Librerie",
+ "Translations": "Traduzioni",
+ "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "le terre vuote tra le zone e le mappe delle spedizioni proprie di WoW Forever, usate con il suo permesso",
+ "the map art is the game's own": "la grafica della mappa è quella del gioco",
+ "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "Se una parola suona sbagliata nella tua lingua, diccelo su CurseForge: sarà corretta nella prossima versione.",
+ "Reports and ideas": "Segnalazioni e idee",
+ "Everyone who reports problems and ideas on CurseForge.": "Tutti quelli che segnalano problemi e propongono idee su CurseForge.",
+ "the map in combat, RareScanner's icons over the map and other map addons' pins": "la mappa in combattimento, le icone di RareScanner sopra la mappa e le icone degli altri add-on per mappe",
+ "how the map reopens, and middle-click to center on you": "come si riapre la mappa e il clic centrale per centrarla su di te"
 }

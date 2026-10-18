@@ -60,19 +60,44 @@ end
 
 local function Clean(text) return (text:gsub("`", "")) end
 
--- the page: one version's notes, its name and when, each change a paragraph by a bullet
+-- the credits as a page of notes: each group's heading, then its people, a name and what they made
+local NAME = "|cff7a4512"       -- (a name on the page: the ink, warmer)
+local function CreditsPage()
+	local items, heads = {}, {}
+	for _, group in ipairs(ns.Credits or {}) do
+		if group[1] then heads[#items + 1] = group[1] end
+		for _, who in ipairs(group[2] or {}) do
+			items[#items + 1] = who[2] and (NAME .. who[1] .. "|r   " .. who[2]) or who[1]
+		end
+	end
+	return { items = items, heads = heads }
+end
+
+-- the page: one version's notes, its name and when, each change a paragraph by a bullet; or the
+-- credits ("credits")
 local function ShowPage(n)
 	local log = ns.MapChangelog or {}
-	n = math.max(1, math.min(#log, n))
-	local sec = log[n]
+	local credits = n == "credits"
+	local sec
+	if credits then
+		sec = CreditsPage()
+	else
+		n = math.max(1, math.min(#log, tonumber(n) or 1))
+		sec = log[n]
+	end
 	if not sec then return end
-	frame.at = n
+	if not credits then frame.at = n end   -- (Newer and Older step from the last version shown)
 	local page, child = frame.page, frame.child
 	local width = page.scroll:GetWidth() - 8
 	child:SetWidth(width)
-	page.title:SetText(sec.version == "Unreleased" and L["Unreleased"] or sec.version)
-	page.sub:SetText(sec.version == "Unreleased" and L["Coming in the next version."]
-		or (sec.date ~= "" and L["Released %s."]:format(Day(sec.date)) or ""))
+	if credits then
+		page.title:SetText(L["Credits"])
+		page.sub:SetText(L["Thank you to everyone who has made OpenMap better."])
+	else
+		page.title:SetText(sec.version == "Unreleased" and L["Unreleased"] or sec.version)
+		page.sub:SetText(sec.version == "Unreleased" and L["Coming in the next version."]
+			or (sec.date ~= "" and L["Released %s."]:format(Day(sec.date)) or ""))
+	end
 	local y = (page.title:GetStringHeight() or 28) + (page.sub:GetStringHeight() or 14) + 26
 	for _, p in ipairs(page.items) do p.dot:Hide() p.text:Hide() end
 	for _, h in ipairs(page.heads) do h:Hide() h.rule:Hide() end
@@ -134,14 +159,18 @@ local function ShowPage(n)
 		row.label:SetTextColor(on and 1 or GOLD[1], on and 1 or GOLD[2], on and 1 or GOLD[3])
 		row.count:SetTextColor(on and 1 or GOLD[1], on and 1 or GOLD[2], on and 1 or GOLD[3])
 	end
-	frame.newer:SetEnabled(n > 1)
-	frame.older:SetEnabled(n < #log)
+	frame.newer:SetEnabled(not credits and n > 1)
+	frame.older:SetEnabled(not credits and n < #log)
+	frame.creditsButton:SetEnabled(not credits)
 end
 
 local function Button(text, fn, w)
 	local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	b:SetSize(w or 100, 24)
 	b:SetText(text)
+	-- (wider for a longer word: Riconoscimenti)
+	local fs = b.GetFontString and b:GetFontString()
+	if fs then b:SetWidth(math.max(w or 100, (fs:GetStringWidth() or 0) + 24)) end
 	b:SetScript("OnClick", fn)
 	return b
 end
@@ -272,6 +301,8 @@ local function Build()
 	frame.newer:SetPoint("BOTTOMLEFT", 14, FOOT - 34)
 	frame.older = Button(L["Older"], function() ShowPage(frame.at + 1) end)
 	frame.older:SetPoint("LEFT", frame.newer, "RIGHT", 8, 0)
+	frame.creditsButton = Button(L["Credits"], function() ShowPage("credits") end)
+	frame.creditsButton:SetPoint("LEFT", frame.older, "RIGHT", 8, 0)
 	local close = Button(CLOSE or L["Close"], function() frame:Hide() end)
 	close:SetPoint("BOTTOMRIGHT", -14, FOOT - 34)
 	local credit = Look:Font(frame:CreateFontString(nil, "OVERLAY"), 13)

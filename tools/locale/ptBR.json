@@ -427,5 +427,20 @@
  "Quests from every zone": "Missões de todas as zonas",
  "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "As missões do seu Registro de Missões no mapa, de todas as zonas e em qualquer zoom. O mapa da Blizzard só mostra as missões de uma zona depois que você aproxima o zoom nela.",
  "Click: the quest in your quest log": "Clique: ver a missão no Registro de Missões",
- "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Um addon de mapa traz sua própria versão do HereBeDragons (%s), que o OpenMap não conhece: os ícones dele ficam onde o jogo os coloca."
+ "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.": "Um addon de mapa traz sua própria versão do HereBeDragons (%s), que o OpenMap não conhece: os ícones dele ficam onde o jogo os coloca.",
+ "Credits": "Créditos",
+ "Thank you to everyone who has made OpenMap better.": "Obrigado a todos que tornaram o OpenMap melhor.",
+ "Made by": "Feito por",
+ "Maps painted by hand": "Mapas pintados à mão",
+ "Programming": "Programação",
+ "Map art": "Arte do mapa",
+ "Libraries": "Bibliotecas",
+ "Translations": "Traduções",
+ "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "as terras em branco entre as zonas e os mapas das masmorras próprias do WoW Forever, usados com a permissão dele",
+ "the map art is the game's own": "a arte do mapa é a do próprio jogo",
+ "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "Se alguma palavra soar errada no seu idioma, avise no CurseForge: ela será corrigida na próxima versão.",
+ "Reports and ideas": "Relatos e ideias",
+ "Everyone who reports problems and ideas on CurseForge.": "Todos que relatam problemas e sugerem ideias no CurseForge.",
+ "the map in combat, RareScanner's icons over the map and other map addons' pins": "o mapa em combate, os ícones do RareScanner sobre o mapa e os ícones de outros addons de mapa",
+ "how the map reopens, and middle-click to center on you": "como o mapa reabre e o clique com o botão do meio para centralizar em você"
 }

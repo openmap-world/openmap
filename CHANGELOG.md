@@ -24,6 +24,9 @@
   Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
   words for things (flight masters, map pins, the quest log ...). Place names were already the
   game's. What's new's notes stay in English.
+- **Credits** (What's new's **Credits** button): who has made OpenMap, Santiago Reyes's painted
+  maps, Ironship's and C-Clymer's work on the code, Blizzard's art, the libraries, and everyone who
+  reports problems and ideas.
 
 ### Improved
 

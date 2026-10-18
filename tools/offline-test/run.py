@@ -74,7 +74,7 @@ steps = L.eval("""function(ns, scenario)
     local ok, err = pcall(function() return ACR:GetOptionsTable("OpenMap", "dialog", "AceGUI-3.0") end)
     if not ok then ERRORS[#ERRORS + 1] = "options: " .. tostring(err) end
     if ok then WalkOptions(err, {}, {}) end
-    for _, cmd in ipairs({ "status", "paint" }) do
+    for _, cmd in ipairs({ "status", "paint", "news" }) do
         local ok2, e2 = pcall(SlashCmdList.OPENMAP, cmd)
         if not ok2 then ERRORS[#ERRORS + 1] = "slash " .. cmd .. ": " .. tostring(e2) end
     end
