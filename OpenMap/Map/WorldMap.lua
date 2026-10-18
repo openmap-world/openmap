@@ -205,7 +205,12 @@ local anim                      -- the running animation, or nil
 local padX, padY                -- the mouse when the pad's cursor showed or last moved
 local function PadFocus()
 	local soft = _G.SoftCursor
-	return soft and soft:IsShown() and InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
+	if not (soft and soft:IsShown() and InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()) then
+		return false
+	end
+	-- (Blizzard keeps its cursor up while the pad is on the quest log, to come back to: it's the map's
+	-- only while the map has the pad, as Blizzard's own IsCanvasGamepadFocus judges it)
+	return not (map and map.IsCanvasGamepadFocus) or map:IsCanvasGamepadFocus() and true or false
 end
 local function PadCursor()
 	if not PadFocus() then padX = nil return end
@@ -862,11 +867,28 @@ local function Setup()
 		local navigate = map.NavigateToGamepadCursor
 		map.NavigateToGamepadCursor = function(self, ...)
 			local x, y = PadCursor()
-			if x and mod.PadPress and mod.PadPress(x, y) then return true end
+			-- (A has just clicked Blizzard's own icons under the cursor, GamepadMapClick's ClickHoveredPins:
+			-- then OpenMap's icon there isn't pressed as well, only its windows over the map)
+			local clicked = self.GetHoveredPin and self:GetHoveredPin() ~= nil
+			if x and mod.PadPress and mod.PadPress(x, y, clicked) then return true end
 			if not active then return navigate(self, ...) end
-			if self.GetHoveredPin and self:GetHoveredPin() then return true end   -- (Blizzard clicked it)
+			if clicked then return true end
 			return OnCanvasClick(nil, "LeftButton")
 		end
+	end
+	-- the pad's waypoint (its left stick pressed: GamepadTryPlaceWaypoint) is set where the cursor is on
+	-- the map underneath, clamped to its edge: on the stitched map, where the cursor is, on the zone there
+	if map.GamepadTryPlaceWaypoint then
+		hooksecurefunc(map, "GamepadTryPlaceWaypoint", function()
+			if not active or not PadCursor() or not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then return end
+			local u, v = mod.CursorWorld()
+			local chain = u and S.ChainAt(u, v)
+			local mapID = chain and chain[#chain]
+			if not mapID or mapID == WORLD or not UiMapPoint then return end
+			if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(mapID) then return end
+			local x, y = FromWorld(mapID, u, v)
+			pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y))
+		end)
 	end
 	if map.NavigateToParentMap then
 		local up = map.NavigateToParentMap

@@ -275,6 +275,8 @@ local function BuildView()
 	view:EnableMouse(true)
 	view:EnableMouseWheel(true)
 	view:SetClipsChildren(true)
+	-- (the gamepad's cursor presses its tabs and buttons, and A on it isn't the map's under it: Gamepad.lua)
+	mod.padRoots[#mod.padRoots + 1] = view
 	tinsert(UISpecialFrames, "OpenMapDungeonView")
 	local bg = view:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
@@ -984,6 +986,7 @@ local function PadWaits()
 	end
 	return true
 end
+mod.PadWaits = PadWaits      -- (Quests.lua's quest icons wait too: opening a quest's details sets the pad's buttons)
 
 -- Dungeon Journal (by Exehn, for WoW Forever: /dj): its pages are by its own names for the
 -- dungeons ("Scarlet Monastery: Graveyard", "Hall of Thanes"), matched to ours loosely

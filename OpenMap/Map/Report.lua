@@ -121,6 +121,7 @@ function mod:ShowReportCode(code)
 	while #mod.char.reports > 10 do tremove(mod.char.reports, 1) end
 	if not codeFrame then
 		codeFrame = CreateFrame("Frame", "OpenMapReport", UIParent)
+		if mod.padRoots then mod.padRoots[#mod.padRoots + 1] = codeFrame end   -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 		codeFrame:SetPoint("CENTER")
 		codeFrame:SetFrameStrata("DIALOG")
 		codeFrame:EnableMouse(true)

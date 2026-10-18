@@ -149,6 +149,7 @@ end
 local function Build()
 	local log = ns.MapChangelog or {}
 	frame = CreateFrame("Frame", "OpenMapNews", UIParent)
+	if mod.padRoots then mod.padRoots[#mod.padRoots + 1] = frame end   -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 	frame:SetSize(W, H)
 	frame:SetPoint("CENTER")
 	frame:SetFrameStrata("DIALOG")

@@ -57,6 +57,9 @@ end
 
 local function Click(pin)
 	local q = pin.data
+	-- (in combat with the gamepad's UI, Blizzard's quest details would set the pad's buttons from
+	-- OpenMap's code, which combat blocks: it waits, as a dungeon's map does)
+	if mod.PadWaits and mod.PadWaits() then return end
 	local open = G("QuestMapFrame_OpenToQuestDetails")
 	if q and open then open(q.id) end
 end

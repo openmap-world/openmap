@@ -169,6 +169,7 @@ end
 local function Editor()
 	if editor then return editor end
 	editor = CreateFrame("Frame", "OpenMapNoteEditor", UIParent)
+	if mod.padRoots then mod.padRoots[#mod.padRoots + 1] = editor end   -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 	editor:SetSize(420, 118)
 	editor:SetFrameStrata("DIALOG")
 	editor:EnableMouse(true)

@@ -30,6 +30,11 @@ local function Pressable(f)
 	return f:IsObjectType("Button") or f:IsObjectType("Slider") or f:IsObjectType("EditBox")
 end
 
+-- a frame's place in the stacking, as the game draws it: its strata, then its level (a DIALOG window
+-- over the map is over a menu at a higher level in a lower strata)
+local STRATA = { BACKGROUND = 1, LOW = 2, MEDIUM = 3, HIGH = 4, DIALOG = 5, FULLSCREEN = 6, FULLSCREEN_DIALOG = 7, TOOLTIP = 8 }
+local function Height(f) return (STRATA[f:GetFrameStrata()] or 3) * 100000 + f:GetFrameLevel() end
+
 -- the topmost pressable frame at (x, y) in f and its children (found); blocked: a frame
 -- that takes the mouse is there (the menu's background), so the map under it isn't
 local Find
@@ -40,17 +45,17 @@ function Find(f, x, y)
 	if not f:IsVisible() then return end
 	if f:IsMouseEnabled() and Inside(f, x, y) then
 		blocked = true
-		if Pressable(f) and (not found or f:GetFrameLevel() >= foundLevel) then found, foundLevel = f, f:GetFrameLevel() end
+		if Pressable(f) and (not found or Height(f) >= foundLevel) then found, foundLevel = f, Height(f) end
 	end
 	FindIn(x, y, f:GetChildren())
 end
 
--- OpenMap's control under (x, y), or its map icon; and whether a control is in the way
-local function Under(x, y)
+-- OpenMap's control under (x, y), or its map icon (not with `noPins`); and whether a control is in the way
+local function Under(x, y, noPins)
 	found, foundLevel, blocked = nil, nil, false
 	for _, root in ipairs(roots) do Find(root, x, y) end
 	if found or blocked then return found, blocked end
-	local pin = S.IsBuilt() and mod.IsStitched() and S.PinAt(x, y, REACH)
+	local pin = not noPins and S.IsBuilt() and mod.IsStitched() and S.PinAt(x, y, REACH)
 	if pin then return pin, true end
 	return nil, false
 end
@@ -71,9 +76,10 @@ local function Enter(f)
 	end
 end
 
--- A, with the gamepad's cursor at (x, y): true if it was OpenMap's to take
-function mod.PadPress(x, y)
-	local f, taken = Under(x, y)
+-- A, with the gamepad's cursor at (x, y): true if it was OpenMap's to take (`noPins`: Blizzard's own
+-- icon there has just taken it, so OpenMap's map icons don't too: only its windows over the map)
+function mod.PadPress(x, y, noPins)
+	local f, taken = Under(x, y, noPins)
 	if not f then return taken end
 	if f:IsObjectType("Slider") then
 		-- to the value at the cursor

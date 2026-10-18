@@ -328,6 +328,7 @@ end
 local function CodeBox(text)
 	if not codeFrame then
 		codeFrame = CreateFrame("Frame", "OpenMapPinsCode", UIParent)
+		if mod.padRoots then mod.padRoots[#mod.padRoots + 1] = codeFrame end   -- (the gamepad's cursor presses its buttons: Gamepad.lua)
 		codeFrame:SetPoint("CENTER")
 		codeFrame:SetFrameStrata("DIALOG")
 		codeFrame:EnableMouse(true)
