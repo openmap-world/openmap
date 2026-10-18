@@ -70,6 +70,7 @@ Map\Extras.lua
 Map\Flights.lua
 Map\Routes.lua
 Map\Townsfolk.lua
+Map\Quests.lua
 Map\Dungeons.lua
 Map\Paint.lua
 Map\Sketch.lua

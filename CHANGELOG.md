@@ -16,6 +16,10 @@
   Blizzard's map pin link where the game takes one (whoever clicks it gets the waypoint), with its
   note; else its note, zone and position as text.
 - **Icon size** (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.
+- **Your quests from every zone, at any zoom**: Blizzard's map shows a zone's quests only once
+  you've zoomed in on that zone; now the quests in your log show across the whole map, in the look
+  of Blizzard's (in progress or ready to turn in, their objectives on hover; click one: it opens in
+  the quest log). The menu's **Quests from every zone** turns them off.
 - **OpenMap in your language**: German, French, Spanish (Spain and Latin America), Italian,
   Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
   words for things (flight masters, map pins, the quest log ...). Place names were already the

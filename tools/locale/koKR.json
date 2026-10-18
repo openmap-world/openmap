@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd1001/2단계:|r 잘못된 곳을 그리십시오 (오른쪽 드래그: 지도 이동)",
  "Floor %d": "%d층",
  "Completed": "완료함",
- "Upcoming": "다음 버전"
+ "Upcoming": "다음 버전",
+ "Quests from every zone": "모든 지역의 퀘스트",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "퀘스트 목록의 퀘스트를 모든 지역에서, 확대 수준과 관계없이 지도에 표시합니다. 블리자드 지도는 해당 지역을 확대해야만 그 지역의 퀘스트를 표시합니다.",
+ "Click: the quest in your quest log": "클릭: 퀘스트 목록에서 퀘스트 보기"
 }

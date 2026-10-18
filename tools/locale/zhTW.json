@@ -423,5 +423,8 @@
  "|cffffd100Right-click|r or |cffffd100Esc|r to go back to the world map": "|cffffd100右鍵點擊|r 或 |cffffd100Esc|r 返回世界地圖",
  "|cffffd100Step 1 of 2:|r draw where it's wrong (if it's a spot), then Next": "|cffffd100步驟 1/2：|r畫出有問題的地方（如果是某個位置），然後按「下一步」",
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100步驟 1/2：|r畫出有問題的地方（右鍵拖曳可平移）",
- "Floor %d": "第 %d 層"
+ "Floor %d": "第 %d 層",
+ "Quests from every zone": "所有區域的任務",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "在地圖上顯示任務日誌中所有區域的任務，任何縮放程度皆可見。Blizzard 的地圖只有在你放大到某個區域後，才會顯示該區域的任務。",
+ "Click: the quest in your quest log": "點擊：在任務日誌中查看該任務"
 }

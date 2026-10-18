@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Passo 1 di 2:|r disegna dove c'è il problema (trascina col destro per spostare)",
  "Floor %d": "Piano %d",
  "Completed": "Completata",
- "Upcoming": "In arrivo"
+ "Upcoming": "In arrivo",
+ "Quests from every zone": "Missioni di tutte le zone",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Le missioni del tuo Registro missioni sulla mappa, da tutte le zone e a qualsiasi zoom. La mappa di Blizzard mostra le missioni di una zona solo dopo che hai fatto lo zoom su quella zona.",
+ "Click: the quest in your quest log": "Clic: la missione nel Registro missioni"
 }

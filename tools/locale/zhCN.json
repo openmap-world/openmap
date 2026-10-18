@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100第1步（共2步）：|r在出错的地方画出标注（右键拖动可平移）",
  "Floor %d": "第%d层",
  "Completed": "已完成",
- "Upcoming": "下个版本"
+ "Upcoming": "下个版本",
+ "Quests from every zone": "所有区域的任务",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "在地图上显示任务日志中所有区域的任务，任何缩放级别下都可见。暴雪的地图只有在你放大到某个区域后，才会显示该区域的任务。",
+ "Click: the quest in your quest log": "点击：在任务日志中查看该任务"
 }

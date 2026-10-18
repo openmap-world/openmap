@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Шаг 1 из 2:|r нарисуйте, где ошибка (перетаскивание правой кнопкой сдвигает карту)",
  "Floor %d": "Этаж %d",
  "Completed": "Выполнено",
- "Upcoming": "Скоро"
+ "Upcoming": "Скоро",
+ "Quests from every zone": "Задания всех зон",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Задания из вашего журнала на карте — из всех зон и при любом масштабе. Карта Blizzard показывает задания зоны, только когда вы ее приблизите.",
+ "Click: the quest in your quest log": "Щелчок: задание в журнале заданий"
 }

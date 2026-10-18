@@ -933,6 +933,7 @@ local function Setup()
 	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function() if S.IsBuilt() then S.RefreshExplored() end end)
 	if mod.SetupNav then mod:SetupNav(map) end          -- (before the menu: it holds Nav's search box)
 	if mod.SetupPins then mod:SetupPins(map) end
+	if mod.SetupQuests then mod:SetupQuests(map) end
 	if mod.SetupDungeons then mod:SetupDungeons(map) end
 	if mod.SetupCombat then mod:SetupCombat(map) end
 	if mod.SetupNews then mod:SetupNews() end
@@ -1027,6 +1028,7 @@ function mod:Refresh()
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
 	if self.RefreshTownsfolk then self:RefreshTownsfolk() end
+	if self.RefreshQuests then self:RefreshQuests() end
 	if self.RefreshDungeonCard then self.RefreshDungeonCard() end
 	if self.RefreshSketch then self.RefreshSketch() end
 	if self.RefreshPanel then self:RefreshPanel() end
@@ -1140,6 +1142,8 @@ function mod:Options()
 		iconScale = { type = "range", name = ns.L["Icon size"], order = 33.6, min = ICON_SCALE[1], max = ICON_SCALE[2], step = ICON_SCALE[3],
 			isPercent = true, get = get, set = set, disabled = off,
 			desc = ns.L["OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options."] },
+		allQuests = { type = "toggle", name = ns.L["Quests from every zone"], order = 33.7, get = get, set = set, disabled = off,
+			desc = ns.L["The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone."] },
 		playerArrow = { type = "toggle", name = ns.L["Your arrow"], order = 33, get = get, set = set, disabled = off,
 			desc = ns.L["Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap."] },
 	}

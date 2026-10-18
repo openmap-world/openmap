@@ -423,5 +423,8 @@
  "|cffffd100Drag|r to draw   |cffffd100Right-drag|r to pan   |cffffd100Ctrl-Z|r undo   |cffffd100Esc|r done": "|cffffd100Arrastar|r desenha   |cffffd100Arrastar c/ botão direito|r move   |cffffd100Ctrl-Z|r desfaz   |cffffd100Esc|r conclui",
  "|cffffd100Right-click|r or |cffffd100Esc|r to go back to the world map": "|cffffd100Clique com o botão direito|r ou |cffffd100Esc|r para voltar ao mapa-múndi",
  "|cffffd100Step 1 of 2:|r draw where it's wrong (if it's a spot), then Next": "|cffffd100Passo 1 de 2:|r desenhe onde está errado (se for um ponto específico), depois clique em Próximo",
- "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Passo 1 de 2:|r desenhe onde está errado (arrastar com o botão direito move o mapa)"
+ "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Passo 1 de 2:|r desenhe onde está errado (arrastar com o botão direito move o mapa)",
+ "Quests from every zone": "Missões de todas as zonas",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "As missões do seu Registro de Missões no mapa, de todas as zonas e em qualquer zoom. O mapa da Blizzard só mostra as missões de uma zona depois que você aproxima o zoom nela.",
+ "Click: the quest in your quest log": "Clique: ver a missão no Registro de Missões"
 }

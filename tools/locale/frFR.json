@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Étape 1 sur 2 :|r dessinez là où quelque chose ne va pas (clic droit + glisser pour déplacer)",
  "Floor %d": "Étage %d",
  "Completed": "Terminée",
- "Upcoming": "À venir"
+ "Upcoming": "À venir",
+ "Quests from every zone": "Quêtes de toutes les zones",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Les quêtes de votre journal sur la carte, dans toutes les zones et à tous les niveaux de zoom. La carte de Blizzard n'affiche les quêtes d'une zone qu'une fois que vous avez zoomé dessus.",
+ "Click: the quest in your quest log": "Clic : la quête dans votre journal des quêtes"
 }

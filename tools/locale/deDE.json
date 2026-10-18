@@ -423,5 +423,8 @@
  "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)": "|cffffd100Schritt 1 von 2:|r Zeichnet ein, wo es falsch ist (Rechts ziehen: verschieben)",
  "Floor %d": "Areal %d",
  "Completed": "Abgeschlossen",
- "Upcoming": "Demnächst"
+ "Upcoming": "Demnächst",
+ "Quests from every zone": "Quests aller Zonen",
+ "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.": "Die Quests aus Eurem Questlog auf der Karte, aus allen Zonen und bei jeder Zoomstufe. Blizzards Karte zeigt die Quests einer Zone erst, wenn Ihr in diese Zone hineingezoomt habt.",
+ "Click: the quest in your quest log": "Klick: Quest im Questlog anzeigen"
 }

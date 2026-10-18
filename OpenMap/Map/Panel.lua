@@ -199,6 +199,7 @@ local function Rows()
 		optRow(L["Your arrow"], "playerArrow", { texture = "Interface\\Minimap\\MinimapArrow" }),
 		optRow(L["Party and raid members"], "group", Icon("Spell_Holy_PrayerOfFortitude")),
 		optRow(L["Your drawings"], "sketchShown", Icon("INV_Feather_04")),
+		optRow(L["Quests from every zone"], "allQuests", { atlas = "UI-QuestPoi-QuestNumber", texture = "Interface\\GossipFrame\\ActiveQuestIcon" }),
 	}
 	-- Questie's quest icons: its own "Enable Map Icons" setting, switched as its options do
 	if questie then
