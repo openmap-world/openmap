@@ -15,6 +15,7 @@ ns.MapChangelog = {
 		"|cff6e2c0aQuestie's icons across the view|r: zoomed out over a zone, the quests of every zone in view show, not only those of the zone underneath and the next one.",
 		"|cff6e2c0aShortest Path Forever works on the map|r: Shift-click the map to plan a journey (OpenMap's click-to-zoom took every click first).",
 		"|cff6e2c0aThe menu's buttons on the map come off with Shift-right-click|r only, not a plain right-click.",
+		"|cff6e2c0aFor other addons|r: OpenMapAPI.CursorPosition() (API version 3), the point under the cursor; with MapAt, the zone under it at any zoom, so a zone-hover tooltip (Zonewise's) can keep working zoomed in, where the map underneath is the zone, not the continent.",
 		"|cff6e2c0aThe map opens no further in than the deepest zoom|r: centred on you in a city, it opened as far in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).",
 	} },
 	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [18] = "Fixed", }, items = {

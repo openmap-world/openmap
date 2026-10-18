@@ -36,6 +36,9 @@
 - **Shortest Path Forever works on the map**: Shift-click the map to plan a journey (OpenMap's
   click-to-zoom took every click first).
 - **The menu's buttons on the map come off with Shift-right-click** only, not a plain right-click.
+- **For other addons**: `OpenMapAPI.CursorPosition()` (API version 3), the point under the cursor;
+  with `MapAt`, the zone under it at any zoom, so a zone-hover tooltip (Zonewise's) can keep working
+  zoomed in, where the map underneath is the zone, not the continent.
 - **The map opens no further in than the deepest zoom**: centred on you in a city, it opened as far
   in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).
 
