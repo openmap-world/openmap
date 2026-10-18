@@ -35,6 +35,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python tools/offline-test/run.py plain
    python tools/offline-test/run.py combat
    python tools/offline-test/run.py secret
+   python tools/offline-test/run.py pad      # the game's Gamepad UI on: the map left alone
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is

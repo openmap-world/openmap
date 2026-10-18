@@ -23,6 +23,9 @@ local function Options()
 		desc = ns.L["Turning OpenMap off takes a reload."],
 		get = function() return mod.db.enabled end,
 		set = function(_, v) mod.db.enabled = v; ns:Print(ns.L["Takes effect after a /reload."]) end }
+	args.padWaits = { type = "description", order = 0.5, fontSize = "medium",
+		name = function() return "|cffff8040" .. mod.PadOffText() .. "|r" end,
+		hidden = function() return not mod.padWaits end }
 	return { type = "group", name = "|cff" .. ns.ACCENT .. "OpenMap|r " .. ns.version, args = args }
 end
 
@@ -49,7 +52,9 @@ local function Slash(msg)
 		welcome = "ShowWelcome",
 	}
 	if run[msg] then
-		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod, takes[msg] and rest or nil) else ns:Print(ns.L["The map is off."]) end
+		if mod.enabled and mod[run[msg]] then mod[run[msg]](mod, takes[msg] and rest or nil)
+		elseif mod.padWaits then ns:Print(mod.PadOffText())
+		else ns:Print(ns.L["The map is off."]) end
 	else
 		OpenOptions()
 	end

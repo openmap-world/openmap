@@ -442,5 +442,8 @@
  "Reports and ideas": "Reportes e ideas",
  "Everyone who reports problems and ideas on CurseForge.": "Todos los que reportan problemas y comparten ideas en CurseForge.",
  "the map in combat, RareScanner's icons over the map and other map addons' pins": "el mapa en combate, los íconos de RareScanner sobre el mapa y los íconos de otros addons de mapas",
- "how the map reopens, and middle-click to center on you": "cómo se vuelve a abrir el mapa y el clic central para centrarlo en ti"
+ "how the map reopens, and middle-click to center on you": "cómo se vuelve a abrir el mapa y el clic central para centrarlo en ti",
+ "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "La interfaz del control está activada, así que OpenMap deja el mapa del mundo a Blizzard: con el mapa de OpenMap, el juego bloquea los botones del control (B para cerrar el mapa). Desactiva la interfaz del control para usar el mapa de OpenMap.",
+ "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "La interfaz del control está activada: escribe /reload para que OpenMap deje el mapa del mundo a Blizzard (hasta entonces, el juego puede bloquear el cierre del mapa con el control).",
+ "The Gamepad UI is off: OpenMap's map is back.": "La interfaz del control está desactivada: el mapa de OpenMap está de vuelta."
 }

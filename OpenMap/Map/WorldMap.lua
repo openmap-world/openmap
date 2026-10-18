@@ -252,6 +252,12 @@ function mod.PadCombat()
 	return InCombatLockdown() and InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled() or false
 end
 
+-- the game's Gamepad UI is on (its controller mode)
+local function PadUI()
+	return InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled() and true or false
+end
+mod.PadUI = PadUI
+
 -- the cursor in view px from the view's centre (y down)
 local function CursorOffset()
 	local x, y = PadCursor()
@@ -1031,12 +1037,57 @@ function mod.PinView()
 	return u, v, hu, hv
 end
 
-function mod:OnEnable()
+-- The Gamepad UI and OpenMap's map don't mix. The UI sets the controller's buttons on the map again on
+-- every map change, and on OpenMap's map those changes (and the view they read) are OpenMap's code,
+-- not Blizzard's: the buttons then run as OpenMap's, and closing the map with B does what only
+-- Blizzard's code may ("OpenMap has been blocked from an action only available to the Blizzard UI").
+-- With the Gamepad UI on at login OpenMap leaves the map alone, touching nothing of it, until the UI
+-- is off; turned on later, the map is OpenMap's already and only a reload gives it back
+local started = false
+local function Start()
+	started = true
 	if _G.WorldMapFrame then
 		Setup()
 	elseif EventUtil and EventUtil.ContinueOnAddOnLoaded then
 		EventUtil.ContinueOnAddOnLoaded("Blizzard_WorldMap", Setup)
 	end
+end
+
+-- (said once at login, and whenever /openmap or the options are opened while it waits)
+function mod.PadOffText()
+	return ns.L["The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map."]
+end
+
+local styleOwner = {}
+local function StyleChanged()
+	if PadUI() then
+		if started then ns:Print(ns.L["The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller)."]) end
+	elseif mod.padWaits then
+		if InCombatLockdown() then      -- (set up out of combat, as at login)
+			ns.RegisterEvent(styleOwner, "PLAYER_REGEN_ENABLED", function()
+				ns.UnregisterEvent(styleOwner, "PLAYER_REGEN_ENABLED")
+				StyleChanged()
+			end)
+			return
+		end
+		mod.padWaits = nil
+		mod.enabled = true
+		Start()
+		ns:Print(ns.L["The Gamepad UI is off: OpenMap's map is back."])
+	end
+end
+
+function mod:OnEnable()
+	ns.RegisterEvent(styleOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
+	if PadUI() then
+		self.enabled, self.padWaits = false, true
+		if not self.db.padNoted then
+			self.db.padNoted = true
+			ns:Print(mod.PadOffText())
+		end
+		return
+	end
+	Start()
 end
 
 -- which pin sets each option shows

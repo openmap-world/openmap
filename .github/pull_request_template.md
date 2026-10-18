@@ -4,7 +4,7 @@
 
 ## How it was checked
 
-- [ ] `python -P tools/offline-test/lint.py` and `python tools/offline-test/run.py plain|combat|secret` pass
+- [ ] `python -P tools/offline-test/lint.py` and `python tools/offline-test/run.py plain|combat|secret|pad` pass
 - [ ] Visual change: before / after renders from `tools/map-preview/render.py` attached (marked out of game)
 - [ ] Checked in game (say what; new textures need a full client restart), or say it isn't yet
 

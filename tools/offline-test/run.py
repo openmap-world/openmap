@@ -1,12 +1,13 @@
 """Offline load test: runs OpenMap's toc in a stubbed WoW environment (Lua 5.1).
 
-Usage:  python tools/offline-test/run.py [plain|combat|secret]
+Usage:  python tools/offline-test/run.py [plain|combat|secret|pad]
 Needs:  pip install lupa
 
 Loads every toc file, fires ADDON_LOADED / PLAYER_LOGIN / combat events, runs
 timers, builds + validates the options table and calls every option getter,
 then runs the slash commands. "secret" makes combat values behave like the
-client's secret values. Exit code 1 on any error. (The stub has no real world
+client's secret values; "pad" has the game's Gamepad UI on, where OpenMap must
+leave the map alone. Exit code 1 on any error. (The stub has no real world
 map, so the stitched map itself isn't built here: check that with
 tools/map-preview and in game.) Stubs can't catch nil-tests on secrets or layout problems: always
 confirm in game.
@@ -57,6 +58,8 @@ for rel in toc_files():
         print("LOAD ERROR", rel, "\n", err)
 
 steps = L.eval("""function(ns, scenario)
+    -- (the game's Gamepad UI on: OpenMap must leave Blizzard's map alone, WorldMap.lua's OnEnable)
+    if scenario == "pad" then InputUtil = { IsGamepadUIEnabled = function() return true end } end
     FireEvent("ADDON_LOADED", "OpenMap")
     FireEvent("PLAYER_LOGIN")
     FireEvent("PLAYER_ENTERING_WORLD", true, false)
@@ -79,6 +82,22 @@ steps = L.eval("""function(ns, scenario)
         if not ok2 then ERRORS[#ERRORS + 1] = "slash " .. cmd .. ": " .. tostring(e2) end
     end
     RunTimers(2)
+    if scenario == "pad" then
+        -- (Setup never ran: it would have said the stub's map isn't the expected kind)
+        local m = ns.modules.worldmap
+        local touched = false
+        for _, line in ipairs(LOG) do
+            if tostring(line):find("isn't the expected kind", 1, true) then touched = true end
+        end
+        if m.enabled or not m.padWaits or touched then
+            ERRORS[#ERRORS + 1] = "pad: OpenMap set itself up on the map with the Gamepad UI on"
+        end
+        -- swapped to mouse and keyboard: OpenMap sets up then
+        InputUtil.IsGamepadUIEnabled = function() return false end
+        FireEvent("INPUT_DEVICE_INTERFACE_TRANSITION", 0, 1)
+        RunTimers(2)
+        if not m.enabled or m.padWaits then ERRORS[#ERRORS + 1] = "pad: OpenMap didn't start when the Gamepad UI went off" end
+    end
 end""")
 
 L.execute(r'''

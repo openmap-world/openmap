@@ -442,5 +442,8 @@
  "Reports and ideas": "Сообщения и идеи",
  "Everyone who reports problems and ideas on CurseForge.": "Все, кто сообщает о проблемах и предлагает идеи на CurseForge.",
  "the map in combat, RareScanner's icons over the map and other map addons' pins": "карта в бою, значки RareScanner поверх карты и значки других модификаций карты",
- "how the map reopens, and middle-click to center on you": "повторное открытие карты и центрирование на вас щелчком средней кнопки мыши"
+ "how the map reopens, and middle-click to center on you": "повторное открытие карты и центрирование на вас щелчком средней кнопки мыши",
+ "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "Включен интерфейс контроллера, поэтому OpenMap оставляет карту мира Blizzard: с картой OpenMap игра блокирует кнопки контроллера (B — закрыть карту). Отключите интерфейс контроллера, чтобы пользоваться картой OpenMap.",
+ "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "Включен интерфейс контроллера: введите /reload, чтобы OpenMap оставил карту мира Blizzard (до этого игра может блокировать закрытие карты контроллером).",
+ "The Gamepad UI is off: OpenMap's map is back.": "Интерфейс контроллера отключен: карта OpenMap вернулась."
 }

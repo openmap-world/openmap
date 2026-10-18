@@ -39,11 +39,6 @@
 - **Shortest Path Forever works on the map**: Shift-click the map to plan a journey (OpenMap's
   click-to-zoom took every click first).
 - **The menu's buttons on the map come off with Shift-right-click** only, not a plain right-click.
-- **Gamepad**: A presses the welcome window's buttons, a dungeon map's tabs and floors, the map-note
-  editor, What's new and the code windows (A on a dungeon's map zoomed the world map behind it); with
-  the pad on the quest log, OpenMap no longer shows tooltips under the map's parked cursor or takes
-  X; the left stick's waypoint lands under the cursor, not at the edge of the map underneath; and A
-  on one of Blizzard's icons no longer also presses an OpenMap icon at the same spot.
 - **In combat, fewer "action blocked" errors** from the map's own icons: the super-trackable ones
   (quests, points of interest) wait out combat to set their clicks, as the rest already did, and
   addons loaded later are covered too. Other addons' icons lifted over the map (Leatrix Maps',
@@ -55,6 +50,16 @@
   zoomed in, where the map underneath is the zone, not the continent.
 - **The map opens no further in than the deepest zoom**: centred on you in a city, it opened as far
   in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).
+
+### Fixed
+
+- **With a controller (the game's Gamepad UI), OpenMap leaves the world map to Blizzard.** Closing
+  the map with B said "OpenMap has been blocked from an action only available to the Blizzard UI"
+  (and Disable on that message could crash the game). The Gamepad UI sets the controller's buttons
+  again on every map change, and on OpenMap's map those changes run as OpenMap's code, which the game
+  then blocks from closing the map. Until OpenMap can work with the Gamepad UI without that, it says
+  so once in chat and stays out of the map while the Gamepad UI is on; swap to mouse and keyboard and
+  OpenMap's map is back.
 
 ## v0.5.0-beta (2026-10-16)
 

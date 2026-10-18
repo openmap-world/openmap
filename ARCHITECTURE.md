@@ -254,6 +254,12 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   as the mouse would, and A presses it. `WorldMap.lua` reads that cursor wherever it reads the
   mouse's (`PadCursor`), zooms the stitched map with the right stick at a steady rate about it
   (Blizzard's adds a fixed scale a second), and makes A and X zoom in and out a map as clicks do.
+  None of it runs with the game's Gamepad UI on at login: OpenMap then leaves Blizzard's map alone
+  (`WorldMap.lua`'s `OnEnable`). That UI sets the controller's buttons again on every map change,
+  and on OpenMap's map the change (and the view state it reads) is OpenMap's code, so the buttons'
+  handlers carry OpenMap's taint: B then closes the map through a call only Blizzard's code may
+  make (`SetGamePadCursorControl`, the panel manager's), and the game blocks it. Swapped to the
+  Gamepad UI later, OpenMap asks for a `/reload`; swapped away from it, OpenMap sets up then.
 
 ## Ideas and open questions
 

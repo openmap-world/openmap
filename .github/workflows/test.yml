@@ -22,6 +22,7 @@ jobs:
       - run: python tools/offline-test/run.py plain
       - run: python tools/offline-test/run.py combat
       - run: python tools/offline-test/run.py secret
+      - run: python tools/offline-test/run.py pad
       - run: python tools/offline-test/navigation.py
       - run: python -P tools/offline-test/combat.py
       - name: The tools at least compile

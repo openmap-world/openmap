@@ -442,5 +442,8 @@
  "Reports and ideas": "问题与建议",
  "Everyone who reports problems and ideas on CurseForge.": "所有在CurseForge上报告问题和提出建议的人。",
  "the map in combat, RareScanner's icons over the map and other map addons' pins": "战斗中的地图、地图上方的RareScanner图标以及其他地图插件的图标",
- "how the map reopens, and middle-click to center on you": "地图重新打开的方式，以及中键点击以你为中心"
+ "how the map reopens, and middle-click to center on you": "地图重新打开的方式，以及中键点击以你为中心",
+ "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "手柄界面已启用，因此OpenMap将世界地图交还给暴雪：使用OpenMap的地图时，游戏会阻止手柄按键（按B关闭地图）。关闭手柄界面即可使用OpenMap的地图。",
+ "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "手柄界面已启用：请输入/reload，让OpenMap将世界地图交还给暴雪（在此之前，游戏可能会阻止用手柄关闭地图）。",
+ "The Gamepad UI is off: OpenMap's map is back.": "手柄界面已关闭：OpenMap的地图已恢复。"
 }

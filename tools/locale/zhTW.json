@@ -442,5 +442,8 @@
  "Reports and ideas": "回報與建議",
  "Everyone who reports problems and ideas on CurseForge.": "所有在 CurseForge 回報問題、提出建議的人。",
  "the map in combat, RareScanner's icons over the map and other map addons' pins": "戰鬥中的地圖、地圖上方的 RareScanner 圖示，以及其他地圖插件的圖示",
- "how the map reopens, and middle-click to center on you": "地圖重新開啟的方式，以及點擊滑鼠中鍵以你為中心"
+ "how the map reopens, and middle-click to center on you": "地圖重新開啟的方式，以及點擊滑鼠中鍵以你為中心",
+ "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "遊戲控制器使用者介面已開啟，因此 OpenMap 將世界地圖交還給 Blizzard：使用 OpenMap 的地圖時，遊戲會阻擋控制器按鍵（按 B 關閉地圖）。關閉遊戲控制器使用者介面即可使用 OpenMap 的地圖。",
+ "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "遊戲控制器使用者介面已開啟：請輸入 /reload，讓 OpenMap 將世界地圖交還給 Blizzard（在此之前，遊戲可能會阻擋用控制器關閉地圖）。",
+ "The Gamepad UI is off: OpenMap's map is back.": "遊戲控制器使用者介面已關閉：OpenMap 的地圖已恢復。"
 }
