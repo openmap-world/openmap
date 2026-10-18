@@ -13,7 +13,7 @@ ns.Credits = {
 		{ "Ji" },
 	} },
 	{ L["Maps painted by hand"], {
-		{ "Santiago Reyes (ko-fi.com/sr433_20)", L["the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission"] },
+		{ "Santiago Reyes", L["the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission"] },
 	} },
 	{ L["Programming"], {   -- (not "Code": that's the Pins code button's word)
 		{ "Ironship", L["the map in combat, RareScanner's icons over the map and other map addons' pins"] },
