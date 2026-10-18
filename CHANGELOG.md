@@ -2,8 +2,23 @@
 
 ## Unreleased
 
+## v0.6.0-beta (2026-10-18)
+
 ### New
 
+- **OpenMap in your language**: German, French, Spanish (Spain and Latin America), Italian,
+  Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
+  words for things (flight masters, map pins, the quest log ...). Place names were already the
+  game's. What's new's notes stay in English.
+- **Your quests from every zone, at any zoom**: Blizzard's map shows a zone's quests only once
+  you've zoomed in on that zone; now the quests in your log show across the whole map, in the look
+  of Blizzard's (in progress or ready to turn in, their objectives on hover; click one: it opens in
+  the quest log). The menu's **Quests from every zone** turns them off.
+- **Every cave underground**: the caves, mines, tunnels, crypts, dens and dungeon entrances Blizzard
+  drew no map of (about 250 of them; it drew 39) surface as you zoom in on them too, as the game's
+  own minimap draws them inside, lying as they do: Fargodeep's neighbours, Dun Algaz's tunnel, the
+  troll and kobold caves, the ogre mounds, Razorfen Kraul's, Blackfathom's and Onyxia's Lair's
+  entrances, and WoW Forever's own new caves and vaults.
 - **Ten more gaps painted**: the blank land between zones is painted by hand by Santiago Reyes
   (used with his permission) round Tanaris and Silithus, the Plaguelands, Stonetalon and the
   Barrens, Silverpine and Hillsbrad, Thousand Needles and Feralas, Winterspring and Darkshore,
@@ -11,27 +26,14 @@
   Marsh, and Desolace and Feralas. Their coasts are his own coastlines, fading out into the sea.
   Khaz Modan's comes back sharper, from his full-size painting.
   Options' **Filled gaps** turns them all off.
-- **Mailboxes** in the menu's Townsfolk (from Questie's list of them, as its own map shows them).
 - **Map pins into chat**: Shift-click a pin (on the map or in the Pins list) to put it in chat, as
   Blizzard's map pin link where the game takes one (whoever clicks it gets the waypoint), with its
   note; else its note, zone and position as text.
+- **Mailboxes** in the menu's Townsfolk (from Questie's list of them, as its own map shows them).
 - **Icon size** (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.
-- **Your quests from every zone, at any zoom**: Blizzard's map shows a zone's quests only once
-  you've zoomed in on that zone; now the quests in your log show across the whole map, in the look
-  of Blizzard's (in progress or ready to turn in, their objectives on hover; click one: it opens in
-  the quest log). The menu's **Quests from every zone** turns them off.
-- **OpenMap in your language**: German, French, Spanish (Spain and Latin America), Italian,
-  Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
-  words for things (flight masters, map pins, the quest log ...). Place names were already the
-  game's. What's new's notes stay in English.
 - **Credits** (What's new's **Credits** button): who has made OpenMap, Santiago Reyes's painted
   maps, Ironship's and C-Clymer's work on the code, Blizzard's art, the libraries, and everyone who
   reports problems and ideas.
-- **Every cave underground**: the caves, mines, tunnels, crypts, dens and dungeon entrances Blizzard
-  drew no map of (about 250 of them; it drew 39) surface as you zoom in on them too, as the game's
-  own minimap draws them inside, lying as they do: Fargodeep's neighbours, Dun Algaz's tunnel, the
-  troll and kobold caves, the ogre mounds, Razorfen Kraul's, Blackfathom's and Onyxia's Lair's
-  entrances, and WoW Forever's own new caves and vaults.
 
 ### Improved
 
@@ -39,22 +41,22 @@
   the map zooms and come back as soon as it stops. Each was laid out again on every frame of a zoom,
   which with Questie's hundreds cost a lot of frame rate. Options' **Other addons' icons rest while
   zooming** keeps them up.
-- **Questie's icons across the view**: zoomed out over a zone, the quests of every zone in view show,
-  not only those of the zone underneath and the next one.
-- **Shortest Path Forever works on the map**: Shift-click the map to plan a journey (OpenMap's
-  click-to-zoom took every click first).
-- **The menu's buttons on the map come off with Shift-right-click** only, not a plain right-click.
 - **In combat, fewer "action blocked" errors** from the map's own icons: the super-trackable ones
   (quests, points of interest) wait out combat to set their clicks, as the rest already did, and
   addons loaded later are covered too. Other addons' icons lifted over the map (Leatrix Maps',
   Azeroth Tripview's, Books on Map Forever's) are lifted as combat ends, not during it.
   **RareScanner's** rare icons show over the map (they were under its art). A map addon with a
   HereBeDragons OpenMap can't take over is said once in chat, not passed over. Thanks to Ironship.
+- **Questie's icons across the view**: zoomed out over a zone, the quests of every zone in view show,
+  not only those of the zone underneath and the next one.
+- **Shortest Path Forever works on the map**: Shift-click the map to plan a journey (OpenMap's
+  click-to-zoom took every click first).
+- **The map opens no further in than the deepest zoom**: centred on you in a city, it opened as far
+  in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).
+- **The menu's buttons on the map come off with Shift-right-click** only, not a plain right-click.
 - **For other addons**: `OpenMapAPI.CursorPosition()` (API version 3), the point under the cursor;
   with `MapAt`, the zone under it at any zoom, so a zone-hover tooltip (Zonewise's) can keep working
   zoomed in, where the map underneath is the zone, not the continent.
-- **The map opens no further in than the deepest zoom**: centred on you in a city, it opened as far
-  in as the city's map fits (up to half again past the setting, and blurry past the art's own pixels).
 
 ### Fixed
 
