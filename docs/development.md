@@ -38,6 +38,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python tools/offline-test/run.py pad      # the game's Gamepad UI on: the map left alone
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data)
+   python -P tools/offline-test/explored.py # unexplored land hidden up close (Stitch.lua)
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is
    a load error that takes the whole file down), calls to functions that don't exist, and

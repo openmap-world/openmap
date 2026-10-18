@@ -67,6 +67,10 @@
   then blocks from closing the map. Until OpenMap can work with the Gamepad UI without that, it says
   so once in chat and stays out of the map while the Gamepad UI is on; swap to mouse and keyboard and
   OpenMap's map is back.
+- **Unexplored areas stay hidden up close.** With Unexplored areas on Hide, zooming in the
+  minimap's detail drew over the land you haven't explored (Moonglade, round Ironforge, Hillsbrad),
+  so it looked explored straight away. Unexplored land is blank parchment at every zoom now, as on
+  Blizzard's own map, and a cave under it stays underground.
 - **Caves come up at the usual deepest zoom.** A cave's map surfaced only once it nearly filled the
   view, which at the default deepest zoom (48x, where a mine is a speck) most never could: clicking
   a dungeon entrance glided in and stopped short of it. Over a cave the zoom now goes on past the

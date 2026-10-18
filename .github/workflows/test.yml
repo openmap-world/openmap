@@ -26,5 +26,6 @@ jobs:
       - run: python tools/offline-test/navigation.py
       - run: python -P tools/offline-test/combat.py
       - run: python -P tools/offline-test/caves.py
+      - run: python -P tools/offline-test/explored.py
       - name: The tools at least compile
         run: python -m compileall -q tools

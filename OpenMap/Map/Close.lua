@@ -556,6 +556,8 @@ local function Surface(shown, key, r, u, v, hu, hv, steps, focus)
 	if wait == nil then wait = UNDER_ZOOM end
 	if wait then tz = tz * Smooth(steps, wait) end
 	if tz <= 0.01 then return focus end
+	-- (not one under land still unexplored, while that's hidden)
+	if S.HiddenAt and S.HiddenAt((r[1] + r[3]) / 2, (r[2] + r[4]) / 2) then return focus end
 	shown[key] = tz
 	local off = math.max(math.abs((r[1] + r[3]) / 2 - u) / hu, math.abs((r[2] + r[4]) / 2 - v) / hv)
 	return math.max(focus, tz * (1 - Smooth(off, FOCUS_RANGE)))
@@ -704,6 +706,7 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	local most = CITY_MINI_OF[cityID] or CITY_MINI
 	if mix > most then mix = mix + (most - mix) * (city or 0) end
 	cv.mix = mix
+	if S.MinimapShown then S.MinimapShown(mix > 0.004) end   -- (unexplored land hidden over it: Stitch.lua)
 	local conts = Try("continents", ContinentsInView, u, v, hu, hv) or {}
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)
 	cv.gapTiles = Try("minimap in the gaps", UpdateGapMinimap, conts, u, v, hu, hv,

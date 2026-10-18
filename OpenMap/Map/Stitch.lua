@@ -2104,6 +2104,162 @@ function Shade.Show(mapID)
 	end
 end
 
+--------------------------------------------------------------------------------
+-- Unexplored land hidden ("hide"), up close. The minimap's detail (Close.lua) is drawn over the
+-- zones' art, and showed the land the hidden pieces leave blank. Over it, while it shows, each zone's
+-- blank art again where its unexplored pieces are and no explored piece is: Blizzard's pieces are
+-- rectangles, so that's their rectangles' difference, cut along every piece's edges into strips.
+-- An unexplored place looks the same from every zoom, as on Blizzard's own map.
+--------------------------------------------------------------------------------
+
+-- (in Shade's table: the file is at Lua's limit of 200 locals)
+-- zones: mapID -> { frame, un, grade } (un: how many pieces were unexplored when it was made); root: its
+-- layer, over the minimap (S.artTop - 6), made when first wanted
+-- rects: mapID -> { un, list }: a zone's rectangles, worked out again only once it has fewer unexplored pieces
+Shade.Hide = { zones = {}, rects = {}, on = false, minimap = false }
+
+-- the rectangles a zone hides (its art's px: x0, y0, x1, y1), and how many of its pieces are unexplored
+function Shade.Hide.Rects(mapID)
+	local list = pieces[mapID]
+	if not list then return nil, 0 end
+	local count = 0
+	for _, piece in pairs(list) do if piece.unexplored then count = count + 1 end end
+	local known = Shade.Hide.rects[mapID]
+	if known and known[1] == count then return known[2], count end
+	local un, ex, xs, ys = {}, {}, {}, {}
+	for key, piece in pairs(list) do
+		local w, h, x, y = strsplit(":", key)
+		w, h, x, y = tonumber(w), tonumber(h), tonumber(x), tonumber(y)
+		local r = { x, y, x + w, y + h }
+		if piece.unexplored then un[#un + 1] = r else ex[#ex + 1] = r end
+		xs[#xs + 1], xs[#xs + 2], ys[#ys + 1], ys[#ys + 2] = x, x + w, y, y + h
+	end
+	if #un == 0 then
+		Shade.Hide.rects[mapID] = { 0, nil }
+		return nil, 0
+	end
+	table.sort(xs)
+	table.sort(ys)
+	local function Inside(rs, cx, cy)
+		for _, r in ipairs(rs) do
+			if cx > r[1] and cx < r[3] and cy > r[2] and cy < r[4] then return true end
+		end
+	end
+	local out = {}
+	for j = 1, #ys - 1 do
+		local y0, y1 = ys[j], ys[j + 1]
+		if y1 > y0 then
+			local run                       -- (cells side by side in a row: one strip)
+			for i = 1, #xs - 1 do
+				local x0, x1 = xs[i], xs[i + 1]
+				if x1 > x0 then
+					local cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+					if Inside(un, cx, cy) and not Inside(ex, cx, cy) then
+						if run and run[3] == x0 then run[3] = x1 else run = { x0, y0, x1, y1 } out[#out + 1] = run end
+					else
+						run = nil
+					end
+				end
+			end
+		end
+	end
+	Shade.Hide.rects[mapID] = { count, out }
+	return out, count
+end
+
+-- a zone's blank art over its hidden rectangles, drawn as its base art is (PlaceBase: its frame, its
+-- territory, its colour-matched copy through its border band)
+function Shade.Hide.Build(mapID, rects, un)
+	local p = Place(mapID)
+	local files = p and ArtFiles(mapID)
+	if not files or #files == 0 then return false end
+	local f = CreateFrame("Frame", nil, Shade.Hide.root)
+	f:SetAllPoints(root)
+	local mask = Feather(f, p, FEATHER)
+	local band, territory = ZoneMask(f, p, BAND), ZoneMask(f, p, TERRITORY)
+	local m = ns.MapGrade and ns.MapGrade[mapID]
+	local strength, desat = gradeNow[1], gradeNow[2]
+	local tw, th = p.layer.tileWidth, p.layer.tileHeight
+	local cols = math.ceil(p.layer.layerWidth / tw)
+	for _, r in ipairs(rects) do
+		for j = math.floor(r[2] / th), math.ceil(r[4] / th) - 1 do
+			for k = math.floor(r[1] / tw), math.ceil(r[3] / tw) - 1 do
+				local file = files[j * cols + k + 1]
+				file = tonumber(file) or file
+				local x0, y0 = math.max(r[1], k * tw), math.max(r[2], j * th)
+				local x1, y1 = math.min(r[3], (k + 1) * tw), math.min(r[4], (j + 1) * th)
+				if file and x1 > x0 and y1 > y0 then
+					for copy = 1, band and 2 or 1 do
+						local tex = f:CreateTexture(nil, "ARTWORK", nil, copy - 1)
+						tex:SetTexture(file, nil, nil, "TRILINEAR")
+						tex:SetTexCoord((x0 - k * tw) / tw, (x1 - k * tw) / tw, (y0 - j * th) / th, (y1 - j * th) / th)
+						Record(tex, p.left + x0 * p.sx, p.top + y0 * p.sy, (x1 - x0) * p.sx, (y1 - y0) * p.sy)
+						tex:AddMaskTexture(mask)
+						tex:SetDesaturation(desat)
+						if copy == 2 then
+							tex:AddMaskTexture(band)
+							if m then tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1) end
+						elseif territory then
+							tex:AddMaskTexture(territory)
+						end
+					end
+				end
+			end
+		end
+	end
+	return { frame = f, un = un, grade = strength .. ":" .. desat }
+end
+
+-- shown while unexplored land is hidden, the minimap's detail is drawn, and the zone is near the view;
+-- made again when the player has explored more of it, or the colours have changed
+function Shade.Hide.Show(mapID)
+	local z = Shade.Hide.zones[mapID]
+	local want = Shade.Hide.on and Shade.Hide.minimap and root and Shade.Near(mapID)
+	if want then
+		if not Shade.Hide.root then
+			Shade.Hide.root = CreateFrame("Frame", nil, root)
+			Shade.Hide.root:SetAllPoints(root)
+			Shade.Hide.root:SetFrameLevel(S.artTop - 6)
+		end
+		local rects, un = Shade.Hide.Rects(mapID)
+		local grade = gradeNow[1] .. ":" .. gradeNow[2]
+		if z and (z.un ~= un or z.grade ~= grade) then
+			if z.frame then z.frame:Hide() end
+			z = nil
+		end
+		if not z then
+			z = rects and #rects > 0 and Shade.Hide.Build(mapID, rects, un) or { un = un, grade = grade }
+			Shade.Hide.zones[mapID] = z
+		end
+		if z.frame then z.frame:Show() end
+	elseif z and z.frame then
+		z.frame:Hide()
+	end
+end
+
+-- Close.lua: whether the minimap's detail is drawn
+function S.MinimapShown(on)
+	on = on and true or false
+	if Shade.Hide.minimap == on then return end
+	Shade.Hide.minimap = on
+	for mapID in pairs(zoneTex) do Shade.Hide.Show(mapID) end
+end
+
+-- a world point (normalized) hidden as unexplored land (Close.lua: a cave there doesn't surface)
+function S.HiddenAt(u, v)
+	if not Shade.Hide.on then return false end
+	local chain = S.ChainAt(u, v)
+	local mapID = chain[#chain]
+	local p = mapID and Place(mapID)
+	local rects = p and Shade.Hide.Rects(mapID)
+	if not rects then return false end
+	local x, y = (u * W - p.left) / p.sx, (v * H - p.top) / p.sy
+	for _, r in ipairs(rects) do
+		if x >= r[1] and x <= r[3] and y >= r[2] and y <= r[4] then return true end
+	end
+	return false
+end
+
 -- a zone's textures: those near the view (S.Cull's box), tile by tile, so zoomed in only the part
 -- of a zone on screen is drawn (and has its files loaded), not all of every zone touching the view
 -- A hidden one lets go of its anchor (and a zone's live-layer masks do while none of its live art can
@@ -2144,6 +2300,7 @@ ShowZone = function(mapID)
 		end
 	end
 	Shade.Show(mapID)
+	Shade.Hide.Show(mapID)
 end
 
 -- for the debug overlay (Debug.lua): how much of the zone art has its files loaded, of all of
@@ -2173,6 +2330,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
 	Shade.on = unexplored == "dim"
+	Shade.Hide.on = unexplored == "hide"
 	for _, g in ipairs(graded) do GradeEntry(g, desat) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
