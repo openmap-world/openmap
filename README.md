@@ -16,7 +16,8 @@ OpenMap stitches every zone map into one continuous map. Scroll out of Elwynn an
 - **Ocean and continent names rebuilt** so they zoom properly, lettered in the game's own map font.
 - **Dungeon and raid entrances** with level ranges, coloured for your level. Click one and Blizzard's own map of that dungeon opens right in the map, every floor of it, with its bosses and its quests beside it (with Questie, Dungeon Journal or NeedRoll). With Dungeon Journal, an entrance can open its page there instead. For loot, OpenMap recommends [NeedRoll](https://www.curseforge.com/wow/addons/needroll): every boss's drops, what you've collected and a wishlist.
 - **Boats, zeppelins and airships**, WoW Forever's own too: click one to jump to the other end (the airships to Zephras Isle open its map), and see their routes. Dungeons, boats and zeppelins each have their own switch.
-- **Underground.** Zoom into a cave or a dungeon's entrance area and Blizzard's map of it appears.
+- **Underground.** Zoom into a cave, mine, crypt or a dungeon's entrance area and its map appears:
+  Blizzard's where it drew one, else the game's own minimap of it.
 - **Flight paths.** Learned ones in colour, the rest greyed out. Click two flight masters to see the route you'd fly and roughly how long it takes.
 - **Getting around.** Search for a zone, city, dungeon or flight master; a "Find me" button (or middle-click the map); choose how the map reopens; party and raid members are shown across the whole map. Or take your own arrow off the map and find your way old-school.
 - **Map pins and drawing.** Ctrl-click for as many pins as you like, each with a note and a colour, followed with Blizzard's waypoint (and TomTom's); share them with your group, guild or a friend. Draw on the map with a pen, lines, arrows, circles and raid marks, on its own or on a pin.

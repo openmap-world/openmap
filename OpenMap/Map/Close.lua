@@ -9,8 +9,9 @@
 --   soft       the zone art blurred a little (S.SetBlur: a five-tap blur of the zones
 --              in view) and parchment grain + paper tooth laid over, so stretched art
 --              reads as close-up paper, not pixels
---   underground caves and pre-instance areas (ns.MapCaves, Blizzard's own micro maps,
---              frameless: MapCave masks). Zoom right in on one and the surface dims as
+--   underground caves and pre-instance areas: Blizzard's own micro maps (ns.MapCaves,
+--              frameless: MapCave masks), and every other one as the game's minimap draws
+--              it inside (ns.MapCaveMinimap). Zoom right in on one and the surface dims as
 --              its map surfaces in at its real place; zoom back out and it sinks.
 -- Everything here follows the view: S.SetView from WorldMap.lua on every pan / zoom.
 --------------------------------------------------------------------------------
@@ -42,9 +43,10 @@ local CITY_MINI_OF = {          -- ... less over these: their own plan is detail
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
-local UNDER_START, UNDER_FULL = 1.5, 1.05   -- view width / cave width where a cave starts / finishes surfacing
--- (some sooner: a landmark you look at from further out, Blackrock Mountain's inside)
-local UNDER_START_OF = { [33] = 4 }
+local UNDER_START, UNDER_FULL = 4, 1.8      -- view width / cave width where a cave starts / finishes surfacing
+local UNDER_ZOOM = { 28, 40 }   -- ... and the zoom it waits for (a big one would rise over its whole zone)
+-- (not waiting: a landmark you look at from further out, Blackrock Mountain's inside)
+local UNDER_ZOOM_OF = { [33] = false }
 -- (and a mountain's deeper floors never surface by themselves: they lie under its main one,
 -- Blackrock Caverns and the way down to the Depths under Blackrock Mountain)
 local UNDER_SKIP = { [34] = true, [35] = true }
@@ -407,10 +409,16 @@ local function UpdateGrain(layer, u, v, hu, hv, amount)
 end
 
 --------------------------------------------------------------------------------
--- Underground: caves and pre-instance areas
+-- Underground: caves and pre-instance areas. Blizzard's own cave maps (ns.MapCaves: its micro maps,
+-- frameless through MapCave masks), and every other cave and underground area as the game's minimap
+-- draws it inside (ns.MapCaveMinimap, tools/map-caves/minimap.py: its WMOs' minimap pictures, each a
+-- square turned as the cave lies). Blizzard's are keyed by their map ID, the minimap's by minus
+-- their place in its list.
 --------------------------------------------------------------------------------
 
-local caves = {}                -- uiMapID -> { frame, tiles = {}, rect = { u0, v0, u1, v1 } }, or false
+local caves = {}                -- key -> { frame }, or false
+local rects = {}                -- key -> { u0, v0, u1, v1 } (normalized)
+local EMPTY = {}
 local dim
 
 local function CaveRect(c)
@@ -421,16 +429,36 @@ local function CaveRect(c)
 	return math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1)
 end
 
+-- a minimap cave's box: { continent, minX, minY, maxX, maxY (yards), pictures }
+local function MiniRect(c)
+	local u0, v0 = S.FromYards(c[1], c[4], c[5])
+	local u1, v1 = S.FromYards(c[1], c[2], c[3])
+	if not u0 or not u1 then return end
+	return math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1)
+end
+
+-- any cave's box on the world, worked out once
+local function RectOf(key)
+	local r = rects[key]
+	if r then return r end
+	local u0, v0, u1, v1
+	if key > 0 then
+		u0, v0, u1, v1 = CaveRect(ns.MapCaves[key])
+	else
+		u0, v0, u1, v1 = MiniRect(ns.MapCaveMinimap[-key])
+	end
+	if not u0 then return end
+	r = { u0, v0, u1, v1 }
+	rects[key] = r
+	return r
+end
+
 local function Cave(layer, id, c)
-	local cave = caves[id]
-	if cave then return cave end
 	local u0, v0, u1, v1 = CaveRect(c)
-	if not u0 then caves[id] = false return false end
-	cave = { tiles = {}, rect = { u0, v0, u1, v1 } }
+	if not u0 then return false end
 	local frame = CreateFrame("Frame", nil, layer)
 	frame:SetAllPoints(layer)
 	frame:SetFrameLevel(layer:GetFrameLevel() + 1)
-	cave.frame = frame
 	local mask = frame:CreateMaskTexture()
 	mask:SetTexture(S.CaveMasks .. id, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	S.PlaceWorld(mask, u0, v0, u1, v1)
@@ -444,59 +472,117 @@ local function Cave(layer, id, c)
 		local x0, y0 = u0 + col * tw, v0 + row * th
 		S.PlaceWorld(tex, x0, y0, x0 + tw * pw / 256, y0 + th * ph / 256)
 		tex:AddMaskTexture(mask)
-		cave.tiles[#cave.tiles + 1] = tex
 	end
-	caves[id] = cave
+	return { frame = frame }
+end
+
+-- normalized world units a yard on a continent: east-west (u), north-south (v)
+local perYard = {}
+local function PerYard(cont)
+	local k = perYard[cont]
+	if not k then
+		local u0, v0 = S.FromYards(cont, 0, 0)
+		local u1 = S.FromYards(cont, 0, 1000)
+		local _, v1 = S.FromYards(cont, 1000, 0)
+		if not (u0 and u1 and v1) then return end
+		k = { math.abs(u1 - u0) / 1000, math.abs(v1 - v0) / 1000 }
+		perYard[cont] = k
+	end
+	return k[1], k[2]
+end
+
+-- a cave from the game's minimap: its pictures (file, centre X, Y, side in yards, rotation, u1, v0),
+-- each a square around the block's picture (its texcoords past the picture: clamped to nothing) turned
+-- about its centre; lowest floor first, under the ones above it. Toned as the minimap is up close
+local function MiniCave(layer, c)
+	local ku, kv = PerYard(c[1])
+	if not ku then return false end
+	local frame = CreateFrame("Frame", nil, layer)
+	frame:SetAllPoints(layer)
+	frame:SetFrameLevel(layer:GetFrameLevel() + 1)
+	local p = c[6]
+	local n = #p / 7
+	for i = 1, n do
+		local j = (i - 1) * 7
+		local u, v = S.FromYards(c[1], p[j + 2], p[j + 3])
+		if u then
+			local hu, hv = p[j + 4] / 2 * ku, p[j + 4] / 2 * kv
+			local tex = frame:CreateTexture(nil, "ARTWORK", nil, math.min(7, math.floor((i - 1) * 16 / n) - 8))
+			tex:SetTexture(p[j + 1], "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE", "TRILINEAR")
+			tex:SetTexCoord(0, p[j + 6], p[j + 7], 1)
+			tex:SetRotation(p[j + 5])
+			tex:SetDesaturation(MINI_DESAT)
+			tex:SetVertexColor(PAPER[1], PAPER[2], PAPER[3])
+			S.PlaceWorld(tex, u - hu, v - hv, u + hu, v + hv)
+		end
+	end
+	return { frame = frame }
+end
+
+local function CaveFrame(layer, key)
+	local cave = caves[key]
+	if cave == nil then
+		if key > 0 then cave = Cave(layer, key, ns.MapCaves[key]) else cave = MiniCave(layer, ns.MapCaveMinimap[-key]) end
+		caves[key] = cave
+	end
 	return cave
 end
 
--- how far each cave near the view has surfaced (0..1); the deepest wins
 -- one floor per place: a cave or dungeon entrance with several floors in one spot (Tiragarde
 -- Keep ...) shows its first
 local primary
 local function Primary(id, c)
 	if not primary then
 		primary = {}
-		for k, cc in pairs(ns.MapCaves or {}) do
+		for k, cc in pairs(ns.MapCaves or EMPTY) do
 			if not UNDER_SKIP[k] and (not primary[cc[1]] or k < primary[cc[1]]) then primary[cc[1]] = k end
 		end
 	end
 	return primary[c[1]] == id
 end
 
--- Every cave map in view surfaces by the zoom alone (UNDER_START .. UNDER_FULL of its width),
--- and stays while it's on screen. The surface above dims and softens for the one you're
--- centred on only, so panning about doesn't darken the whole map.
+-- Every cave in view surfaces by how much of the view it fills (UNDER_START .. UNDER_FULL of its
+-- longer side) once the zoom is deep enough (UNDER_ZOOM), and stays while it's on screen. The surface
+-- above dims and softens for the one you're centred on only, so panning about doesn't darken the
+-- whole map.
 local underShown = {}           -- (reused each update)
-local underRange = {}           -- cave id -> its { full, start } (made once: no table a cave a frame)
+local UNDER_RANGE = { UNDER_FULL, UNDER_START }
 local FOCUS_RANGE = { 0.35, 0.8 }
-local function UpdateUnderground(layer, cont, u, v, hu, hv)
+local function Surface(shown, key, r, u, v, hu, hv, steps, focus)
+	if not (r[3] > u - hu and r[1] < u + hu and r[4] > v - hv and r[2] < v + hv) then return focus end
+	local fill = math.min((2 * hu) / (r[3] - r[1]), (2 * hv) / (r[4] - r[2]))   -- view / cave, its longer way
+	local tz = 1 - Smooth(fill, UNDER_RANGE)
+	local wait = UNDER_ZOOM_OF[key]
+	if wait == nil then wait = UNDER_ZOOM end
+	if wait then tz = tz * Smooth(steps, wait) end
+	if tz <= 0.01 then return focus end
+	shown[key] = tz
+	local off = math.max(math.abs((r[1] + r[3]) / 2 - u) / hu, math.abs((r[2] + r[4]) / 2 - v) / hv)
+	return math.max(focus, tz * (1 - Smooth(off, FOCUS_RANGE)))
+end
+
+local function UpdateUnderground(layer, cont, u, v, hu, hv, steps)
 	local shown, focus = underShown, 0
 	wipe(shown)
-	if mod.db.underground and cont and ns.MapCaves then
-		for id, c in pairs(ns.MapCaves) do
+	if mod.db.underground and cont then
+		for id, c in pairs(ns.MapCaves or EMPTY) do
 			if c[2] == cont and not UNDER_SKIP[id] and Primary(id, c) then
-				local u0, v0, u1, v1 = CaveRect(c)
-				if u0 and u1 > u - hu and u0 < u + hu and v1 > v - hv and v0 < v + hv then
-					local fill = (2 * hu) / (u1 - u0)          -- view width / cave width
-					local range = underRange[id]
-					if not range then range = { UNDER_FULL, UNDER_START_OF[id] or UNDER_START } underRange[id] = range end
-					local tz = 1 - Smooth(fill, range)
-					if tz > 0.01 then
-						shown[id] = tz
-						local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
-						local off = math.max(math.abs(cu - u) / hu, math.abs(cv - v) / hv)
-						focus = math.max(focus, tz * (1 - Smooth(off, FOCUS_RANGE)))
-					end
-				end
+				local r = RectOf(id)
+				if r then focus = Surface(shown, id, r, u, v, hu, hv, steps, focus) end
+			end
+		end
+		for i, c in ipairs(ns.MapCaveMinimap or EMPTY) do
+			if c[1] == cont then
+				local r = RectOf(-i)
+				if r then focus = Surface(shown, -i, r, u, v, hu, hv, steps, focus) end
 			end
 		end
 	end
-	for id, cave in pairs(caves) do
-		if cave and not shown[id] then cave.frame:Hide() end
+	for key, cave in pairs(caves) do
+		if cave and not shown[key] then cave.frame:Hide() end
 	end
-	for id, t in pairs(shown) do
-		local cave = Cave(layer, id, ns.MapCaves[id])
+	for key, t in pairs(shown) do
+		local cave = CaveFrame(layer, key)
 		if cave then
 			cave.frame:Show()
 			cave.frame:SetAlpha(t)
@@ -517,14 +603,45 @@ local function UpdateUnderground(layer, cont, u, v, hu, hv)
 	return focus
 end
 
--- the cave holding a world position (yards), for the entrance icons
+-- the cave holding a world position (yards), for the entrance icons: Blizzard's map of it, else the
+-- minimap's
 function S.CaveAt(cont, x, y)
-	for id, c in pairs(ns.MapCaves or {}) do
+	for id, c in pairs(ns.MapCaves or EMPTY) do
 		if c[2] == cont and x >= c[3] and x <= c[5] and y >= c[4] and y <= c[6] then
-			local u0, v0, u1, v1 = CaveRect(c)
-			if u0 then return id, u0, v0, u1, v1 end
+			local r = RectOf(id)
+			if r then return id, r[1], r[2], r[3], r[4] end
 		end
 	end
+	for i, c in ipairs(ns.MapCaveMinimap or EMPTY) do
+		if c[1] == cont and x >= c[2] and x <= c[4] and y >= c[3] and y <= c[5] then
+			local r = RectOf(-i)
+			if r then return -i, r[1], r[2], r[3], r[4] end
+		end
+	end
+end
+
+-- the smallest cave round a world point (normalized), with a margin: WorldMap.lua lets the zoom go on
+-- in over one, until its map fills the view
+local CAVE_MARGIN = 0.25         -- (of its size, each side)
+local function Nearest(r, u, v, best, area)
+	local mu, mv = (r[3] - r[1]) * CAVE_MARGIN, (r[4] - r[2]) * CAVE_MARGIN
+	if u < r[1] - mu or u > r[3] + mu or v < r[2] - mv or v > r[4] + mv then return best, area end
+	local a = (r[3] - r[1]) * (r[4] - r[2])
+	if not area or a < area then return r, a end
+	return best, area
+end
+function S.CaveRectAt(u, v)
+	if not mod.db.underground then return end
+	local best, area
+	for id in pairs(ns.MapCaves or EMPTY) do
+		local r = not UNDER_SKIP[id] and RectOf(id)
+		if r then best, area = Nearest(r, u, v, best, area) end
+	end
+	for i in ipairs(ns.MapCaveMinimap or EMPTY) do
+		local r = RectOf(-i)
+		if r then best, area = Nearest(r, u, v, best, area) end
+	end
+	if best then return best[1], best[2], best[3], best[4] end
 end
 
 --------------------------------------------------------------------------------
@@ -591,7 +708,7 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)
 	cv.gapTiles = Try("minimap in the gaps", UpdateGapMinimap, conts, u, v, hu, hv,
 		mod.db.minimap and mod.db.gapMinimap and GAP_MIX * Smooth(steps, GAP_FADE) or 0)
-	local under = Try("underground", UpdateUnderground, L.under, cont, u, v, hu, hv) or 0
+	local under = Try("underground", UpdateUnderground, L.under, cont, u, v, hu, hv, steps) or 0
 	-- the out-of-focus world above a cave gets heavier grain
 	Try("grain", UpdateGrain, L.grain, u, v, hu, hv, math.max(soft, math.min(1.4, under * 1.4)))
 	for i, fn in ipairs(S.viewHooks) do Try("view hook " .. i, fn, u, v, hu, hv, zoom) end
@@ -624,5 +741,5 @@ function mod:CloseOptions(opts, get, set, off)
 	opts.soften = { type = "toggle", name = ns.L["Soften and add paper grain"], order = 52, get = get, set = set, disabled = off,
 		desc = ns.L["At the closest zoom the painted map runs out of pixels: soften it and lay paper grain over it."] }
 	opts.underground = { type = "toggle", name = ns.L["Caves and dungeon entrances"], order = 53, get = get, set = set, disabled = off,
-		desc = ns.L["Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground."] }
+		desc = ns.L["Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom."] }
 end

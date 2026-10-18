@@ -398,7 +398,6 @@
  "Zone": "Zone",
  "Zone highlight on hover": "Surbrillance de la zone au survol",
  "Zone levels": "Niveaux des zones",
- "Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground.": "Zoomez au plus près sur une grotte ou les abords d'une entrée de donjon, et sa carte apparaît sous terre.",
  "about %s": "environ %s",
  "addons' memory: %s": "mémoire des add-ons : %s",
  "click, then Ctrl-C": "cliquez, puis Ctrl+C",
@@ -445,5 +444,6 @@
  "how the map reopens, and middle-click to center on you": "la réouverture de la carte et le clic central pour centrer la carte sur vous",
  "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "L'interface pour manette est activée, OpenMap laisse donc la carte du monde à Blizzard : avec la carte d'OpenMap, le jeu bloque les boutons de la manette (B pour fermer la carte). Désactivez l'interface pour manette pour retrouver la carte d'OpenMap.",
  "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "L'interface pour manette est activée : tapez /reload pour qu'OpenMap laisse la carte du monde à Blizzard (d'ici là, le jeu peut bloquer la fermeture de la carte à la manette).",
- "The Gamepad UI is off: OpenMap's map is back.": "L'interface pour manette est désactivée : la carte d'OpenMap est de retour."
+ "The Gamepad UI is off: OpenMap's map is back.": "L'interface pour manette est désactivée : la carte d'OpenMap est de retour.",
+ "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "Zoomez au plus près sur une grotte, une mine, une crypte ou les abords d'une entrée de donjon, et sa carte apparaît sous terre : celle de Blizzard s'il en a dessiné une, sinon la minicarte du jeu. Au-dessus, le zoom va au-delà du zoom maximal."
 }

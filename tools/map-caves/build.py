@@ -6,9 +6,12 @@
 #                                       walls, without the parchment, frame, title or corners
 # Placement and tiles come from retail's tables (the micro maps are retail-era; Classic's
 # tables don't have them); only caves whose every tile exists in the Forever build are kept.
+# Where the cave is on its page: its pale floors (cave_mask), and the cave's own WMOs (wmo.py:
+# their minimap pictures, laid on the page), less the page's title ribbon and corner knots.
 #
 # usage: python -P tools/map-caves/build.py <cache dir> [contact sheet.png]
-#   (tables and textures are fetched from wago.tools into the cache)
+#   (tables and textures are fetched from wago.tools into the cache; the WMOs are read as wmo.py
+#   says: OPENMAP_WOW, the game's folder, to read its files there)
 import csv, json, os, struct, sys, time, urllib.request
 import numpy as np
 from PIL import Image
@@ -87,7 +90,8 @@ for mid, u in uimap.items():
     if None in fids or not all(exists_in_forever(f) for f in fids): continue
     box = [float(a["Region_%d" % i]) for i in (0, 1, 3, 4)]      # world minX, minY, maxX, maxY
     um = [float(a[k]) for k in ("UiMin_0", "UiMin_1", "UiMax_0", "UiMax_1")]
-    caves.append({"id": int(mid), "name": u["Name_lang"], "cont": int(a["MapID"]), "box": box, "ui": um, "fids": fids})
+    caves.append({"id": int(mid), "name": u["Name_lang"], "cont": int(a["MapID"]), "box": box, "ui": um, "fids": fids,
+                  "z": (float(a["Region_2"]), float(a["Region_5"]))})
 caves.sort(key=lambda c: c["id"])
 print(len(caves), "caves")
 
@@ -152,6 +156,83 @@ def cave_mask(a):
     fade = ndimage.gaussian_filter(ndimage.binary_erosion(clear > 0.5, iterations=18).astype(np.float32), 8)
     return np.maximum(core, np.clip(halo, 0, 1) * 0.8) * fade
 
+# ------------------------------------------------------------------ the cave itself, from its WMOs
+# cave_mask finds a cave by its pale floors, and misses darker rooms and passages' ends (Night Web's
+# Hollow's great chamber, Burning Blade Coven's west loop, Ban'ethil's lower tunnel). The cave's own
+# WMOs say exactly where it is: their minimap pictures laid on the page (that floor's only), with the
+# walls drawn round them and a halo of the page's parchment, added to it, leaving out the page's
+# title ribbon (its plank's two ends found as on Jasperlode Mine's page: every ribbon is that art)
+# and the corner knots
+sys.path.insert(0, HERE)
+from wmo import World
+from scipy import signal
+world = World(cache)
+
+def ncc(img, t):
+    """normalized cross-correlation of a template over an image (its valid positions)"""
+    t = (t - t.mean()) / (t.std() + 1e-6)
+    n = t.size
+    num = signal.fftconvolve(img, t[::-1, ::-1], mode="valid")
+    ones = np.ones_like(t)
+    s1 = signal.fftconvolve(img, ones, mode="valid")
+    s2 = signal.fftconvolve(img ** 2, ones, mode="valid")
+    return num / np.sqrt(np.maximum(s2 - s1 ** 2 / n, 1e-6)) / np.sqrt(n)
+
+def page_of(c):
+    img = Image.new("RGBA", (1002, 668))
+    for n, f in enumerate(c["fids"]):
+        img.paste(blp(f), ((n % 4) * 256, (n // 4) * 256))
+    return img
+
+RIBBON_FROM = 40                # (Jasperlode Mine's page: its plank's left and right ends)
+ribbon_ends = None
+for c in caves:
+    if c["id"] == RIBBON_FROM:
+        L = np.asarray(page_of(c).convert("RGB")).astype(np.float32).mean(2) / 255
+        ribbon_ends = (L[26:76, 305:345], L[26:76, 670:712])
+
+def ribbons(L):
+    """the title ribbon(s): both plank ends matched, side by side in the top or bottom band"""
+    h, w = L.shape
+    out = np.zeros((h, w), bool)
+    if ribbon_ends is None: return out
+    left, right = ribbon_ends
+    for y0, y1 in ((0, int(h * 0.18)), (int(h * 0.80), h)):
+        ml, mr = ncc(L[y0:y1], left), ncc(L[y0:y1], right)
+        ly, lx = np.unravel_index(np.argmax(ml), ml.shape)
+        ry, rx = np.unravel_index(np.argmax(mr), mr.shape)
+        if ml[ly, lx] > 0.7 and mr[ry, rx] > 0.7 and abs(ly - ry) <= 6 and rx > lx + 60:
+            # (the plank, its scroll ends past it, and a margin)
+            out[max(0, y0 + ly - 12):y0 + ly + left.shape[0] + 14, max(0, lx - 60):rx + right.shape[1] + 60] = True
+    return out
+
+def footprint_mask(c, a, found):
+    """found: cave_mask's (the cave as its floors show it): only the WMOs' rooms joined to it are
+    added (a mountain's or a crypt's rooms the page doesn't draw, Blackrock's, the Master's Cellar's,
+    would be patches of blank page)"""
+    h, w = a.shape[:2]
+    x0, y0, x1, y1 = c["box"]
+    u0, v0, u1, v1 = c["ui"]
+    def to_page(X, Y):
+        return (w * (u0 + (y1 - Y) / (y1 - y0) * (u1 - u0)), h * (v0 + (x1 - X) / (x1 - x0) * (v1 - v0)))
+    fp = world.footprint(c["cont"], c["box"], c["z"], to_page, (w, h))
+    if (fp > 0.3).sum() < 2000: return None                 # (no cave WMO there: a keep, a courtyard)
+    keep = ndimage.binary_dilation(fp > 0.3, iterations=16)  # (and the walls drawn round the floor)
+    lab, n = ndimage.label(keep)
+    joined = np.unique(lab[(found > 0.5) & keep])
+    keep = np.isin(lab, joined[joined > 0])
+    if keep.sum() < 2000: return None
+    core = np.clip(ndimage.gaussian_filter(keep.astype(np.float32), 4) * 1.4 - 0.2, 0, 1)
+    halo = np.clip(ndimage.gaussian_filter(ndimage.binary_dilation(keep, iterations=40).astype(np.float32), 18), 0, 1) * 0.8
+    decor = ribbons(a[..., :3].mean(2))
+    decor[: int(h * 0.15), : int(w * 0.10)] = decor[int(h * 0.85):, int(w * 0.90):] = True   # (the corner knots)
+    decor[: int(h * 0.08), int(w * 0.93):] = decor[int(h * 0.90):, : int(w * 0.07)] = True   # (and page curls)
+    edge = np.ones((h, w), bool)
+    edge[: int(h * 0.03)] = edge[-int(h * 0.03):] = False
+    edge[:, : int(w * 0.02)] = edge[:, -int(w * 0.02):] = False
+    clear = np.clip(ndimage.gaussian_filter((edge & ~decor).astype(np.float32), 16) * 2 - 1, 0, 1)
+    return np.maximum(core, halo) * clear
+
 MASK = 128                      # the masks are soft: 128 px is plenty
 sheet_path = sys.argv[2] if len(sys.argv) > 2 else None    # (optional: a contact sheet of every cave as shown)
 sheet = Image.new("RGB", (6 * 336, 8 * 225)) if sheet_path else None
@@ -164,7 +245,10 @@ for c in caves:
     img = Image.new("RGBA", (1002, 668))
     for n, f in enumerate(c["fids"]):
         img.paste(blp(f), ((n % 4) * 256, (n // 4) * 256))
-    m = cave_mask(np.asarray(img).astype(np.float32) / 255)
+    arr = np.asarray(img).astype(np.float32) / 255
+    m = cave_mask(arr)
+    fp = footprint_mask(c, arr, m)
+    if fp is not None: m = np.maximum(m, fp)
     if m.mean() < 0.01:
         print("  no cave found in", c["name"], c["id"]); continue
     a = Image.fromarray((m * 255).astype(np.uint8)).resize((MASK, MASK), Image.LANCZOS)

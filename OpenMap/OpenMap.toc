@@ -54,6 +54,7 @@ Data\FlightData.lua
 Data\Minimap.lua
 Data\MinimapLOD.lua
 Data\Caves.lua
+Data\CaveMinimap.lua
 Data\Gaps.lua
 Data\GapFills.lua
 Data\Tones.lua

@@ -398,7 +398,6 @@
  "Zone": "지역",
  "Zone highlight on hover": "마우스를 올린 지역 강조",
  "Zone levels": "지역 레벨",
- "Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground.": "동굴이나 던전 입구 주변을 최대로 확대하면 지하 지도가 드러납니다.",
  "about %s": "약 %s",
  "addons' memory: %s": "애드온 메모리: %s",
  "click, then Ctrl-C": "클릭한 다음 Ctrl-C",
@@ -445,5 +444,6 @@
  "how the map reopens, and middle-click to center on you": "지도가 다시 열리는 방식, 마우스 가운데 버튼 클릭으로 내 위치를 중심에 놓기",
  "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "게임패드 사용자 인터페이스가 켜져 있어 OpenMap은 세계 지도를 블리자드 지도로 둡니다. OpenMap 지도에서는 게임이 게임패드 버튼(지도를 닫는 B)을 차단합니다. OpenMap 지도를 쓰려면 게임패드 사용자 인터페이스를 끄십시오.",
  "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "게임패드 사용자 인터페이스가 켜졌습니다. OpenMap이 세계 지도를 블리자드 지도로 두도록 /reload를 입력하십시오. (그 전까지는 게임패드로 지도를 닫는 동작이 차단될 수 있습니다.)",
- "The Gamepad UI is off: OpenMap's map is back.": "게임패드 사용자 인터페이스가 꺼졌습니다. OpenMap 지도가 다시 돌아왔습니다."
+ "The Gamepad UI is off: OpenMap's map is back.": "게임패드 사용자 인터페이스가 꺼졌습니다. OpenMap 지도가 다시 돌아왔습니다.",
+ "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "동굴, 광산, 묘지나 던전 입구 주변을 최대로 확대하면 지하 지도가 드러납니다. 블리자드가 그린 지도가 있으면 그 지도를, 없으면 게임의 미니맵을 보여 줍니다. 그 위에서는 최대 확대보다 더 확대됩니다."
 }

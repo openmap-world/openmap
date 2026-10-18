@@ -276,16 +276,36 @@ end
 -- the deepest zoom at (u, v): further in a city, whose map is small (its own map, and outdoors
 -- the minimap, carry the detail there)
 local CITY_ZOOM = 1.5
+-- and over a cave or a dungeon's entrance area (Close.lua), on in till its map fills this much of the
+-- view: past the deepest zoom, which leaves most caves a speck (their map is drawn finer than the
+-- land's), though in step with it (a low setting stays lower) and no deeper than a city's goes at the
+-- deepest setting
+local CAVE_FILL = 0.9
+local CAVE_DEEPER = 6
+local CAVE_ZOOM_MOST = MAX_ZOOM[2] * CITY_ZOOM
 local function MaxZoomAt(u, v)
-	return mod.db.maxZoom * ((u and S.InCity and S.InCity(u, v)) and CITY_ZOOM or 1)
+	local most = mod.db.maxZoom * ((u and S.InCity and S.InCity(u, v)) and CITY_ZOOM or 1)
+	if u and S.CaveRectAt then
+		local u0, v0, u1, v1 = S.CaveRectAt(u, v)
+		if u0 then
+			local W, H = S.Size()
+			local fit = math.min(sc:GetWidth() / ((u1 - u0) * W), sc:GetHeight() / ((v1 - v0) * H)) / FitPx()
+			most = math.max(most, math.min(CAVE_ZOOM_MOST, mod.db.maxZoom * CAVE_DEEPER, fit * CAVE_FILL))
+		end
+	end
+	return most
 end
 
--- wheel: zoom about the point under the cursor
+-- wheel: zoom about the point under the cursor (zooming in never takes it out: deep over a cave,
+-- with the cursor moved off it)
 local function ZoomAtCursor(factor)
 	local u, v, zoom = View()
 	local sx, sy = CursorOffset()
 	local pu, pv = PerPx(zoom)
-	local target = Clamp((anim and anim.mode == "anchor" and anim.target or zoom) * factor, 1, MaxZoomAt(u + sx * pu, v + sy * pv))
+	local from = anim and anim.mode == "anchor" and anim.target or zoom
+	local most = MaxZoomAt(u + sx * pu, v + sy * pv)
+	if factor > 1 then most = math.max(most, from) end
+	local target = Clamp(from * factor, 1, most)
 	anim = { mode = "anchor", u = u + sx * pu, v = v + sy * pv, sx = sx, sy = sy, target = target }
 	userMoved = true
 end
@@ -310,7 +330,9 @@ local function PadZoom(elapsed)
 	local cu, cv = u + sx * pu, v + sy * pv
 	anim = nil
 	userMoved = true
-	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), 1, MaxZoomAt(cu, cv))
+	local most = MaxZoomAt(cu, cv)
+	if tilt > 0 then most = math.max(most, zoom) end
+	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), 1, most)
 	if math.abs(to - zoom) < 1e-6 then return end
 	pu, pv = PerPx(to)
 	ShowWorld(cu - sx * pu, cv - sy * pv, to)

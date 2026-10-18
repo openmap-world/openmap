@@ -24,7 +24,8 @@ OpenMap/
 tools/
   map-data/       Data/Reveal.lua, Data/Places.lua from the game's tables
   map-flights/    Data/FlightData.lua (the flight network)
-  map-caves/      Data/Caves.lua + MapCave masks (Blizzard's cave / pre-instance maps)
+  map-caves/      Data/Caves.lua + MapCave masks (Blizzard's cave / pre-instance maps); minimap.py:
+                  Data/CaveMinimap.lua (every other cave, from the game's minimap of it)
   map-data/minimap.py  Data/Minimap.lua (the minimap tiles' file IDs)
   map-grade/      Data/Grade.lua + MapBand / MapTerritory / MapCore masks
   map-textures/   edge fades, parchment grain
@@ -162,9 +163,14 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 - **soften + grain**: a five-tap blur of the zones in view (four offset copies, built
   lazily), and `MapGrain` + `MapTooth` over the art in two crossfaded octaves so the grain
   keeps its size on screen.
-- **underground**: caves and pre-instance areas (`Data/Caves.lua`, Blizzard's micro maps;
-  `MapCave` masks drop their frames). One only surfaces when you're centred on it and it
-  nearly fills the view; the surface dims. Entrance icons glide down into theirs.
+- **underground**: caves and pre-instance areas: Blizzard's micro maps where it made one
+  (`Data/Caves.lua`; `MapCave` masks drop their frames, traced from the caves' own rooms), and
+  every other cave, mine, tunnel, crypt and den as the game's minimap draws it inside
+  (`Data/CaveMinimap.lua`, its WMOs' minimap pictures, each turned as the cave lies). A cave surfaces as it comes to fill a quarter of the
+  view, once the zoom is deep enough (`UNDER_ZOOM`), fully at about half; the surface dims round
+  the one you're centred on. Over a cave the zoom goes on past the deepest setting until its map
+  fills the view (`WorldMap.lua`'s `MaxZoomAt`: at the deepest zoom most caves are a speck).
+  Entrance icons glide down into theirs.
 
 ## The rest of `Map/`
 

@@ -37,6 +37,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python tools/offline-test/run.py secret
    python tools/offline-test/run.py pad      # the game's Gamepad UI on: the map left alone
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
+   python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data)
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is
    a load error that takes the whole file down), calls to functions that don't exist, and
@@ -66,7 +67,8 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 1 | `tools/map-data/build.py <cache>` | `Data/Reveal.lua`, `Data/Places.lua` | `ENTRANCES` (below) |
 | 2 | `tools/map-data/minimap.py <cache>` | `Data/Minimap.lua` | |
 | 3 | `tools/map-flights/flights.py <db2> OpenMap/Data/FlightData.lua` | `Data/FlightData.lua` | |
-| 4 | `tools/map-caves/build.py <cache>` | `Data/Caves.lua`, `MapCave/` | |
+| 4 | `tools/map-caves/build.py <cache>` (best with `OPENMAP_WOW`: it reads the caves' WMOs, `wmo.py`) | `Data/Caves.lua`, `MapCave/` | |
+| 4a | `tools/map-caves/minimap.py <cache>` (best with `OPENMAP_WOW`) | `Data/CaveMinimap.lua` | 4 |
 | 5 | `tools/map-grade/fetch.py`, `grade.py` (see its README) | `Data/Grade.lua`, `MapBand/`, `MapCore/` | 1 |
 | 6 | `tools/map-textures/make.py` | `MapFeather*`, `MapGrain`, `MapTooth` | |
 | 7 | `tools/map-art/import.py <db2> <tex>` | `MapArt/`, `Data/ArtEdits.lua` | `art-edits/edited/` |

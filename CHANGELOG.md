@@ -27,6 +27,11 @@
 - **Credits** (What's new's **Credits** button): who has made OpenMap, Santiago Reyes's painted
   maps, Ironship's and C-Clymer's work on the code, Blizzard's art, the libraries, and everyone who
   reports problems and ideas.
+- **Every cave underground**: the caves, mines, tunnels, crypts, dens and dungeon entrances Blizzard
+  drew no map of (about 250 of them; it drew 39) surface as you zoom in on them too, as the game's
+  own minimap draws them inside, lying as they do: Fargodeep's neighbours, Dun Algaz's tunnel, the
+  troll and kobold caves, the ogre mounds, Razorfen Kraul's, Blackfathom's and Onyxia's Lair's
+  entrances, and WoW Forever's own new caves and vaults.
 
 ### Improved
 
@@ -60,6 +65,14 @@
   then blocks from closing the map. Until OpenMap can work with the Gamepad UI without that, it says
   so once in chat and stays out of the map while the Gamepad UI is on; swap to mouse and keyboard and
   OpenMap's map is back.
+- **Caves come up at the usual deepest zoom.** A cave's map surfaced only once it nearly filled the
+  view, which at the default deepest zoom (48x, where a mine is a speck) most never could: clicking
+  a dungeon entrance glided in and stopped short of it. Over a cave the zoom now goes on past the
+  deepest setting until its map fills the window, and a cave comes up as it fills a quarter of it.
+- **Blizzard's cave maps show their whole cave.** Their outlines were traced from the maps' pale
+  floors and lost darker rooms and passages' ends: Night Web's Hollow's great chamber, Burning Blade
+  Coven's west loop, Ban'ethil Barrow Den's lower tunnel and more. They're traced now from where the
+  caves' own rooms lie in the game, leaving out only the page's title ribbon and corner knots.
 
 ## v0.5.0-beta (2026-10-16)
 

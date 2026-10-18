@@ -398,7 +398,6 @@
  "Zone": "Zona",
  "Zone highlight on hover": "Evidenzia zona sotto il cursore",
  "Zone levels": "Livelli delle zone",
- "Zoom right in on a cave or a dungeon's entrance area and its map surfaces from underground.": "Ingrandisci al massimo su una grotta o sull'area d'ingresso di una spedizione e la sua mappa emerge dal sottosuolo.",
  "about %s": "circa %s",
  "addons' memory: %s": "memoria degli add-on: %s",
  "click, then Ctrl-C": "clicca, poi Ctrl-C",
@@ -445,5 +444,6 @@
  "how the map reopens, and middle-click to center on you": "come si riapre la mappa e il clic centrale per centrarla su di te",
  "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.": "L'interfaccia per gamepad è attiva, quindi OpenMap lascia la mappa del mondo a Blizzard: con la mappa di OpenMap il gioco blocca i tasti del controller (B per chiudere la mappa). Disattiva l'interfaccia per gamepad per usare la mappa di OpenMap.",
  "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).": "L'interfaccia per gamepad è attiva: digita /reload perché OpenMap lasci la mappa del mondo a Blizzard (fino ad allora il gioco potrebbe bloccare la chiusura della mappa con il controller).",
- "The Gamepad UI is off: OpenMap's map is back.": "L'interfaccia per gamepad è disattivata: la mappa di OpenMap è tornata."
+ "The Gamepad UI is off: OpenMap's map is back.": "L'interfaccia per gamepad è disattivata: la mappa di OpenMap è tornata.",
+ "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "Ingrandisci al massimo su una grotta, una miniera o una cripta, o sull'area d'ingresso di una spedizione, e la sua mappa emerge dal sottosuolo: quella di Blizzard se ne ha disegnata una, altrimenti la minimappa del gioco. Sopra di esse lo zoom va oltre lo zoom massimo."
 }
