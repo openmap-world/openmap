@@ -119,10 +119,11 @@ painted sea (`MapZoneLand`), from every zoom, with its share of the border land 
 piece's art is drawn again over the zone's (the baked tiles or the live layers), under the cities
 and the minimap: the unexplored pieces darkened (`Shade.DIM`) on its land alone, the explored over
 them as they are. Blizzard's pieces are opaque rectangles and overlap a lot, so a shade per piece
-stacked and showed their tiles; copies of the art over the same art don't. Hiding them, the
-minimap's detail up close would still show the land they leave blank, so while it's drawn each zone's
-blank base art goes again over it (`Shade.Hide`, a layer over the minimap) on its unexplored pieces
-less its explored ones: the rectangles' difference, cut into strips along the pieces' edges.
+stacked and showed their tiles; copies of the art over the same art don't. The minimap's detail up
+close is drawn over all that, so while it's drawn a layer over it (`Shade.Hide`) covers each zone's
+unexplored pieces less its explored ones (the rectangles' difference, cut into strips along the
+pieces' edges): on Hide with the zone's blank base art again, on Darken with the undiscovered shade
+(the darkened copies under the minimap put away meanwhile), so the minimap's detail follows them.
 
 Border colours are matched by a tinted copy of each zone drawn through its border-band
 mask (`MapBand`) with the multipliers in `Data/Grade.lua`. Everything is placed once, in

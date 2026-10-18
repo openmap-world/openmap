@@ -2099,24 +2099,29 @@ function Shade.Show(mapID)
 	local some = here and state == "some"
 	if some and not z.pieces then Shade.Pieces(mapID, z) end
 	if z.dim then
-		z.dim:SetShown(some)
-		if some then Shade.Colour(mapID, z) end
+		local copies = some and not Shade.Hide.minimap      -- (the minimap drawn: Shade.Hide darkens over it)
+		z.dim:SetShown(copies)
+		if copies then Shade.Colour(mapID, z) end
 	end
 end
 
 --------------------------------------------------------------------------------
--- Unexplored land hidden ("hide"), up close. The minimap's detail (Close.lua) is drawn over the
--- zones' art, and showed the land the hidden pieces leave blank. Over it, while it shows, each zone's
--- blank art again where its unexplored pieces are and no explored piece is: Blizzard's pieces are
--- rectangles, so that's their rectangles' difference, cut along every piece's edges into strips.
--- An unexplored place looks the same from every zoom, as on Blizzard's own map.
+-- Unexplored land up close, hidden or darkened. The minimap's detail (Close.lua) is drawn over the
+-- zones' art, and showed the land the hidden pieces leave blank, or as it is where they're darkened.
+-- Over it, while it shows, where a zone's unexplored pieces are and no explored piece is (Blizzard's
+-- pieces are rectangles: their rectangles' difference, cut along every piece's edges into strips):
+-- hidden, the zone's blank art again; darkened, the shade a zone not found at all has (UNDISCOVERED),
+-- over the art and the minimap alike, the pieces' darkened copies under the minimap put away
+-- meanwhile (the two darken alike: Shade.DIM is matched to the shade). Unexplored land looks the same
+-- from every zoom, the minimap's detail following it.
 --------------------------------------------------------------------------------
 
 -- (in Shade's table: the file is at Lua's limit of 200 locals)
--- zones: mapID -> { frame, un, grade } (un: how many pieces were unexplored when it was made); root: its
--- layer, over the minimap (S.artTop - 6), made when first wanted
+-- zones: mapID -> { frame, un, grade } (un: how many pieces were unexplored when it was made; grade: the
+-- mode and colours it was made at); root: its layer, over the minimap (S.artTop - 6), made when first wanted
 -- rects: mapID -> { un, list }: a zone's rectangles, worked out again only once it has fewer unexplored pieces
-Shade.Hide = { zones = {}, rects = {}, on = false, minimap = false }
+-- mode: "hide", "dim" or false (the unexplored areas as they are)
+Shade.Hide = { zones = {}, rects = {}, mode = false, minimap = false }
 
 -- the rectangles a zone hides (its art's px: x0, y0, x1, y1), and how many of its pieces are unexplored
 function Shade.Hide.Rects(mapID)
@@ -2169,12 +2174,23 @@ end
 
 -- a zone's blank art over its hidden rectangles, drawn as its base art is (PlaceBase: its frame, its
 -- territory, its colour-matched copy through its border band)
-function Shade.Hide.Build(mapID, rects, un)
+function Shade.Hide.Build(mapID, rects, un, grade)
 	local p = Place(mapID)
 	local files = p and ArtFiles(mapID)
 	if not files or #files == 0 then return false end
 	local f = CreateFrame("Frame", nil, Shade.Hide.root)
 	f:SetAllPoints(root)
+	if Shade.Hide.mode == "dim" then
+		-- (the shade on the zone's land alone, as a zone not found at all is shaded: the sea it paints left be)
+		local land = ZoneMask(f, p, ZONELAND)
+		for _, r in ipairs(rects) do
+			local tex = f:CreateTexture(nil, "ARTWORK")
+			tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+			Record(tex, p.left + r[1] * p.sx, p.top + r[2] * p.sy, (r[3] - r[1]) * p.sx, (r[4] - r[2]) * p.sy)
+			if land then tex:AddMaskTexture(land) end
+		end
+		return { frame = f, un = un, grade = grade }
+	end
 	local mask = Feather(f, p, FEATHER)
 	local band, territory = ZoneMask(f, p, BAND), ZoneMask(f, p, TERRITORY)
 	local m = ns.MapGrade and ns.MapGrade[mapID]
@@ -2207,14 +2223,18 @@ function Shade.Hide.Build(mapID, rects, un)
 			end
 		end
 	end
-	return { frame = f, un = un, grade = strength .. ":" .. desat }
+	return { frame = f, un = un, grade = grade }
 end
 
--- shown while unexplored land is hidden, the minimap's detail is drawn, and the zone is near the view;
--- made again when the player has explored more of it, or the colours have changed
+-- shown while unexplored land is hidden or darkened (darkened: a zone you've been to, one you haven't
+-- found at all being shaded whole over the minimap already), the minimap's detail is drawn, and the
+-- zone is near the view; made again when the player has explored more of it, or the mode or colours
+-- have changed
 function Shade.Hide.Show(mapID)
 	local z = Shade.Hide.zones[mapID]
-	local want = Shade.Hide.on and Shade.Hide.minimap and root and Shade.Near(mapID)
+	local mode = Shade.Hide.mode
+	local want = (mode == "hide" or (mode == "dim" and Shade.Unexplored(mapID) == "some"))
+		and Shade.Hide.minimap and root and Shade.Near(mapID)
 	if want then
 		if not Shade.Hide.root then
 			Shade.Hide.root = CreateFrame("Frame", nil, root)
@@ -2222,13 +2242,13 @@ function Shade.Hide.Show(mapID)
 			Shade.Hide.root:SetFrameLevel(S.artTop - 6)
 		end
 		local rects, un = Shade.Hide.Rects(mapID)
-		local grade = gradeNow[1] .. ":" .. gradeNow[2]
+		local grade = mode .. ":" .. gradeNow[1] .. ":" .. gradeNow[2]
 		if z and (z.un ~= un or z.grade ~= grade) then
 			if z.frame then z.frame:Hide() end
 			z = nil
 		end
 		if not z then
-			z = rects and #rects > 0 and Shade.Hide.Build(mapID, rects, un) or { un = un, grade = grade }
+			z = rects and #rects > 0 and Shade.Hide.Build(mapID, rects, un, grade) or { un = un, grade = grade }
 			Shade.Hide.zones[mapID] = z
 		end
 		if z.frame then z.frame:Show() end
@@ -2242,12 +2262,15 @@ function S.MinimapShown(on)
 	on = on and true or false
 	if Shade.Hide.minimap == on then return end
 	Shade.Hide.minimap = on
-	for mapID in pairs(zoneTex) do Shade.Hide.Show(mapID) end
+	for mapID in pairs(zoneTex) do
+		Shade.Show(mapID)                -- (a zone's darkened copies put away under the minimap, or back)
+		Shade.Hide.Show(mapID)
+	end
 end
 
 -- a world point (normalized) hidden as unexplored land (Close.lua: a cave there doesn't surface)
 function S.HiddenAt(u, v)
-	if not Shade.Hide.on then return false end
+	if Shade.Hide.mode ~= "hide" then return false end
 	local chain = S.ChainAt(u, v)
 	local mapID = chain[#chain]
 	local p = mapID and Place(mapID)
@@ -2330,7 +2353,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
 	Shade.on = unexplored == "dim"
-	Shade.Hide.on = unexplored == "hide"
+	Shade.Hide.mode = (unexplored == "hide" or unexplored == "dim") and unexplored or false
 	for _, g in ipairs(graded) do GradeEntry(g, desat) end
 	for _, g in ipairs(twins) do
 		local tex, m = g[1], grade[g[2]]
