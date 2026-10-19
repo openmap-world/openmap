@@ -37,6 +37,7 @@ local mod = ns:NewModule("worldmap", {
 		gapFills = true,        -- the gaps between zones painted by hand (art-drawn/gaps)
 		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
 		chart = false,          -- Santiago Reyes's sea chart round the world (Chart.lua)
+		padMap = false,         -- OpenMap's map with the Gamepad UI on too (Gamepad.lua binds B and full screen; a test)
 	},
 })
 
@@ -1115,7 +1116,9 @@ end
 -- not Blizzard's: the buttons then run as OpenMap's, and closing the map with B does what only
 -- Blizzard's code may ("OpenMap has been blocked from an action only available to the Blizzard UI").
 -- With the Gamepad UI on at login OpenMap leaves the map alone, touching nothing of it, until the UI
--- is off; turned on later, the map is OpenMap's already and only a reload gives it back
+-- is off; turned on later, the map is OpenMap's already and only a reload gives it back. Options'
+-- padMap keeps OpenMap's map with the Gamepad UI too: Gamepad.lua binds B and the full-screen buttons
+-- to secure clicks of the map's own buttons, which the game doesn't block (mod.PadKeys)
 local started = false
 local function Start()
 	started = true
@@ -1134,7 +1137,7 @@ end
 local styleOwner = {}
 local function StyleChanged()
 	if PadUI() then
-		if started then ns:Print(ns.L["The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller)."]) end
+		if started and not mod.db.padMap then ns:Print(ns.L["The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller)."]) end
 	elseif mod.padWaits then
 		if InCombatLockdown() then      -- (set up out of combat, as at login)
 			ns.RegisterEvent(styleOwner, "PLAYER_REGEN_ENABLED", function()
@@ -1150,9 +1153,22 @@ local function StyleChanged()
 	end
 end
 
+-- Options' padMap turned on or off: on, while OpenMap waits for the Gamepad UI to go, its map at once;
+-- off with the Gamepad UI on and the map OpenMap's, only a reload gives it back
+function mod.SetPadMap(on)
+	if on and mod.padWaits and not InCombatLockdown() then
+		mod.padWaits = nil
+		mod.enabled = true
+		Start()
+	elseif not on and started and PadUI() then
+		ns:Print(ns.L["The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller)."])
+	end
+	if mod.PadKeys then mod.PadKeys() end
+end
+
 function mod:OnEnable()
 	ns.RegisterEvent(styleOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
-	if PadUI() then
+	if PadUI() and not self.db.padMap then
 		self.enabled, self.padWaits = false, true
 		if not self.db.padNoted then
 			self.db.padNoted = true
@@ -1284,6 +1300,9 @@ function mod:Options()
 			desc = ns.L["Once the map stops moving, the map underneath becomes the zone or continent you're looking at, so quest areas, coordinates and the zone name match what's on screen."] },
 		hoverHighlight = { type = "toggle", name = ns.L["Highlight the zone under the cursor"], order = 11, width = "full", get = get, set = set, disabled = off,
 			desc = ns.L["Blizzard's glow on the zone you're pointing at."] },
+		padMap = { type = "toggle", name = ns.L["OpenMap's map with the controller (test)"], order = 12, width = "full", get = get,
+			set = function(info, v) set(info, v) mod.SetPadMap(v) end,
+			desc = ns.L["With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload."] },
 		lookHeader = ns.Header(ns.L["Look"], 20),
 		colorMatch = { type = "range", name = ns.L["Colour matching"], order = 21, min = 0, max = 1, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off,

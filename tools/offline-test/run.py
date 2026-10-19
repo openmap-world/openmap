@@ -1,13 +1,14 @@
 """Offline load test: runs OpenMap's toc in a stubbed WoW environment (Lua 5.1).
 
-Usage:  python tools/offline-test/run.py [plain|combat|secret|pad]
+Usage:  python tools/offline-test/run.py [plain|combat|secret|pad|padmap]
 Needs:  pip install lupa
 
 Loads every toc file, fires ADDON_LOADED / PLAYER_LOGIN / combat events, runs
 timers, builds + validates the options table and calls every option getter,
 then runs the slash commands. "secret" makes combat values behave like the
 client's secret values; "pad" has the game's Gamepad UI on, where OpenMap must
-leave the map alone. Exit code 1 on any error. (The stub has no real world
+leave the map alone; "padmap" the same with Options' padMap turned on, which
+gives OpenMap the map then. Exit code 1 on any error. (The stub has no real world
 map, so the stitched map itself isn't built here: check that with
 tools/map-preview and in game.) Stubs can't catch nil-tests on secrets or layout problems: always
 confirm in game.
@@ -59,7 +60,7 @@ for rel in toc_files():
 
 steps = L.eval("""function(ns, scenario)
     -- (the game's Gamepad UI on: OpenMap must leave Blizzard's map alone, WorldMap.lua's OnEnable)
-    if scenario == "pad" then InputUtil = { IsGamepadUIEnabled = function() return true end } end
+    if scenario == "pad" or scenario == "padmap" then InputUtil = { IsGamepadUIEnabled = function() return true end } end
     FireEvent("ADDON_LOADED", "OpenMap")
     FireEvent("PLAYER_LOGIN")
     FireEvent("PLAYER_ENTERING_WORLD", true, false)
@@ -97,6 +98,20 @@ steps = L.eval("""function(ns, scenario)
         FireEvent("INPUT_DEVICE_INTERFACE_TRANSITION", 0, 1)
         RunTimers(2)
         if not m.enabled or m.padWaits then ERRORS[#ERRORS + 1] = "pad: OpenMap didn't start when the Gamepad UI went off" end
+    end
+    if scenario == "padmap" then
+        -- (Options' padMap turned on while OpenMap waits: its map at once, the Gamepad UI still on)
+        local m = ns.modules.worldmap
+        if m.enabled or not m.padWaits then ERRORS[#ERRORS + 1] = "padmap: OpenMap didn't wait for the Gamepad UI first" end
+        m.db.padMap = true
+        local ok3, e3 = pcall(m.SetPadMap, true)
+        if not ok3 then ERRORS[#ERRORS + 1] = "padmap: " .. tostring(e3) end
+        RunTimers(2)
+        if not m.enabled or m.padWaits then ERRORS[#ERRORS + 1] = "padmap: OpenMap didn't take the map with padMap on" end
+        if m.PadKeys then
+            local ok4, e4 = pcall(m.PadKeys)
+            if not ok4 then ERRORS[#ERRORS + 1] = "padmap: the keys: " .. tostring(e4) end
+        end
     end
 end""")
 

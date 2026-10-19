@@ -12,6 +12,10 @@
   unless you turn it on.
 - **Clearing map pins**: the Pins list's **Clear** deletes every pin (it asks first), and Alt-click
   deletes one at once, on the map or in the list.
+- **OpenMap's map with the controller** (Options, a test): with the game's Gamepad UI on, OpenMap's
+  map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then
+  (secure clicks of the map's own buttons), so the game doesn't block closing the map. Off unless you
+  turn it on, while it's tried out.
 
 ### Fixed
 

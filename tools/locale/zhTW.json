@@ -452,5 +452,7 @@
  "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "縮到最遠時，世界地圖會鋪在一張填滿視窗的海圖上：周圍的海洋、羅盤、海怪與船隻由 Santiago Reyes 繪製（經其同意使用）。遊戲本身的地圖仍在中間。",
  "Alt-click: delete it": "ALT+點擊：刪除",
  "Delete all %d map pins?": "刪除全部 %d 個地圖標記？",
- "Delete every map pin (you're asked first). One at a time: Alt-click it.": "刪除所有地圖標記（會先確認）。逐一刪除：按 ALT+點擊標記。"
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "刪除所有地圖標記（會先確認）。逐一刪除：按 ALT+點擊標記。",
+ "OpenMap's map with the controller (test)": "遊戲控制器使用 OpenMap 地圖（測試）",
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "遊戲控制器使用者介面開啟時，使用 OpenMap 的地圖取代 Blizzard 的地圖。此時地圖上控制器的 B 鍵與全螢幕鍵由 OpenMap 接管，遊戲不會阻擋。仍在測試中：若遊戲阻擋了某些動作，請關閉此選項並輸入 /reload。"
 }

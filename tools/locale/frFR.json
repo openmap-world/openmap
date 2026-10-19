@@ -452,5 +452,7 @@
  "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "Au zoom le plus éloigné, la carte du monde repose sur une carte marine qui remplit la fenêtre : la mer, les roses des vents, les créatures marines et les navires qui l'entourent, peints par Santiago Reyes (utilisés avec sa permission). La carte du jeu reste au centre.",
  "Alt-click: delete it": "Alt+clic : le supprimer",
  "Delete all %d map pins?": "Supprimer les %d repères cartographiques ?",
- "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Supprime tous les repères cartographiques (une confirmation est demandée). Un par un : Alt+clic dessus."
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Supprime tous les repères cartographiques (une confirmation est demandée). Un par un : Alt+clic dessus.",
+ "OpenMap's map with the controller (test)": "Carte d'OpenMap avec la manette (test)",
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "Avec l'interface pour manette activée, la carte d'OpenMap au lieu de celle de Blizzard. Les boutons B et plein écran de la manette sur la carte passent alors à OpenMap, pour que le jeu ne les bloque pas. Encore à l'essai : si le jeu bloque quelque chose, désactivez ceci et faites /reload."
 }

@@ -38,6 +38,8 @@ python tools/offline-test/run.py plain
 python tools/offline-test/run.py combat
 python tools/offline-test/run.py secret
 python tools/offline-test/run.py pad
+python tools/offline-test/run.py padmap
+python -P tools/offline-test/chart.py
 ```
 
 All must pass. For anything visual, render before and after with

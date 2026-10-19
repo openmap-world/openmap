@@ -122,7 +122,7 @@ def check_truncation(path):
 WOW_API = {
     "CreateFrame", "CreateFromMixins", "CreateVector2D", "Clamp", "HideUIPanel", "ShowUIPanel",
     "LibStub", "GetTime", "GetCursorPosition", "InCombatLockdown", "IsControlKeyDown", "IsShiftKeyDown", "IsAltKeyDown",
-    "GameTooltip_Hide",
+    "GameTooltip_Hide", "SetOverrideBindingClick", "ClearOverrideBindings",
     "StaticPopup_Show", "StaticPopup_Hide", "UnitClass", "UnitExists", "UnitIsUnit", "UnitFactionGroup", "UnitOnTaxi",
     "IsInGroup", "IsInRaid", "GetNumRoutes", "NumTaxiNodes", "TaxiNodeGetType", "TaxiNodeName",
     "GetAddOnMemoryUsage", "UpdateAddOnMemoryUsage", "UnitLevel", "GetQuestDifficultyColor", "GetCVar",

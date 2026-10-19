@@ -101,7 +101,78 @@ function mod.PadPress(x, y, noPins)
 	return true
 end
 
+--------------------------------------------------------------------------------
+-- The controller's B and full-screen buttons on OpenMap's map with the Gamepad UI (Options' padMap).
+-- Blizzard binds them to its map footer's actions, made again on every map change; on OpenMap's map
+-- that change runs OpenMap's code too (its zoom and view), so the actions are made as OpenMap's, and
+-- the game blocks what B does (closing the map hands the gamepad cursor back: Blizzard's code only).
+-- While the footer shows they're bound instead to secure buttons that click the map's own buttons, as
+-- Blizzard's B does (SmartNavigation:AttemptClose clicks the close button): B the close button (full
+-- screen: the minimize button, as Blizzard's goes back to the window first; a quest's details open:
+-- Blizzard's own, which goes back to the list), the D-pad's down and up the maximize and minimize
+-- buttons. (Bindings can't change in combat: set or cleared after it.)
+--------------------------------------------------------------------------------
+
+local keyOwner = CreateFrame("Frame")
+local clickers, waiting = {}, false
+
+local function Clicker(name)
+	local b = CreateFrame("Button", name, UIParent, "SecureActionButtonTemplate")
+	b:SetAttribute("type", "click")
+	b:RegisterForClicks("AnyUp", "AnyDown")   -- (the template acts on the one the game's key-down setting asks for)
+	return b
+end
+
+local function Bind(key, name, target)
+	if not (key and target) then return end
+	local b = clickers[name] or Clicker(name)
+	clickers[name] = b
+	b:SetAttribute("clickbutton", target)
+	SetOverrideBindingClick(keyOwner, true, key, name, "LeftButton")
+end
+
+local padMap
+local function PadKeys()
+	if InCombatLockdown() then waiting = true return end
+	waiting = false
+	ClearOverrideBindings(keyOwner)
+	local footer = padMap and padMap.worldMapFooter
+	if not (footer and footer.isShown and padMap:IsShown() and mod.enabled and mod.db.padMap and mod.PadUI()) then return end
+	local border = padMap.BorderFrame
+	local sizes = border and border.MaximizeMinimizeFrame
+	local full = padMap.IsMaximized and padMap:IsMaximized()
+	local details = QuestMapFrame and QuestMapFrame.DetailsFrame and QuestMapFrame.DetailsFrame:IsShown()
+	if not details then   -- (Blizzard's own B then: back to the quest list, nothing blocked)
+		Bind(GAMEPAD_FACE_RIGHT, "OpenMapPadBack", full and sizes and sizes.MinimizeButton or border and border.CloseButton)
+	end
+	if sizes then
+		if full then
+			Bind(GAMEPAD_DPAD_TOP, "OpenMapPadSmall", sizes.MinimizeButton)
+		else
+			Bind(GAMEPAD_DPAD_BOTTOM, "OpenMapPadFull", sizes.MaximizeButton)
+		end
+	end
+end
+mod.PadKeys = PadKeys
+
+local function SetupPadKeys(worldMap)
+	padMap = worldMap
+	local footer = worldMap.worldMapFooter
+	if footer then   -- (after Blizzard's own binding, each time it binds or unbinds them)
+		for _, name in ipairs({ "ShowAndActivateBindings", "HideAndDeactivateBindings", "Refresh" }) do
+			if type(footer[name]) == "function" then hooksecurefunc(footer, name, PadKeys) end
+		end
+	end
+	for _, name in ipairs({ "Maximize", "Minimize" }) do
+		if type(worldMap[name]) == "function" then hooksecurefunc(worldMap, name, PadKeys) end
+	end
+	worldMap:HookScript("OnHide", PadKeys)
+	ns.RegisterEvent(keyOwner, "PLAYER_REGEN_ENABLED", function() if waiting then PadKeys() end end)
+	ns.RegisterEvent(keyOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", PadKeys)
+end
+
 function mod:SetupGamepad(worldMap)
+	SetupPadKeys(worldMap)
 	local driver = CreateFrame("Frame", nil, worldMap)
 	local wait = 0
 	driver:SetScript("OnUpdate", function(_, elapsed)
