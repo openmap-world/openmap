@@ -1,6 +1,6 @@
 # The sea chart
 
-Options' **Sea chart** (off unless chosen): Santiago Reyes's sea chart round the world map
+Options' **Responsive ocean & border** (off unless chosen): Santiago Reyes's sea chart round the world map
 (`art-drawn/chart/`, used with his permission), laid out for the map window's shape. Zoomed right
 out, the chart fills the view; the game's own world map stays in its middle, fading into his sea.
 
@@ -37,4 +37,4 @@ In game (`Chart.lua`, Stitch.lua's `S.SetChart`): the chart is drawn under all o
 place of the sea OpenMap draws past the world map (`MapSeaFieldOut`, its mottling, the continents'
 sea past the world map's edges); the world map fades into it through `MapChart\Middle`. Zoomed right
 out the chart fills the view, and the view pans to its edges and no further (WorldMap.lua:
-`LeastZoom`, `Extents`). The parchment border round the view is off with it (the chart has its own).
+`LeastZoom`, `Extents`). Its frame is the map's only border: off, the map has none.

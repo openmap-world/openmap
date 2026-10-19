@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- The sea chart (Options' Sea chart; off unless chosen): Santiago Reyes's sea, ornaments and frame
+-- The sea chart (Options' Responsive ocean & border; off unless chosen): Santiago Reyes's sea, ornaments and frame
 -- round the game's world map, used with his permission (ns.MapChart, tools/map-chart). The game's map
 -- stays in the middle, never covered; the chart is laid out for the window's shape: its paper cut and
 -- cross-faded to fill it, the ornaments each in its place for that shape (worked out once per shape:
@@ -257,7 +257,7 @@ function C.Layout(w, h)
 	end
 end
 
--- the chart on or off (Options' Sea chart)
+-- the chart on or off (Options' Responsive ocean & border)
 function C.SetShown(on)
 	on = on and ns.MapChart and S.chartHost and Place() and true or false
 	if on and not frame then

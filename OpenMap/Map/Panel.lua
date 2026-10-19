@@ -250,8 +250,7 @@ local function Rows()
 			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
 	end
 	rows[#rows + 1] = { L["The map"] }
-	rows[#rows + 1] = optRow(L["Parchment border"], "border", Icon("INV_Scroll_03"))
-	rows[#rows + 1] = optRow(L["Sea chart"], "chart", Icon("INV_Misc_Map02"))
+	rows[#rows + 1] = optRow(L["Responsive ocean & border"], "chart", Icon("INV_Misc_Map02"))
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Coordinates"], "coords", Icon("INV_Misc_Spyglass_03"))
@@ -263,7 +262,7 @@ local function Rows()
 			mod:Refresh()
 			if ns.NotifyOptions then ns.NotifyOptions() end
 		end)
-	rows[#rows + 1] = row(L["Minimap button"], "minimapButton", Icon("INV_Misc_Map_02"), function() return db.minimapButton end,
+	rows[#rows + 1] = row(L["Minimap button"], "minimapButton", Icon("Achievement_Zone_EasternKingdoms_01"), function() return db.minimapButton end,
 		function(v)
 			db.minimapButton = v
 			if mod.RefreshLauncher then mod.RefreshLauncher() end

@@ -85,7 +85,6 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 12c | `tools/map-preview/gapplaces.py <db2> <cache>` (best with `OPENMAP_WOW`: it reads the terrain) | `MapGapPlace/`, `Data/GapPlaces.lua` | 12b |
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |
 | 13a | `tools/map-preview/minimaplod.py <db2> <tex>` | `MapMiniLOD/`, `Data/MinimapLOD.lua` | 13 |
-| 14 | `tools/map-art/border.py` | `MapBorder/` | `art-edits/border.png` |
 | 15 | `tools/map-preview/render.py <db2> <tex> <out> --bake-zones` | `MapZones/`, `Data/ZoneArt.lua` | 5, 7, 8, 11, 12, 12b |
 | 16 | `tools/changelog/build.py` (after any change to `CHANGELOG.md`) | `Data/Changelog.lua` | |
 | 17 | `tools/map-dungeons/build.py <cache> <WoW folder> [preview dir]` | `Data/DungeonMaps.lua` | 1 |
@@ -109,7 +108,7 @@ and rerun step 1.
 baked into tiles; `OPENMAP_BAKED=1` renders from those tiles, to compare). Each texture in `OpenMap/Media/Textures` is listed in its
 `NOTICE.md` with the script that makes it: add a line when you add a texture.
 
-Hand edits of Blizzard's art (names painted out, the border) live in `art-edits/`
+Hand edits of Blizzard's art (names painted out) live in `art-edits/`
 (see its README). Nothing in the repo is drawn or written by a generator: art is
 Blizzard's, cut, masked or hand-edited; facts come from the game's tables or a cited source.
 

@@ -23,7 +23,6 @@ DETAIL_HINT = (1.8, 3, 0.3)     # (the zones' hint from further out: Stitch.lua'
 CITY_FADE_OF = {1454: (0.08, 0.25), 1456: (0.08, 0.25)}   # (cities that come in sooner: Stitch.lua's)
 BANNER_OUT = (0.25, 0.4)        # (a zone's banner for a city that keeps its own goes: Stitch.lua's)
 UNDERGROUND_CITIES = (1455, 1458)   # (Ironforge, Undercity: their zone paints the surface over them, Stitch.lua's)
-BORDER_OUT, BORDER_SCALE = (1.15, 1.6), 0.55   # (the border round the view: Window.lua's)
 SEA = (0.50, 0.49, 0.41)        # the sea's colour where no map paints one (MapSeaField covers the rest)
 SEA_REACH = 1.5                 # how far past the world art the sea runs (Stitch.lua's): MapSeaFieldOut over it
 BACK_MUTE = 0.92                # how far the world / continent art fades as it mutes (alpha 1 - this)
@@ -35,7 +34,7 @@ SEA_OCTAVE, HATCH_OCTAVE = 4, 7        # zoom where each starts halving to keep 
 HATCH_ALPHA = 0.6
 USE_SEA = os.environ.get("OPENMAP_SEA", "1") == "1"
 USE_GAP = os.environ.get("OPENMAP_GAP", "1") == "1"
-USE_CHART = os.environ.get("OPENMAP_CHART", "0") == "1"   # Options' Sea chart (Chart.lua; tools/map-chart/layout.py draws it)
+USE_CHART = os.environ.get("OPENMAP_CHART", "0") == "1"   # Options' Responsive ocean & border (Chart.lua; tools/map-chart/layout.py draws it)
 USE_BAKED = os.environ.get("OPENMAP_BAKED", "0") == "1"   # the zones from their baked tiles (--bake-zones), as the game draws them
 ZONES_ONLY, FADE_ZOOM = False, None   # (gapfill.py: only the zone layers, at full detail)
 
@@ -739,20 +738,6 @@ def render(cu, cv, zoom, path):
                     out_rect = (l - BORDER_REACH / W_, r + BORDER_REACH / W_, t - BORDER_REACH / H_, b + BORDER_REACH / H_)
                     place({"id": m["id"], "rect": out_rect}, solid, rim, alpha=UNDISCOVERED[3])
             # ("half": a zone you've been to, its pieces' copies under the cities, above)
-    ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
-    if ba > 0.003 and not ZONES_ONLY and not USE_CHART:   # (not round the sea chart: Window.lua)
-        c = int(round(192 * BORDER_SCALE * OH / 1024))
-        pieces = (("tl", 0, 0, c, c, .75, .75), ("tr", OW - c, 0, c, c, .75, .75), ("bl", 0, OH - c, c, c, .75, .75),
-                  ("br", OW - c, OH - c, c, c, .75, .75), ("top", c, 0, OW - 2 * c, c, 1, .75), ("bottom", c, OH - c, OW - 2 * c, c, 1, .75),
-                  ("left", 0, c, c, OH - 2 * c, .75, 640 / 1024), ("right", OW - c, c, c, OH - 2 * c, .75, 640 / 1024))
-        for name, x, y, w, h, u1, v1 in pieces:
-            if w < 1 or h < 1: continue
-            src = Image.open(os.path.join(TEXDIR, "MapBorder", name + ".tga")).convert("RGBA")
-            src = src.crop((0, 0, int(src.width * u1), int(src.height * v1)))
-            piece = np.asarray(src.resize((w, h), Image.BILINEAR)).astype(np.float32) / 255
-            a = piece[..., 3:4] * ba
-            dst = out[y:y + h, x:x + w]
-            dst[:] = dst * (1 - a) + piece[..., :3] * a
     Image.fromarray((np.clip(out, 0, 1) * 255).astype(np.uint8)).save(path)
     print("wrote", path, flush=True)
 

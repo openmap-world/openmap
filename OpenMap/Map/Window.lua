@@ -20,10 +20,8 @@ d.fullWidth = true              -- the maximized map fills the screen's width (t
 local MIN_SCALE, MAX_SCALE = 0.5, 1.6
 local MIN_W, MIN_H = 480, 320
 
-d.border = true                 -- the map art's parchment frame round the map, zoomed right out
-
-local map, handle, grip, border  -- (grip: both corners' grips)
-local FillScreen, SetupBorder, SetupQuestLog, TurnArrows
+local map, handle, grip         -- (grip: both corners' grips)
+local FillScreen, SetupQuestLog, TurnArrows
 local blizzardSize              -- the windowed map's own size, for a reset
 local ours = false              -- OpenMap is moving / sizing the window itself (not to be undone)
 local sizing = false            -- a grip is being dragged: the drag sizes the window, nothing puts it back
@@ -101,104 +99,9 @@ function mod:ResetWindow()
 	end
 end
 
---------------------------------------------------------------------------------
--- The border: the map art's own parchment frame round the map's view, cut in nine
--- (tools/map-art/border.py): the corners as they are, and each edge laid as several copies of
--- its piece at about its own length, every other one mirrored (so the joins meet seamlessly),
--- an odd number of them (so both ends are the piece's own, cut to meet the corners): a frame
--- for a window of any shape without stretching the edges. It's fixed to the view's edge (it doesn't move with the map), and
--- seen only zoomed right out: it fades as you zoom in (BORDER_FADE). It takes no clicks.
---------------------------------------------------------------------------------
-
-local BORDER = ns.Media.path .. "Textures\\MapBorder\\"
-local CORNER, SIDE = 192 / 256, 640 / 1024   -- the pieces' content on their canvases (border.py)
-local EDGE_LONG, SIDE_LONG = 1024 / 192, 640 / 192   -- an edge piece's length, in corner sizes
-local BORDER_SCALE = 0.55       -- the corners' size: their own 192 px x this, per 1024 px of view height
-local BORDER_FADE = { 1.15, 1.6 }   -- zoom where it starts / finishes fading out
-
-local function Piece(name, sub)
-	local tex = border:CreateTexture(nil, "OVERLAY", nil, sub or 0)
-	tex:SetTexture(BORDER .. name, nil, nil, "LINEAR")
-	return tex
-end
-
--- an edge: `length` laid with copies of its piece (`natural` long each, as near as an odd count allows)
-local function LayEdge(name, length, c, natural)
-	local list = border.edges[name]
-	local n = math.max(1, math.floor(length / natural / 2 + 0.5) * 2 + 1)
-	if length / n < natural * 0.6 then n = math.max(1, n - 2) end
-	local seg = length / n
-	for i = 1, math.max(n, #list) do
-		local tex = list[i]
-		if i <= n then
-			if not tex then
-				tex = Piece(name, -1)             -- (under the corners)
-				list[i] = tex
-			end
-			local flip = i % 2 == 0
-			tex:ClearAllPoints()
-			local at = c + (i - 1) * seg
-			if name == "top" or name == "bottom" then
-				tex:SetSize(seg, c)
-				tex:SetPoint(name == "top" and "TOPLEFT" or "BOTTOMLEFT", border, name == "top" and "TOPLEFT" or "BOTTOMLEFT", at, 0)
-				if flip then tex:SetTexCoord(1, 0, 0, CORNER) else tex:SetTexCoord(0, 1, 0, CORNER) end
-			else
-				tex:SetSize(c, seg)
-				tex:SetPoint(name == "left" and "TOPLEFT" or "TOPRIGHT", border, name == "left" and "TOPLEFT" or "TOPRIGHT", 0, -at)
-				if flip then tex:SetTexCoord(0, CORNER, SIDE, 0) else tex:SetTexCoord(0, CORNER, 0, SIDE) end
-			end
-			tex:Show()
-		elseif tex then
-			tex:Hide()
-		end
-	end
-end
-
-local function SizeBorder()
-	local sc = map.ScrollContainer
-	local w, h = sc:GetWidth(), sc:GetHeight()
-	if not (w and h and w > 0 and h > 0) then return end
-	local c = 192 * BORDER_SCALE * h / 1024
-	for _, tex in ipairs(border.corners) do tex:SetSize(c, c) end
-	LayEdge("top", w - 2 * c, c, c * EDGE_LONG)
-	LayEdge("bottom", w - 2 * c, c, c * EDGE_LONG)
-	LayEdge("left", h - 2 * c, c, c * SIDE_LONG)
-	LayEdge("right", h - 2 * c, c, c * SIDE_LONG)
-end
-
-SetupBorder = function()
-	local sc = map.ScrollContainer
-	border = CreateFrame("Frame", nil, map)
-	border:SetAllPoints(sc)
-	border:SetFrameLevel(math.min(sc:GetFrameLevel() + 9000, 9900))   -- (over the map's icons, under OpenMap's menu)
-	local tl, tr, bl, br = Piece("tl"), Piece("tr"), Piece("bl"), Piece("br")
-	tl:SetPoint("TOPLEFT")
-	tr:SetPoint("TOPRIGHT")
-	bl:SetPoint("BOTTOMLEFT")
-	br:SetPoint("BOTTOMRIGHT")
-	for _, tex in ipairs({ tl, tr, bl, br }) do tex:SetTexCoord(0, CORNER, 0, CORNER) end
-	border.corners = { tl, tr, bl, br }
-	border.edges = { top = {}, bottom = {}, left = {}, right = {} }
-	sc:HookScript("OnSizeChanged", SizeBorder)
-	SizeBorder()
-	-- only round the stitched map (Blizzard's own maps have their frame in their art), and
-	-- only zoomed right out
-	local alpha = -1
-	local watch = CreateFrame("Frame", nil, map)
-	watch:SetScript("OnUpdate", function()
-		local a = 0
-		-- (not round the sea chart: it has its own frame)
-		if mod.db.border and not mod.db.chart and mod.IsStitched() and not (mod.DungeonViewShown and mod.DungeonViewShown()) then
-			local _, _, zoom = mod.ViewNow()
-			local t = math.max(0, math.min(1, ((zoom or 1) - BORDER_FADE[1]) / (BORDER_FADE[2] - BORDER_FADE[1])))
-			a = math.floor((1 - t * t * (3 - 2 * t)) * 50 + 0.5) / 50
-		end
-		if a ~= alpha then
-			alpha = a
-			border:SetAlpha(a)
-			border:SetShown(a > 0)
-		end
-	end)
+-- over the map's icons and what OpenMap lays over them (the dungeon view), under OpenMap's menu
+local function OverIcons()
+	return math.min(map.ScrollContainer:GetFrameLevel() + 9000, 9900)
 end
 
 -- a resize grip in one of the window's bottom corners: any width and height, the top edge and
@@ -219,7 +122,7 @@ local function FitRightGrip()
 	g:SetSize(size, size)
 	g:SetHitRectInsets(-inside, -GRIP_OUT, -inside, -GRIP_OUT)
 	g:SetFrameStrata(log and "HIGH" or map:GetFrameStrata())
-	g:SetFrameLevel(log and 9990 or border:GetFrameLevel() + 1)
+	g:SetFrameLevel(log and 9990 or OverIcons() + 1)
 end
 
 local function Grip(corner)
@@ -363,15 +266,14 @@ function mod:SetupWindow(worldMap)
 	-- Blizzard re-sizes the maximized map when the screen or UI scale changes
 	if map.UpdateMaximizedSize then hooksecurefunc(map, "UpdateMaximizedSize", function() if Maximized() then FillScreen() end end) end
 	map:HookScript("OnShow", Mode)
-	SetupBorder()
-	for _, g in ipairs(grip) do g:SetFrameLevel(border:GetFrameLevel() + 1) end
+	for _, g in ipairs(grip) do g:SetFrameLevel(OverIcons() + 1) end
 	FitRightGrip()
 	SetupQuestLog()
-	-- Blizzard's buttons on the map over the parchment border (it's over the map's icons): zoomed right
-	-- out, it hid the quest log's button; and that button's arrows turned (Blizzard's point the other
-	-- way): the log comes in from the right, so in is ◀ and away is ▶
+	-- Blizzard's buttons on the map over its icons and the dungeon view (the quest log's button among
+	-- them); and that button's arrows turned (Blizzard's point the other way): the log comes in from
+	-- the right, so in is ◀ and away is ▶
 	local function Buttons()
-		local over = border:GetFrameLevel() + 2
+		local over = OverIcons() + 2
 		for _, f in ipairs(map.overlayFrames or {}) do
 			if f.GetFrameLevel and f:GetFrameLevel() < over then f:SetFrameLevel(over) end
 		end
@@ -536,8 +438,6 @@ function mod:WindowOptions(opts, get, set, off)
 			if map.UpdateMaximizedSize then map:UpdateMaximizedSize() else FillScreen() end   -- (off: Blizzard's size again on the next maximize)
 		end, disabled = off,
 		desc = L["When maximized, the map takes the screen's whole width instead of keeping Blizzard's shape with bars at the sides."] }
-	opts.border = { type = "toggle", name = L["Parchment border"], order = 28, get = get, set = set, disabled = off,
-		desc = L["The map art's own torn-parchment frame round the map, seen when you're zoomed right out."] }
 	opts.resetWindow = { type = "execute", name = L["Reset size and place"], order = 26, disabled = moved,
 		func = function() mod:ResetWindow() end }
 end

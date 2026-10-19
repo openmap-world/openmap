@@ -30,7 +30,6 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapMiniLOD/` | the game's minimap tiles, shrunk and laid side by side (16 and 64 px a tile), tinted as the close-up minimap is | `tools/map-preview/minimaplod.py` |
 | `MapZones/` | every zone map composited onto the world as the map draws it at full detail (each zone's base art and overlays through its masks, the colour-match copies, the interiors, the gaps' finer maps), in 512-px tiles, BLP with DXT5 compression | `tools/map-preview/render.py --bake-zones` |
 | `MapArt/` | world and continent map tiles with their sea and continent names painted out (by hand) | `tools/map-art/import.py` |
-| `MapBorder/` | the map art's parchment frame (cut out by hand), in nine pieces | `tools/map-art/border.py` |
 
 **Drawn for WoW Forever's own dungeons** (the game has no map of them), used with the artist's
 permission, credited on the map in game, and not covered by OpenMap's MIT licence:
@@ -38,7 +37,7 @@ permission, credited on the map in game, and not covered by OpenMap's MIT licenc
 | Texture | What it is | Made by |
 | --- | --- | --- |
 | `MapDungeonDrawn/` | maps of City of Dalaran (`2959_*`), Excavation Site: Wetlands (`2998_*`), Ruins of Lordaeron (`2999_*`) and The Hall of Thanes (`3065_*`), drawn by Santiago Reyes (<https://ko-fi.com/sr433_20>; originals in `art-drawn/dungeons/`), in the dungeon map layout: 4 x 3 tiles of 256 px | `tools/map-dungeons/drawn.py` |
-| `MapChart/` | the sea chart round the world map (Options' Sea chart), painted by Santiago Reyes (originals in `art-drawn/chart/`): his paper and sea, the dark ground under it (made to tile), his navigation lines (each compass rose's rays apart), his ornaments and frame corners, each cut out on its own; with them two cross-fade masks for the paper's seams (`SeamX`, `SeamY`, generated) and `Middle`, a mask of the game's world map in the chart (from `MapFeatherWide` and `MapBackLand/947`) | `tools/map-chart/build.py` |
+| `MapChart/` | the sea chart round the world map (Options' Responsive ocean & border), painted by Santiago Reyes (originals in `art-drawn/chart/`): his paper and sea, the dark ground under it (made to tile), his navigation lines (each compass rose's rays apart), his ornaments and frame corners, each cut out on its own; with them two cross-fade masks for the paper's seams (`SeamX`, `SeamY`, generated) and `Middle`, a mask of the game's world map in the chart (from `MapFeatherWide` and `MapBackLand/947`) | `tools/map-chart/build.py` |
 | `MapGapFill/` | land no zone map covers, painted by hand by Santiago Reyes in the zone maps' style from Blizzard's own art, following the game's minimap (originals in `art-drawn/gaps/`), cut to that land and tiled; with it, the `MapZones/` tiles it shows in | `tools/map-preview/gapfills.py` |
 
 **Generated** (no game art in them): `MapGrain`, `MapTooth` (paper grain, from noise)

@@ -1,6 +1,6 @@
 # The sea chart
 
-Santiago Reyes's sea chart round the world map (Options' **Sea chart**): the sea, compass roses,
+Santiago Reyes's sea chart round the world map (Options' **Responsive ocean & border**): the sea, compass roses,
 sea creatures, ships, astrolabe, vignette and frame he painted round the game's world map. Used
 with his permission; like the rest of `art-drawn/`, it isn't Blizzard's art and isn't covered by
 OpenMap's MIT licence: ask him before using it anywhere else. In the game the middle of the chart

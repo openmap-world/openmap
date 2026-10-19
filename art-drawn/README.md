@@ -13,7 +13,7 @@ Santiago Reyes's Ko-fi: https://ko-fi.com/sr433_20
 | `dungeons/ruins-of-lordaeron.png` | Ruins of Lordaeron | Santiago Reyes |
 | `dungeons/hall-of-thanes.png` | The Hall of Thanes | Santiago Reyes |
 
-`chart/` holds the sea chart round the world map (Options' Sea chart: the sea, compass roses, sea
+`chart/` holds the sea chart round the world map (Options' Responsive ocean & border: the sea, compass roses, sea
 creatures, ships and frame), painted by Santiago Reyes and used with his permission; not covered by the
 MIT licence either (see its README).
 

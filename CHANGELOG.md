@@ -6,12 +6,13 @@
 
 ### New
 
-- **Sea chart** (Options, and the map's menu): zoomed right out, the world map lies on a sea chart
-  painted by Santiago Reyes (used with his permission), laid out for your window's shape: the sea,
-  compass roses, sea creatures, ships and the frame's corners round it, each in its place whether the
-  window is wide, square or tall. The game's own world map stays in the middle, fading into his sea.
-  Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off
-  unless you turn it on.
+- **Responsive ocean & border** (Options, and the map's menu): zoomed right out, the world map lies
+  on a sea chart painted by Santiago Reyes (used with his permission), laid out for your window's
+  shape: the sea, compass roses, sea creatures, ships and the frame's corners round it, each in its
+  place whether the window is wide, square or tall. The game's own world map stays in the middle,
+  fading into his sea. Zoom out past the whole world to see all of it; the map pans to its edges and
+  no further. Off unless you turn it on. Its frame is the map's only border now: the parchment
+  border and its setting are gone, so with this off the map has none.
 - **OpenMap in your language**: German, French, Spanish (Spain and Latin America), Italian,
   Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
   words for things (flight masters, map pins, the quest log ...). Place names were already the
@@ -131,6 +132,8 @@
   (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
 - Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
   now drawn where the map is at that step.
+- The menu's **Minimap button** row has its icon (it showed none: the icon it named isn't in the
+  game).
 
 ## v0.5.0-beta (2026-10-16)
 

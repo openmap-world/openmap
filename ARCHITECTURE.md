@@ -32,7 +32,7 @@ tools/
   map-preview/    renders the stitched map out of game; bakes MapTerritory / MapZoneLand / MapLand / MapMiniLand;
                   sea.py, sea_world.py (the sea), gapfill.py (the gaps), banners.py
                   (the cities' banners and cuts), tone.py (zone colours)
-  map-art/        export.py / import.py (hand-cleaned world and continent art), border.py
+  map-art/        export.py / import.py (hand-cleaned world and continent art)
   map-chart/      the sea chart (Santiago Reyes's, art-drawn/chart/): MapChart textures, Data/Chart.lua
   map-tuning/     align.py: measures each zone's art against the minimap (report only)
   offline-test/   loads the addon in a stubbed client (run.py, lint.py)
@@ -193,7 +193,7 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 
 ## The rest of `Map/`
 
-- `Chart.lua`: the sea chart (Options' Sea chart, off unless chosen): Santiago Reyes's sea, ornaments and
+- `Chart.lua`: the sea chart (Options' Responsive ocean & border, off unless chosen): Santiago Reyes's sea, ornaments and
   frame round the world map, laid out for the window's shape (`Data/Chart.lua`, `tools/map-chart/`'s
   layout, which `tools/offline-test/chart.py` checks it against). Drawn on a frame of its own just under the
   art (`S.chartHost`); Stitch.lua's `S.SetChart` puts its own sea past the world map away and fades the
@@ -244,8 +244,7 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   (prefix `OpenMap`: whoever gets them is asked first; notes plain text, cut short) or a code to
   paste (`OMPINS1:`).
 - `Window.lua`: move (title bar) and resize (a grip in each bottom corner) the windowed map to any shape,
-  remembered; the maximized map fills the screen's width; the parchment border (nine pieces,
-  `MapBorder`) round the view, seen only zoomed right out. Re-applied after Blizzard's panel layout, never by editing its
+  remembered; the maximized map fills the screen's width. Re-applied after Blizzard's panel layout, never by editing its
   layout tables (taint).
 - `News.lua`: "What's new", the latest versions' notes (`Data/Changelog.lua`, made from
   `CHANGELOG.md` by `tools/changelog/build.py`), laid out like the quest log (as the website's
