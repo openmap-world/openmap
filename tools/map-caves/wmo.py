@@ -191,14 +191,18 @@ class World:
                 deep += h - floor >= DEEP
         return n >= 5 and deep >= 2 / 3 * n
 
+    def inside(self, p):
+        """a placed WMO's inside groups with minimap pictures: [(group, box)]"""
+        root = self.roots.get(p["fid"])
+        if not root or root["wid"] not in self.blocks: return []
+        own = self.blocks[root["wid"]]
+        return [(g, box) for g, (flags, box) in enumerate(root["groups"]) if g in own and flags & INTERIOR]
+
     def cave_groups(self, p, under=True):
         """a placed WMO's inside groups with minimap pictures, if it's a cave (under: only those under the
         terrain): [(group, box)]"""
-        root = self.roots.get(p["fid"])
-        if not root or root["wid"] not in self.blocks or not cave_kind(self.paths.get(p["fid"])): return []
-        own = self.blocks[root["wid"]]
-        return [(g, box) for g, (flags, box) in enumerate(root["groups"])
-                if g in own and flags & INTERIOR and (not under or self.underground(p, box))]
+        if not cave_kind(self.paths.get(p["fid"])): return []
+        return [(g, box) for g, box in self.inside(p) if not under or self.underground(p, box)]
 
     def pictures(self, p, g, box):
         """a group's minimap pictures: (file, width, height, left x, bottom y (local yards)), the ones the build has"""

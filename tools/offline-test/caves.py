@@ -1,5 +1,5 @@
-"""Caves underground in Lua 5.1 (Close.lua with Data/Caves.lua and Data/CaveMinimap.lua):
-python -P tools/offline-test/caves.py."""
+"""Caves underground in Lua 5.1 (Close.lua with Data/Caves.lua and Data/CaveMinimap.lua), and the
+underground cities' own minimap (Ironforge's): python -P tools/offline-test/caves.py."""
 from pathlib import Path
 import unittest
 
@@ -31,6 +31,7 @@ class CaveTests(unittest.TestCase):
             function F.Hide(self) self.shown = false end
             function F.SetShown(self, v) self.shown = v and true or false end
             function F.SetAlpha(self, a) self.alpha = a end
+            function F.GetAlpha(self) return self.alpha end
             function F.GetFrameLevel(self) return self.level end
             function F.SetFrameLevel(self, l) self.level = l end
             function F.CreateTexture(self, _, layer, _, sub) local t = Region("Texture", self) t.layer, t.sub = layer, sub return t end
@@ -182,10 +183,129 @@ class CaveTests(unittest.TestCase):
             assert(key == -i or ns.MapCaves[key], 'a cave of either list')
         """)
 
+    # Ironforge's map (uiMap 1455): its box in yards (UiMapAssignment, build 1.60.1.70245), and places on
+    # it by its art's pixels (1002 x 668): the Mystic Ward, the Forlorn Cavern, the Hall of Explorers, the
+    # Gates, the Great Forge
+    IRONFORGE = """
+        CITY = { [1455] = { 0, -5096.85, -1504.22, -4569.24, -713.59 } }
+        function S.Rect(mapID)
+            local c = CITY[mapID]
+            if not c then return end
+            local u0, v0 = S.FromYards(c[1], c[4], c[5])
+            local u1, v1 = S.FromYards(c[1], c[2], c[3])
+            return math.min(u0, u1), math.max(u0, u1), math.min(v0, v1), math.max(v0, v1)
+        end
+        function OnIronforge(px, py)            -- (yards)
+            local c = CITY[1455]
+            return c[4] - py / 668 * (c[4] - c[2]), c[5] - px / 1002 * (c[5] - c[3])
+        end
+        PLACES = { { 260, 140 }, { 480, 90 }, { 700, 120 }, { 180, 545 }, { 500, 300 } }
+        contMap = 1415
+    """
+
+    def test_ironforge_is_no_cave(self):
+        # no cave map nor cave from the minimap at Ironforge's wards: nothing surfaces there, nothing
+        # dims the city's own map round it
+        self.lua.execute(self.IRONFORGE + """
+            for _, p in ipairs(PLACES) do
+                local x, y = OnIronforge(p[1], p[2])
+                assert(S.CaveAt(0, x, y) == nil, 'a cave at ' .. p[1] .. ', ' .. p[2])
+                local u, v = S.FromYards(0, x, y)
+                assert(S.CaveRectAt(u, v) == nil, 'the zoom held for a cave at ' .. p[1] .. ', ' .. p[2])
+                for _, across in ipairs({ 0.0005, 0.002, 0.008 }) do
+                    Look(u, v, across, 120)
+                    assert(#Shown() == 0, 'a cave up at ' .. p[1] .. ', ' .. p[2])
+                    assert(underground == 0, 'the surface dimmed at ' .. p[1] .. ', ' .. p[2])
+                end
+            end
+            -- and none anywhere in the city's box
+            local c = CITY[1455]
+            for i = 0, 10 do
+                for j = 0, 10 do
+                    local x, y = c[2] + (c[4] - c[2]) * i / 10, c[3] + (c[5] - c[3]) * j / 10
+                    assert(S.CaveAt(0, x, y) == nil, 'a cave in Ironforge at ' .. x .. ', ' .. y)
+                end
+            end
+        """)
+
+    def test_ironforge_has_the_game_minimap_of_it(self):
+        self.lua.execute(self.IRONFORGE + """
+            local c = ns.MapCityMinimap and ns.MapCityMinimap[1455]
+            assert(c and c[1] == 0, 'Ironforge in MapCityMinimap')
+            local box, p = CITY[1455], c[6]
+            assert(#p / 7 >= 50, 'its pictures: ' .. #p / 7)
+            for i = 1, #p, 7 do                  -- (each in the city, give or take a picture's side)
+                assert(p[i + 1] > box[2] - 64 and p[i + 1] < box[4] + 64 and p[i + 2] > box[3] - 64 and p[i + 2] < box[5] + 64,
+                    'a picture off the city: ' .. p[i])
+            end
+            -- the city's own frame (Stitch.lua's), unfound or not
+            city = CreateFrame("Frame")
+            function S.UndergroundCity(mapID) if mapID == 1455 then return city, cityHidden, cityDark end end
+            function S.CityCover() return 1 end    -- (the view on the city: the surface's minimap kept off)
+            mod.db.minimap, mod.db.minimapMix, mod.db.minimapDeep, mod.db.minimapFrom = true, 0.45, 0.85, 20
+            local function Pics()
+                local out = {}
+                for _, t in ipairs(city.children) do if t.kind == "Texture" then table.insert(out, t) end end
+                return out
+            end
+            -- (shown: anchored where it lies; hidden: let go)
+            local function Alpha(t)
+                if not (t.calls.SetShown and t.calls.SetShown[1]) then return 0 end
+                assert(t.place == placed[t], 'shown and not placed')
+                return t.calls.SetAlpha[1]
+            end
+            placed = setmetatable({}, { __mode = "k" })
+            function S.PlaceWorld(region, u0, v0, u1, v1) region.place = { u0, v0, u1, v1 } placed[region] = region.place end
+            function S.UnplaceWorld(region) placed[region] = nil end
+            local u, v = S.FromYards(0, OnIronforge(500, 300))
+            Look(u, v, 0.05, 5)                  -- (from far out: no minimap yet, none made)
+            assert(#Pics() == 0, 'made from far out')
+            Look(u, v, 0.002, 60)                -- the deepest: the minimap's most over a city
+            local pics = Pics()
+            assert(#pics == #p / 7, 'every picture: ' .. #pics)
+            assert(S.closeView.mix == 0, 'the surface minimap over it')
+            for _, t in ipairs(pics) do
+                assert(t.layer == "OVERLAY", 'over the city map: ' .. tostring(t.layer))
+                assert(math.abs(Alpha(t) - 0.5) < 1e-9, 'as strong as over a city: ' .. Alpha(t))
+                assert(t.calls.SetTexture[2] == "CLAMPTOBLACKADDITIVE")
+            end
+            local t = pics[1]
+            assert(t.calls.SetTexture[1] == p[1] and t.calls.SetRotation[1] == p[5])
+            local cu, cv = S.FromYards(0, p[2], p[3])
+            assert(math.abs((t.place[1] + t.place[3]) / 2 - cu) < 1e-9 and math.abs((t.place[2] + t.place[4]) / 2 - cv) < 1e-9, 'centred')
+            Look(u, v, 0.003, 25)                -- coming in: weaker
+            assert(Alpha(t) > 0 and Alpha(t) < 0.5, 'coming in: ' .. Alpha(t))
+            Look(u, v, 0.05, 5)                  -- back out: gone
+            assert(Alpha(t) == 0 and placed[t] == nil, 'gone, and let go of its anchor')
+            city:SetAlpha(0)                     -- the city's own map not in yet: none of it either
+            Look(u, v, 0.002, 60)
+            assert(Alpha(t) == 0)
+            city:SetAlpha(1)
+            local x, y = OnIronforge(500, 300)
+            local fu, fv = S.FromYards(0, x + 3000, y)
+            Look(fu, fv, 0.002, 60)              -- elsewhere: gone
+            assert(Alpha(t) == 0)
+            cityHidden = true                    -- an unfound city, unexplored areas hidden: gone with its map
+            Look(u, v, 0.002, 60)
+            assert(Alpha(t) == 0)
+            cityHidden, cityDark = false, { 0.38, 0.39, 0.43, 0.25 }   -- ... darkened: darkened with it
+            Look(u, v, 0.002, 60)
+            assert(Alpha(t) == 0.5)
+            local r, g, b = unpack(t.calls.SetVertexColor)
+            assert(r < 0.5 and g < 0.5 and b < 0.5, 'darkened')
+            cityDark = nil
+            Look(u, v, 0.002, 60)
+            assert(t.calls.SetVertexColor[1] > 0.9, 'and back')
+            mod.db.minimap = false               -- the minimap's detail off: the city's too
+            Look(u, v, 0.002, 60)
+            assert(Alpha(t) == 0)
+        """)
+
     def tearDown(self):
         errs = list(self.lua.globals().errors.values())
         failed = dict(self.lua.globals().S.closeFailed.items())
         self.assertNotIn("underground", failed, failed.get("underground"))
+        self.assertNotIn("underground cities' minimap", failed, failed.get("underground cities' minimap"))
         self.assertFalse([e for e in errs if "underground" in str(e)], errs)
 
 

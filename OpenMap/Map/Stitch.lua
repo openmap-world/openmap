@@ -73,7 +73,8 @@ local BANNER_OUT = { 0.25, 0.4 } -- ... and where the zone's banner for a city t
                                 --  gives way to it: once that reads (tools/map-preview/render.py mirrors it)
 local UNDERGROUND_CITIES ={ [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
                                 -- shows the surface, so their own map is drawn above it (and it's kept off them;
-                                -- tools/map-preview/render.py mirrors it)
+                                -- the game's minimap of the city inside goes over their map: Close.lua; mirrored in
+                                -- tools/map-preview/render.py and tools/map-caves/minimap.py)
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
 local UNDISCOVERED = { 0.05, 0.06, 0.08, 0.62 }   -- unexplored land, shaded ("dim"): darker and greyer, over the
@@ -1312,7 +1313,8 @@ function S.IsBuilt() return root ~= nil end
 
 -- how much an underground city's own map covers the point (u, v) (0..1): Close.lua keeps
 -- the minimap off it, as the minimap there shows the surface (the ruins above the Undercity,
--- Ironforge's mountain). Over the cities in the open the minimap is the city, and mixes in.
+-- Ironforge's mountain), and lays the game's minimap of the city inside over its map instead
+-- (S.UndergroundCity). Over the cities in the open the minimap is the city, and mixes in.
 
 -- whether (u, v) is in a city's own map (WorldMap.lua lets you zoom further there)
 function S.InCity(u, v)
@@ -2611,6 +2613,19 @@ cities.Dim = function()
 				c.bannerTex:SetVertexColor(dark and D[1] or 1, dark and D[2] or 1, dark and D[3] or 1, 1)
 				c.bannerTex:SetDesaturation(dark and D[4] or 0)
 			end
+		end
+	end
+end
+
+-- for Close.lua: an underground city's own frame (the game's minimap of the city goes on it, over its
+-- map), whether it's an unfound city while unexplored areas are hidden (its map is), and the shade
+-- while they're darkened (Shade.DIM: its map is darkened so)
+function S.UndergroundCity(mapID)
+	if not UNDERGROUND_CITIES[mapID] then return end
+	for _, c in ipairs(cities) do
+		if c.mapID == mapID then
+			local lost = c.piece and c.piece.unexplored
+			return c[1], (lost and gradeNow[3] == "hide") and true or false, lost and Shade.on and Shade.DIM or nil
 		end
 	end
 end

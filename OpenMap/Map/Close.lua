@@ -6,6 +6,8 @@
 --              A plain blend: it can't brighten past white (an additive one blew out pale
 --              zones like Tanaris), and it leaves the map opaque (a multiply, in game,
 --              also multiplies the map's opacity and the world shows through).
+--              Over the underground cities (Ironforge, Undercity), whose minimap is the surface
+--              over them, the game's minimap of the city inside (ns.MapCityMinimap) instead.
 --   soft       the zone art blurred a little (S.SetBlur: a five-tap blur of the zones
 --              in view) and parchment grain + paper tooth laid over, so stretched art
 --              reads as close-up paper, not pixels
@@ -491,15 +493,14 @@ local function PerYard(cont)
 	return k[1], k[2]
 end
 
--- a cave from the game's minimap: its pictures (file, centre X, Y, side in yards, rotation, u1, v0),
--- each a square around the block's picture (its texcoords past the picture: clamped to nothing) turned
--- about its centre; lowest floor first, under the ones above it. Toned as the minimap is up close
-local function MiniCave(layer, c)
+-- the game's minimap of a place inside (a cave, an underground city): its pictures (file, centre X, Y,
+-- side in yards, rotation, u1, v0), each a square around the block's picture (its texcoords past the
+-- picture: clamped to nothing) turned about its centre; lowest floor first, under the ones above it.
+-- On `frame`, in its draw layer `layer`, toned r, g, b; returns the textures
+local function Pictures(frame, c, layer, r, g, b)
 	local ku, kv = PerYard(c[1])
-	if not ku then return false end
-	local frame = CreateFrame("Frame", nil, layer)
-	frame:SetAllPoints(layer)
-	frame:SetFrameLevel(layer:GetFrameLevel() + 1)
+	local out = {}
+	if not ku then return out end
 	local p = c[6]
 	local n = #p / 7
 	for i = 1, n do
@@ -507,15 +508,27 @@ local function MiniCave(layer, c)
 		local u, v = S.FromYards(c[1], p[j + 2], p[j + 3])
 		if u then
 			local hu, hv = p[j + 4] / 2 * ku, p[j + 4] / 2 * kv
-			local tex = frame:CreateTexture(nil, "ARTWORK", nil, math.min(7, math.floor((i - 1) * 16 / n) - 8))
+			local tex = frame:CreateTexture(nil, layer, nil, math.min(7, math.floor((i - 1) * 16 / n) - 8))
 			tex:SetTexture(p[j + 1], "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE", "TRILINEAR")
 			tex:SetTexCoord(0, p[j + 6], p[j + 7], 1)
 			tex:SetRotation(p[j + 5])
 			tex:SetDesaturation(MINI_DESAT)
-			tex:SetVertexColor(PAPER[1], PAPER[2], PAPER[3])
+			tex:SetVertexColor(r, g, b)
+			tex.omWorld = { u - hu, v - hv, u + hu, v + hv }
 			S.PlaceWorld(tex, u - hu, v - hv, u + hu, v + hv)
+			out[#out + 1] = tex
 		end
 	end
+	return out
+end
+
+-- a cave from the game's minimap, toned as the minimap is up close
+local function MiniCave(layer, c)
+	if not PerYard(c[1]) then return false end
+	local frame = CreateFrame("Frame", nil, layer)
+	frame:SetAllPoints(layer)
+	frame:SetFrameLevel(layer:GetFrameLevel() + 1)
+	Pictures(frame, c, "ARTWORK", PAPER[1], PAPER[2], PAPER[3])
 	return { frame = frame }
 end
 
@@ -647,6 +660,76 @@ function S.CaveRectAt(u, v)
 end
 
 --------------------------------------------------------------------------------
+-- The underground cities (Ironforge, Undercity): the minimap over them is the surface's (Ironforge's
+-- mountain, the ruins over the Undercity), kept off them (S.CityCover). Inside, the game's minimap draws
+-- the city's own WMO (ns.MapCityMinimap, tools/map-caves/minimap.py): its pictures go over the city's own
+-- map, on its frame (S.UndergroundCity: shown, culled and faded in with it), as the minimap goes over a
+-- city in the open: at the minimap's mix, no more than CITY_MINI. Not a cave: nothing dims round it
+--------------------------------------------------------------------------------
+
+local cityPics = {}             -- city mapID -> { its textures, tone =, alpha =, dark = }, or false
+
+local function CityPictures(mapID, c)
+	local frame = S.UndergroundCity and S.UndergroundCity(mapID)
+	local l, r, t, b = S.Rect(mapID)
+	if not frame or not l then return false end
+	local tone = { TileTone((l + r) / 2, (t + b) / 2) }    -- (the minimap's own tint there)
+	local pics = Pictures(frame, c, "OVERLAY", tone[1], tone[2], tone[3])
+	pics.tone = tone
+	for _, tex in ipairs(pics) do                -- (shown, and anchored, once there's some of it)
+		tex:Hide()
+		tex:ClearAllPoints()
+		S.UnplaceWorld(tex)
+	end
+	pics.shown = false
+	return pics
+end
+
+local function UpdateCityMinimap(u, v, hu, hv, mix)
+	for mapID, c in pairs(ns.MapCityMinimap or EMPTY) do
+		local pics = cityPics[mapID]
+		local frame, hidden, dark = S.UndergroundCity(mapID)
+		local l, r, t, b = S.Rect(mapID)
+		-- (in view, and its map come in: at alpha 0 they'd still cost their size to draw)
+		local near = frame and l and r > u - hu and l < u + hu and b > v - hv and t < v + hv and (frame:GetAlpha() or 0) > 0.01
+		if pics == nil and near and mix > 0.004 then
+			pics = CityPictures(mapID, c)
+			cityPics[mapID] = pics
+		end
+		if pics then
+			local a = (near and not hidden) and math.floor(math.min(mix, CITY_MINI_OF[mapID] or CITY_MINI) * 50 + 0.5) / 50 or 0
+			if pics.alpha ~= a then
+				pics.alpha = a
+				-- (hidden, they let go of their anchors: the game lays out again on every frame of a pan
+				-- whatever hangs from the map, shown or not)
+				local show = a > 0
+				for _, tex in ipairs(pics) do
+					tex:SetAlpha(a)
+					if show ~= pics.shown then
+						if show then
+							S.PlaceWorld(tex, tex.omWorld[1], tex.omWorld[2], tex.omWorld[3], tex.omWorld[4])
+						else
+							tex:ClearAllPoints()
+							S.UnplaceWorld(tex)
+						end
+						tex:SetShown(show)
+					end
+				end
+				pics.shown = show
+			end
+			if pics.dark ~= dark then      -- (an unfound city darkened as its map is)
+				pics.dark = dark
+				local tone = pics.tone
+				for _, tex in ipairs(pics) do
+					tex:SetVertexColor(tone[1] * (dark and dark[1] or 1), tone[2] * (dark and dark[2] or 1), tone[3] * (dark and dark[3] or 1))
+					tex:SetDesaturation(dark and math.max(MINI_DESAT, dark[4]) or MINI_DESAT)
+				end
+			end
+		end
+	end
+end
+
+--------------------------------------------------------------------------------
 
 -- each part runs on its own: one failing (a client difference) mustn't take the others
 -- with it. Its error is reported once, and /openmap status lists it.
@@ -699,7 +782,9 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	local from = mod.db.minimapFrom or MINI_FADE[1]
 	local mix = math.min(base, most) * (from <= MINI_FROM[1] and 1 or Smooth(steps, miniFade))   -- (at the least: from the whole world)
 	if base > 0 then mix = mix + (most - mix) * Smooth(steps, deepFade) end
-	-- not over a city's own map (the minimap there is the surface, not the city)
+	-- not over an underground city's own map (the minimap there is the surface, not the city: the
+	-- game's minimap of the city inside goes over it instead, UpdateCityMinimap)
+	local inside = mix
 	mix = mix * (1 - (Try("cities", S.CityCover, u, v) or 0))
 	-- and over the cities on the surface no more than CITY_MINI (or the city's own): their own plan leads
 	local city, cityID = Try("surface cities", S.SurfaceCityCover, u, v)
@@ -709,6 +794,7 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	if S.MinimapShown then S.MinimapShown(mix > 0.004) end   -- (unexplored land hidden over it: Stitch.lua)
 	local conts = Try("continents", ContinentsInView, u, v, hu, hv) or {}
 	Try("minimap", UpdateMinimap, L.minimap, conts, u, v, hu, hv, mix)
+	Try("underground cities' minimap", UpdateCityMinimap, u, v, hu, hv, inside)
 	cv.gapTiles = Try("minimap in the gaps", UpdateGapMinimap, conts, u, v, hu, hv,
 		mod.db.minimap and mod.db.gapMinimap and GAP_MIX * Smooth(steps, GAP_FADE) or 0)
 	local under = Try("underground", UpdateUnderground, L.under, cont, u, v, hu, hv, steps) or 0

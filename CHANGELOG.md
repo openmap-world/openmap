@@ -22,15 +22,6 @@
 
 ### Fixed
 
-- **Fade while moving** faded for a moment and then came back: the game's own map fade (held off
-  while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade
-  now stays.
-- **Map size** in the map's menu ran away as you dragged it: it scales the window the menu is in, so
-  the slider moved under the cursor. The size now changes when you let go.
-- The continents' names lost their glow each time you zoomed and flickered back on: they keep it now
-  (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
-- Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
-  now drawn where the map is at that step.
 - **Ironforge's map whole up close.** The Mystic Ward, the Forlorn Cavern, the Hall of Explorers and
   the Gates were faded out into the mountain: the city's map faded out in a round from its middle,
   and Ironforge's wards reach right out to its frame. It's cut to the city instead, as the

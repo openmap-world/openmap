@@ -165,7 +165,11 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   `tools/map-preview/minimaplod.py`: 64 and 16 px a tile, in 256-px pieces) show instead, drawn
   coarse under fine under the tiles with strengths that add up to the mix, the finer taking over
   as fewer tiles are in view. All of it through `MapMiniLand` (the continent's land and the zones'
-  own, `render.py --bake-mini-land`), so it leaves out the open sea.
+  own, `render.py --bake-mini-land`), so it leaves out the open sea. Over a city's own map it shows
+  no more than `CITY_MINI`, and none over the underground cities (Ironforge, Undercity), where it's the
+  surface over them: there the game's minimap of the city inside (its WMO's pictures,
+  `Data/CaveMinimap.lua`'s `MapCityMinimap`, `tools/map-caves/minimap.py`) goes over the city's map
+  instead, as strong, on the city's own frame.
 - **soften + grain**: a five-tap blur of the zones in view (four offset copies, built
   lazily), and `MapGrain` + `MapTooth` over the art in two crossfaded octaves so the grain
   keeps its size on screen.
