@@ -393,16 +393,18 @@ local function ZoneMask(parent, p, folder)
 end
 
 -- A map's own base art (its whole layer), edges faded by `feather` when given;
--- a zone's shows only on its territory
+-- a zone's shows only on its territory, which ends at its own frame, and its colour-matched
+-- copy with it (`feather` on top faded its painting out well inside the frame, and where nothing
+-- else took over, the paper showed: an orange band down Arathi's east coast)
 local function PlaceBase(parent, mapID, drawLayer, list, feather)
 	local p = Place(mapID)
 	if not p then return 0 end
 	local files = ArtFiles(mapID)
 	if not files or #files == 0 then return 0 end
-	local mask = feather and Feather(parent, p, feather)
-	local band = list == graded and ZoneMask(parent, p, BAND)
 	local territory = list == graded and ZoneMask(parent, p, TERRITORY)
-	return PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, list, false, band, territory)
+	local mask = territory or (feather and Feather(parent, p, feather))
+	local band = list == graded and ZoneMask(parent, p, BAND)
+	return PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, list, false, band)
 end
 
 -- World / continent art as the backdrop, twice: over its land and coastal band (backdrop,
@@ -541,7 +543,8 @@ local function PlaceOverlays(mapID)
 	local explored = C_MapExplorationInfo.GetExploredMapTextures(mapID) or {}
 	local reveal = ns.MapReveal and ns.MapReveal[C_Map.GetMapArtID(mapID) or 0]
 	if #explored == 0 and not reveal then return 0 end
-	-- inside the zone's own frame (measured per zone: what it paints right up to it shows)
+	-- inside the zone's own frame (measured per zone: the land it paints right up to it shows; the
+	-- sea fades in from it)
 	local mask = ZoneMask(overlayRoot, p, EDGE) or Feather(overlayRoot, p, FEATHER_THIN)
 	local band = ZoneMask(overlayRoot, p, BAND)
 	local coreThin, core = ZoneMask(coreRoot, p, EDGE) or Feather(coreRoot, p, FEATHER_THIN), ZoneMask(coreRoot, p, CORE)
@@ -2217,8 +2220,8 @@ function Shade.Hide.Rects(mapID)
 	return out, count
 end
 
--- a zone's blank art over its hidden rectangles, drawn as its base art is (PlaceBase: its frame, its
--- territory, its colour-matched copy through its border band)
+-- a zone's blank art over its hidden rectangles, drawn as its base art is (PlaceBase: on its territory,
+-- its colour-matched copy through its border band too)
 function Shade.Hide.Build(mapID, rects, un, grade)
 	local p = Place(mapID)
 	local files = p and ArtFiles(mapID)
@@ -2236,8 +2239,8 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 		end
 		return { frame = f, un = un, grade = grade }
 	end
-	local mask = Feather(f, p, FEATHER)
 	local band, territory = ZoneMask(f, p, BAND), ZoneMask(f, p, TERRITORY)
+	local mask = territory or Feather(f, p, FEATHER)
 	local m = ns.MapGrade and ns.MapGrade[mapID]
 	local strength, desat = gradeNow[1], gradeNow[2]
 	local tw, th = p.layer.tileWidth, p.layer.tileHeight
@@ -2260,8 +2263,6 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 						if copy == 2 then
 							tex:AddMaskTexture(band)
 							if m then tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1) end
-						elseif territory then
-							tex:AddMaskTexture(territory)
 						end
 					end
 				end

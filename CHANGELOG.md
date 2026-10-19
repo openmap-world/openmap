@@ -42,6 +42,13 @@
   until you've explored Whelgar's Excavation Site or Angerfang Encampment, the parts of the
   Wetlands' map over it (the game itself keeps no record of exploring the valley), close up too; on
   Darken it's darkened until then.
+- **Zones' edges against the sea and the painted gaps.** A zone's own map is drawn whole to its
+  frame on land, so its coasts and mountains no longer fade out early into an orange band of blank
+  land (Arathi's east coast) or a grey smudge of sea (Arathi's mountains above the Wetlands); where
+  it paints the sea up to its frame, the sea fades in from the frame instead of stopping in a
+  straight line (Eastern Plaguelands' east coast). Mountain strokes mistaken for a printed name no
+  longer cut holes in a zone's map (the brown blot at Thoradin's Wall), and past its own land a zone
+  gives way to Santiago Reyes's painted gaps where they reach.
 
 ## v0.6.0-beta (2026-10-18)
 

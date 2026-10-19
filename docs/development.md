@@ -75,7 +75,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 5 | `tools/map-grade/fetch.py`, `grade.py` (see its README) | `Data/Grade.lua`, `MapBand/`, `MapCore/` | 1 |
 | 6 | `tools/map-textures/make.py` | `MapFeather*`, `MapGrain`, `MapTooth` | |
 | 7 | `tools/map-art/import.py <db2> <tex>` | `MapArt/`, `Data/ArtEdits.lua` | `art-edits/edited/` |
-| 8 | `tools/map-preview/render.py <db2> <tex> <out> --bake-land --bake-edges --bake-territory --bake-zone-land --bake-mini-land` | `MapLand/`, `MapEdge/`, `MapTerritory/`, `MapZoneLand/`, `MapZoneBorder/`, `MapMiniLand/` | 5, 7 |
+| 8 | `tools/map-preview/render.py <db2> <tex> <out> --bake-land --bake-edges --bake-territory --bake-zone-land --bake-mini-land` | `MapLand/`, `MapEdge/`, `MapTerritory/`, `MapZoneLand/`, `MapZoneBorder/`, `MapMiniLand/` | 5, 7 (`--bake-territory` reads 12's and 12b's data too: run it again after them) |
 | 9 | `tools/map-preview/sea.py <db2> <tex>` | the sea and coast masks | 8 |
 | 10 | `tools/map-preview/sea_world.py <db2> <tex>` | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/`, `MapSeaFieldOut` | 9 |
 | 11 | `tools/map-preview/banners.py <db2> <tex>` | `MapBanner/`, `MapBannerHole/`, `MapCityMask/`, `Data/Banners.lua` | |

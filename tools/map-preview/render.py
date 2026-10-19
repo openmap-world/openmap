@@ -5,7 +5,7 @@
 # usage: python -P tools/map-preview/render.py <db2 dir> <texture cache dir> <out dir> [view ...]
 #   db2 dir: the Forever build's UiMap* CSVs (wago.tools, build 1.60.1.70245)
 #   views:   name=u,v,zoom   (world-normalized centre on Azeroth's map, zoom 1 = whole world)
-import csv, math, os, re, sys, time, urllib.request
+import csv, functools, math, os, re, sys, time, urllib.request
 import numpy as np
 from PIL import Image
 from scipy import ndimage
@@ -673,19 +673,21 @@ def render(cu, cv, zoom, path):
     for m in zones:                                       # base art, biggest zone first, with its border copy
         if not has_over[m["id"]] or not USE_BASE or USE_BAKED: continue
         t_ = terr(m)
-        fm = M_FEATHER * t_ if t_ is not None else M_FEATHER
+        # (Stitch.lua: through its territory, which ends at its own frame; MapFeather without one, and for
+        # gapfill.py's measure of the gaps, which the paintings were made for)
+        fm = M_FEATHER if t_ is None else t_ if not TERR_OWN else M_FEATHER * t_
         place(m, base, fm, alpha=d)
         g = grade.get(m["id"])
         bd = band(m)
         if g and bd is not None: place(m, base, fm * bd, tint=g, alpha=d)
     for m in zones:                                       # overlays (less those hidden: OPENMAP_UNEXPLORED_HIDE)
-        if has_over[m["id"]] and not USE_BAKED: place(m, over_shown, edge(m), alpha=d)
+        if has_over[m["id"]] and not USE_BAKED: place(m, over_shown, over_edge(m), alpha=d)
     for m in zones:                                       # their border copies
         g = grade.get(m["id"]); bd = band(m)
-        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over_shown, edge(m) * bd, tint=g, alpha=d)
+        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over_shown, over_edge(m) * bd, tint=g, alpha=d)
     if USE_CORE and not USE_BAKED:
         for m in zones:                                   # every zone's interior again, over its neighbours' halos
-            if has_over[m["id"]]: place(m, over_shown, edge(m) * core(m), alpha=d)
+            if has_over[m["id"]]: place(m, over_shown, over_edge(m) * core(m), alpha=d)
     if UNEXPLORED_SIM and not UNEXPLORED_HIDE and not ZONES_ONLY:   # a zone you've been to: each piece's art again, the unexplored
         for m in zones:                                   # darkened, the explored over them (Stitch.lua's Shade.Pieces)
             if UNEXPLORED_SIM.get(m["name"]) != "half" or not has_over[m["id"]]: continue
@@ -700,11 +702,11 @@ def render(cu, cv, zoom, path):
                     img = img.copy()
                     img[..., 3] *= hole
                 if dark:                                  # (on its land alone, without its colour-match copy)
-                    place(m, img, edge(m) * (land if land is not None else 1), tint=DIM[:3], dsat=max(ZONE_DESAT, DIM[3]))
+                    place(m, img, over_edge(m) * (land if land is not None else 1), tint=DIM[:3], dsat=max(ZONE_DESAT, DIM[3]))
                     continue
-                place(m, img, edge(m), dsat=ZONE_DESAT)
+                place(m, img, over_edge(m), dsat=ZONE_DESAT)
                 if g and bd is not None:
-                    place(m, img, edge(m) * bd, tint=g, dsat=ZONE_DESAT)
+                    place(m, img, over_edge(m) * bd, tint=g, dsat=ZONE_DESAT)
     for m in zones:                                       # cities
         if not has_over[m["id"]]:
             f_ = 1 / (m["rect"][1] - m["rect"][0])
@@ -843,17 +845,17 @@ EDGE_SOFT = 14                  # art px: a zone's overlays fade in over this, i
 EDGE_RANGE = (12, 80)           # art px: the frame widths looked for
 EDGE_CLAMP = (16, 36)           # ... and the widths Blizzard's frames actually come in
 
+def small_mask(a, n=128):
+    """a mask as a soft n-px texture of it is drawn (its art px)"""
+    s_ = Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)).resize((n, n), Image.LANCZOS)
+    return np.asarray(s_.resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
+
 def edge(m):
-    """MapEdge: where a zone's overlay art shows: inside its frame. The frame (burnt paper,
-    dark ink) is measured on each side, as far in as the art's edge band stays darker than
-    the parchment inside, so whatever the zone paints right up to it (Dalaran at Alterac's
-    edge) isn't cut off by a fixed inset"""
+    """a zone's frame: inside it 1 (its art px). The frame (burnt paper, dark ink) is measured on
+    each side, as far in as the art's edge band stays darker than the parchment inside, so whatever
+    the zone paints right up to it (Dalaran at Alterac's edge) isn't cut off by a fixed inset"""
     k = ("edge", m["id"])
     if k not in _cache:
-        p_ = os.path.join(TEXDIR, "MapEdge", "%d.tga" % m["id"])
-        if os.path.exists(p_) and not _cache.get("rebake_edges"):
-            _cache[k] = np.asarray(Image.open(p_).convert("RGBA").getchannel("A").resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
-            return _cache[k]
         from scipy import ndimage
         L = base(m)[..., :3].mean(2)
         inner = np.median(L[100:568, 150:850])
@@ -877,25 +879,57 @@ def edge(m):
         cx = np.minimum(xs - left, 1001 - right - xs); cy = np.minimum(ys - top, 667 - bottom - ys)
         corner = np.clip((np.hypot(np.clip(60 - cx, 0, None), np.clip(60 - cy, 0, None)) * -1 + 60) / EDGE_SOFT, 0, 1)
         e = e * corner
-        _cache[k] = (e * e * (3 - 2 * e)).astype(np.float32)
+        _cache[k] = small_mask(e * e * (3 - 2 * e))           # (as MapEdge drew it, 128 px: the territories were made from that)
         _cache[("edge_px", m["id"])] = (left, right, top, bottom)
+    return _cache[k]
+
+FRAME_LAND = 2.0                # the continent's land (MapLand, soft) times this: where a zone's art is land up to its frame
+def frame_keep(m):
+    """where a zone's art runs whole to its own frame (its art px, 0..1): its land, as the continent's map has
+    it (an island that map leaves out, Teldrassil, its own land and coast). Over the sea it fades in from the
+    frame instead: the aged paper along a frame is the sea's colour, and a painted sea stopping at the frame is
+    a straight line"""
+    k = ("fkeep", m["id"])
+    if k not in _cache:
+        coast = island_coast(m)
+        if coast is not None:
+            _cache[k] = ndimage.gaussian_filter((own_land(m) | coast).astype(np.float32), 3)
+        else:
+            _cache[k] = np.clip(continent_land(m) * FRAME_LAND, 0, 1)
+    return _cache[k]
+
+def over_edge(m, fresh=False):
+    """MapEdge: where a zone's overlay art shows: inside its frame (edge), and where it paints the sea up to the
+    frame (Eastern Plaguelands' east coast) fading in from it over SHORE_FRAME, as its base art's sea does"""
+    k = ("oedge", m["id"])
+    if k not in _cache:
+        p_ = os.path.join(TEXDIR, "MapEdge", "%d.tga" % m["id"])
+        if os.path.exists(p_) and not fresh:
+            _cache[k] = np.asarray(Image.open(p_).convert("RGBA").getchannel("A").resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
+            return _cache[k]
+        e, keep = edge(m), frame_keep(m)
+        sf = np.clip(ndimage.distance_transform_edt(e > 0.5) / SHORE_FRAME, 0, 1)
+        _cache[k] = (e * (keep + (1 - keep) * sf * sf * (3 - 2 * sf))).astype(np.float32)
     return _cache[k]
 
 def bake_edges():
     os.makedirs(os.path.join(TEXDIR, "MapEdge"), exist_ok=True)
-    _cache["rebake_edges"] = True
     for m in zones:
         if not reveal.get(m["art"]): continue
-        e = edge(m)
-        a = Image.fromarray((e * 255).astype(np.uint8)).resize((128, 128), Image.LANCZOS)   # (soft rectangles: small is plenty)
+        _cache.pop(("oedge", m["id"]), None)
+        e = over_edge(m, fresh=True)
+        a = Image.fromarray((np.clip(e, 0, 1) * 255).astype(np.uint8)).resize((128, 128), Image.LANCZOS)   # (soft: small is plenty)
         Image.merge("RGBA", (Image.new("L", (128, 128), 255),) * 3 + (a,)).save(os.path.join(TEXDIR, "MapEdge", "%d.tga" % m["id"]))
+        _cache.pop(("oedge", m["id"]), None)
         print("edge", m["name"], _cache[("edge_px", m["id"])], flush=True)
-    _cache["rebake_edges"] = False
 
 TERR_MARGIN = (0, 8)            # a zone's base art: full this far (its art px) past its land, gone after this much more
 SHORE = (13.0, 17.0)            # world units off a zone's coast where its own painted sea is full / gone (its islets, hatching)
 SHORE_FRAME = 70                # zone art px inside its frame over which that painted sea fades in
 LETTER_OFF = 10                 # art px off a coast before dark ink can be a sea name
+LETTER_UPRIGHT = 1.5            # on land, a letter is at most this much wider than it's tall (W, M), and its word's
+LETTER_LINE = (3, 4)            #  letters share a baseline and a height to this many art px: a mountain's pen strokes
+                                #  (wider, ragged) don't, and a range of them read as a name cut the zone's painting
 
 def own_land(m):
     """where the zone's own land is, in its art px: its overlay pieces, closed and filled"""
@@ -922,10 +956,11 @@ def zone_sea(m):
         _cache[k] = sea
     return _cache[k]
 
-def find_letters(m, region, size=(8, 26), mates=2, grow=8):
+def find_letters(m, region, size=(8, 26), mates=2, grow=8, line=None):
     """lettering in a zone's base art, inside `region` (its art px): dark ink set apart in
     letter-sized blocks, at least `mates` others of about the same height on the same line nearby
-    (a word, not the long horizontal wave strokes or a mountain's pen strokes); 0..1"""
+    (a word, not the long horizontal wave strokes or a mountain's pen strokes); where `line` (its art
+    px) is set, only upright blocks on one baseline, of one height (LETTER_UPRIGHT, LETTER_LINE); 0..1"""
     from scipy import ndimage
     L = base(m)[..., :3].mean(2)
     # thin dark strokes (a letter's lines), not the broad mottling: what a closing fills in
@@ -937,10 +972,16 @@ def find_letters(m, region, size=(8, 26), mates=2, grow=8):
         h, w = sl[0].stop - sl[0].start, sl[1].stop - sl[1].start
         area = int((lab[sl] == i).sum())
         if size[0] <= h <= size[1] and 2 <= w <= size[1] + 2 and 12 <= area <= size[1] * 9:   # letter-sized, not a stroke or a speck
-            cand.append((i, (sl[0].start + sl[0].stop) / 2, (sl[1].start + sl[1].stop) / 2, h))
+            cy, cx = (sl[0].start + sl[0].stop) / 2, (sl[1].start + sl[1].stop) / 2
+            strict = line is not None and line[int(cy), int(cx)]
+            if strict and w > LETTER_UPRIGHT * h: continue
+            cand.append((i, cy, cx, h, sl[0].stop, strict))
     hit = np.zeros(L.shape, bool)
-    for i, cy, cx, h in cand:
-        near = sum(1 for j, y2, x2, h2 in cand if j != i and abs(y2 - cy) < h * 0.5 and abs(x2 - cx) < 70 and abs(h2 - h) < 6)
+    for i, cy, cx, h, bot, strict in cand:
+        if strict:
+            near = sum(1 for j, y2, x2, h2, b2, _ in cand if j != i and abs(b2 - bot) <= LETTER_LINE[0] and abs(x2 - cx) < 70 and abs(h2 - h) <= LETTER_LINE[1])
+        else:
+            near = sum(1 for j, y2, x2, h2, _, _ in cand if j != i and abs(y2 - cy) < h * 0.5 and abs(x2 - cx) < 70 and abs(h2 - h) < 6)
         if near >= mates: hit |= lab == i
     # ... then the rest of each word and line: smaller ink beside what's found (twice over)
     small = np.isin(lab, [i for i, sl in enumerate(boxes, 1) if (sl[0].stop - sl[0].start) <= size[1] and (sl[1].stop - sl[1].start) <= 40])
@@ -1008,12 +1049,14 @@ def compasses(m):
 
 def land_letters(m):
     """the names a zone's base art prints on the land round it ("The Blasted Lands" on Swamp of
-    Sorrows' painting of it ...): anywhere off its own land, in its frame"""
+    Sorrows' painting of it ...): anywhere off its own land, in its frame; on land, only a name's
+    upright letters on one line (its mountains are drawn in letter-sized strokes too)"""
     k = ("lletters", m["id"])
     if k not in _cache:
         from scipy import ndimage
         off = ~ndimage.binary_dilation(own_land(m), iterations=4) & (edge(m) > 0.3)
-        _cache[k] = find_letters(m, off, size=(9, 34), mates=3, grow=10)
+        land = saturation(base(m)[..., :3], 5) >= ZONE_LAND_SEED     # (land's parchment; the sea's grey: its names as before)
+        _cache[k] = find_letters(m, off, size=(9, 34), mates=3, grow=10, line=land)
     return _cache[k]
 
 def shore(m):
@@ -1334,15 +1377,15 @@ def terr_own(m):
 # MapTerritory: where a zone's base art shows, as far as Blizzard painted it: its own land (and
 # cities), and past it everything else its map paints inside its frame (the sea off its coasts, the
 # land round it no zone owns: Tanaris' painting of the coast south of Un'Goro ...; not where Blizzard's
-# classic map of that land is drawn, which paints it where Forever's maps leave it blank), never another
-# zone's own land (its blank painting of a neighbour, with that neighbour's name on it). Where two
-# zones paint the same place, the one whose own land is nearer has it, crossfading over
+# classic map of another zone paints that land, where Forever's maps leave it blank, nor a gap painted
+# by hand), never another zone's own land (its blank painting of a neighbour, with that neighbour's name
+# on it). Where two zones paint the same place, the one whose own land is nearer has it, crossfading over
 # TERR_BLEND world units. Its sea reaches TERR_SEA world units off the continent's coast (not out
 # to its frame: the open sea's lettering), and never the names it prints (the sea's, its
 # neighbours' on their land) or its compass roses; at its frame its painting fades into the paper
-# over TERR_FRAME. Past every
-# zone's painting the land is the gap fill's blank paper (gapfill.py), which each zone's art fades
-# into at its frame.
+# over TERR_FRAME. Past every zone's painting the land is the gap fill's blank paper (gapfill.py),
+# which each zone's art fades into at its frame. It's the only mask on a zone's base art (Stitch.lua's
+# PlaceBase): its land runs whole to its frame, and its sea fades in from the frame as MapFeather does.
 TERR_GRID = 4                   # px per world unit, laying a continent's zones out together
 TERR_BLEND = 3.0                # world units: how fast a zone's claim on land two zones paint falls off past the nearer one's
 TERR_SEA = (12.0, 20.0)         # world units off the continent's coast where a zone's painted sea is full / gone
@@ -1394,8 +1437,10 @@ def terr_shared():
         u = np.clip(1 - (from_land - TERR_SEA[0]) / (TERR_SEA[1] - TERR_SEA[0]), 0, 1)
         reach = u * u * (3 - 2 * u)
         # where Blizzard's classic maps of the land are drawn (Gaps.lua's art: Gilneas, the ridges round
-        # Orgrimmar ...): theirs, over a Forever zone's blank painting of the same land
-        classic = np.zeros((gh, gw), np.float32)
+        # Orgrimmar ...): theirs, over a Forever zone's blank painting of the same land. Each is the same
+        # drawing as its own zone's map (gapfill.py's SAME_ART), so that zone doesn't give way to it: where
+        # one's fade met the other's (the classic map's long fade at its frame), the paper showed through
+        classic, classic_of = np.zeros((gh, gw), np.float32), {}
         for x in gap_art():
             al, ar, at, ab = x["rect"]
             a_ = x["img"][..., 3] * (x["mask"] if x["mask"] is not None else 1)
@@ -1404,7 +1449,23 @@ def terr_shared():
             if x1 - x0 < 2 or y1 - y0 < 2: continue
             a = np.asarray(Image.fromarray(a_.astype(np.float32), "F").resize((x1 - x0, y1 - y0), Image.BILINEAR))
             X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
-            if X1 > X0 and Y1 > Y0: classic[Y0:Y1, X0:X1] = np.maximum(classic[Y0:Y1, X0:X1], a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0])
+            if X1 <= X0 or Y1 <= Y0: continue
+            one = np.zeros((gh, gw), np.float32)
+            one[Y0:Y1, X0:X1] = a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0]
+            classic_of[x["id"]] = one
+            classic = np.maximum(classic, one)
+        # the gaps painted by hand (GapFills.lua, under the zones): past its own land a zone's painting gives way
+        # to them as they come in, so the painter's land meets the zone's own (each was painted round what the
+        # zones drew then: where a zone's art now reaches further, his painting stays)
+        painted = np.zeros((gh, gw), np.float32)
+        for x in gap_fills():
+            al, ar, at, ab = x["rect"]
+            x0, y0 = int(round((al - cl) * W_ * G)), int(round((at - ct) * H_ * G))
+            x1, y1 = int(round((ar - cl) * W_ * G)), int(round((ab - ct) * H_ * G))
+            if x1 - x0 < 2 or y1 - y0 < 2: continue
+            a = np.asarray(Image.fromarray(x["img"][..., 3].astype(np.float32), "F").resize((x1 - x0, y1 - y0), Image.BILINEAR))
+            X0, Y0, X1, Y1 = max(0, x0), max(0, y0), min(gw, x1), min(gh, y1)
+            if X1 > X0 and Y1 > Y0: painted[Y0:Y1, X0:X1] = np.maximum(painted[Y0:Y1, X0:X1], a[Y0 - y0:Y1 - y0, X0 - x0:X1 - x0])
         # each zone's claim on the land round it: its painting where it can show it (inside its frame,
         # fading out over TERR_FRAME; off the others' own land; not where it prints a name), weighed by
         # how near its own land is. The claims are shared out where they overlap, so where one zone's
@@ -1432,10 +1493,16 @@ def terr_shared():
         norm = np.maximum(total, 1)
         for m in mine:
             i = m["id"]
-            # its painted sea only so far off the coast; not where Blizzard's classic map of the land is drawn
-            beyond = claim[i] / norm * reach * (1 - np.clip(classic * 1.25, 0, 1))
+            # its painted sea only so far off the coast; not where another zone's classic map of the land is drawn,
+            # nor a painted gap
+            mine_ = re.sub(r"[^A-Za-z]", "", m["name"])         # (its own: Gaps.lua's art names it so)
+            theirs = classic if mine_ not in classic_of else functools.reduce(np.maximum, [a for k_, a in classic_of.items() if k_ != mine_], np.zeros((gh, gw), np.float32))
+            beyond = claim[i] / norm * reach * (1 - np.clip(theirs * 1.25, 0, 1)) * (1 - np.clip(painted * 1.25, 0, 1))
             terr = np.maximum(own[i], beyond) * np.clip(frame[i] * 1.0, 0, 1)
-            out_[i] = to_art(terr, m) * edge(m) * (1 - compasses(m))       # (never its compass roses)
+            # (never its compass roses.) Its land runs to its frame; its sea fades in from it as MapFeather does (the
+            # aged paper along a frame is the sea's colour), now that Stitch.lua draws the base art through this alone
+            keep = frame_keep(m) * (1 - ndimage.gaussian_filter(zone_sea_found(m).astype(np.float32), 3))
+            out_[i] = to_art(terr, m) * edge(m) * (1 - compasses(m)) * (keep + (1 - keep) * M_FEATHER)
         print("  territories:", c["name"], len(mine), flush=True)
     return out_
 
@@ -1473,10 +1540,10 @@ def bake_zones():
         layers.append((x["rect"], lambda x=x: x["img"], lambda: None, None, 0))   #  Filled gaps off draws the live layers)
     for m in live:                                       # (a frame each, biggest first: base, then its copy)
         g = grade.get(m["id"])
-        layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: M_FEATHER * terr(m) if g and terr(m) is not None else M_FEATHER, None, ZONE_DESAT))
+        layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: terr(m) if g and terr(m) is not None else M_FEATHER, None, ZONE_DESAT))
         if g and band(m) is not None:
-            layers.append((m["rect"], lambda m=m: base(m), lambda m=m: M_FEATHER * band(m), g, ZONE_DESAT))
-    def edge_of(m): return edge(m) if grade.get(m["id"]) else M_THIN   # (Stitch.lua: MapEdge for graded zones)
+            layers.append((m["rect"], lambda m=m: base(m), lambda m=m: (terr(m) if terr(m) is not None else M_FEATHER) * band(m), g, ZONE_DESAT))
+    def edge_of(m): return over_edge(m) if grade.get(m["id"]) else M_THIN   # (Stitch.lua: MapEdge for graded zones)
     for m in live:                                       # (overlayRoot: every zone's overlays, then their copies)
         layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m), None, ZONE_DESAT))
     for m in live:

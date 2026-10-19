@@ -76,13 +76,16 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   neighbours' surroundings). An island the continent's art doesn't show as land (Teldrassil)
   has its whole coast as its own land, as its art paints it (the roots its overlays leave
   out). Not another zone's own land, not the names it prints (the
-  sea's, its neighbours'), not its compass roses, not where a classic map is drawn. Where
-  several zones paint the same place their claims are shared out by how near their own land
-  is, each fading at its frame, so one hands over to the next; past every zone's painting
-  it fades into the paper. (`MapZoneLand` and `MapZoneBorder`, for darkening, are made from
+  sea's, its neighbours'), not its compass roses, not where another zone's classic map is
+  drawn (its own is the same drawing), and past its own land it gives way to the gaps painted
+  by hand. Where several zones paint the same place their claims are shared out by how near
+  their own land is, each fading at its frame, so one hands over to the next; past every
+  zone's painting it fades into the paper. The territory is the only mask on the zone's base
+  art (and its colour-matched copy): it ends at the zone's own frame. (`MapZoneLand` and `MapZoneBorder`, for darkening, are made from
   the zone's own territory: its land and shore.)
 - **zone overlays** (the explored-area pieces, `Data/Reveal.lua`, explored ones from the
-  client): a thin, wavy feather at the art's edge.
+  client): inside the zone's own frame, measured (`MapEdge`, `render.py --bake-edges`); where
+  they paint the sea up to the frame, fading in from it as the base art's sea does.
 - **zone interiors**: the overlays again through `MapCore`, above every zone's parchment halo.
 - **cities**: base art with a round feather, fading in near the zoom where they fill the view.
   Orgrimmar and Thunder Bluff come in sooner. Orgrimmar, Undercity, Thunder Bluff and Ironforge are cut
