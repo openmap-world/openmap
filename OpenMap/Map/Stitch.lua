@@ -1148,14 +1148,17 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- the continents' and seas' names (S.SetZoom letters each when it first shows)
 	namesFrame = CreateFrame("Frame", nil, labelsRoot)
 	namesFrame:SetSize(1, 1)
-	-- while the map moves, the names' halos rest: every font string is drawn again at its new size on
+	-- while the map moves, the seas' names' halos rest: every font string is drawn again at its new size on
 	-- each frame of a zoom, and laid out again on each of a pan, and the halo is eight of a letter's
-	-- nine. Back once the map has stopped. (On `names`, not locals of their own: the file is near
+	-- nine. Back once the map has stopped. The continents' keep theirs (few letters, and their glow
+	-- flickering off and on as you zoom showed). (On `names`, not locals of their own: the file is near
 	-- Lua's limit of 200)
 	names.Hush = function(on)
 		names.hushed = on
 		for _, n in ipairs(names) do
-			for _, copy in ipairs(n[1].halos or NONE) do copy:SetShown(not on) end
+			if n[2].fade ~= "land" then
+				for _, copy in ipairs(n[1].halos or NONE) do copy:SetShown(not on) end
+			end
 		end
 		names.watch:SetShown(on)
 	end
@@ -1549,7 +1552,7 @@ local function Letter(f, label)
 						copy:SetPoint("LEFT", f, "TOPLEFT", x + dx, y + dy)
 						f.halos = f.halos or {}
 						f.halos[#f.halos + 1] = copy
-						if names.hushed then copy:Hide() end
+						if names.hushed and label.fade ~= "land" then copy:Hide() end
 					end
 				end
 			end
