@@ -13,7 +13,7 @@ ns.Credits = {
 		{ "Ji" },
 	} },
 	{ L["Maps painted by hand"], {
-		{ "Santiago Reyes", L["the sea chart round the world map, the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission"] },
+		{ "Santiago Reyes", L["Hand painted custom art for OpenMap including the sea elements, blank land between zones, and his maps of WoW Forever dungeons."] },
 	} },
 	{ L["Programming"], {   -- (not "Code": that's the Pins code button's word)
 		{ "Ironship", L["the map in combat, RareScanner's icons over the map and other map addons' pins"] },
