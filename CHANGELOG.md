@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Ironforge's map shows once you've been there**, even if you came by the Deeprun Tram and haven't
+  found the land round it yet. With unexplored areas hidden, the city counted as found only once you'd
+  explored the part of Dun Morogh over it; now going into a city finds it too.
+
 ## v0.6.0-beta (2026-10-18)
 
 ### New

@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aIronforge's map shows once you've been there|r, even if you came by the Deeprun Tram and haven't found the land round it yet. With unexplored areas hidden, the city counted as found only once you'd explored the part of Dun Morogh over it; now going into a city finds it too.",
+	} },
 	{ version = "v0.6.0-beta", date = "2026-10-18", heads = { [1] = "New", [12] = "Improved", [21] = "Fixed", }, items = {
 		"|cff6e2c0aResponsive ocean & border|r (Options, and the map's menu): zoomed right out, the world map lies on a sea chart painted by Santiago Reyes (used with his permission), laid out for your window's shape: the sea, compass roses, sea creatures, ships and the frame's corners round it, each in its place whether the window is wide, square or tall. The game's own world map stays in the middle, fading into his sea. Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off unless you turn it on. Its frame is the map's only border now: the parchment border and its setting are gone, so with this off the map has none.",
 		"|cff6e2c0aOpenMap in your language|r: German, French, Spanish (Spain and Latin America), Italian, Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own words for things (flight masters, map pins, the quest log ...). Place names were already the game's. What's new's notes stay in English.",

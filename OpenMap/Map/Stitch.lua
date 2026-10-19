@@ -2579,7 +2579,9 @@ function Shade.Found(covers)
 end
 
 -- Whether each city has been found: its own map has no pieces to explore, so the pieces of the zone
--- maps under its centre (Orgrimmar's: Durotar's) say; with none there, it's found. A city's textures
+-- maps under its centre (Orgrimmar's: Durotar's) say; with none there, it's found. So does the city
+-- itself, once you've been in it: by the tram, Ironforge is found while Dun Morogh's piece over it isn't
+-- (the game's own explored areas on the city's map, and where you are). A city's textures
 -- share one stand-in piece, so hidden unexplored areas hide an unfound city as they do a piece, and the
 -- zone's banner for it with it. (On `cities`: the file is near Lua's limit of 200 locals)
 cities.Build = function()
@@ -2591,8 +2593,21 @@ cities.Build = function()
 	cities.Refresh()
 end
 
+cities.Visited = function(mapID)
+	if C_Map.GetBestMapForUnit("player") == mapID then return true end
+	local at = C_MapExplorationInfo.GetExploredAreaIDsAtPosition
+	local ok, areas = pcall(at, mapID, CreateVector2D(0.5, 0.5))
+	return ok and type(areas) == "table" and #areas > 0
+end
+
+-- (true when a city's found or lost since)
 cities.Refresh = function()
-	for _, c in ipairs(cities) do c.piece.unexplored = not Shade.Found(c.covers) end
+	local changed = false
+	for _, c in ipairs(cities) do
+		local un = not (Shade.Found(c.covers) or cities.Visited(c.mapID))
+		if c.piece.unexplored ~= un then c.piece.unexplored, changed = un, true end
+	end
+	return changed
 end
 
 -- the zones' banners for their cities: with the zone detail, giving way to the city's own (BANNER_OUT),
@@ -2742,6 +2757,14 @@ function Shade.Places.At(u, v)
 	return false
 end
 
+-- the player went somewhere new: a city found by going in (ZONE_CHANGED_NEW_AREA)
+function S.RefreshCities()
+	if cities.Refresh() then
+		Shade.Places.Refresh()
+		if lastGrade then S.ApplyGrade(unpack(lastGrade)) end
+	end
+end
+
 -- the player explored somewhere: its pieces stop being unexplored (MAP_EXPLORATION_UPDATED)
 function S.RefreshExplored()
 	local changed = false
@@ -2755,9 +2778,8 @@ function S.RefreshExplored()
 			if piece.unexplored ~= un then piece.unexplored, changed = un, true end
 		end
 	end
-	if changed then
-		cities.Refresh()
-		Shade.Places.Refresh()
-	end
+	-- (a city found by going in, the zone's pieces over it unchanged: Ironforge by the tram)
+	if cities.Refresh() then changed = true end
+	if changed then Shade.Places.Refresh() end
 	if changed and lastGrade then S.ApplyGrade(unpack(lastGrade)) end
 end

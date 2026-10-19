@@ -1039,6 +1039,8 @@ local function Setup()
 	if mod.SetupExtras then mod:SetupExtras(map) end
 	if mod.SetupFlights then mod:SetupFlights() end
 	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function() if S.IsBuilt() then S.RefreshExplored() end end)
+	-- (into a city: found, though nothing was explored there just now)
+	ns.RegisterEvent(mod, "ZONE_CHANGED_NEW_AREA", function() if S.IsBuilt() then S.RefreshCities() end end)
 	if mod.SetupNav then mod:SetupNav(map) end          -- (before the menu: it holds Nav's search box)
 	if mod.SetupPins then mod:SetupPins(map) end
 	if mod.SetupQuests then mod:SetupQuests(map) end
