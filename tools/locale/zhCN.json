@@ -454,5 +454,10 @@
  "Delete all %d map pins?": "删除全部%d个地图标记？",
  "Delete every map pin (you're asked first). One at a time: Alt-click it.": "删除所有地图标记（会先询问）。逐个删除：按住Alt点击标记。",
  "OpenMap's map with the controller (test)": "手柄使用OpenMap地图（测试）",
- "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "手柄界面启用时，使用OpenMap的地图代替暴雪的地图。此时地图上手柄的B键和全屏键由OpenMap接管，游戏不会阻止它们。仍在测试中：如果游戏阻止了某些操作，请关闭此项并输入/reload。"
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "手柄界面启用时，使用OpenMap的地图代替暴雪的地图。此时地图上手柄的B键和全屏键由OpenMap接管，游戏不会阻止它们。仍在测试中：如果游戏阻止了某些操作，请关闭此项并输入/reload。",
+ "Share all": "全部分享",
+ "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "一次分享所有标记：生成可复制的代码，发给你的小队或团队，或发给你的公会。",
+ "As a code": "生成代码",
+ "To your group": "发给小队",
+ "To your guild": "发给公会"
 }

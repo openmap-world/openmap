@@ -454,5 +454,10 @@
  "Delete all %d map pins?": "Excluir todos os %d marcadores de mapa?",
  "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Exclui todos os marcadores de mapa (você confirma antes). Um por vez: Alt+clique nele.",
  "OpenMap's map with the controller (test)": "Mapa do OpenMap com o controle (teste)",
- "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "Com a interface de controle ativada, o mapa do OpenMap em vez do da Blizzard. Os botões B e de tela cheia do controle no mapa passam a ser do OpenMap, para que o jogo não os bloqueie. Ainda em teste: se o jogo bloquear algo, desative isto e use /reload."
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "Com a interface de controle ativada, o mapa do OpenMap em vez do da Blizzard. Os botões B e de tela cheia do controle no mapa passam a ser do OpenMap, para que o jogo não os bloqueie. Ainda em teste: se o jogo bloquear algo, desative isto e use /reload.",
+ "Share all": "Compartilhar todos",
+ "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "Todos os marcadores de uma vez: como um código para copiar, para seu grupo ou raide, ou para sua guilda.",
+ "As a code": "Como código",
+ "To your group": "Para seu grupo",
+ "To your guild": "Para sua guilda"
 }

@@ -454,5 +454,10 @@
  "Delete all %d map pins?": "Supprimer les %d repères cartographiques ?",
  "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Supprime tous les repères cartographiques (une confirmation est demandée). Un par un : Alt+clic dessus.",
  "OpenMap's map with the controller (test)": "Carte d'OpenMap avec la manette (test)",
- "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "Avec l'interface pour manette activée, la carte d'OpenMap au lieu de celle de Blizzard. Les boutons B et plein écran de la manette sur la carte passent alors à OpenMap, pour que le jeu ne les bloque pas. Encore à l'essai : si le jeu bloque quelque chose, désactivez ceci et faites /reload."
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "Avec l'interface pour manette activée, la carte d'OpenMap au lieu de celle de Blizzard. Les boutons B et plein écran de la manette sur la carte passent alors à OpenMap, pour que le jeu ne les bloque pas. Encore à l'essai : si le jeu bloque quelque chose, désactivez ceci et faites /reload.",
+ "Share all": "Tout partager",
+ "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "Tous les repères d'un coup : en code à copier, à votre groupe ou raid, ou à votre guilde.",
+ "As a code": "En code",
+ "To your group": "À votre groupe",
+ "To your guild": "À votre guilde"
 }

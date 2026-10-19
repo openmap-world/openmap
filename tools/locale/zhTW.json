@@ -454,5 +454,10 @@
  "Delete all %d map pins?": "刪除全部 %d 個地圖標記？",
  "Delete every map pin (you're asked first). One at a time: Alt-click it.": "刪除所有地圖標記（會先確認）。逐一刪除：按 ALT+點擊標記。",
  "OpenMap's map with the controller (test)": "遊戲控制器使用 OpenMap 地圖（測試）",
- "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "遊戲控制器使用者介面開啟時，使用 OpenMap 的地圖取代 Blizzard 的地圖。此時地圖上控制器的 B 鍵與全螢幕鍵由 OpenMap 接管，遊戲不會阻擋。仍在測試中：若遊戲阻擋了某些動作，請關閉此選項並輸入 /reload。"
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "遊戲控制器使用者介面開啟時，使用 OpenMap 的地圖取代 Blizzard 的地圖。此時地圖上控制器的 B 鍵與全螢幕鍵由 OpenMap 接管，遊戲不會阻擋。仍在測試中：若遊戲阻擋了某些動作，請關閉此選項並輸入 /reload。",
+ "Share all": "全部分享",
+ "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "一次分享所有標記：產生可複製的代碼，傳給你的隊伍或團隊，或傳給你的公會。",
+ "As a code": "產生代碼",
+ "To your group": "傳給隊伍",
+ "To your guild": "傳給公會"
 }

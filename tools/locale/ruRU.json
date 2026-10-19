@@ -454,5 +454,10 @@
  "Delete all %d map pins?": "Удалить все метки на карте (%d)?",
  "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Удаляет все метки на карте (сначала спросит). По одной: Alt+щелчок по метке.",
  "OpenMap's map with the controller (test)": "Карта OpenMap с контроллером (тест)",
- "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "При включенном интерфейсе контроллера — карта OpenMap вместо карты Blizzard. Кнопки B и полноэкранного режима контроллера на карте берет на себя OpenMap, чтобы игра их не блокировала. Пока проверяется: если игра что-то блокирует, отключите это и введите /reload."
+ "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.": "При включенном интерфейсе контроллера — карта OpenMap вместо карты Blizzard. Кнопки B и полноэкранного режима контроллера на карте берет на себя OpenMap, чтобы игра их не блокировала. Пока проверяется: если игра что-то блокирует, отключите это и введите /reload.",
+ "Share all": "Поделиться всеми",
+ "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "Все метки сразу: кодом для копирования, группе или рейду, или гильдии.",
+ "As a code": "Кодом",
+ "To your group": "Группе",
+ "To your guild": "Гильдии"
 }

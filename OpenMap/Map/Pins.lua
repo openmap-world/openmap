@@ -18,6 +18,7 @@ local Look, Safe, L = ns.Look, ns.Safe, ns.L
 
 mod.defaults.pins = { list = {}, nextId = 1 }
 mod.defaults.pinsShared = true  -- pins others share reach you (you're asked first)
+mod.defaults.pinsAt = false     -- the Pins list's place once dragged: { point, relPoint, x, y } (UIParent's)
 
 local PREFIX = "OpenMap"        -- (its addon messages)
 local CODE = "OMPINS1:"         -- (a code of pins, to paste)
@@ -626,6 +627,16 @@ local function BuildList()
 	local top, head = Look:Window(list, L["Map pins"])    -- (the map window's own frame, its title bar and X)
 	list:SetSize(352, ROWS * 18 + 62 + top)
 	list.head = head
+	-- dragged by its title bar (or any of its own empty space), and kept where it's put
+	list:SetMovable(true)
+	list:SetClampedToScreen(true)
+	list:RegisterForDrag("LeftButton")
+	list:SetScript("OnDragStart", function(self) self:StartMoving() end)
+	list:SetScript("OnDragStop", function(self)
+		self:StopMovingOrSizing()
+		local point, _, relPoint, x, y = self:GetPoint(1)
+		if point then mod.db.pinsAt = { point, relPoint, x, y } end
+	end)
 	list.empty = list:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 	list.empty:SetPoint("TOPLEFT", 16, -12 - top)
 	list.empty:SetWidth(320)
@@ -676,18 +687,41 @@ local function BuildList()
 		self.offset = (self.offset or 0) - delta * 3
 		RefreshList()
 	end)
-	-- every pin: a code, your group, your guild; a code to add
-	local x = 16
-	for _, b in ipairs({
-		{ L["Import"], 64, function() CodeBox(nil) end, L["Paste a code of map pins someone gave you."] },
-		{ L["Code"], 56, function() CodeBox(CodeOf(DB().list)) end, L["Every pin as a code to copy and paste anywhere."] },
-		{ L["Group"], 60, function() Share(DB().list, "group") end, L["Every pin to your party or raid (those with OpenMap are asked whether to add them)."] },
-		{ L["Guild"], 56, function() Share(DB().list, "guild") end, L["Every pin to your guild (those with OpenMap are asked whether to add them)."] },
-	}) do
-		local btn = Button(list, b[2], b[1], b[3], b[4])
-		btn:SetPoint("BOTTOMLEFT", x, 12)
-		x = x + b[2] + 4
+	-- a code to add; every pin shared (a code, your group, your guild), from a menu, so sending all of them
+	-- to a guild is never one stray click
+	Button(list, 64, L["Import"], function() CodeBox(nil) end, L["Paste a code of map pins someone gave you."]):SetPoint("BOTTOMLEFT", 16, 12)
+	local menu = CreateFrame("Frame", nil, list)
+	menu:SetFrameStrata("FULLSCREEN_DIALOG")
+	menu:EnableMouse(true)
+	local l, t, r, b = Look:Dropdown(menu)
+	local shareAll = Button(list, 96, L["Share all"], function() menu:SetShown(not menu:IsShown()) end,
+		L["Every pin at once: as a code to copy, to your party or raid, or to your guild."])
+	shareAll:SetPoint("BOTTOMLEFT", 84, 12)
+	menu:SetPoint("BOTTOMLEFT", shareAll, "TOPLEFT", -4, 2)
+	local items = {
+		{ L["As a code"], function() CodeBox(CodeOf(DB().list)) end, L["Every pin as a code to copy and paste anywhere."] },
+		{ L["To your group"], function() Share(DB().list, "group") end, L["Every pin to your party or raid (those with OpenMap are asked whether to add them)."] },
+		{ L["To your guild"], function() Share(DB().list, "guild") end, L["Every pin to your guild (those with OpenMap are asked whether to add them)."] },
+	}
+	for i, it in ipairs(items) do
+		local row = CreateFrame("Button", nil, menu)
+		row:SetSize(150, 20)
+		row:SetPoint("TOPLEFT", l, -t - (i - 1) * 20)
+		row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+		local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+		text:SetPoint("LEFT", 6, 0)
+		text:SetText(it[1])
+		row:SetScript("OnClick", function() menu:Hide() it[2]() end)
+		row:SetScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:AddLine(it[3], 1, 1, 1, true)
+			GameTooltip:Show()
+		end)
+		row:SetScript("OnLeave", GameTooltip_Hide)
 	end
+	menu:SetSize(150 + l + r, #items * 20 + t + b)
+	menu:Hide()
+	list:HookScript("OnHide", function() menu:Hide() end)
 	-- every pin off the map at once (asked first)
 	Button(list, 60, L["Clear"], function()
 		local n = #DB().list
@@ -713,6 +747,11 @@ function mod:TogglePins(on)
 	if on then
 		if not map:IsShown() then ToggleWorldMap() end
 		RefreshList()
+		local at = mod.db.pinsAt                   -- (where it was dragged to)
+		if at then
+			list:ClearAllPoints()
+			list:SetPoint(at[1], UIParent, at[2], at[3], at[4])
+		end
 	end
 	list:SetShown(on)
 end
