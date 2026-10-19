@@ -69,6 +69,9 @@
 - **The Pins list** can be dragged anywhere and stays where you put it. Sharing every pin is one
   **Share all** button with a menu (as a code, to your group, to your guild), so sending them all to
   your guild is never one stray click.
+- **The minimap's detail over Orgrimmar and Thunder Bluff** as over the other major cities (up to
+  half strength; it was held to 15% there, which hardly showed). **Minimap detail in major cities**
+  (the menu's Up close, and Options) turns it off over all six.
 
 ### Fixed
 
@@ -132,6 +135,8 @@
   (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
 - Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
   now drawn where the map is at that step.
+- **Quests from every zone** follow the map's own **Quest Objectives** switch: with it off, OpenMap's
+  quest icons go too, as Blizzard's do.
 - The menu's **Minimap button** row has its icon (it showed none: the icon it named isn't in the
   game).
 

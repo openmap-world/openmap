@@ -457,5 +457,7 @@
  "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "모든 핀을 한 번에: 복사할 코드로, 파티나 공격대에, 또는 길드에 보냅니다.",
  "As a code": "코드로",
  "To your group": "파티에",
- "To your guild": "길드에"
+ "To your guild": "길드에",
+ "Minimap detail in major cities": "대도시의 미니맵 세부 묘사",
+ "The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone.": "여섯 대도시 자체 지도 위의 미니맵 세부 묘사입니다. 도시 지도가 앞서도록 최대 절반 강도로 표시합니다. 끄면 도시 자체 지도만 보입니다."
 }

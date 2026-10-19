@@ -457,5 +457,7 @@
  "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "一次分享所有标记：生成可复制的代码，发给你的小队或团队，或发给你的公会。",
  "As a code": "生成代码",
  "To your group": "发给小队",
- "To your guild": "发给公会"
+ "To your guild": "发给公会",
+ "Minimap detail in major cities": "主城中的小地图细节",
+ "The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone.": "六座主城自带地图上的小地图细节，最多为一半强度，让城市平面图为主。关闭：只显示主城自己的地图。"
 }

@@ -81,7 +81,9 @@ function mod:RefreshQuests()
 	if not set and S.IsBuilt() then set = S.PinSet("quests", 1, 5) end   -- (built as the map first opens)
 	if not set then return end
 	S.ClearPinSet(set)
+	-- (and as Blizzard's own quests: not with the map's Quest Objectives off, its questPOI)
 	local on = mod.db.allQuests ~= false and mod.IsStitched() and C_QuestLog.GetQuestsOnMap ~= nil
+		and not (GetCVarBool and not GetCVarBool("questPOI"))
 	S.SetPinSetOn(set, on)
 	if not on then return end
 	-- the map underneath: Blizzard draws its quests (a continent, only the super-tracked one)
@@ -130,10 +132,13 @@ end
 function mod:SetupQuests(worldMap)
 	map = worldMap
 	local events = CreateFrame("Frame")
-	for _, e in ipairs({ "QUEST_LOG_UPDATE", "QUEST_POI_UPDATE", "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED" }) do
+	for _, e in ipairs({ "QUEST_LOG_UPDATE", "QUEST_POI_UPDATE", "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "CVAR_UPDATE" }) do
 		pcall(events.RegisterEvent, events, e)
 	end
-	events:SetScript("OnEvent", function() if map:IsShown() then Soon() end end)
+	events:SetScript("OnEvent", function(_, event, cvar)
+		if event == "CVAR_UPDATE" and cvar ~= "questPOI" then return end
+		if map:IsShown() then Soon() end
+	end)
 	hooksecurefunc(map, "OnMapChanged", Soon)
 	map:HookScript("OnShow", Soon)
 end

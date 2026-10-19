@@ -457,5 +457,7 @@
  "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "Todos os marcadores de uma vez: como um código para copiar, para seu grupo ou raide, ou para sua guilda.",
  "As a code": "Como código",
  "To your group": "Para seu grupo",
- "To your guild": "Para sua guilda"
+ "To your guild": "Para sua guilda",
+ "Minimap detail in major cities": "Detalhe do minimapa nas capitais",
+ "The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone.": "O detalhe do minimapa sobre os mapas próprios das seis capitais, no máximo com metade da intensidade para que a planta da cidade prevaleça. Desativado: só os mapas delas."
 }

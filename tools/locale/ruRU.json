@@ -457,5 +457,7 @@
  "Every pin at once: as a code to copy, to your party or raid, or to your guild.": "Все метки сразу: кодом для копирования, группе или рейду, или гильдии.",
  "As a code": "Кодом",
  "To your group": "Группе",
- "To your guild": "Гильдии"
+ "To your guild": "Гильдии",
+ "Minimap detail in major cities": "Детали мини-карты в столицах",
+ "The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone.": "Детали мини-карты поверх собственных карт шести столиц, не больше чем вполсилы, чтобы план города оставался главным. Выключено: только их собственные карты."
 }

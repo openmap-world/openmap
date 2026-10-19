@@ -279,6 +279,7 @@ local function Rows()
 	fromOptions(L["Full-screen map fills the width"], "fullWidth", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = { L["Up close"] }
 	rows[#rows + 1] = optRow(L["Minimap detail"], "minimap", Icon("Spell_Nature_FarSight"))
+	rows[#rows + 1] = optRow(L["Minimap detail in major cities"], "cityMinimap", Icon("Spell_Arcane_TeleportStormWind"))
 	rows[#rows + 1] = optRow(L["Minimap in the gaps"], "gapMinimap", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = optRow(L["Soften and paper grain"], "soften", Icon("INV_Fabric_Linen_01"))
 	rows[#rows + 1] = optRow(L["Caves underground"], "underground", Icon("Trade_Mining"))

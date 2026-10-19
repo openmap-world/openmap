@@ -27,6 +27,7 @@ d.minimap = true                -- the minimap's detail up close at all (off: th
 d.minimapMix = 0.45             -- how strong the minimap's detail is up close (0 = none)
 d.minimapDeep = 0.85            -- the most it shows at any zoom (reached at the deepest, where the painted map has nothing left)
 d.minimapFrom = 20              -- the zoom where it starts to mix in (MINI_FROM: what it can be set to)
+d.cityMinimap = true            -- ... over the six major cities' own maps too (off: their own maps alone)
 d.soften = true                 -- soften + paper grain at the closest zoom
 d.underground = true            -- caves and pre-instance areas
 d.gapMinimap = false            -- the minimap in land no zone map covers (experimental: off, that land is left as
@@ -38,10 +39,8 @@ local MINI_FROM = { 1, 60, 1 }  -- minimapFrom's least (the whole world), most, 
 mod.MINI_FROM = MINI_FROM
 local miniFade, deepFade = { 20, 34 }, { 30, 48 }   -- (the fades as set: kept, not made each view)
 local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
-local CITY_MINI_OF = {          -- ... less over these: their own plan is detailed, and comes in from further out
-	[1454] = 0.15,              --  (Orgrimmar)
-	[1456] = 0.15,              --  (Thunder Bluff)
-}
+-- ... none over the six major cities' own maps with cityMinimap off
+local function CityMost() return mod.db.cityMinimap == false and 0 or CITY_MINI end
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
@@ -664,7 +663,8 @@ end
 -- mountain, the ruins over the Undercity), kept off them (S.CityCover). Inside, the game's minimap draws
 -- the city's own WMO (ns.MapCityMinimap, tools/map-caves/minimap.py): its pictures go over the city's own
 -- map, on its frame (S.UndergroundCity: shown, culled and faded in with it), as the minimap goes over a
--- city in the open: at the minimap's mix, no more than CITY_MINI. Not a cave: nothing dims round it
+-- city in the open: at the minimap's mix, no more than CITY_MINI (none with cityMinimap off). Not a cave:
+-- nothing dims round it
 --------------------------------------------------------------------------------
 
 local cityPics = {}             -- city mapID -> { its textures, tone =, alpha =, dark = }, or false
@@ -697,7 +697,7 @@ local function UpdateCityMinimap(u, v, hu, hv, mix)
 			cityPics[mapID] = pics
 		end
 		if pics then
-			local a = (near and not hidden) and math.floor(math.min(mix, CITY_MINI_OF[mapID] or CITY_MINI) * 50 + 0.5) / 50 or 0
+			local a = (near and not hidden) and math.floor(math.min(mix, CityMost()) * 50 + 0.5) / 50 or 0
 			if pics.alpha ~= a then
 				pics.alpha = a
 				-- (hidden, they let go of their anchors: the game lays out again on every frame of a pan
@@ -786,9 +786,9 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	-- game's minimap of the city inside goes over it instead, UpdateCityMinimap)
 	local inside = mix
 	mix = mix * (1 - (Try("cities", S.CityCover, u, v) or 0))
-	-- and over the cities on the surface no more than CITY_MINI (or the city's own): their own plan leads
-	local city, cityID = Try("surface cities", S.SurfaceCityCover, u, v)
-	local most = CITY_MINI_OF[cityID] or CITY_MINI
+	-- and over the cities on the surface no more than CITY_MINI (none with cityMinimap off): their own plan leads
+	local city = Try("surface cities", S.SurfaceCityCover, u, v)
+	local most = CityMost()
 	if mix > most then mix = mix + (most - mix) * (city or 0) end
 	cv.mix = mix
 	if S.MinimapShown then S.MinimapShown(mix > 0.004) end   -- (unexplored land hidden over it: Stitch.lua)
@@ -825,6 +825,8 @@ function mod:CloseOptions(opts, get, set, off)
 	opts.minimapDeep = { type = "range", name = ns.L["Minimap detail, most opacity"], order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
 		desc = ns.L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] }
+	opts.cityMinimap = { type = "toggle", name = ns.L["Minimap detail in major cities"], order = 51.4, get = get, set = set, disabled = noMinimap,
+		desc = ns.L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] }
 	opts.gapMinimap = { type = "toggle", name = ns.L["Minimap in the gaps (experimental)"], order = 51.5, get = get, set = set, disabled = noMinimap,
 		desc = ns.L["Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper."] }
 	opts.soften = { type = "toggle", name = ns.L["Soften and add paper grain"], order = 52, get = get, set = set, disabled = off,
