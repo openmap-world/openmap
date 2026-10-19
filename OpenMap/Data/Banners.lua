@@ -24,6 +24,7 @@ ns.MapCityCuts = {
 	[1454] = true,   -- Orgrimmar
 	[1458] = true,   -- Undercity
 	[1456] = true,   -- Thunder Bluff
+	[1455] = true,   -- Ironforge
 }
 
 -- ... and whose cut keeps their own name banner: their zone's banner for them goes as they come in
@@ -31,6 +32,7 @@ ns.MapCityTitles = {
 	[1454] = true,   -- Orgrimmar
 	[1458] = true,   -- Undercity
 	[1456] = true,   -- Thunder Bluff
+	[1455] = true,   -- Ironforge
 }
 
 -- each city's zone, whose own land is under the city's middle: [city uiMapID] = zone uiMapID

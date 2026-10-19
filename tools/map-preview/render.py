@@ -22,6 +22,7 @@ CONT_FADE, DETAIL_FADE, CITY_FADE, MUTE_FADE = (1.3, 2.2), (3, 4.5), (0.2, 0.4),
 DETAIL_HINT = (1.8, 3, 0.3)     # (the zones' hint from further out: Stitch.lua's)
 CITY_FADE_OF = {1454: (0.08, 0.25), 1456: (0.08, 0.25)}   # (cities that come in sooner: Stitch.lua's)
 BANNER_OUT = (0.25, 0.4)        # (a zone's banner for a city that keeps its own goes: Stitch.lua's)
+UNDERGROUND_CITIES = (1455, 1458)   # (Ironforge, Undercity: their zone paints the surface over them, Stitch.lua's)
 BORDER_OUT, BORDER_SCALE = (1.15, 1.6), 0.55   # (the border round the view: Window.lua's)
 SEA = (0.50, 0.49, 0.41)        # the sea's colour where no map paints one (MapSeaField covers the rest)
 SEA_REACH = 1.5                 # how far past the world art the sea runs (Stitch.lua's): MapSeaFieldOut over it
@@ -1220,11 +1221,13 @@ def terr_own_raw(m):
         terr = np.maximum(terr, ct_ * ct_ * (3 - 2 * ct_) * sf * sf * (3 - 2 * sf))
     # the cities inside it (Orgrimmar in Durotar ...): maps of their own, shown only once you're
     # close, so until then the zone's painting of them shows. (The game lists cities under their
-    # continent: a city belongs to the zone whose own land is at its centre)
+    # continent: a city belongs to the zone whose own land is at its centre.) Not a city cut down to
+    # the city (banners.py), unless it's under the zone's land: the zone paints the surface over all
+    # of it (Dun Morogh's mountain over Ironforge), round its cut too
     l, r, t, b = m["rect"]
     for c in zones:
         if reveal.get(c["art"]): continue
-        if os.path.exists(os.path.join(TEXDIR, "MapCityMask", "%d.tga" % c["id"])): continue   # (cut to the city: banners.py)
+        if c["id"] not in UNDERGROUND_CITIES and os.path.exists(os.path.join(TEXDIR, "MapCityMask", "%d.tga" % c["id"])): continue
         cl, cr, ct, cb = c["rect"]
         cx, cy = int(((cl + cr) / 2 - l) / (r - l) * 1002), int(((ct + cb) / 2 - t) / (b - t) * 668)
         if not (0 <= cx < 1002 and 0 <= cy < 668) or not ndimage.binary_dilation(own_land(m), iterations=40)[cy, cx]: continue

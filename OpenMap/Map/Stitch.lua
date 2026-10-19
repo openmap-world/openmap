@@ -72,7 +72,8 @@ local CITY_FADE_OF = {          -- ... sooner where the zone paints it as no mor
 local BANNER_OUT = { 0.25, 0.4 } -- ... and where the zone's banner for a city that keeps its own (ns.MapCityTitles)
                                 --  gives way to it: once that reads (tools/map-preview/render.py mirrors it)
 local UNDERGROUND_CITIES ={ [1458] = true, [1455] = true }   -- Undercity, Ironforge: the minimap there
-                                -- shows the surface, so their own map is drawn above it (and it's kept off them)
+                                -- shows the surface, so their own map is drawn above it (and it's kept off them;
+                                -- tools/map-preview/render.py mirrors it)
 local MUTE_FADE = { 4, 7 }      -- ... and where the world / continent art mutes
 local SEA_FADE = { 1.2, 1.9 }   -- ... and where it goes from over the sea (its big sea lettering), the sea's own texture taking over
 local UNDISCOVERED = { 0.05, 0.06, 0.08, 0.62 }   -- unexplored land, shaded ("dim"): darker and greyer, over the
@@ -1227,7 +1228,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 				local l, r, t, b = S.Rect(info.mapID)
 				cities[#cities + 1] = { cf, 1 / (r - l), mapID = info.mapID }
 				culled[#culled + 1] = { cf, l, t, r, b, city = true }
-				-- (a city that comes in early is cut down to the city: ns.MapCityCuts, banners.py)
+				-- (a city cut down to the city, its plan: ns.MapCityCuts, banners.py)
 				local cut = ns.MapCityCuts and ns.MapCityCuts[info.mapID] and TEX .. "MapCityMask\\" .. info.mapID
 				PlaceBase(cf, info.mapID, "ARTWORK", graded, cut or FEATHER_ROUND)
 			end

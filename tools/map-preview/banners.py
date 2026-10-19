@@ -79,6 +79,17 @@ CITIES = {
                       (695, 580), (660, 615), (560, 620), (505, 590), (495, 500), (470, 475), (420, 480),
                       (330, 475), (265, 450), (255, 395), (290, 350), (310, 295), (270, 255), (200, 245),
                       (140, 215), (115, 160)],
+    # the wards round the Great Forge, the Gates (bottom left), Tinker Town and the tram (its banner,
+    # bottom middle, is CITY_TITLES'; not the dwarves' emblem, bottom right). Under the mountain: its
+    # zone's painting of the mountain shows round it, where its round fade let Dun Morogh's paint show
+    # through the Mystic Ward, the Forlorn Cavern, the Hall of Explorers and the Gates
+    "Ironforge": [(178, 112), (208, 98), (212, 14), (240, 6), (300, 8), (360, 3), (402, 8), (410, 22),
+                  (470, 18), (545, 22), (568, 45), (596, 10), (672, 4), (705, 42), (760, 46), (795, 62),
+                  (812, 120), (812, 192), (792, 232), (735, 238), (740, 288), (892, 290), (895, 412),
+                  (812, 414), (760, 408), (748, 440), (752, 520), (778, 556), (790, 600), (772, 645),
+                  (700, 655), (640, 652), (612, 628), (600, 600), (340, 598), (300, 580), (250, 602),
+                  (190, 620), (150, 600), (110, 548), (140, 492), (148, 440), (172, 390), (178, 300),
+                  (182, 200), (172, 150)],
 }
 # city -> its own name banner's outline on its own art, kept in its cut: up close it's the city's
 # title, and its zone's banner for it (MapBanner, bigger, over the city) goes as the city comes in
@@ -90,13 +101,18 @@ CITY_TITLES = {
     "Thunder Bluff": [(322, 58), (340, 50), (398, 48), (398, 32), (627, 32), (627, 48), (680, 52), (698, 64),
                       (702, 82), (694, 100), (680, 98), (668, 86), (627, 80), (398, 80), (350, 84), (340, 96),
                       (325, 92), (318, 74)],
+    "Ironforge": [(318, 622), (330, 606), (360, 598), (400, 597), (400, 586), (623, 586), (623, 598), (660, 599),
+                  (690, 608), (699, 625), (690, 642), (665, 648), (623, 640), (400, 640), (340, 648), (320, 640)],
 }
 # cities whose cut also takes in their zone's banner for them (BANNERS, moved onto their own art): where
 # the zone's base art under it isn't its overlay's colour (Mulgore's is bare parchment under its green),
 # the city's own map covers the hole the banner leaves once it's gone
 COVER_BANNER = {"Thunder Bluff"}
+# cities whose plan runs into the art's torn frame (Ironforge's wards, top and bottom): their cut fades out
+# inside it, as a kept banner's does, not at the art's rectangle
+IN_FRAME = {"Ironforge"}
 CITY_SOFT = 50                  # art px over which a city's cut fades (out from its outline: the plan stays whole)
-TITLE_FRAME = (10, 28)          # art px from the art's edge where a kept banner's cut is gone / whole (its torn frame)
+TITLE_FRAME = (10, 28)          # art px from the art's edge where a kept banner's cut (IN_FRAME: a plan's) is gone / whole (its torn frame)
 
 def pow2(n):
     p = 16
@@ -155,6 +171,7 @@ cut = []
 for city, poly in CITIES.items():
     c = by_name[city]
     m_ = soft_cut(poly)
+    if city in IN_FRAME: m_ = m_ * INSIDE_FRAME
     if city in CITY_TITLES: m_ = np.maximum(m_, soft_cut(CITY_TITLES[city]) * INSIDE_FRAME)
     if city in COVER_BANNER:
         for s in banner_on_city(city): m_ = np.maximum(m_, soft_cut(s) * INSIDE_FRAME)

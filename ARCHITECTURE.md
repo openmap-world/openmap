@@ -85,8 +85,9 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   client): a thin, wavy feather at the art's edge.
 - **zone interiors**: the overlays again through `MapCore`, above every zone's parchment halo.
 - **cities**: base art with a round feather, fading in near the zoom where they fill the view.
-  Orgrimmar and Thunder Bluff come in sooner. Orgrimmar, Undercity and Thunder Bluff are cut to their
-  plan and their own name banner (`MapCityMask`), under their zone's banner for them (`MapBanner`; the
+  Orgrimmar and Thunder Bluff come in sooner. Orgrimmar, Undercity, Thunder Bluff and Ironforge are cut
+  to their plan and their own name banner (`MapCityMask`: Ironforge's wards run out to its
+  frame, where the round feather faded them), under their zone's banner for them (`MapBanner`; the
   zone's own art is drawn without it, `MapBannerHole`), which gives way to the city's own as it comes
   in (Thunder Bluff's cut takes in where Mulgore's banner was: Mulgore's art under it is bare
   parchment). Teldrassil's banner for Darnassus stays over the city at every zoom.
