@@ -4,11 +4,10 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [5] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [4] = "Fixed", }, items = {
 		"|cff6e2c0aSea chart|r (Options, and the map's menu): zoomed right out, the world map lies on a sea chart painted by Santiago Reyes (used with his permission), laid out for your window's shape: the sea, compass roses, sea creatures, ships and the frame's corners round it, each in its place whether the window is wide, square or tall. The game's own world map stays in the middle, fading into his sea. Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off unless you turn it on.",
 		"|cff6e2c0aClearing map pins|r: the Pins list's |cff6e2c0aClear|r deletes every pin (it asks first), and Alt-click deletes one at once, on the map or in the list.",
 		"|cff6e2c0aThe Pins list|r can be dragged anywhere and stays where you put it. Sharing every pin is one |cff6e2c0aShare all|r button with a menu (as a code, to your group, to your guild), so sending them all to your guild is never one stray click.",
-		"|cff6e2c0aOpenMap's map with the controller|r (Options, a test): with the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then (secure clicks of the map's own buttons), so the game doesn't block closing the map. Off unless you turn it on, while it's tried out.",
 		"|cff6e2c0aFade while moving|r faded for a moment and then came back: the game's own map fade (held off while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade now stays.",
 		"|cff6e2c0aMap size|r in the map's menu ran away as you dragged it: it scales the window the menu is in, so the slider moved under the cursor. The size now changes when you let go.",
 		"The continents' names lost their glow each time you zoomed and flickered back on: they keep it now (the seas' names still rest theirs while the map moves, which keeps zooming smooth).",

@@ -15,10 +15,6 @@
 - **The Pins list** can be dragged anywhere and stays where you put it. Sharing every pin is one
   **Share all** button with a menu (as a code, to your group, to your guild), so sending them all to
   your guild is never one stray click.
-- **OpenMap's map with the controller** (Options, a test): with the game's Gamepad UI on, OpenMap's
-  map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then
-  (secure clicks of the map's own buttons), so the game doesn't block closing the map. Off unless you
-  turn it on, while it's tried out.
 
 ### Fixed
 
