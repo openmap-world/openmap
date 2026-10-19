@@ -94,6 +94,10 @@
   past his coast, where the game's own map has land, the map's blank paper showed through: an orange
   band down Silithus's and Ahn'Qiraj's west coast in place of his shallows. His shallows and the ink
   line he draws off the shore show now, there and round every painted gap's coast.
+- **Santiago Reyes's mountains south of Hyjal at full strength.** Between Felwood, Ashenvale and
+  Azshara, his painting of the land below Mount Hyjal looked washed out, its mountains faint ghosts on
+  blank paper up to a straight line under Hyjal's map. The zones' blank parchment from the sheet he
+  painted on had been left over his finished painting there; it shows now as he painted it.
 - **Caves come up at the usual deepest zoom.** A cave's map surfaced only once it nearly filled the
   view, which at the default deepest zoom (48x, where a mine is a speck) most never could: clicking
   a dungeon entrance glided in and stopped short of it. Over a cave the zoom now goes on past the

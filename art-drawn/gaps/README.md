@@ -18,6 +18,17 @@ how the map looks there now) into `source/` (not committed):
 
     python -P tools/map-preview/gapregions.py <db2 dir> <texture cache> [--only G01,G02]
 
+A painting comes back as a Photoshop file (not committed). Its PNG here is the composite saved in it,
+as he saw it:
+
+    python -P tools/map-preview/gapexport.py <his .psd> [...]
+
+The plates' zone art sat on top of his paint layers. In G08 (south of Hyjal), where that art faded out
+over the gap it was the zones' blank parchment, 75-100% opaque over his finished mountains, so G08 is
+flattened without it over its fill area (the script's `UNCOVERED`). The others have the same layer over
+parts of their fill areas, mixing that parchment with Blizzard's own drawing he painted round: his to
+say, so they're as he saved them. G01's is his full-size file's composite, kept at half size.
+
 Then, with a painting here:
 
     python -P tools/map-preview/gapfills.py
