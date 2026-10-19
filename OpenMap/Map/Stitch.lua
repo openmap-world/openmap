@@ -2316,6 +2316,7 @@ end
 -- a world point (normalized) hidden as unexplored land (Close.lua: a cave there doesn't surface)
 function S.HiddenAt(u, v)
 	if Shade.Hide.mode ~= "hide" then return false end
+	if Shade.Places.At(u, v) then return true end   -- (a place a painted gap shows, not found yet)
 	local chain = S.ChainAt(u, v)
 	local mapID = chain[#chain]
 	local p = mapID and Place(mapID)
@@ -2406,6 +2407,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 		tex:SetDesaturation(desat)
 	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
+	Shade.Places.Show()
 	if root then
 		for _, c in ipairs(cities) do c.dark = nil end   -- (the grade above set their colours afresh)
 		cities.Dim()
@@ -2478,6 +2480,7 @@ function S.Cull(u0, v0, u1, v1)
 			if z and z.near ~= Shade.Near(mapID) then Shade.Show(mapID) end
 		end
 	end
+	if Shade.Hide.mode then Shade.Places.Show() end   -- (the places a painted gap shows, near the box)
 	-- the pins' cells (S.AddPin)
 	for _, set in pairs(sets) do
 		for _, cell in pairs(set.cells or NONE) do
@@ -2544,6 +2547,36 @@ function Baked.Cull()
 	end
 end
 
+-- the zone maps' pieces whose rectangle holds the world point (x, y) (world units), and their zones (a
+-- set): what says whether a place without pieces of its own has been found (a city, Shade.Places)
+function Shade.Under(x, y)
+	local covers, zones = {}, {}
+	for zoneID, list in pairs(pieces) do
+		local p = Place(zoneID)
+		if p then
+			local px_, py_ = (x - p.left) / p.sx, (y - p.top) / p.sy
+			for key, piece in pairs(list) do
+				local w, h, kx, ky = strsplit(":", key)
+				w, h, kx, ky = tonumber(w), tonumber(h), tonumber(kx), tonumber(ky)
+				if w and px_ >= kx and px_ <= kx + w and py_ >= ky and py_ <= ky + h then
+					covers[#covers + 1] = piece
+					zones[zoneID] = true
+				end
+			end
+		end
+	end
+	return covers, zones
+end
+
+-- found: one of those pieces explored (Blizzard's map draws the whole rectangle of each), or none there
+function Shade.Found(covers)
+	if #covers == 0 then return true end
+	for _, piece in ipairs(covers) do
+		if not piece.unexplored then return true end
+	end
+	return false
+end
+
 -- Whether each city has been found: its own map has no pieces to explore, so the pieces of the zone
 -- maps under its centre (Orgrimmar's: Durotar's) say; with none there, it's found. A city's textures
 -- share one stand-in piece, so hidden unexplored areas hide an unfound city as they do a piece, and the
@@ -2551,32 +2584,14 @@ end
 cities.Build = function()
 	for _, c in ipairs(cities) do
 		local l, r, t, b = S.Rect(c.mapID)
-		local cx, cy = (l + r) / 2 * W, (t + b) / 2 * H
-		c.covers, c.piece = {}, { key = "city" }
-		for zoneID, list in pairs(pieces) do
-			local p = Place(zoneID)
-			if p then
-				local x, y = (cx - p.left) / p.sx, (cy - p.top) / p.sy
-				for key, piece in pairs(list) do
-					local w, h, px, py = strsplit(":", key)
-					w, h, px, py = tonumber(w), tonumber(h), tonumber(px), tonumber(py)
-					if w and x >= px and x <= px + w and y >= py and y <= py + h then c.covers[#c.covers + 1] = piece end
-				end
-			end
-		end
+		c.covers, c.piece = Shade.Under((l + r) / 2 * W, (t + b) / 2 * H), { key = "city" }
 		for _, e in ipairs(zoneTex[c.mapID] or NONE) do e[3] = c.piece end
 	end
 	cities.Refresh()
 end
 
 cities.Refresh = function()
-	for _, c in ipairs(cities) do
-		local found = #c.covers == 0
-		for _, piece in ipairs(c.covers) do
-			if not piece.unexplored then found = true break end
-		end
-		c.piece.unexplored = not found
-	end
+	for _, c in ipairs(cities) do c.piece.unexplored = not Shade.Found(c.covers) end
 end
 
 -- the zones' banners for their cities: with the zone detail, giving way to the city's own (BANNER_OUT),
@@ -2630,6 +2645,102 @@ function S.UndergroundCity(mapID)
 	end
 end
 
+--------------------------------------------------------------------------------
+-- Places a painted gap shows that no zone map draws (ns.MapGapPlaces, tools/map-preview/gapplaces.py):
+-- WoW Forever's own, painted in from the game's minimap (the Wetlands' Excavation Site, a green valley
+-- south of Whelgar's). The game marks no one as having explored them and Blizzard's maps never draw
+-- them, so each is found as a city is, by the zone maps' pieces under its middle. While unexplored areas
+-- are hidden, an unfound one is the gaps' blank paper (MapPaper, laid as PlaceLand lays it, so it meets
+-- theirs) over the painting and the minimap up close; on the zones' layer, so it fades in with their
+-- detail. Darkened: the shade unexplored land has, over both, from every zoom, unless its zone isn't
+-- found at all (that zone's shade has its share of the land round it, this with it).
+--------------------------------------------------------------------------------
+
+-- (in Shade's table: the file is at Lua's limit of 200 locals)
+-- list: { area, box (l, t, r, b, normalized), cells, covers, zones, found, hide = frame, dim = frame },
+-- made the first time it's wanted (the zones' pieces are known by then)
+Shade.Places = { list = false }
+
+function Shade.Places.Build()
+	local list = {}
+	for _, x in ipairs(ns.MapGapPlaces or NONE) do
+		local e = { area = x[1], box = x[3], cells = x[5] }
+		e.covers, e.zones = Shade.Under(x[4][1] * W, x[4][2] * H)
+		list[#list + 1] = e
+	end
+	Shade.Places.list = list
+	Shade.Places.Refresh()
+end
+
+function Shade.Places.Refresh()
+	for _, e in ipairs(Shade.Places.list or NONE) do e.found = Shade.Found(e.covers) end
+end
+
+-- a place's cover: "hide", the paper (over the minimap: Shade.Hide's level); "dim", the shade (shadeRoot's)
+function Shade.Places.Frame(e, how)
+	local b = e.box
+	local x, y, w, h = b[1] * W, b[2] * H, (b[3] - b[1]) * W, (b[4] - b[2]) * H
+	local f = CreateFrame("Frame", nil, how == "hide" and tilesRoot or shadeRoot)
+	f:SetAllPoints(root)
+	f:SetFrameLevel(how == "hide" and S.artTop - 6 or shadeRoot:GetFrameLevel())
+	local mask = f:CreateMaskTexture()
+	mask:SetTexture(TEX .. "MapGapPlace\\" .. e.area, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	Record(mask, x, y, w, h)
+	local paper = ns.MapGaps and ns.MapGaps.paper
+	if how == "hide" and paper then
+		for n, o in ipairs(PAPER_LAYERS) do
+			local tex = f:CreateTexture(nil, "ARTWORK", nil, n)
+			local s_ = paper * o[1]
+			tex:SetTexture(PAPER, "REPEAT", "REPEAT")
+			tex:SetTexCoord(x / s_ + o[2], (x + w) / s_ + o[2], y / s_ + o[2] * 1.7, (y + h) / s_ + o[2] * 1.7)
+			tex:SetVertexColor(1, 1, 1, o[3])
+			Record(tex, x, y, w, h)
+			tex:AddMaskTexture(mask)
+		end
+	elseif how == "dim" then
+		local tex = f:CreateTexture(nil, "ARTWORK")
+		tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+		Record(tex, x, y, w, h)
+		tex:AddMaskTexture(mask)
+	end
+	f:Hide()
+	return f
+end
+
+-- each place's cover for the unexplored areas' mode now, near the view (S.Cull's box) only
+function Shade.Places.Show()
+	if not root then return end
+	local P = Shade.Places
+	if not P.list then P.Build() end
+	local mode, box = Shade.Hide.mode, cullBox
+	for _, e in ipairs(P.list) do
+		local b = e.box
+		local lost = not e.found and (not box or (b[3] > box[1] and b[1] < box[3] and b[4] > box[2] and b[2] < box[4]))
+		local whole = false
+		for zoneID in pairs(e.zones) do
+			if Shade.Unexplored(zoneID) == "all" then whole = true end
+		end
+		local hide, dim = lost and mode == "hide", lost and mode == "dim" and not whole
+		if hide and not e.hide then e.hide = P.Frame(e, "hide") end
+		if dim and not e.dim then e.dim = P.Frame(e, "dim") end
+		if e.hide and e.hide:IsShown() ~= hide then e.hide:SetShown(hide) end
+		if e.dim and e.dim:IsShown() ~= dim then e.dim:SetShown(dim) end
+	end
+end
+
+-- whether an unfound place covers the world point (u, v) (normalized), by its cells (16 a side:
+-- gapplaces.py's CELLS) half covered or more (S.HiddenAt)
+function Shade.Places.At(u, v)
+	for _, e in ipairs(Shade.Places.list or NONE) do
+		local b = e.box
+		if not e.found and u >= b[1] and u < b[3] and v >= b[2] and v < b[4] then
+			local k = math.floor((v - b[2]) / (b[4] - b[2]) * 16) * 16 + math.floor((u - b[1]) / (b[3] - b[1]) * 16) + 1
+			if (tonumber(e.cells:sub(k, k), 16) or 0) >= 8 then return true end
+		end
+	end
+	return false
+end
+
 -- the player explored somewhere: its pieces stop being unexplored (MAP_EXPLORATION_UPDATED)
 function S.RefreshExplored()
 	local changed = false
@@ -2643,6 +2754,9 @@ function S.RefreshExplored()
 			if piece.unexplored ~= un then piece.unexplored, changed = un, true end
 		end
 	end
-	if changed then cities.Refresh() end
+	if changed then
+		cities.Refresh()
+		Shade.Places.Refresh()
+	end
 	if changed and lastGrade then S.ApplyGrade(unpack(lastGrade)) end
 end

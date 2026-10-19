@@ -36,6 +36,12 @@
   the Gates were faded out into the mountain: the city's map faded out in a round from its middle,
   and Ironforge's wards reach right out to its frame. It's cut to the city instead, as the
   Undercity's is, with Dun Morogh's mountain round it.
+- **The Wetlands' Excavation Site stays hidden until you've found it.** With Unexplored areas on
+  Hide, the painted mountains south of Whelgar's Excavation Site showed WoW Forever's new valley
+  there (green, with paths and a lake) before you'd been anywhere near it. It's blank parchment now
+  until you've explored Whelgar's Excavation Site or Angerfang Encampment, the parts of the
+  Wetlands' map over it (the game itself keeps no record of exploring the valley), close up too; on
+  Darken it's darkened until then.
 
 ## v0.6.0-beta (2026-10-18)
 

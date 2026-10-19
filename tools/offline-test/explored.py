@@ -1,5 +1,7 @@
 """Unexplored land hidden up close in Lua 5.1 (Stitch.lua's Shade.Hide.Rects: the rectangles a zone
-hides, its unexplored pieces less its explored ones), against every pixel of random piece sets:
+hides, its unexplored pieces less its explored ones), against every pixel of random piece sets; and
+the places a painted gap shows that no zone map draws (Shade.Places, Data/GapPlaces.lua): found by the
+zone maps' pieces under their middle, as a city is, and hidden or darkened until then:
 python -P tools/offline-test/explored.py."""
 from pathlib import Path
 import random
@@ -9,7 +11,15 @@ import unittest
 from lupa.lua51 import LuaRuntime
 
 
-STITCH = Path(__file__).resolve().parents[2] / "OpenMap" / "Map" / "Stitch.lua"
+ADDON = Path(__file__).resolve().parents[2] / "OpenMap"
+STITCH = ADDON / "Map" / "Stitch.lua"
+
+
+def chunk(name):
+    """a function of Stitch.lua's, its source alone (the file needs the whole map to load)"""
+    m = re.search(r"\nfunction %s\(.*?\nend\n" % re.escape(name), STITCH.read_text(encoding="utf-8"), re.S)
+    assert m, name + " in Stitch.lua"
+    return m.group(0)
 
 
 class HiddenTests(unittest.TestCase):
@@ -65,6 +75,129 @@ class HiddenTests(unittest.TestCase):
         rects, count = self.lua.eval("Shade.Hide.Rects")(1)
         self.assertEqual(count, 0)
         self.assertIsNone(rects)
+
+
+class PlaceTests(unittest.TestCase):
+    """Data/GapPlaces.lua as the game loads it, with Stitch.lua's Shade.Under, Shade.Found and
+    Shade.Places (its covers stand-ins that remember being shown)"""
+
+    def setUp(self):
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.lua.execute("""
+            W, H, NONE, root = 1002, 668, {}, {}
+            pieces, cullBox = {}, nil
+            places = {}                                  -- zoneID -> its placement (Place's left, top, sx, sy)
+            function Place(zoneID) return places[zoneID] end
+            Shade = { Hide = { mode = false } }
+            whole = {}                                   -- zoneID -> true: not found at all (Shade.Unexplored "all")
+            function Shade.Unexplored(zoneID) return whole[zoneID] and "all" or "some" end
+            function strsplit(sep, s)
+                local out = {}
+                for part in (s .. sep):gmatch("(.-)" .. sep) do out[#out + 1] = part end
+                return unpack(out)
+            end
+            ns = {}
+        """)
+        data =(ADDON / "Data" / "GapPlaces.lua").read_text(encoding="utf-8")
+        self.lua.eval("function(src) local fn = assert(loadstring(src)); fn('OpenMap', ns) end")(data)
+        for name in ("Shade.Under", "Shade.Found", "Shade.Places.Build", "Shade.Places.Refresh",
+                     "Shade.Places.Show", "Shade.Places.At"):
+            src = chunk(name)
+            if name == "Shade.Places.Build":
+                src = "Shade.Places = { list = false }\n" + src
+            self.lua.execute(src)
+        self.lua.execute("""
+            function Shade.Places.Frame(e, how)          -- (a frame that remembers being shown)
+                local f = { how = how, shown = false }
+                function f.IsShown(self) return self.shown end
+                function f.SetShown(self, v) self.shown = v and true or false end
+                return f
+            end
+        """)
+        self.places = list(self.lua.eval("ns.MapGapPlaces").values())
+
+    def zone_under(self, place, unexplored, also=None):
+        """a zone whose one piece's rectangle holds the place's middle (and `also`: one that doesn't)"""
+        mid = place[4]
+        self.lua.execute("places[1] = { left = 0, top = 0, sx = 1, sy = 1 } pieces[1] = {}")
+        x, y = int(mid[1] * 1002), int(mid[2] * 668)
+        self.lua.execute('pieces[1]["40:40:%d:%d"] = { unexplored = %s }' % (x - 20, y - 20, "true" if unexplored else "false"))
+        if also is not None:
+            self.lua.execute('pieces[1]["10:10:%d:%d"] = { unexplored = %s }' % (x + 30, y + 30, "true" if also else "false"))
+        self.lua.execute("Shade.Places.list = false")
+
+    def show(self, mode):
+        self.lua.execute('Shade.Hide.mode = %s Shade.Places.Show()' % ("false" if not mode else '"%s"' % mode))
+        e = self.lua.eval("Shade.Places.list[1]")
+        return (bool(e.hide and e.hide.shown), bool(e.dim and e.dim.shown))
+
+    def middle_hidden(self, place):
+        mid = place[4]
+        return bool(self.lua.eval("Shade.Places.At")(mid[1], mid[2]))
+
+    def test_the_data(self):
+        self.assertTrue(self.places, "Data/GapPlaces.lua lists a place")
+        notice = (ADDON / "Media" / "Textures" / "NOTICE.md").read_text(encoding="utf-8")
+        self.assertIn("MapGapPlace/", notice)
+        for p in self.places:
+            area, box, mid, cells = p[1], list(p[3].values()), list(p[4].values()), p[5]
+            self.assertTrue(0 <= box[0] < box[2] <= 1 and 0 <= box[1] < box[3] <= 1, box)
+            self.assertTrue(box[0] < mid[0] < box[2] and box[1] < mid[1] < box[3], (box, mid))
+            self.assertRegex(cells, r"^[0-9a-f]{256}$")
+            # its mask: a plain 32-bit TGA (no RLE), a power of two a side
+            tga = (ADDON / "Media" / "Textures" / "MapGapPlace" / ("%d.tga" % area)).read_bytes()
+            w, h = int.from_bytes(tga[12:14], "little"), int.from_bytes(tga[14:16], "little")
+            self.assertEqual((tga[2], tga[16]), (2, 32), "uncompressed 32-bit")
+            self.assertTrue(w & (w - 1) == 0 and h & (h - 1) == 0, (w, h))
+
+    def test_hidden_until_a_piece_over_it_is_explored(self):
+        for p in self.places:
+            self.zone_under(p, unexplored=True, also=False)  # (an explored piece elsewhere doesn't find it)
+            self.assertEqual(self.show("hide"), (True, False))
+            self.assertTrue(self.middle_hidden(p))
+            self.assertEqual(self.show("dim"), (False, True))
+            self.assertEqual(self.show(False), (False, False))
+            self.lua.execute('pieces[1]["40:40:%d:%d"].unexplored = false Shade.Places.Refresh()'
+                             % (int(p[4][1] * 1002) - 20, int(p[4][2] * 668) - 20))
+            self.assertEqual(self.show("hide"), (False, False))
+            self.assertFalse(self.middle_hidden(p))
+            self.assertEqual(self.show("dim"), (False, False))
+
+    def test_no_pieces_under_it_is_found(self):
+        for p in self.places:
+            self.lua.execute("pieces = {} Shade.Places.list = false")
+            self.assertEqual(self.show("hide"), (False, False))
+            self.assertFalse(self.middle_hidden(p))
+
+    def test_darkened_with_its_zone_when_that_isnt_found_at_all(self):
+        for p in self.places:
+            self.zone_under(p, unexplored=True)
+            self.lua.execute("whole[1] = true")
+            self.assertEqual(self.show("dim"), (False, False))   # (its zone's shade has it)
+            self.assertEqual(self.show("hide"), (True, False))
+            self.lua.execute("whole[1] = nil")
+
+    def test_off_the_view(self):
+        for p in self.places:
+            self.zone_under(p, unexplored=True)
+            box = list(p[3].values())
+            self.lua.execute("cullBox = { %f, %f, %f, %f }" % (box[2] + 0.01, box[3] + 0.01, box[2] + 0.1, box[3] + 0.1))
+            self.assertEqual(self.show("hide"), (False, False))
+            self.lua.execute("cullBox = nil")
+
+    def test_cells_against_the_box(self):
+        for p in self.places:
+            self.zone_under(p, unexplored=True)
+            self.show("hide")
+            box, cells = list(p[3].values()), p[5]
+            At = self.lua.eval("Shade.Places.At")
+            for j in range(16):
+                for i in range(16):
+                    u = box[0] + (i + 0.5) / 16 * (box[2] - box[0])
+                    v = box[1] + (j + 0.5) / 16 * (box[3] - box[1])
+                    self.assertEqual(bool(At(u, v)), int(cells[j * 16 + i], 16) >= 8, (i, j))
+            self.assertFalse(At(box[0] - 0.01, box[1]))
+            self.assertFalse(At(box[2] + 0.01, box[3]))
 
 
 if __name__ == "__main__":

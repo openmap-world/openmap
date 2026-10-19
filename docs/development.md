@@ -82,6 +82,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 12 | `tools/map-preview/gapfill.py <db2> <tex> [--rerender]` | `MapGapLand/`, `MapGapMask/`, `MapPaper`, `MapCoastArt/`, `Data/Gaps.lua` | 8, 11 |
 | 12a | `tools/map-preview/gapregions.py <db2> <tex> [--only G01]` | `art-drawn/gaps/source/` (not committed: the plates to paint on, each region's fill area and sea) | 12, `art-drawn/gaps/regions.json` |
 | 12b | `tools/map-preview/gapfills.py` | `MapGapFill/`, `Data/GapFills.lua`, `art-drawn/gaps/fits.json` | 12a, `art-drawn/gaps/` |
+| 12c | `tools/map-preview/gapplaces.py <db2> <cache>` (best with `OPENMAP_WOW`: it reads the terrain) | `MapGapPlace/`, `Data/GapPlaces.lua` | 12b |
 | 13 | `tools/map-preview/tone.py <db2> <tex>` | `Data/Tones.lua` | |
 | 13a | `tools/map-preview/minimaplod.py <db2> <tex>` | `MapMiniLOD/`, `Data/MinimapLOD.lua` | 13 |
 | 14 | `tools/map-art/border.py` | `MapBorder/` | `art-edits/border.png` |

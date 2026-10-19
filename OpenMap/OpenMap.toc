@@ -57,6 +57,7 @@ Data\Caves.lua
 Data\CaveMinimap.lua
 Data\Gaps.lua
 Data\GapFills.lua
+Data\GapPlaces.lua
 Data\Tones.lua
 Data\ArtEdits.lua
 Data\Labels.lua

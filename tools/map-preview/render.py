@@ -340,6 +340,74 @@ USE_BASE = os.environ.get("OPENMAP_BASE", "1") == "1"
 UNDISCOVERED = (0.05, 0.06, 0.08, 0.62)
 DIM = (0.38, 0.39, 0.43, 0.25)  # an unexplored piece's colour in a zone you've been to (Stitch.lua's Shade.DIM): r, g, b, desaturation
 UNEXPLORED_SIM = dict(p.split("=", 1) for p in os.environ.get("OPENMAP_UNEXPLORED", "").split(";") if "=" in p)
+# ... OPENMAP_UNEXPLORED_HIDE=1: those areas hidden instead (Options' Hide): their pieces left out, the zone's
+# blank base art showing; Stitch.lua draws the live layers then, not the baked tiles. (Up close, Stitch.lua
+# covers the minimap's detail too; the preview draws no minimap. Unfound cities aren't hidden here.)
+UNEXPLORED_HIDE = bool(UNEXPLORED_SIM) and os.environ.get("OPENMAP_UNEXPLORED_HIDE", "0") == "1"
+if UNEXPLORED_HIDE: USE_BAKED = False
+
+def sim_unexplored(m):
+    """the zone's pieces unexplored in the preview: all of them, every other (half), or none"""
+    keys = sorted(key for key, _ in reveal.get(m["art"], []))
+    how = UNEXPLORED_SIM.get(m["name"])
+    return set(keys) if how == "all" else set(keys[::2]) if how == "half" else set()
+
+def over_shown(m):
+    """over(m), less the pieces hidden while unexplored areas are (OPENMAP_UNEXPLORED_HIDE)"""
+    un = sim_unexplored(m) if UNEXPLORED_HIDE else set()
+    if not un: return over(m)
+    k = ("o_shown", m["id"])
+    if k not in _cache:
+        o = overlay_canvas(m["art"], {key for key, _ in reveal.get(m["art"], [])} - un)
+        hole = mask("MapBannerHole/%d" % m["id"])
+        if hole is not None:
+            o = o.copy()
+            o[..., 3] *= hole
+        _cache[k] = o
+    return _cache[k]
+
+def gap_places():
+    """GapPlaces.lua (gapplaces.py): the places a painted gap shows that no zone map draws, each as a map of
+    its own over its box (its mask, MapGapPlace/<area>), its middle, and the gaps' paper over that box"""
+    if "gap_places" not in _cache:
+        out_ = []
+        p_ = os.path.join(WM, "GapPlaces.lua")
+        src_ = open(p_, encoding="utf-8").read() if os.path.exists(p_) else ""
+        pw, pap = paper_world(), tex_rgba("MapPaper")
+        for area, box, mid in re.findall(r'\{ (\d+), "[^"]*", \{ ([-\d., ]+) \}, \{ ([-\d., ]+) \}', src_):
+            l, t, r, b = (float(v_) for v_ in box.split(","))
+            m_ = mask("MapGapPlace/%s" % area)
+            if m_ is None or pw is None or pap is None: continue
+            # the paper as Stitch.lua lays it over the box (fixed on the world, as the gaps' is: PAPER_LAYERS)
+            wx_ = (l + (np.arange(1002) + 0.5) / 1002 * (r - l)) * W_
+            wy_ = (t + (np.arange(668) + 0.5) / 668 * (b - t)) * H_
+            ps, col = pap.shape[0], np.zeros((668, 1002, 3), np.float32)
+            for k_, off, al in PAPER_LAYERS:
+                s_ = pw * k_
+                py_ = ((wy_ / s_ + off * 1.7) % 1 * ps - 0.5)[:, None].repeat(1002, 1)
+                px_ = ((wx_ / s_ + off) % 1 * ps - 0.5)[None, :].repeat(668, 0)
+                c_ = np.dstack([ndimage.map_coordinates(pap[..., c], [py_, px_], order=1, mode="grid-wrap") for c in range(3)])
+                col = col * (1 - al) + c_ * al
+            out_.append({"id": "place" + area, "rect": (l, r, t, b), "mid": tuple(float(v_) for v_ in mid.split(",")),
+                         "mask": m_, "paper": np.dstack([col, np.ones((668, 1002), np.float32)])})
+        _cache["gap_places"] = out_
+    return _cache["gap_places"]
+
+def place_state(x):
+    """a place's state in the preview, as Stitch.lua's Shade.Places: found (a zone map's piece over its middle
+    explored, or none there), and whether a zone with a piece there isn't found at all"""
+    found, whole, any_ = False, False, False
+    for m in zones:
+        l, r, t, b = m["rect"]
+        px_, py_ = (x["mid"][0] - l) / (r - l) * 1002, (x["mid"][1] - t) / (b - t) * 668
+        un = sim_unexplored(m)
+        for key, _ in reveal.get(m["art"], []):
+            w_, h_, kx, ky = map(int, key.split(":"))
+            if kx <= px_ <= kx + w_ and ky <= py_ <= ky + h_:
+                any_ = True
+                found = found or key not in un
+                whole = whole or UNEXPLORED_SIM.get(m["name"]) == "all"
+    return found or not any_, whole
 
 def smooth(z, rng):
     t = max(0.0, min(1.0, (z - rng[0]) / (rng[1] - rng[0])))
@@ -610,15 +678,15 @@ def render(cu, cv, zoom, path):
         g = grade.get(m["id"])
         bd = band(m)
         if g and bd is not None: place(m, base, fm * bd, tint=g, alpha=d)
-    for m in zones:                                       # overlays
-        if has_over[m["id"]] and not USE_BAKED: place(m, over, edge(m), alpha=d)
+    for m in zones:                                       # overlays (less those hidden: OPENMAP_UNEXPLORED_HIDE)
+        if has_over[m["id"]] and not USE_BAKED: place(m, over_shown, edge(m), alpha=d)
     for m in zones:                                       # their border copies
         g = grade.get(m["id"]); bd = band(m)
-        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over, edge(m) * bd, tint=g, alpha=d)
+        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over_shown, edge(m) * bd, tint=g, alpha=d)
     if USE_CORE and not USE_BAKED:
         for m in zones:                                   # every zone's interior again, over its neighbours' halos
-            if has_over[m["id"]]: place(m, over, edge(m) * core(m), alpha=d)
-    if UNEXPLORED_SIM and not ZONES_ONLY:                 # a zone you've been to: each piece's art again, the unexplored
+            if has_over[m["id"]]: place(m, over_shown, edge(m) * core(m), alpha=d)
+    if UNEXPLORED_SIM and not UNEXPLORED_HIDE and not ZONES_ONLY:   # a zone you've been to: each piece's art again, the unexplored
         for m in zones:                                   # darkened, the explored over them (Stitch.lua's Shade.Pieces)
             if UNEXPLORED_SIM.get(m["name"]) != "half" or not has_over[m["id"]]: continue
             keys = sorted(key for key, _ in reveal.get(m["art"], []))
@@ -648,7 +716,15 @@ def render(cu, cv, zoom, path):
             if b_:                                        # or giving way to its own (Stitch.lua's MapCityTitles)
                 out_ = smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_)) if city_title(m["id"]) else 0
                 place(b_, b_["img"], None, alpha=d * (1 - out_))
-    if UNEXPLORED_SIM and not ZONES_ONLY:                 # unexplored land, shaded over the art (Stitch.lua's shadeRoot)
+    if UNEXPLORED_SIM and not ZONES_ONLY:                 # the places a painted gap shows, not found yet (Shade.Places)
+        solid_ = np.dstack([np.full((668, 1002, 3), UNDISCOVERED[:3], np.float32), np.ones((668, 1002), np.float32)])
+        for x in gap_places():
+            found, whole = place_state(x)
+            if found: continue
+            if UNEXPLORED_HIDE: place(x, x["paper"], x["mask"], alpha=d)        # hidden: the gaps' paper, with the zone detail
+            elif not whole: place(x, solid_, x["mask"], alpha=UNDISCOVERED[3])  # darkened, from every zoom (unless its zone's
+                                                                                #  whole shade, below, has it)
+    if UNEXPLORED_SIM and not UNEXPLORED_HIDE and not ZONES_ONLY:   # unexplored land, shaded over the art (Stitch.lua's shadeRoot)
         solid = np.dstack([np.full((668, 1002, 3), UNDISCOVERED[:3], np.float32), np.ones((668, 1002), np.float32)])
         for m in zones:
             how, land = UNEXPLORED_SIM.get(m["name"]), mask("MapZoneLand/%d" % m["id"])

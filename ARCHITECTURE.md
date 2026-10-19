@@ -126,6 +126,12 @@ close is drawn over all that, so while it's drawn a layer over it (`Shade.Hide`)
 unexplored pieces less its explored ones (the rectangles' difference, cut into strips along the
 pieces' edges): on Hide with the zone's blank base art again, on Darken with the undiscovered shade
 (the darkened copies under the minimap put away meanwhile), so the minimap's detail follows them.
+Cities have no pieces of their own: one is found once a zone map's piece under its middle is
+explored. So are the places a painted gap shows that no zone map draws (`Data/GapPlaces.lua`,
+`tools/map-preview/gapplaces.py`: WoW Forever's own, which the game marks no one as having
+explored, such as the Wetlands' Excavation Site; their ground from the game's terrain): until then
+the gaps' blank paper on Hide, the undiscovered shade on Darken, over the painting and the minimap
+(`Shade.Places`).
 
 Border colours are matched by a tinted copy of each zone drawn through its border-band
 mask (`MapBand`) with the multipliers in `Data/Grade.lua`. Everything is placed once, in

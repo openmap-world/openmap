@@ -21,6 +21,7 @@ Blizzard's art edited by hand, kept in `art-edits/`.
 | `MapZoneBorder/` | each zone's share of the land round it that's no zone's (border mountains, land between zones), from the continent map's land and the zones' land masks | `tools/map-preview/render.py --bake-zone-land` |
 | `MapMiniLand/` | where the close-up minimap shows: each continent map's land and its zone maps' own land (`MapLand` and `MapZoneLand` put together, finer) | `tools/map-preview/render.py --bake-mini-land` |
 | `MapCave/` | masks traced from the cave maps, and from where the caves' own rooms lie (the game's WMOs) | `tools/map-caves/build.py` (`wmo.py`) |
+| `MapGapPlace/` | masks of the places a painted gap shows that no zone map draws (WoW Forever's Excavation Site in the Wetlands): the ground the game's terrain gives the place's area, where the painting shows | `tools/map-preview/gapplaces.py` |
 | `MapCoast/`, `MapSeaMask/`, `MapGapLand/`, `MapGapMask/`, `MapBackLand/` | masks traced from the continent maps' coasts | `tools/map-preview/sea.py`, `gapfill.py` |
 | `MapSeaOut/`, `MapSeaOpen/`, `MapSeaCoast/` | masks of the world and continent maps' sea: past the world map's edge, and its coastal hatching apart from its open sea | `tools/map-preview/sea_world.py` |
 | `MapBanner/` | a zone map's name banner for a city ("Orgrimmar" on Durotar's, and Tirisfal's, Mulgore's and Teldrassil's for their cities), cut out along a traced outline | `tools/map-preview/banners.py` |

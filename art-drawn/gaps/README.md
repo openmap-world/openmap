@@ -21,11 +21,15 @@ how the map looks there now) into `source/` (not committed):
 Then, with a painting here:
 
     python -P tools/map-preview/gapfills.py
+    python -P tools/map-preview/gapplaces.py <db2 dir> <texture cache>
     python -P tools/map-preview/render.py <db2 dir> <texture cache> <out> --bake-zones
 
 The first writes `OpenMap/Media/Textures/MapGapFill/` and `OpenMap/Data/GapFills.lua`; the second
-bakes the paintings into the zone tiles (`MapZones/`), which draw them at most zooms. Restart the
-game to see new textures. Options' Filled gaps turns them off.
+the places a painting shows that no zone map draws (WoW Forever's own, the Wetlands' Excavation
+Site), which the map hides or darkens with unexplored areas until they're found (it lists the
+others the paintings show: a new one painted as a place of its own goes in its `PLACES`); the
+third bakes the paintings into the zone tiles (`MapZones/`), which draw them at most zooms. Restart
+the game to see new textures. Options' Filled gaps turns them off.
 
 | Region | Painted by |
 | --- | --- |
