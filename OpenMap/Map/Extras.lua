@@ -251,6 +251,37 @@ local function LevelText(mapID)
 	return (" %s(%s)|r"):format(code, range)
 end
 
+-- Fishing (the skill's name in the game's language) and the player's rank in it, looked up again
+-- every few seconds at most (the hover label runs every frame); nil without Fishing
+local FISHING_SPELL = 7620
+local fishing = { at = -10 }
+local function FishingRank()
+	local now = GetTime()
+	if now - fishing.at < 3 then return fishing.name, fishing.rank end
+	fishing.at, fishing.rank = now, nil
+	local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(FISHING_SPELL)
+		or GetSpellInfo and GetSpellInfo(FISHING_SPELL)
+	fishing.name = name
+	if name and GetNumSkillLines and GetSkillLineInfo then
+		for i = 1, GetNumSkillLines() do
+			local skill, header, _, rank = GetSkillLineInfo(i)
+			if not header and skill == name then fishing.rank = rank break end
+		end
+	end
+	return fishing.name, fishing.rank
+end
+
+-- the zone's fishing, for a player with Fishing: the skill where every cast lands (ns.MapFishing:
+-- base + 95), green from there, yellow from half of them, red below
+local function FishingText(mapID)
+	local base = mod.db.zoneLevels and ns.MapFishing and ns.MapFishing[mapID]
+	if not base then return nil end
+	local name, rank = FishingRank()
+	if not name or not rank then return nil end
+	local color = rank >= base + 95 and "ff40ff40" or rank >= base + 45 and "ffffd100" or "ffff4040"
+	return ("|c%s%s %d|r"):format(color, name, math.max(1, base + 95))
+end
+
 -- replaces AreaLabelFrameMixin's OnUpdate: the place under the cursor, with its levels. The stitched
 -- map is on the zone you're looking at, so that zone is the map's own: where the game names no
 -- area in it, its own name (Blizzard's label showed none there: its title went missing, #25)
@@ -260,18 +291,19 @@ local function AreaLabelOnUpdate(self)
 	if m:IsCanvasMouseFocus() or mod.PadCursor() then
 		local mapID = m:GetMapID()
 		local id, _, _, x, y = PlaceAt()
-		local name
+		local name, fish
 		if id ~= mapID and id ~= S.WORLD then
 			name = MapName(id)
-			if name then name = name .. LevelText(id) end
+			if name then name, fish = name .. LevelText(id), FishingText(id) end
 		elseif x >= 0 and x <= 1 and y >= 0 and y <= 1 then
 			name = MapUtil.FindBestAreaNameAtMouse(mapID, x, y)
 			if not name and id == mapID and mod.IsStitched() then
 				name = MapName(id)
 				if name then name = name .. LevelText(id) end
 			end
+			if name and id == mapID then fish = FishingText(id) end
 		end
-		if name then self:SetLabel(MAP_AREA_LABEL_TYPE.AREA_NAME, name) end
+		if name then self:SetLabel(MAP_AREA_LABEL_TYPE.AREA_NAME, name, fish) end
 	end
 	self:EvaluateLabels()
 end
@@ -582,7 +614,7 @@ function mod:ExtraOptions(opts, get, set, off)
 	opts.coords = { type = "toggle", name = ns.L["Coordinates"], order = 41, get = get, set = setApply, disabled = off,
 		desc = ns.L["A bar along the map's foot: your position, and the zone and position under the cursor."] }
 	opts.zoneLevels = { type = "toggle", name = ns.L["Zone levels"], order = 42, get = get, set = setApply, disabled = off,
-		desc = ns.L["Hovering a zone shows its level range, coloured for your level."] }
+		desc = ns.L["Hovering a zone shows its level range, coloured for your level, and if you know Fishing, the skill at which every cast there lands."] }
 	opts.zoomHidePins = { type = "toggle", name = ns.L["Other addons' icons rest while zooming"], order = 43, width = "full",
 		get = get, set = set, disabled = off,
 		desc = ns.L["Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate."] }

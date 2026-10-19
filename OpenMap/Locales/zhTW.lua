@@ -192,7 +192,7 @@ L["Hand painted custom art for OpenMap including the sea elements, blank land be
 L["Hide"] = "隱藏"
 L["Hide unexplored areas"] = "隱藏未探索區域"
 L["Highlight the zone under the cursor"] = "醒目顯示游標下的區域"
-L["Hovering a zone shows its level range, coloured for your level."] = "游標停在區域上時顯示其等級範圍，並依你的等級著色。"
+L["Hovering a zone shows its level range, coloured for your level, and if you know Fishing, the skill at which every cast there lands."] = "游標停在區域上時顯示其等級範圍，並依你的等級著色；如果你會釣魚，還會顯示在那裡每次拋竿都能釣到的技能等級。"
 L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours."] = "各區域邊緣向共用色調靠攏的程度，讓山脈與邊界在區域之間平順銜接。區域內部保留各自的顏色。"
 L["How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show."] = "放大到多少（以整個世界視野的倍數計）時開始混入小地圖細節：數值越低越早出現，越高越晚；1x 時從整個世界視野就開始。在比小地圖圖塊本身能繪製的範圍更遠時，會顯示其縮小版本。"
 L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] = "地圖最多能放大多少，以整個世界視野的倍數計（主城可再放大一半）。超過約 48 倍後，圖片只是被放大而已。"

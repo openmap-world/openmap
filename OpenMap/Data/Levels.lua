@@ -1,5 +1,5 @@
 -- Zone level ranges: [uiMapID] = { min, max }. The client's tables don't carry them, so this
--- is the one hand-entered data file: the ranges are those listed on the Warcraft Wiki's
+-- is entered by hand (as Fishing.lua is): the ranges are those listed on the Warcraft Wiki's
 -- "Zones by level (original)" page (warcraft.wiki.gg/wiki/Zones_by_level_(original)).
 -- Zones it doesn't list (WoW Forever's own, cities) have no entry. Corrections: cite a source.
 

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### New
+
+- **Fishing on the zone hover**: if you know Fishing, hovering a zone shows the skill at which every
+  cast there lands (Elwynn Forest 25, Hillsbrad Foothills 150, Stranglethorn Vale 225 ...), green if
+  you have it, yellow if most casts land, red if most get away. With **Zone levels**, from the
+  original game's values; WoW Forever's own zones have none yet.
+
 ### Fixed
 
 - **Ironforge's map shows once you've been there**, even if you came by the Deeprun Tram and haven't

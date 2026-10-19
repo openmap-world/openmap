@@ -61,7 +61,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
 
 ## Regenerating data and textures
 
-Everything under `OpenMap/Data` (except `Levels.lua` and `Labels.lua`) and everything
+Everything under `OpenMap/Data` (except `Levels.lua`, `Fishing.lua` and `Labels.lua`) and everything
 under `OpenMap/Media/Textures` is made by a script. `<db2>` is a folder of the build's
 table CSVs, `<tex>` a texture cache. Order matters where one step reads another's output:
 

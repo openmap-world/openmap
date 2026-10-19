@@ -50,6 +50,7 @@ Data\DungeonMaps.lua
 Data\DungeonDrawn.lua
 Data\Grade.lua
 Data\Levels.lua
+Data\Fishing.lua
 Data\FlightData.lua
 Data\Minimap.lua
 Data\MinimapLOD.lua

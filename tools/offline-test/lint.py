@@ -125,7 +125,7 @@ WOW_API = {
     "GameTooltip_Hide", "SetOverrideBindingClick", "ClearOverrideBindings",
     "StaticPopup_Show", "StaticPopup_Hide", "UnitClass", "UnitExists", "UnitIsUnit", "UnitFactionGroup", "UnitOnTaxi",
     "IsInGroup", "IsInRaid", "GetNumRoutes", "NumTaxiNodes", "TaxiNodeGetType", "TaxiNodeName",
-    "GetAddOnMemoryUsage", "UpdateAddOnMemoryUsage", "UnitLevel", "GetQuestDifficultyColor", "GetCVar", "GetCVarBool",
+    "GetAddOnMemoryUsage", "UpdateAddOnMemoryUsage", "UnitLevel", "GetQuestDifficultyColor", "GetSpellInfo", "GetNumSkillLines", "GetSkillLineInfo", "GetCVar", "GetCVarBool",
     "debugprofilestop", "GetFramerate", "IsAddOnLoaded", "GetUnitSpeed", "IsModifiedClick", "GetPhysicalScreenSize", "IsMouseButtonDown",
     "IsInGuild", "UnitIsPlayer", "GetUnitName", "UnitName", "Ambiguate", "ToggleWorldMap",
     "UnitRace", "GetLocale", "PlaySound",

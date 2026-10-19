@@ -18,9 +18,9 @@ Thanks for helping. A few things make changes easy to review.
   ranges) are fine; prefer generating them from the game's own tables
   (`tools/map-data`).
 - **Generated files are generated.** Everything under `OpenMap/Data` except
-  `Levels.lua` and `Labels.lua`, and everything in `OpenMap/Media/Textures`, comes from scripts in
+  `Levels.lua`, `Fishing.lua` and `Labels.lua`, and everything in `OpenMap/Media/Textures`, comes from scripts in
   `tools/`. Change the script and regenerate; don't hand-edit the output.
-  `Levels.lua` is entered by hand from the source named at its top: a correction
+  `Levels.lua` and `Fishing.lua` are entered by hand from the source named at their top: a correction
   needs a source too. `Labels.lua` is measured from the map art (see its top).
   Hand edits of Blizzard's art go in `art-edits/` (see its README).
 - **Show blending changes with pictures.** `tools/map-preview/render.py` renders
