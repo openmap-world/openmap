@@ -1026,6 +1026,28 @@ local function SliderRow(parent, width, spec)
 		if spec.text then return spec.text(v) end
 		return (spec.fmt or "%dx"):format(spec.show and spec.show(v) or v)
 	end
+	-- spec.onRelease: while the mouse holds the slider the value only shows, and is set on release (Map size
+	-- scales the window the slider is in: set at each step of a drag, the slider moved under the cursor and
+	-- the value ran away). Its arrows and the wheel set it at once
+	local pending
+	local function Set(slider, v)
+		if spec.onRelease and IsMouseButtonDown("LeftButton") and (slider:IsMouseOver() or (slider.IsDraggingThumb and slider:IsDraggingThumb())) then
+			pending = v
+			return
+		end
+		pending = nil
+		spec.set(v)
+		if ns.NotifyOptions then ns.NotifyOptions() end
+	end
+	local function Release()
+		if pending == nil then return end
+		local v = pending
+		pending = nil
+		if v ~= spec.get() then
+			spec.set(v)
+			if ns.NotifyOptions then ns.NotifyOptions() end
+		end
+	end
 	-- the game's settings' own slider, with its arrows (Forever's options panel), where the client has it
 	local Mixin = _G.MinimalSliderWithSteppersMixin
 	local ok, ms = pcall(CreateFrame, "Frame", nil, f, "MinimalSliderWithSteppersTemplate")
@@ -1037,10 +1059,10 @@ local function SliderRow(parent, width, spec)
 		ms:Init(spec.get(), lo, hi, math.floor((hi - lo) / step + 0.5), { [Mixin.Label.Right] = function(v) return Shown(Snap(v)) end })
 		ms:RegisterCallback(Mixin.Event.OnValueChanged, function(_, v)
 			v = Snap(v)
-			if filling or v == spec.get() then return end
-			spec.set(v)
-			if ns.NotifyOptions then ns.NotifyOptions() end
+			if filling or (v == spec.get() and pending == nil) then return end
+			Set(ms.Slider, v)
 		end, f)
+		ms.Slider:HookScript("OnMouseUp", Release)
 		f.value:Hide()
 		for _, r in ipairs({ ms.Slider, f }) do
 			r:HookScript("OnEnter", function(self) Tip(self, "ANCHOR_TOP", spec.label, { spec.tip }) end)
@@ -1074,10 +1096,10 @@ local function SliderRow(parent, width, spec)
 		v = math.floor(v / step + 0.5) * step
 		if step < 1 then v = math.floor(v * 1000 + 0.5) / 1000 end      -- (no float dust in a saved 0.85)
 		f.value:SetText((spec.fmt or "%dx"):format(spec.show and spec.show(v) or v))
-		if filling or v == spec.get() then return end
-		spec.set(v)
-		if ns.NotifyOptions then ns.NotifyOptions() end
+		if filling or (v == spec.get() and pending == nil) then return end
+		Set(s, v)
 	end)
+	s:HookScript("OnMouseUp", Release)
 	for _, r in ipairs({ s, f }) do
 		r:SetScript("OnEnter", function(self) Tip(self, "ANCHOR_TOP", spec.label, { spec.tip }) end)
 		r:SetScript("OnLeave", GameTooltip_Hide)
@@ -1347,6 +1369,7 @@ function mod:SetupPanel(worldMap)
 				get = function() return mod:Options()[key].get({ key }) end,
 				set = function(v) mod:Options()[key].set({ key }, v) end,
 				fmt = o.isPercent and "%d%%" or (o.step or 0) >= 1 and "%d" or "%.2f", show = o.isPercent and function(v) return math.floor(v * 100 + 0.5) end or nil,
+				onRelease = key == "windowScale",         -- (it scales the window this menu is in)
 				tip = o.desc or s[2] })
 			made[key] = r
 			menu.extraRows[#menu.extraRows + 1] = r
