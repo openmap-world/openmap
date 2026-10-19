@@ -137,6 +137,7 @@ local underNow = 0              -- how far a cave has surfaced (Close.lua)
 -- (only when it changes: these layers hold thousands of textures, and S.SetZoom runs several
 -- times as the map opens)
 local function Fade(region, a)
+	if S.chartHide and S.chartHide[region] then a = 0 end   -- (put away under the sea chart: S.SetChart)
 	if region.omFade == a then return end
 	region.omFade = a
 	region:SetAlpha(a)
@@ -419,6 +420,7 @@ local function PlaceBackdrop(parent, mapID, drawLayer, feather)
 		PlaceTiles(parent, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, drawLayer, 0, false, mask, worldCoast, false, nil,
 			Feather(parent, p, SEA_COAST))
 	end
+	return mask
 end
 
 -- A continent's land kept as land once the backdrop mutes to sea (regions with no
@@ -793,7 +795,8 @@ local function ShowSets()
 		local from = set.minZoom
 		local folk = key:sub(1, 3) == "tf_"
 		if places.from and (places.sets[key] or folk) then from = folk and math.max(from, places.from) or places.from end
-		local shown = set.on and zoomNow >= from and (not set.maxZoom or zoomNow < set.maxZoom)
+		-- (further out than the whole world, on the sea chart: as at the whole world)
+		local shown = set.on and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
 		if shown and set.build then
 			local build = set.build
 			set.build = nil
@@ -1057,6 +1060,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	root:SetPoint("TOPLEFT", parent, "TOPLEFT")
 	root:SetSize(1, 1)
 	root:SetFrameLevel(artLevel)
+	S.chartHost = { parent, artLevel - 1 }   -- (the sea chart's frame, Chart.lua: under all of the art)
 	contRoot = Layer(artLevel + 1)
 	tilesRoot = Layer(artLevel + 2)
 	overlayRoot = Layer(artLevel + range - 16)
@@ -1098,6 +1102,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 		Record(tex, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
 		outer[i] = tex
 	end
+	S.chartOff = { sea, outer[1], outer[2] }   -- (the sea chart's sea takes their place: S.SetChart)
 	-- the sea's colour as the world and continent maps paint it (MapSeaField), so zooming
 	-- in keeps the colour the map had from afar; the continents' fade into the world's
 	for _, mapID in ipairs({ WORLD, 1414, 1415 }) do
@@ -1107,7 +1112,9 @@ function S.Build(parent, artLevel, range, iconLevel)
 			local field = root:CreateTexture(nil, "BACKGROUND", nil, mapID == WORLD and -6 or -5)
 			field:SetTexture(SEA_FIELD .. mapID, nil, nil, "LINEAR")
 			Record(field, p.left, p.top, w, h)
-			field:AddMaskTexture(Feather(root, p, FEATHER_WIDE))
+			local fade = Feather(root, p, FEATHER_WIDE)
+			field:AddMaskTexture(fade)
+			if mapID == WORLD then S.chartMasks = { fade } else tinsert(S.chartOff, field) end
 		end
 	end
 	-- and its mottling over that, dark and light, in two octaves
@@ -1118,9 +1125,10 @@ function S.Build(parent, artLevel, range, iconLevel)
 		seaPaper[i] = tex
 	end
 	local nb, ns_ = #backdrop, #backdropSea
-	PlaceBackdrop(root, WORLD, "BACKGROUND", FEATHER_WIDE)
+	S.chartMasks[#S.chartMasks + 1] = PlaceBackdrop(root, WORLD, "BACKGROUND", FEATHER_WIDE)
 	-- past its edges, the continents' own sea (their compass roses, ship and sea serpent)
-	-- carries it on, as part of the world's sea
+	-- carries it on, as part of the world's sea (not under the sea chart: its sea does)
+	local outFrom = #backdropSea
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
 		local p, files = Place(info.mapID), ArtFiles(info.mapID)
 		if p and files and #files > 0 then
@@ -1128,6 +1136,8 @@ function S.Build(parent, artLevel, range, iconLevel)
 				Feather(root, p, SEA_OUT .. info.mapID), backdropSea, false)
 		end
 	end
+	S.chartSeaOut = {}
+	for i = outFrom + 1, #backdropSea do S.chartSeaOut[backdropSea[i]] = true end
 	for i = nb + 1, #backdrop do worldArt[backdrop[i]] = true end
 	for i = ns_ + 1, #backdropSea do worldArt[backdropSea[i]] = true end
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
@@ -1386,7 +1396,31 @@ end
 
 function S.SetShown(shown)
 	if root and root:IsShown() ~= (shown and true or false) then root:SetShown(shown) end
+	local chart = S.Chart and S.Chart.Frame()
+	if chart and chart:IsShown() ~= (shown and S.Chart.on or false) then chart:SetShown(shown and S.Chart.on or false) end
 	if pinRoot and pinRoot:IsShown() ~= (shown and true or false) then pinRoot:SetShown(shown) end
+end
+
+function S.IsShownNow() return root and root:IsShown() or false end
+
+-- the sea chart (Chart.lua) on or off: OpenMap's own sea past the world map put away (its colour carried out,
+-- MapSeaFieldOut; its mottling; the continents' sea colour and their sea past the world map's edges), and the
+-- world map fading into the chart through MapChart\Middle (its continents and coasts whole) instead of its
+-- wide edge fade; the sea's own texture, as you close in, kept to the world map's sea the same way
+function S.SetChart(on)
+	if not root or not S.chartOff then return end
+	on = on and true or false
+	if S.chartNow == on then return end
+	S.chartNow = on
+	for _, r in ipairs(S.chartOff) do r:SetShown(not on) end
+	local file = on and TEX .. "MapChart\\Middle" or FEATHER_WIDE
+	for _, m in ipairs(S.chartMasks) do m:SetTexture(file, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE") end
+	for _, tex in ipairs(seaPaper) do
+		if on then tex:AddMaskTexture(S.chartMasks[1]) else tex:RemoveMaskTexture(S.chartMasks[1]) end
+	end
+	S.chartHide = on and S.chartSeaOut or nil
+	muted = -1                                     -- (S.SetZoom lays the world and continent art's fades again)
+	if scaleNow and scaleNow > 0 then S.SetZoom(zoomNow, scaleNow) end
 end
 
 -- for /openmap bench (Bench.lua): the art's parts, each { name, regions } it hides for a moment
@@ -1575,6 +1609,8 @@ function S.Layout(mapID)
 	if host.mapID == mapID and host.k == k then return true end
 	host.l, host.t, host.k, host.mapID = l * W, t * H, k, mapID
 	root:SetScale(k)
+	S.chartScale = k                                -- (the sea chart's frame keeps root's scale: its regions are placed on root)
+	if S.Chart and S.Chart.Frame() then S.Chart.Frame():SetScale(k) end
 	root:ClearAllPoints()
 	root:SetPoint("TOPLEFT", root:GetParent(), "TOPLEFT", -host.l, host.t)
 	namesFrame:SetScale(1 / NAME_UNITS)

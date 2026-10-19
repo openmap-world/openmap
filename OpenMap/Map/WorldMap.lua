@@ -36,6 +36,7 @@ local mod = ns:NewModule("worldmap", {
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
 		gapFills = true,        -- the gaps between zones painted by hand (art-drawn/gaps)
 		maxZoom = 48,           -- x the whole-world view (MAX_ZOOM: what it can be set to)
+		chart = false,          -- Santiago Reyes's sea chart round the world (Chart.lua)
 	},
 })
 
@@ -82,6 +83,11 @@ end
 local function FitPx()
 	local W, H = S.Size()
 	return math.min(sc:GetWidth() / W, sc:GetHeight() / H)
+end
+
+-- the least zoom: the whole world fits the view (1), or with the sea chart, the chart does (further out)
+local function LeastZoom()
+	return S.Chart and S.Chart.on and S.Chart.LeastZoom(sc:GetWidth(), sc:GetHeight(), FitPx()) or 1
 end
 
 -- host canvas units per world unit
@@ -311,7 +317,7 @@ local function ZoomAtCursor(factor)
 	local from = anim and anim.mode == "anchor" and anim.target or zoom
 	local most = MaxZoomAt(u + sx * pu, v + sy * pv)
 	if factor > 1 then most = math.max(most, from) end
-	local target = Clamp(from * factor, 1, most)
+	local target = Clamp(from * factor, LeastZoom(), most)
 	anim = { mode = "anchor", u = u + sx * pu, v = v + sy * pv, sx = sx, sy = sy, target = target }
 	userMoved = true
 end
@@ -320,7 +326,7 @@ end
 local function GlideTo(u, v, zoom)
 	local u0, v0, z0 = View()
 	anim = { mode = "glide", u0 = u0, v0 = v0, z0 = z0, u1 = u, v1 = v,
-		z1 = Clamp(zoom, 1, MaxZoomAt(u, v)), t = 0 }
+		z1 = Clamp(zoom, LeastZoom(), MaxZoomAt(u, v)), t = 0 }
 	userMoved = true
 end
 
@@ -338,7 +344,7 @@ local function PadZoom(elapsed)
 	userMoved = true
 	local most = MaxZoomAt(cu, cv)
 	if tilt > 0 then most = math.max(most, zoom) end
-	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), 1, most)
+	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), LeastZoom(), most)
 	if math.abs(to - zoom) < 1e-6 then return end
 	pu, pv = PerPx(to)
 	ShowWorld(cu - sx * pu, cv - sy * pv, to)
@@ -626,8 +632,9 @@ local function OnCreateZoomLevels(self)
 	end
 	Attach(self.mapID)
 	if not active then return end
+	if S.Chart then S.Chart.Layout(self:GetWidth(), self:GetHeight()) end   -- (the sea chart for the view's shape)
 	local levels = {}
-	local zoom = 1
+	local zoom = LeastZoom()
 	local deepest = mod.db.maxZoom * CITY_ZOOM               -- (the deepest anywhere: a city's)
 	while zoom < deepest * ZOOM_STEP do
 		levels[#levels + 1] = { scale = ScaleFor(self.mapID, math.min(zoom, deepest)), layerIndex = 1 }
@@ -662,7 +669,7 @@ local function ResetView(self)
 	end
 	if not u and mod.ReturnView then u, v, zoom = mod.ReturnView(self.mapID) end   -- (out of a dungeon's map: Dungeons.lua)
 	if u then
-		zoom = Clamp(zoom, 1, MaxZoomAt(u, v))
+		zoom = Clamp(zoom, LeastZoom(), MaxZoomAt(u, v))
 		local nu, nv, nz = View()
 		if resize or not (nu and math.abs(nu - u) < 1e-4 and math.abs(nv - v) < 1e-4 and math.abs(nz - zoom) < 1e-3) then
 			ShowWorld(u, v, zoom)
@@ -716,10 +723,20 @@ local function Extents(origExtents)
 	return function(self, scale)
 		if not active then return origExtents(self, scale) end
 		local mapID = map:GetMapID()
-		local x0, y0 = FromWorld(mapID, 0, 0)
-		local x1, y1 = FromWorld(mapID, 1, 1)
 		local hw = self:NormalizeHorizontalSize(self:GetWidth() * 0.5 / scale)
 		local hh = self:NormalizeVerticalSize(self:GetHeight() * 0.5 / scale)
+		-- with the sea chart: anywhere on it, to its edges and no further, at every zoom
+		local cl, ct, cr, cb
+		if S.Chart and S.Chart.on then cl, ct, cr, cb = S.Chart.Rect(self:GetWidth(), self:GetHeight()) end
+		if cl then
+			local x0, y0 = FromWorld(mapID, cl, ct)
+			local x1, y1 = FromWorld(mapID, cr, cb)
+			local minX, maxX = Range(x0, x1, hw, 0, 0)
+			local minY, maxY = Range(y0, y1, hh, 0, 0)
+			return minX, maxX, minY, maxY
+		end
+		local x0, y0 = FromWorld(mapID, 0, 0)
+		local x1, y1 = FromWorld(mapID, 1, 1)
 		local t = Clamp((ZoomFor(mapID, scale) - 1) / (CENTRE_UNTIL - 1), 0, 1)
 		local minX, maxX = Range(x0, x1, hw, (x1 - x0) * EDGE_SLACK, t)
 		local minY, maxY = Range(y0, y1, hh, (y1 - y0) * EDGE_SLACK, t)
@@ -1061,7 +1078,7 @@ function mod.ViewHalfExtents(zoom)
 end
 -- for Nav.lua: glide / jump to a world point (normalized) at a zoom; the zoom where a map fits
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
-function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, 1, MaxZoomAt(u, v))) userMoved = true end end
+function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, LeastZoom(), MaxZoomAt(u, v))) userMoved = true end end
 -- for Bench.lua: the view heads for a world point (normalized) the way a drag moves it, Blizzard's
 -- scroll easing there over the next frames; and whether a zoom or glide of ours is running
 function mod.PanTo(u, v)
@@ -1149,7 +1166,20 @@ end
 -- which pin sets each option shows
 local SET_OPTION = { dungeons = "icons", boats = "boats", zeppelins = "zeppelins", flight = "flight", routes = "routes" }
 
+-- the sea chart as Options has it, the view kept where it was (the least zoom and the reach change with it)
+local function ApplyChart()
+	if not S.Chart or not sc or (S.Chart.on == (mod.db.chart and true or false)) then return end
+	local u, v, zoom
+	if active and map:IsShown() then u, v, zoom = View() end
+	S.Chart.SetShown(mod.db.chart)
+	if active then
+		sc:CreateZoomLevels()                       -- (ours: OnCreateZoomLevels, from the new least zoom)
+		if u then ShowWorld(u, v, Clamp(zoom, LeastZoom(), MaxZoomAt(u, v))) end
+	end
+end
+
 function mod:Refresh()
+	ApplyChart()
 	for key, opt in pairs(SET_OPTION) do
 		local set = S.GetPinSet(key)
 		if set then S.SetPinSetOn(set, self.db[opt]) end
@@ -1260,6 +1290,8 @@ function mod:Options()
 			desc = ns.L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours."] },
 		desaturate = { type = "range", name = ns.L["Take colour out"], order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
+		chart = { type = "toggle", name = ns.L["Sea chart"], order = 23.6, get = get, set = set, disabled = off,
+			desc = ns.L["Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle."] },
 		gapFills = { type = "toggle", name = ns.L["Filled gaps"], order = 23.5, get = get, set = set, disabled = off,
 			desc = ns.L["Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there."] },
 		unexplored = { type = "select", name = ns.L["Unexplored areas"], order = 23, get = get, set = set, disabled = off,

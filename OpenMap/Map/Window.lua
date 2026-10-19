@@ -187,7 +187,8 @@ SetupBorder = function()
 	local watch = CreateFrame("Frame", nil, map)
 	watch:SetScript("OnUpdate", function()
 		local a = 0
-		if mod.db.border and mod.IsStitched() and not (mod.DungeonViewShown and mod.DungeonViewShown()) then
+		-- (not round the sea chart: it has its own frame)
+		if mod.db.border and not mod.db.chart and mod.IsStitched() and not (mod.DungeonViewShown and mod.DungeonViewShown()) then
 			local _, _, zoom = mod.ViewNow()
 			local t = math.max(0, math.min(1, ((zoom or 1) - BORDER_FADE[1]) / (BORDER_FADE[2] - BORDER_FADE[1])))
 			a = math.floor((1 - t * t * (3 - 2 * t)) * 50 + 0.5) / 50

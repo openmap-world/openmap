@@ -33,6 +33,7 @@ tools/
                   sea.py, sea_world.py (the sea), gapfill.py (the gaps), banners.py
                   (the cities' banners and cuts), tone.py (zone colours)
   map-art/        export.py / import.py (hand-cleaned world and continent art), border.py
+  map-chart/      the sea chart (Santiago Reyes's, art-drawn/chart/): MapChart textures, Data/Chart.lua
   map-tuning/     align.py: measures each zone's art against the minimap (report only)
   offline-test/   loads the addon in a stubbed client (run.py, lint.py)
 art-edits/        Blizzard's map art edited by hand (names painted out; the border)
@@ -178,6 +179,12 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
 
 ## The rest of `Map/`
 
+- `Chart.lua`: the sea chart (Options' Sea chart, off unless chosen): Santiago Reyes's sea, ornaments and
+  frame round the world map, laid out for the window's shape (`Data/Chart.lua`, `tools/map-chart/`'s
+  layout, which `tools/offline-test/chart.py` checks it against). Drawn on a frame of its own just under the
+  art (`S.chartHost`); Stitch.lua's `S.SetChart` puts its own sea past the world map away and fades the
+  world map into the chart (`MapChart\Middle`); WorldMap.lua zooms out to it and pans to its edges
+  (`LeastZoom`, `Extents`).
 - `Extras.lua`: coordinates (two labels in the bottom-right corner, steady widths), zone levels and fishing skill on the hover label
   (`Data/Levels.lua`), its own fade while moving (`moveFade`), hidden town / city icons and filter reset
   button, and Questie's pins from neighbouring zones (HereBeDragons only shows a zone's own).

@@ -251,6 +251,7 @@ local function Rows()
 	end
 	rows[#rows + 1] = { L["The map"] }
 	rows[#rows + 1] = optRow(L["Parchment border"], "border", Icon("INV_Scroll_03"))
+	rows[#rows + 1] = optRow(L["Sea chart"], "chart", Icon("INV_Misc_Map02"))
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Coordinates"], "coords", Icon("INV_Misc_Spyglass_03"))

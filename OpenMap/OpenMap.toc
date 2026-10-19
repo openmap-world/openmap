@@ -62,10 +62,12 @@ Data\ArtEdits.lua
 Data\Labels.lua
 Data\Banners.lua
 Data\ZoneArt.lua
+Data\Chart.lua
 Data\Changelog.lua
 
 # The map
 Map\Stitch.lua
+Map\Chart.lua
 Map\WorldMap.lua
 Map\Close.lua
 Map\Extras.lua

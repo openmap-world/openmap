@@ -13,6 +13,10 @@ Santiago Reyes's Ko-fi: https://ko-fi.com/sr433_20
 | `dungeons/ruins-of-lordaeron.png` | Ruins of Lordaeron | Santiago Reyes |
 | `dungeons/hall-of-thanes.png` | The Hall of Thanes | Santiago Reyes |
 
+`chart/` holds the sea chart round the world map (Options' Sea chart: the sea, compass roses, sea
+creatures, ships and frame), painted by Santiago Reyes and used with his permission; not covered by the
+MIT licence either (see its README).
+
 `gaps/` holds the gaps between zones painted by hand on Blizzard's own art (see its README); like the
 dungeon maps, they're used with the artist's permission and aren't covered by the MIT licence.
 

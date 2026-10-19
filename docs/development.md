@@ -39,6 +39,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data)
    python -P tools/offline-test/explored.py # unexplored land hidden up close (Stitch.lua)
+   python -P tools/offline-test/chart.py    # the sea chart's layout: Chart.lua as tools/map-chart/layout.py
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is
    a load error that takes the whole file down), calls to functions that don't exist, and
@@ -87,6 +88,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 16 | `tools/changelog/build.py` (after any change to `CHANGELOG.md`) | `Data/Changelog.lua` | |
 | 17 | `tools/map-dungeons/build.py <cache> <WoW folder> [preview dir]` | `Data/DungeonMaps.lua` | 1 |
 | 17a | `tools/map-dungeons/drawn.py` | `MapDungeonDrawn/`, `Data/DungeonDrawn.lua` | `art-drawn/dungeons/` |
+| 17b | `tools/map-chart/build.py <db2>` (his layers from his file first: `tools/map-chart/export.py <psd>`) | `MapChart/`, `Data/Chart.lua` | `art-drawn/chart/` |
 | 18 | `tools/locale/translate.py build` (after any change to the translations or to the English in `L[...]`) | `Locales/`, the toc's `## Notes-<locale>` lines | `tools/locale/*.json` |
 
 Text the player reads goes through `ns.L["English"]` (or `L[...]`), never a bare string: the

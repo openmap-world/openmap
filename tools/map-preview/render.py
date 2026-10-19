@@ -34,6 +34,7 @@ SEA_OCTAVE, HATCH_OCTAVE = 4, 7        # zoom where each starts halving to keep 
 HATCH_ALPHA = 0.6
 USE_SEA = os.environ.get("OPENMAP_SEA", "1") == "1"
 USE_GAP = os.environ.get("OPENMAP_GAP", "1") == "1"
+USE_CHART = os.environ.get("OPENMAP_CHART", "0") == "1"   # Options' Sea chart (Chart.lua; tools/map-chart/layout.py draws it)
 USE_BAKED = os.environ.get("OPENMAP_BAKED", "0") == "1"   # the zones from their baked tiles (--bake-zones), as the game draws them
 ZONES_ONLY, FADE_ZOOM = False, None   # (gapfill.py: only the zone layers, at full detail)
 
@@ -354,13 +355,62 @@ def desat(rgb, amount):
     return rgb + (l - rgb) * amount
 
 # ---------------------------------------------------------------- compositing
+# the sea chart (Chart.lua): drawn by tools/map-chart/layout.py from Data/Chart.lua and Media/Textures/MapChart/,
+# for the view's shape, placed on the world as Chart.lua places it (his continent pictures against the game's maps)
+M_MIDDLE = mask("MapChart/Middle") if USE_CHART else None
+_chart = {}
+def chart_lib():
+    if not _chart:
+        sys.path.insert(0, os.path.join(REPO, "tools", "map-chart"))
+        import layout as chart_layout
+        _chart["lib"] = chart_layout
+        _chart["data"] = chart_layout.load_chart(os.path.join(WM, "Chart.lua"))
+        W_, H_ = 1002.0, 668.0
+        a = bx = by = 0.0
+        for mid, box in _chart["data"]["continents"].items():
+            l, r, t, b = rect(int(mid))
+            ax, ay = (box[2] - box[0]) / ((r - l) * W_), (box[3] - box[1]) / ((b - t) * H_)
+            a, bx, by = a + ax + ay, bx + box[0] - l * W_ * ax, by + box[1] - t * H_ * ay
+        n = len(_chart["data"]["continents"])
+        _chart["place"] = (a / (2 * n), bx / n, by / n)
+        _chart["tex"] = {}
+    return _chart["lib"], _chart["data"], _chart["place"]
+
+def chart_texture(name):
+    lib, data, _ = chart_lib()
+    if name not in _chart["tex"]:
+        base = os.path.join(TEXDIR, name) if name == "MapFeather" else os.path.join(TEXDIR, "MapChart", name)
+        path = next(base + e for e in (".blp", ".tga") if os.path.exists(base + e))
+        _chart["tex"][name] = np.asarray(Image.open(path).convert("RGBA")).astype(np.float32) / 255
+    return _chart["tex"][name]
+
+def chart_draw(out, cu, cv, px):
+    lib, data, (A, bx, by) = chart_lib()
+    aspect = OW / OH
+    dx, dy = lib.ops(data, aspect)["shift"]
+    W_, H_ = 1002.0, 668.0
+    def to_px(x, y):
+        return ((x - dx - bx) / A - cu * W_) * px + OW / 2, ((y - dy - by) / A - cv * H_) * px + OH / 2
+    lib.draw(out, data, aspect, to_px, chart_texture)
+
+def chart_middle(cu, cv, px):
+    """MapChart\\Middle over the output (the world map's rectangle; 0 past it): the sea's texture kept to it."""
+    W_, H_ = 1002.0, 668.0
+    ys, xs = np.mgrid[0:OH, 0:OW].astype(np.float32)
+    u = ((xs - OW / 2) / px + cu * W_) / W_
+    v = ((ys - OH / 2) / px + cv * H_) / H_
+    inside = (u >= 0) & (u <= 1) & (v >= 0) & (v <= 1)
+    return ndimage.map_coordinates(M_MIDDLE, [np.clip(v, 0, 1) * 667, np.clip(u, 0, 1) * 1001], order=1) * inside
+
 def render(cu, cv, zoom, path):
     W, H = 1002.0, 668.0
     px = min(OW / W, OH / H) * zoom                      # output px per world unit
     out = np.zeros((OH, OW, 3), np.float32)
     out[:] = SEA
     # the sea's colour past the world art (MapSeaFieldOut, sea_world.py), as Stitch.lua lays it
-    fo = tex_rgba("MapSeaFieldOut") if USE_SEA and not ZONES_ONLY else None
+    fo = tex_rgba("MapSeaFieldOut") if USE_SEA and not ZONES_ONLY and not USE_CHART else None
+    if USE_CHART and not ZONES_ONLY:                      # the sea chart in its place (Stitch.lua's S.SetChart)
+        chart_draw(out, cu, cv, px)
     if fo is not None:
         ys0, xs0 = np.mgrid[0:OH, 0:OW].astype(np.float32)
         span = 1 + 2 * SEA_REACH
@@ -465,12 +515,12 @@ def render(cu, cv, zoom, path):
         return (cont["rect"][1] - cont["rect"][0]) * W / 1002        # world units per continent-art px
     def sea_field():
         """MapSeaField: the world's, then each continent's through its wide feather"""
-        for mid in (WORLD, 1414, 1415):
+        for mid in ((WORLD,) if USE_CHART else (WORLD, 1414, 1415)):   # (the chart: the world's alone, through MapChart\\Middle)
             m = next(x for x in maps if x["id"] == mid)
             f = tex_rgba("MapSeaField/%d" % mid)
             if f is None: continue
             img = np.dstack([np.asarray(Image.fromarray((f[..., :3] * 255).astype(np.uint8)).resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255, np.ones((668, 1002), np.float32)])
-            place(m, img, None if mid == WORLD else M_WIDE)
+            place(m, img, (M_MIDDLE if USE_CHART else None) if mid == WORLD else M_WIDE)
     def sea_over(alpha):
         ek = next(m for m in maps if m["id"] == 1415)
         base_ = SEA_TILE * cont_px(ek)
@@ -479,7 +529,7 @@ def render(cu, cv, zoom, path):
             if a <= 0.001: continue
             for name in ("MapSeaDark", "MapSeaLight"):
                 t = tiled(tex_rgba(name), base_ / div, base_ / div, (round(math.log(div, 2)) * 0.37) % 1)   # (Stitch.lua: each size its own offset)
-                aa = t[..., 3:4] * a
+                aa = t[..., 3:4] * a * (chart_middle(cu, cv, px)[..., None] if USE_CHART else 1)
                 out[:] = out * (1 - aa) + t[..., :3] * aa
     def hatch_over(cont, alpha):
         t, coast = tex_rgba("MapHatch"), tex_rgba("MapCoast/%d" % cont["id"])
@@ -520,7 +570,7 @@ def render(cu, cv, zoom, path):
             place(m, base, f * sea, alpha=1 - math.floor(smooth(zf, (4, 7)) * 20) / 20)
         else:
             place(m, base, f * sea, **dict(back, alpha=alpha * (1 - sm_)))
-    if not ZONES_ONLY: backdrop(world, M_WIDE, back["alpha"] * (1 - math.floor(smooth(zf, (1.7, 2.2)) * 20) / 20))   # (Stitch.lua: its land gives way to the continents')
+    if not ZONES_ONLY: backdrop(world, M_MIDDLE if USE_CHART else M_WIDE, back["alpha"] * (1 - math.floor(smooth(zf, (1.7, 2.2)) * 20) / 20))   # (Stitch.lua: its land gives way to the continents')
     for m in maps:
         if m["kind"] == 2 and not ZONES_ONLY:
             backdrop(m, M_WIDE, back["alpha"] * smooth(zf, (1.3, 1.7)))
@@ -606,7 +656,7 @@ def render(cu, cv, zoom, path):
                     place({"id": m["id"], "rect": out_rect}, solid, rim, alpha=UNDISCOVERED[3])
             # ("half": a zone you've been to, its pieces' copies under the cities, above)
     ba = 1 - smooth(zf, BORDER_OUT)                       # the parchment border round the view (Window.lua's)
-    if ba > 0.003 and not ZONES_ONLY:
+    if ba > 0.003 and not ZONES_ONLY and not USE_CHART:   # (not round the sea chart: Window.lua)
         c = int(round(192 * BORDER_SCALE * OH / 1024))
         pieces = (("tl", 0, 0, c, c, .75, .75), ("tr", OW - c, 0, c, c, .75, .75), ("bl", 0, OH - c, c, c, .75, .75),
                   ("br", OW - c, OH - c, c, c, .75, .75), ("top", c, 0, OW - 2 * c, c, 1, .75), ("bottom", c, OH - c, OW - 2 * c, c, 1, .75),
