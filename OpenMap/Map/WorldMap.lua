@@ -166,11 +166,17 @@ local function SetView(scale, x, y)
 	Clocked("every addon's pins rescaled", t0)
 	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
 	-- Blizzard's quest areas (blobs) redraw for a new scale in their own next OnUpdate, which can
-	-- come before this in the next frame: a frame behind all through a zoom. Redrawn now
+	-- come before this in the next frame: a frame behind all through a zoom. Redrawn now, each one's
+	-- place on screen worked out first (GetRect: the game otherwise works it out only when it next lays
+	-- the frames out, and an area drawn from the last step's place trailed the zoom and sprang back)
 	g, t0 = Before(), Clock()
+	sc.Child:GetRect()
 	for _, template in ipairs(BLOB_PINS) do
 		for pin in map:EnumeratePinsByTemplate(template) do
-			if pin:IsShown() and pin.Refresh then pin:Refresh() end
+			if pin:IsShown() and pin.Refresh then
+				pin:GetRect()
+				pin:Refresh()
+			end
 		end
 	end
 	After("quest areas", g)
