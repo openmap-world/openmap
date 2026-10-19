@@ -435,7 +435,7 @@
  "Map art": "Kartengrafik",
  "Libraries": "Bibliotheken",
  "Translations": "Übersetzungen",
- "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "das leere Land zwischen den Zonen und die Karten von WoW Forevers eigenen Dungeons, mit seiner Erlaubnis verwendet",
+ "the sea chart round the world map, the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "die Seekarte rund um die Weltkarte, das leere Land zwischen den Zonen und die Karten von WoW Forevers eigenen Dungeons, mit seiner Erlaubnis verwendet",
  "the map art is the game's own": "die Kartengrafik stammt aus dem Spiel selbst",
  "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "Wenn ein Wort in Eurer Sprache falsch klingt, sagt es uns auf CurseForge: Es wird in der nächsten Version korrigiert.",
  "Reports and ideas": "Meldungen und Ideen",
@@ -447,5 +447,10 @@
  "The Gamepad UI is off: OpenMap's map is back.": "Die Gamepad-UI ist aus: Die Karte von OpenMap ist zurück.",
  "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "Zoomt ganz nah an eine Höhle, Mine oder Gruft oder an den Eingangsbereich eines Dungeons heran: Ihre Karte taucht aus dem Untergrund auf, Blizzards eigene, wo es eine gibt, sonst die Minikarte des Spiels. Darüber zoomt die Karte über den maximalen Zoom hinaus weiter.",
  "Townsfolk (needs Questie)": "Stadtbevölkerung (benötigt Questie)",
- "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "Weltkarte: Stadtbevölkerung und seltene Gegner stammen aus Questies Datenbank. Installiert und aktiviert Questie, um sie zu sehen."
+ "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "Weltkarte: Stadtbevölkerung und seltene Gegner stammen aus Questies Datenbank. Installiert und aktiviert Questie, um sie zu sehen.",
+ "Sea chart": "Seekarte",
+ "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "Ganz herausgezoomt liegt die Weltkarte auf einer Seekarte, die das Fenster füllt: das Meer, Kompassrosen, Seeungeheuer und Schiffe ringsum, gemalt von Santiago Reyes (mit seiner Erlaubnis verwendet). Die Karte des Spiels selbst bleibt in der Mitte.",
+ "Alt-click: delete it": "Alt-Klick: löschen",
+ "Delete all %d map pins?": "Alle %d Kartenmarkierungen löschen?",
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Löscht alle Kartenmarkierungen (mit Rückfrage). Einzeln: Alt-Klick darauf."
 }

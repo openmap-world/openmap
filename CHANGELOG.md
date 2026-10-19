@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### New
+
+- **Sea chart** (Options, and the map's menu): zoomed right out, the world map lies on a sea chart
+  painted by Santiago Reyes (used with his permission), laid out for your window's shape: the sea,
+  compass roses, sea creatures, ships and the frame's corners round it, each in its place whether the
+  window is wide, square or tall. The game's own world map stays in the middle, fading into his sea.
+  Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off
+  unless you turn it on.
+- **Clearing map pins**: the Pins list's **Clear** deletes every pin (it asks first), and Alt-click
+  deletes one at once, on the map or in the list.
+
+### Fixed
+
+- **Fade while moving** faded for a moment and then came back: the game's own map fade (held off
+  while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade
+  now stays.
+- **Map size** in the map's menu ran away as you dragged it: it scales the window the menu is in, so
+  the slider moved under the cursor. The size now changes when you let go.
+- The continents' names lost their glow each time you zoomed and flickered back on: they keep it now
+  (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
+- Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
+  now drawn where the map is at that step.
+
 ## v0.6.0-beta (2026-10-18)
 
 ### New

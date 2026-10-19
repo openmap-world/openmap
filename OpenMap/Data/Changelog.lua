@@ -4,6 +4,14 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [3] = "Fixed", }, items = {
+		"|cff6e2c0aSea chart|r (Options, and the map's menu): zoomed right out, the world map lies on a sea chart painted by Santiago Reyes (used with his permission), laid out for your window's shape: the sea, compass roses, sea creatures, ships and the frame's corners round it, each in its place whether the window is wide, square or tall. The game's own world map stays in the middle, fading into his sea. Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off unless you turn it on.",
+		"|cff6e2c0aClearing map pins|r: the Pins list's |cff6e2c0aClear|r deletes every pin (it asks first), and Alt-click deletes one at once, on the map or in the list.",
+		"|cff6e2c0aFade while moving|r faded for a moment and then came back: the game's own map fade (held off while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade now stays.",
+		"|cff6e2c0aMap size|r in the map's menu ran away as you dragged it: it scales the window the menu is in, so the slider moved under the cursor. The size now changes when you let go.",
+		"The continents' names lost their glow each time you zoomed and flickered back on: they keep it now (the seas' names still rest theirs while the map moves, which keeps zooming smooth).",
+		"Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is now drawn where the map is at that step.",
+	} },
 	{ version = "v0.6.0-beta", date = "2026-10-18", heads = { [1] = "New", [9] = "Improved", [16] = "Fixed", }, items = {
 		"|cff6e2c0aOpenMap in your language|r: German, French, Spanish (Spain and Latin America), Italian, Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own words for things (flight masters, map pins, the quest log ...). Place names were already the game's. What's new's notes stay in English.",
 		"|cff6e2c0aYour quests from every zone, at any zoom|r: Blizzard's map shows a zone's quests only once you've zoomed in on that zone; now the quests in your log show across the whole map, in the look of Blizzard's (in progress or ready to turn in, their objectives on hover; click one: it opens in the quest log). The menu's |cff6e2c0aQuests from every zone|r turns them off.",

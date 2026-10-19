@@ -435,7 +435,7 @@
  "Map art": "Arte del mapa",
  "Libraries": "Bibliotecas",
  "Translations": "Traducciones",
- "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "la tierra en blanco entre zonas y los mapas de los calabozos propios de WoW Forever, usados con su permiso",
+ "the sea chart round the world map, the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "la carta náutica alrededor del mapa del mundo, la tierra en blanco entre zonas y los mapas de los calabozos propios de WoW Forever, usados con su permiso",
  "the map art is the game's own": "el arte del mapa es el del propio juego",
  "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "Si una palabra se lee mal en tu idioma, avísanos en CurseForge: se corregirá en la próxima versión.",
  "Reports and ideas": "Reportes e ideas",
@@ -447,5 +447,10 @@
  "The Gamepad UI is off: OpenMap's map is back.": "La interfaz del control está desactivada: el mapa de OpenMap está de vuelta.",
  "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "Acerca el zoom al máximo sobre una cueva, mina o cripta, o sobre la zona de entrada de un calabozo, y su mapa sale de bajo tierra: el de Blizzard si lo dibujó; si no, el minimapa del juego. Sobre ellas, el zoom sigue más allá del zoom máximo.",
  "Townsfolk (needs Questie)": "Ciudadanos (requiere Questie)",
- "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "Mapa del mundo: los ciudadanos y las criaturas raras vienen de la base de datos de Questie. Instala y activa Questie para verlos."
+ "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "Mapa del mundo: los ciudadanos y las criaturas raras vienen de la base de datos de Questie. Instala y activa Questie para verlos.",
+ "Sea chart": "Carta náutica",
+ "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "Con el zoom al mínimo, el mapa del mundo queda sobre una carta náutica que llena la ventana: el mar, las rosas de los vientos, las criaturas marinas y los barcos a su alrededor, pintados por Santiago Reyes (usados con su permiso). El mapa del juego se queda en el centro.",
+ "Alt-click: delete it": "Alt+clic: eliminarlo",
+ "Delete all %d map pins?": "¿Eliminar los %d marcadores de mapa?",
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "Elimina todos los marcadores de mapa (se te pregunta antes). Uno por uno: Alt+clic sobre él."
 }

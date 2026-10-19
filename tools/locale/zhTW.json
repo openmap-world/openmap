@@ -435,7 +435,7 @@
  "Map art": "地圖美術",
  "Libraries": "函式庫",
  "Translations": "翻譯",
- "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "區域之間的空白地帶，以及 WoW Forever 獨有地城的地圖，經他許可使用",
+ "the sea chart round the world map, the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "世界地圖周圍的海圖、區域之間的空白地帶，以及 WoW Forever 獨有地城的地圖，經他許可使用",
  "the map art is the game's own": "地圖美術皆來自遊戲本身",
  "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "如果某個詞在你的語言中讀起來不對，請到 CurseForge 告訴我們：下個版本會修正。",
  "Reports and ideas": "回報與建議",
@@ -447,5 +447,10 @@
  "The Gamepad UI is off: OpenMap's map is back.": "遊戲控制器使用者介面已關閉：OpenMap 的地圖已恢復。",
  "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "放大到洞穴、礦坑、墓穴或地城入口區域時，其地圖會從地下浮現：有 Blizzard 繪製的地圖就用它，否則用遊戲的小地圖。在其上方可放大到超過最大縮放。",
  "Townsfolk (needs Questie)": "村民（需要 Questie）",
- "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "世界地圖：村民和稀有生物來自 Questie 的資料庫。安裝並啟用 Questie 即可看到它們。"
+ "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "世界地圖：村民和稀有生物來自 Questie 的資料庫。安裝並啟用 Questie 即可看到它們。",
+ "Sea chart": "海圖",
+ "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "縮到最遠時，世界地圖會鋪在一張填滿視窗的海圖上：周圍的海洋、羅盤、海怪與船隻由 Santiago Reyes 繪製（經其同意使用）。遊戲本身的地圖仍在中間。",
+ "Alt-click: delete it": "ALT+點擊：刪除",
+ "Delete all %d map pins?": "刪除全部 %d 個地圖標記？",
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "刪除所有地圖標記（會先確認）。逐一刪除：按 ALT+點擊標記。"
 }

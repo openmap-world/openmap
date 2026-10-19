@@ -435,7 +435,7 @@
  "Map art": "지도 그림",
  "Libraries": "라이브러리",
  "Translations": "번역",
- "the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "지역 사이의 빈 땅과 WoW Forever 고유 던전의 지도 (본인의 허락을 받아 사용)",
+ "the sea chart round the world map, the blank land between zones, and the maps of WoW Forever's own dungeons, used with his permission": "세계 지도 주변의 해도, 지역 사이의 빈 땅과 WoW Forever 고유 던전의 지도 (본인의 허락을 받아 사용)",
  "the map art is the game's own": "지도 그림은 게임에 있는 그대로입니다",
  "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.": "번역된 단어가 어색하다면 CurseForge에 알려 주십시오. 다음 버전에서 고치겠습니다.",
  "Reports and ideas": "신고와 아이디어",
@@ -447,5 +447,10 @@
  "The Gamepad UI is off: OpenMap's map is back.": "게임패드 사용자 인터페이스가 꺼졌습니다. OpenMap 지도가 다시 돌아왔습니다.",
  "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.": "동굴, 광산, 묘지나 던전 입구 주변을 최대로 확대하면 지하 지도가 드러납니다. 블리자드가 그린 지도가 있으면 그 지도를, 없으면 게임의 미니맵을 보여 줍니다. 그 위에서는 최대 확대보다 더 확대됩니다.",
  "Townsfolk (needs Questie)": "마을 주민 (Questie 필요)",
- "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "세계 지도: 마을 주민과 희귀 몬스터는 Questie의 데이터베이스에서 가져옵니다. 보려면 Questie를 설치하고 활성화하십시오."
+ "World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them.": "세계 지도: 마을 주민과 희귀 몬스터는 Questie의 데이터베이스에서 가져옵니다. 보려면 Questie를 설치하고 활성화하십시오.",
+ "Sea chart": "해도",
+ "Zoomed right out, the world map lies on a sea chart that fills the window: the sea, compass roses, sea creatures and ships round it painted by Santiago Reyes (used with his permission). The game's own map stays in the middle.": "가장 멀리 축소하면 세계 지도가 창을 가득 채우는 해도 위에 놓입니다. 주변의 바다, 나침반, 바다 괴물, 배는 Santiago Reyes가 그렸습니다(허락을 받아 사용). 게임 자체의 지도는 가운데에 그대로 있습니다.",
+ "Alt-click: delete it": "Alt 클릭: 삭제",
+ "Delete all %d map pins?": "지도 핀 %d개를 모두 삭제할까요?",
+ "Delete every map pin (you're asked first). One at a time: Alt-click it.": "모든 지도 핀을 삭제합니다(먼저 확인합니다). 하나씩 지우려면 Alt 클릭하세요."
 }
