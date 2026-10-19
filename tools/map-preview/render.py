@@ -372,7 +372,10 @@ def chart_lib():
             ax, ay = (box[2] - box[0]) / ((r - l) * W_), (box[3] - box[1]) / ((b - t) * H_)
             a, bx, by = a + ax + ay, bx + box[0] - l * W_ * ax, by + box[1] - t * H_ * ay
         n = len(_chart["data"]["continents"])
-        _chart["place"] = (a / (2 * n), bx / n, by / n)
+        a, bx, by = a / (2 * n), bx / n, by / n
+        s = _chart["data"].get("scale", 1)          # (the world bigger against his art: Chart.lua's Place)
+        cx, cy = bx + a * W_ / 2, by + a * H_ / 2
+        _chart["place"] = (a * s, cx - a * s * W_ / 2, cy - a * s * H_ / 2)
         _chart["tex"] = {}
     return _chart["lib"], _chart["data"], _chart["place"]
 
@@ -567,7 +570,9 @@ def render(cu, cv, zoom, path):
             place(m, base, feather, **dict(back, alpha=alpha)); return
         place(m, base, f * land, **dict(back, alpha=alpha))
         if m["id"] == WORLD:                          # (Stitch.lua: the world's sea stays the ocean until well in)
-            place(m, base, f * sea, alpha=1 - math.floor(smooth(zf, (4, 7)) * 20) / 20)
+            t_ = chart_lib()[1]["seaTint"] if USE_CHART else None   # (the sea chart: eased toward its sea)
+            place(m, base, f * sea, alpha=1 - math.floor(smooth(zf, (4, 7)) * 20) / 20,
+                  **(dict(tint=tuple(t_[:3]), dsat=t_[3]) if t_ else {}))
         else:
             place(m, base, f * sea, **dict(back, alpha=alpha * (1 - sm_)))
     if not ZONES_ONLY: backdrop(world, M_MIDDLE if USE_CHART else M_WIDE, back["alpha"] * (1 - math.floor(smooth(zf, (1.7, 2.2)) * 20) / 20))   # (Stitch.lua: its land gives way to the continents')

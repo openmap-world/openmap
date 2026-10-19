@@ -24,7 +24,7 @@ From his Photoshop file (not committed; 226 MB):
 
 Then:
 
-    python -P tools/map-chart/build.py <db2 dir>
+    python -P tools/map-chart/build.py <db2 dir> <texture cache>
 
 writes `OpenMap/Media/Textures/MapChart/` and `OpenMap/Data/Chart.lua` (see `tools/map-chart/README.md`).
 Restart the game to see new textures.

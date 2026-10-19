@@ -3,11 +3,10 @@
 #
 # All in Santiago's sheet px (his 3840 px square). The chart is a "canvas" of the window's shape, made
 # round the game's map, which sits in its middle (WORLD: the box where the game's map is at least half
-# there), never scaled; at least PAD of sea round it on the tighter side, more the other way. His sheet
-# is cut along the lines of that box into bands round it (and their corners): a band longer than his is
-# made of overlapping cuts of his (the first keeps the torn edge, the last meets the middle as his did,
-# any between come from inside his paper), cross-faded where they overlap; a shorter one is two cuts.
-# The ornaments keep their size; where each goes is worked out once per window shape (place()).
+# there), never scaled; at least PAD of sea round it on the tighter side, more the other way. His paper
+# fills it in cuts along each axis: his torn-edge strip at each end, cuts from inside his paper between,
+# each cross-faded into the one before (axis()). The ornaments keep their size; where each goes is worked
+# out once per window shape (place()).
 import math
 try:
     import numpy as np
@@ -16,18 +15,18 @@ except ImportError:             # (the layout itself needs neither: tools/offlin
     np = ndi = None
 
 SIZE = 3840                     # his sheet
-PAD = 600                       # least sea between the game's map and the chart's edge, on the tighter side
+PAD = 480                       # least sea between the game's map and the chart's edge, on the tighter side
 EDGE = 350                      # his torn edge: cuts from inside the paper keep clear of it
-CORE = 50                       # ... and of his paper right round the middle
+EDGE_CUT = 1100                 # a torn-edge strip at the chart's end: this long at most
+INNER_CUT = 2600                # a cut from inside his paper: this long at most (his inside is about 3140)
 SEAM = 380                      # how long two overlapping cuts cross-fade over
-CUTS = 3                        # cuts a band at most (past that they're stretched to fit)
 CLEAR = 110                     # ornaments keep this far from the game's map
 ORN_GAP = 60                    # ... and from each other
 EDGE_GAP = 160                  # ... and from the chart's edge (or as near as he painted them)
 STEP = 160                      # how far apart the spots looked at round an ornament's home are
 LEAST = 0.45                    # an ornament smaller than this is left out (it reads as a mistake, not a choice)
-CORNER = 0.7                    # the ornaments in the corners (astrolabe, vignette): at most this of his size
-FRAME = 0.75                    # the frame's wooden corners: this of his size, about their corner
+CORNER = 0.55                   # the ornaments in the corners (astrolabe, vignette): at most this of his size
+FRAME = 0.6                     # the frame's wooden corners: this of his size, about their corner
 MARGIN = 0.25                   # how much of an ornament may be in the margin round the game's map, at the last
 NEAR = sorted(((x, y) for x in range(-2400, 2401, 100) for y in range(-2400, 2401, 100)
                if 0 < x * x + y * y <= 2400 ** 2), key=lambda o: o[0] ** 2 + o[1] ** 2)   # (nearest first)
@@ -44,47 +43,26 @@ def canvas_for(aspect, world):
     return w, h
 
 
-def band(p, q, n, i0, i1):
-    """His [p, q) laid into n px: [(s0, s1, d0, d1, fade)], d from the band's start; each cut after the
-    first fades in over `fade` at its start, over the one before."""
-    L = q - p
-    if abs(n - L) < 0.5:
-        return [(p, q, 0.0, float(n), 0.0)]
+def axis(n):
+    """One axis of the chart, n px long: [(s0, s1, d0, d1, fade)] on his sheet and the chart. His torn-edge strip
+    at each end (EDGE_CUT long at most), cuts from inside his paper between (INNER_CUT long at most, from
+    [EDGE, SIZE - EDGE]); each after the first fades in over `fade` at its start, over the one before. A short
+    axis: the two edge strips alone, overlapping in the middle."""
     X = min(SEAM, n / 3)
-    k = 2 if n + X <= 2 * L else min(CUTS, int(math.ceil((n - X) / (min(L, i1 - i0) - X))))
-    P = (n + (k - 1) * X) / k   # each cut's length in the chart
-    out = []
-    for i in range(k):
-        if i == 0:
-            s0, s1 = p, p + min(P, L)
-        elif i == k - 1:
-            s0, s1 = q - min(P, L), q
-        else:
-            ps = min(P, i1 - i0)
-            s0 = i0 + (i1 - i0 - ps) * ((i * 0.618) % 1)
-            s1 = s0 + ps
-        d0 = i * (P - X)
-        out.append((s0, s1, d0, d0 + P, 0.0 if i == 0 else X))
-    return out
-
-
-def axis(n, w0, w1, w0n):
-    """One axis of the chart, n px long, the middle [w0, w1) of his put at w0n: [(s0, s1, d0, d1, fade)].
-    Cuts that carry on from the one before (his paper continuing) are joined into one."""
-    ww = w1 - w0
-    pieces = band(0, w0, w0n, EDGE, w0 - CORE)
-    pieces.append((w0, w1, w0n, w0n + ww, 0.0))
-    pieces += [(s0, s1, d0 + w0n + ww, d1 + w0n + ww, f) for s0, s1, d0, d1, f in band(w1, SIZE, n - (w0n + ww), w1 + CORE, SIZE - EDGE)]
-    out = []
-    for p in pieces:
-        if out:
-            a = out[-1]
-            same = abs(a[1] - p[0]) < 0.5 and abs(a[3] - p[2]) < 0.5 and p[4] == 0
-            even = abs((a[1] - a[0]) - (a[3] - a[2])) < 0.5 and abs((p[1] - p[0]) - (p[3] - p[2])) < 0.5
-            if same and even:
-                out[-1] = (a[0], p[1], a[2], p[3], a[4])
-                continue
-        out.append(p)
+    if n <= 2 * EDGE_CUT - X:
+        P = (n + X) / 2
+        return [(0.0, P, 0.0, P, 0.0), (SIZE - P, float(SIZE), n - P, float(n), X)]
+    k = 1
+    while 2 * EDGE_CUT + k * INNER_CUT - (k + 1) * X < n:
+        k += 1
+    P = (n - 2 * EDGE_CUT + (k + 1) * X) / k
+    out = [(0.0, float(EDGE_CUT), 0.0, float(EDGE_CUT), 0.0)]
+    at = EDGE_CUT - X
+    for i in range(1, k + 1):
+        s0 = EDGE + (SIZE - 2 * EDGE - P) * ((i * 0.618) % 1)
+        out.append((s0, s0 + P, at, at + P, X))
+        at += P - X
+    out.append((float(SIZE - EDGE_CUT), float(SIZE), at, at + EDGE_CUT, X))
     return out
 
 
@@ -351,7 +329,7 @@ def ops(chart, aspect):
     ww, wh = world[2] - world[0], world[3] - world[1]
     wx0, wy0 = (cw - ww) / 2, (ch - wh) / 2
     dx, dy = wx0 - world[0], wy0 - world[1]
-    xs, ys = axis(cw, world[0], world[2], wx0), axis(ch, world[1], world[3], wy0)
+    xs, ys = axis(cw), axis(ch)
     paper = []
     major_x = len(xs) >= len(ys)
     for i, (sx0, sx1, dx0, dx1, fx) in enumerate(xs):

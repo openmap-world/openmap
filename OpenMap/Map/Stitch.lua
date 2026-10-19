@@ -1405,8 +1405,9 @@ function S.IsShownNow() return root and root:IsShown() or false end
 
 -- the sea chart (Chart.lua) on or off: OpenMap's own sea past the world map put away (its colour carried out,
 -- MapSeaFieldOut; its mottling; the continents' sea colour and their sea past the world map's edges), and the
--- world map fading into the chart through MapChart\Middle (its continents and coasts whole) instead of its
--- wide edge fade; the sea's own texture, as you close in, kept to the world map's sea the same way
+-- world map fading into the chart through MapChart\Middle (its continents, islands and coasts whole) instead of
+-- its wide edge fade, its open sea eased toward the chart's (ns.MapChart.seaTint); the sea's own texture, as
+-- you close in, kept to the world map's sea the same way
 function S.SetChart(on)
 	if not root or not S.chartOff then return end
 	on = on and true or false
@@ -1419,6 +1420,7 @@ function S.SetChart(on)
 		if on then tex:AddMaskTexture(S.chartMasks[1]) else tex:RemoveMaskTexture(S.chartMasks[1]) end
 	end
 	S.chartHide = on and S.chartSeaOut or nil
+	S.chartTint = on and ns.MapChart and ns.MapChart.seaTint or nil
 	muted = -1                                     -- (S.SetZoom lays the world and continent art's fades again)
 	if scaleNow and scaleNow > 0 then S.SetZoom(zoomNow, scaleNow) end
 end
@@ -1695,10 +1697,11 @@ function S.SetZoom(zoom, scale)
 			tex:SetVertexColor(c, c * 0.97, c * 0.92)
 			Fade(tex, (1 - BACK_MUTE * m) * (worldArt[tex] and (1 - wo) or 1))
 		end
+		local tint = S.chartTint                       -- (the sea chart: the world's open sea eased toward its sea)
 		for _, tex in ipairs(backdropSea) do
 			if worldArt[tex] then                      -- the world's sea: the ocean, as Blizzard painted it
-				tex:SetDesaturation(0)
-				tex:SetVertexColor(1, 1, 1)
+				tex:SetDesaturation(tint and tint[4] or 0)
+				tex:SetVertexColor(tint and tint[1] or 1, tint and tint[2] or 1, tint and tint[3] or 1)
 				Fade(tex, 1 - ws)
 			else                                       -- a continent's open sea: the world's is under it
 				tex:SetDesaturation(0.8 * m)

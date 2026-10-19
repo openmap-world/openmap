@@ -5,7 +5,7 @@ Options' **Sea chart** (off unless chosen): Santiago Reyes's sea chart round the
 out, the chart fills the view; the game's own world map stays in its middle, fading into his sea.
 
 - `export.py <his .psd>`: his layers into `art-drawn/chart/` (needs psd-tools).
-- `build.py <db2 dir>`: the textures (`OpenMap/Media/Textures/MapChart/`) and `OpenMap/Data/Chart.lua`.
+- `build.py <db2 dir> <texture cache>`: the textures (`OpenMap/Media/Textures/MapChart/`) and `OpenMap/Data/Chart.lua`.
 - `layout.py`: the layout, used by both, by `tools/map-preview/render.py` (`OPENMAP_CHART=1`) and by
   `preview.py`. `OpenMap/Map/Chart.lua` does the same in game; `tools/offline-test/chart.py` checks
   the two agree.
@@ -13,15 +13,15 @@ out, the chart fills the view; the game's own world map stays in its middle, fad
 
 How it's laid out (`layout.py`, in his sheet's px):
 
-- **The middle.** The box where the game's world map is at least half there (`Middle`: OpenMap's
-  wide edge fade less its burnt rim, never under the continents and their coasts) sits in the
-  chart's middle, unscaled, with at least `PAD` of sea round it on the tighter side; the window's
-  shape gives the other side more.
-- **The paper.** His sheet is cut along the lines of that box into bands round it. A band longer
-  than his is made of overlapping cuts of his paper (the first keeps his torn edge, the last meets
-  the middle as his did, any between come from inside his paper), each fading in over the one
-  before through `SeamX` / `SeamY` (a cross-fade whose edge is bent by smooth noise, so a seam is
-  never a straight line); a shorter band is two such cuts. Past `CUTS` cuts a band's cuts stretch.
+- **The middle.** The game's world map, `SCALE` (build.py) times bigger against his art than he drew
+  it, sits in the chart's middle with at least `PAD` of sea round the box where it's at least half
+  there; the window's shape gives the other side more. `Middle` is its fade: its continents, islands
+  and their coasts whole, and the sea between the continents (the Maelstrom); its sea fading out from
+  there, following the coasts. Its open sea is eased toward his (`seaTint`: some colour out, a tint).
+- **The paper.** Along each axis his paper is laid in cuts: his torn-edge strip at each end of the
+  chart (`EDGE_CUT` long at most), cuts from inside his paper between (`INNER_CUT` at most), each
+  fading in over the one before through `SeamX` / `SeamY` (a cross-fade whose edge is bent by smooth
+  noise, so a seam is never a straight line). Nothing is stretched; the game's map covers the middle.
 - **The lines.** The web of his navigation lines stays with the middle; each compass rose's own
   rays (the lines that meet at its centre) move with that rose. Both fade out before his sheet's
   edge, and at the chart's edge (`MapFeather`).

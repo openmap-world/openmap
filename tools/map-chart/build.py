@@ -8,12 +8,13 @@
 #     Ornament<n>.blp  each ornament (compass roses, sea creatures, ships, astrolabe, vignette)
 #     Frame<n>.blp     the frame's corners
 #     SeamX.tga, SeamY.tga   (masks) the cross-fade where two cuts of the paper overlap, its edge wavy
-#     Middle.tga       (mask) the game's world map in the chart: its continents and their coasts whole, its sea
-#                      fading out toward its edges into his (in place of the world map's own edge fade)
+#     Middle.tga       (mask) the game's world map in the chart: its continents, islands and coasts whole, and the
+#                      sea between the continents; its sea fading out from there into his (in place of the world
+#                      map's own edge fade)
 #   OpenMap/Data/Chart.lua   where everything goes (tools/map-chart/layout.py), and each ornament's place
 #                            for each window shape
 #
-# usage: python -P tools/map-chart/build.py <db2 dir>   (the build's UiMap CSVs, as render.py)
+# usage: python -P tools/map-chart/build.py <db2 dir> <texture cache>   (as render.py, which fills the cache)
 import csv, json, math, os, sys
 import numpy as np
 from PIL import Image
@@ -34,8 +35,12 @@ WORLD = 947
 ROSES = [(740, 748), (3292, 2524)]   # where each compass rose's rays meet (his sheet px: found by voting, below)
 RAY_TOL = 7.0                   # sheet px off a ray through a rose's centre that still counts as on it
 LINE_FADE = 420                 # his lines fade out over this before his sheet's edge (so moved, none stops short)
-MIDDLE_KEEP, MIDDLE_FADE = 22, 40   # the world map's art px: its land kept this far out, then fading over this
+MIDDLE_CLOSE = 150             # the world map's art px: the sea between its lands this narrow is kept with them
+MIDDLE_KEEP, MIDDLE_FADE = 25, 120   # ... and the sea round all that kept this far out, then fading over this
 MIDDLE_RIM = 0.3                # the share of OpenMap's wide edge fade left off (the art's burnt rim shows as a halo)
+SCALE = 1.8                     # the game's world this much bigger against his art than he drew it (his sea, ornaments
+                                #  and frame read smaller round it, the continents bigger in the window)
+SEA_DESAT = 0.35                # the world map's open sea eased toward his sea: this much colour out, then tinted
 ORN_LONG = 1024                 # an ornament's or frame piece's texture: its longer side at most this
 ASPECTS = (0.35, 4.0, 1.04)     # window shapes a layout is worked out for: least, most, step (a ratio)
 PLACE_K = 0.25                  # working px per sheet px for the ornaments' places
@@ -114,18 +119,86 @@ def world_on_sheet(db2, continents):
     return A, sum(f[2] for f in fits) / len(fits), sum(f[3] for f in fits) / len(fits)
 
 
-def middle_mask():
-    """The world map's alpha in the chart (1002 x 668, its art px): OpenMap's wide edge fade less its rim, but
-    never under its land and a little past it (MapBackLand/947)."""
-    def mask(name):
-        return np.asarray(Image.open(os.path.join(TEX, name + ".tga")).convert("RGBA").getchannel("A").resize((1002, 668), Image.BILINEAR), np.float32) / 255
-    wide, land = mask("MapFeatherWide"), mask("MapBackLand/947")
-    f = np.clip((wide - MIDDLE_RIM) / (1 - MIDDLE_RIM), 0, 1)
-    f = f * f * (3 - 2 * f)
-    d = ndi.distance_transform_edt(land < 0.5)
-    keep = np.clip(1 - (d - MIDDLE_KEEP) / MIDDLE_FADE, 0, 1)
-    keep = keep * keep * (3 - 2 * keep)
-    return np.maximum(f, keep)
+def world_art(db2, cache):
+    """The world map's art (1002 x 668, its px), from the client's tiles in the texture cache."""
+    art_id = next(int(r["UiMapArtID"]) for r in csv.DictReader(open(os.path.join(db2, "UiMapXMapArt.csv"), encoding="utf-8"))
+                  if int(r["UiMapID"]) == WORLD and r["PhaseID"] == "0")
+    img = Image.new("RGBA", (1002, 668), (0, 0, 0, 0))
+    for r in csv.DictReader(open(os.path.join(db2, "UiMapArtTile.csv"), encoding="utf-8")):
+        if int(r["UiMapArtID"]) == art_id and r["LayerIndex"] == "0":
+            p = os.path.join(cache, "%s.blp" % r["FileDataID"])
+            if not os.path.exists(p):
+                sys.exit("the world map's tile %s isn't in the texture cache: run tools/map-preview/render.py first" % r["FileDataID"])
+            img.paste(Image.open(p).convert("RGBA"), (int(r["ColIndex"]) * 256, int(r["RowIndex"]) * 256))
+    return np.asarray(img, np.float32)[..., :3] / 255
+
+
+def smooth(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def world_land(art):
+    """Its land: OpenMap's continents with their coastal band (MapBackLand/947), and its islands, found as compact
+    saturated gold patches clear of the art's burnt edge (whose sea is as gold)."""
+    land = np.asarray(Image.open(os.path.join(TEX, "MapBackLand", "947.tga")).convert("RGBA").getchannel("A")
+                      .resize((1002, 668), Image.BILINEAR)) > 127
+    mx, mn = art.max(2), art.min(2)
+    sat = np.where(mx > 1e-3, (mx - mn) / np.maximum(mx, 1e-3), 0)
+    gold = ndi.binary_opening((sat > 0.62) & (mx > 0.45) & (art[..., 0] >= art[..., 2]), iterations=2)   # (no ink strokes)
+    gold = ndi.binary_fill_holes(ndi.binary_closing(gold, iterations=3))
+    lab, _ = ndi.label(gold)
+    H, W = land.shape
+    for k, sl in enumerate(ndi.find_objects(lab), 1):
+        piece = lab[sl] == k
+        area = piece.sum()
+        box = (sl[1].start, sl[0].start, sl[1].stop, sl[0].stop)
+        fill = area / ((box[3] - box[1]) * (box[2] - box[0]))
+        if 120 <= area <= 20000 and fill > 0.45 and min(box[0], box[1], W - box[2], H - box[3]) > 30 and not (land[sl] & piece).any():
+            land[sl] |= piece
+    return land
+
+
+def middle_mask(art):
+    """The world map's alpha in the chart (1002 x 668, its px): its land whole, and the sea between its lands
+    (closed over MIDDLE_CLOSE: the Maelstrom, the islands between the continents); the sea round that kept a
+    little way out and fading over MIDDLE_FADE, so the fade follows the coasts; no further than OpenMap's wide
+    edge fade less its rim (the art ends there)."""
+    land = world_land(art)
+    pad = MIDDLE_CLOSE + 4
+    big = np.pad(land, pad)
+    out = ndi.distance_transform_edt(~big) <= MIDDLE_CLOSE
+    kept = (ndi.distance_transform_edt(out) > MIDDLE_CLOSE)[pad:-pad, pad:-pad] | land
+    fade = smooth(1 - (ndi.distance_transform_edt(~kept) - MIDDLE_KEEP) / MIDDLE_FADE)
+    wide = np.asarray(Image.open(os.path.join(TEX, "MapFeatherWide.tga")).convert("RGBA").getchannel("A")
+                      .resize((1002, 668), Image.BILINEAR), np.float32) / 255
+    edge = smooth((wide - MIDDLE_RIM) / (1 - MIDDLE_RIM))
+    core = smooth(1 - (ndi.distance_transform_edt(~land) - 4) / 8)   # (its land never faded)
+    return np.maximum(core, fade * edge), land
+
+
+def sea_tint(art, land, middle, paper, A, bx, by):
+    """How the world map's open sea is eased toward his: SEA_DESAT of its colour out, then a tint (vertex colour,
+    at most 1) from the mean of its sea where it fades against the mean of his paper just past it."""
+    ring = (middle > 0.2) & (middle < 0.85) & ~ndi.binary_dilation(land, iterations=6)
+    world = art[ring].mean(0)
+    lum = world @ np.array([0.299, 0.587, 0.114])
+    world = world * (1 - SEA_DESAT) + lum * SEA_DESAT
+    # his paper (half his sheet's size) just past the middle's edge
+    k = paper.shape[0] / LO.SIZE
+    m = np.asarray(Image.fromarray(middle).resize((max(1, int(1002 * A * k)), max(1, int(668 * A * k))), Image.BILINEAR))
+    sheet = np.zeros(paper.shape[:2], np.float32)
+    X, Y = int(round(bx * k)), int(round(by * k))
+    y0, x0 = max(0, Y), max(0, X)
+    y1, x1 = min(sheet.shape[0], Y + m.shape[0]), min(sheet.shape[1], X + m.shape[1])
+    sheet[y0:y1, x0:x1] = m[y0 - Y:y1 - Y, x0 - X:x1 - X]
+    d = ndi.distance_transform_edt(sheet < 0.2)
+    near = (d > 20 * k) & (d < 300 * k) & (paper[..., 3] > 0.9)
+    his = paper[near][:, :3].mean(0)
+    t = his / np.maximum(world, 1e-3)
+    t = t / max(1.0, t.max())
+    print("sea: the world's %s, his %s, tint %s" % (np.round(world, 3), np.round(his, 3), np.round(t, 3)))
+    return [round(float(v), 3) for v in t] + [SEA_DESAT]
 
 
 # ----------------------------------------------------------------------------------------- his lines
@@ -229,17 +302,22 @@ def lua(v, ind=""):
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: python -P tools/map-chart/build.py <db2 dir>")
+    if len(sys.argv) != 3:
+        sys.exit("usage: python -P tools/map-chart/build.py <db2 dir> <texture cache>")
     sheet = json.load(open(os.path.join(SRC, "sheet.json"), encoding="utf-8"))
     assert sheet["size"] == LO.SIZE
     A, bx, by = world_on_sheet(sys.argv[1], sheet["continents"])   # (before anything's cleared: it needs the CSVs)
+    art = world_art(sys.argv[1], sys.argv[2])
+    # the world SCALE times bigger, about the world map's middle (Chart.lua does the same with `scale`)
+    cx, cy = bx + A * 501, by + A * 334
+    A = A * SCALE
+    bx, by = cx - A * 501, cy - A * 334
     os.makedirs(OUT, exist_ok=True)
     for f in os.listdir(OUT):
         os.remove(os.path.join(OUT, f))
     print("world map on his sheet: x %.0f..%.0f, y %.0f..%.0f" % (bx, bx + 1002 * A, by, by + 668 * A))
 
-    middle = middle_mask()
+    middle, land = middle_mask(art)
     save_mask("Middle", np.asarray(Image.fromarray(middle).resize((512, 512), Image.BILINEAR)))
     # its box on his sheet where it's at least half there: the chart's middle, never covered
     ys, xs = np.nonzero(middle > 0.5)
@@ -248,6 +326,7 @@ def main():
 
     paper = rgba("paper.png")
     pu, pv = save_blp("Paper", paper)
+    tint = sea_tint(art, land, middle, paper, A, bx, by)
     back = tileable(rgba("backdrop.png"), 1024)
     save_blp("Backdrop", resized(back, 0.5))
     save_mask("SeamX", seam(256, 64, 1))
@@ -318,8 +397,11 @@ def main():
         f.write("\tsize = %d,\n" % LO.SIZE)
         f.write("\tcontinents = { [1414] = %s, [1415] = %s },   -- his pictures of the game's continent maps (they place the world)\n"
                 % (lua(sheet["continents"]["1414"]), lua(sheet["continents"]["1415"])))
+        f.write("\tscale = %s,   -- the world this much bigger against his art than he drew it (about the world map's middle)\n" % lua(SCALE))
         f.write("\tworld = %s,   -- the game's map in the middle, where it's at least half there: centred, never covered\n" % lua(list(world)))
-        f.write("\tpad = %d, edge = %d, core = %d, seam = %d, cuts = %d,   -- (tools/map-chart/layout.py)\n" % (LO.PAD, LO.EDGE, LO.CORE, LO.SEAM, LO.CUTS))
+        f.write("\tseaTint = %s,   -- the world map's open sea eased toward his: vertex colour, and desaturation\n" % lua(tint))
+        f.write("\tpad = %d, edge = %d, seam = %d, cut = { %d, %d },   -- (tools/map-chart/layout.py: PAD, EDGE, SEAM, EDGE_CUT, INNER_CUT)\n"
+                % (LO.PAD, LO.EDGE, LO.SEAM, LO.EDGE_CUT, LO.INNER_CUT))
         f.write("\tpaper = { %s, %s },   -- Paper: his whole sheet\n" % (lua(pu), lua(pv)))
         f.write("\tweb = { %s, %s },   -- Web: his whole sheet, at half size\n" % (lua(wu), lua(wv)))
         f.write("\trays = {   -- Rays<n>: box, u, v\n")

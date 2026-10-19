@@ -67,10 +67,8 @@ class ChartTests(unittest.TestCase):
         for asp in ASPECTS:
             o = LO.ops(self.chart, asp)
             cw, ch = o["canvas"]
-            world = self.chart["world"]
-            ww, wh = world[2] - world[0], world[3] - world[1]
-            for n, w0, w1, w0n in ((cw, world[0], world[2], (cw - ww) / 2), (ch, world[1], world[3], (ch - wh) / 2)):
-                pieces = LO.axis(n, w0, w1, w0n)
+            for n in (cw, ch):
+                pieces = LO.axis(n)
                 self.assertAlmostEqual(pieces[0][2], 0, places=4)
                 self.assertAlmostEqual(pieces[-1][3], n, places=4)
                 for a, b in zip(pieces, pieces[1:]):
@@ -79,6 +77,7 @@ class ChartTests(unittest.TestCase):
                 for s0, s1, d0, d1, f in pieces:
                     self.assertGreaterEqual(s0, -1e-6)
                     self.assertLessEqual(s1, LO.SIZE + 1e-6)
+                    self.assertAlmostEqual(s1 - s0, d1 - d0, places=4, msg="a cut stretched at %.3f" % asp)
             # (Chart.lua draws them in two draw layers' sublevels: 31 in order)
             self.assertLessEqual(max(x[4] for x in o["paper"]), 30, "more cuts than draw sublevels at %.3f" % asp)
 

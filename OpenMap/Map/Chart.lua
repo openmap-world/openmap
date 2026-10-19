@@ -33,58 +33,28 @@ function C.Canvas(aspect)
 	return w, h
 end
 
--- his [p, q) laid into n px: cuts { s0, s1, d0, d1, fade } (d from the band's start); each after the
--- first fades in over `fade` at its start
-local function Band(p, q, n, i0, i1)
+-- one axis of the chart, n px long: cuts { s0, s1, d0, d1, fade } (his sheet, the chart). His torn-edge strip at
+-- each end, cuts from inside his paper between; each after the first fades in over `fade` at its start, over
+-- the one before. A short axis: the two edge strips alone (layout.py's axis)
+local function Axis(n)
 	local D = ns.MapChart
-	local L = q - p
-	if math.abs(n - L) < 0.5 then return { { p, q, 0, n, 0 } } end
-	local X = math.min(D.seam, n / 3)
-	local k = 2
-	if n + X > 2 * L then k = math.min(D.cuts, math.ceil((n - X) / (math.min(L, i1 - i0) - X))) end
-	local P = (n + (k - 1) * X) / k
-	local out = {}
-	for i = 0, k - 1 do
-		local s0, s1
-		if i == 0 then
-			s0, s1 = p, p + math.min(P, L)
-		elseif i == k - 1 then
-			s0, s1 = q - math.min(P, L), q
-		else
-			local ps = math.min(P, i1 - i0)
-			s0 = i0 + (i1 - i0 - ps) * ((i * 0.618) % 1)
-			s1 = s0 + ps
-		end
-		local d0 = i * (P - X)
-		out[#out + 1] = { s0, s1, d0, d0 + P, i == 0 and 0 or X }
+	local size, edge, X = D.size, D.edge, math.min(D.seam, n / 3)
+	local pe, pi = D.cut[1], D.cut[2]
+	if n <= 2 * pe - X then
+		local P = (n + X) / 2
+		return { { 0, P, 0, P, 0 }, { size - P, size, n - P, n, X } }
 	end
-	return out
-end
-
--- one axis of the chart, n px long, his middle [w0, w1) put at w0n; cuts that carry on from the one
--- before (his paper continuing) joined into one
-local function Axis(n, w0, w1, w0n)
-	local D = ns.MapChart
-	local ww = w1 - w0
-	local pieces = Band(0, w0, w0n, D.edge, w0 - D.core)
-	pieces[#pieces + 1] = { w0, w1, w0n, w0n + ww, 0 }
-	for _, c in ipairs(Band(w1, D.size, n - (w0n + ww), w1 + D.core, D.size - D.edge)) do
-		pieces[#pieces + 1] = { c[1], c[2], c[3] + w0n + ww, c[4] + w0n + ww, c[5] }
+	local k = 1
+	while 2 * pe + k * pi - (k + 1) * X < n do k = k + 1 end
+	local P = (n - 2 * pe + (k + 1) * X) / k
+	local out = { { 0, pe, 0, pe, 0 } }
+	local at = pe - X
+	for i = 1, k do
+		local s0 = edge + (size - 2 * edge - P) * ((i * 0.618) % 1)
+		out[#out + 1] = { s0, s0 + P, at, at + P, X }
+		at = at + P - X
 	end
-	local out = {}
-	for _, p in ipairs(pieces) do
-		local a = out[#out]
-		local joined = false
-		if a then
-			local same = math.abs(a[2] - p[1]) < 0.5 and math.abs(a[4] - p[3]) < 0.5 and p[5] == 0
-			local even = math.abs((a[2] - a[1]) - (a[4] - a[3])) < 0.5 and math.abs((p[2] - p[1]) - (p[4] - p[3])) < 0.5
-			if same and even then
-				out[#out] = { a[1], p[2], a[3], p[4], a[5] }
-				joined = true
-			end
-		end
-		if not joined then out[#out + 1] = p end
-	end
+	out[#out + 1] = { size - pe, size, at, at + pe, X }
 	return out
 end
 
@@ -115,7 +85,7 @@ function C.Ops(aspect)
 	local cw, ch = C.Canvas(aspect)
 	local wx0, wy0 = (cw - (w[3] - w[1])) / 2, (ch - (w[4] - w[2])) / 2
 	local dx, dy = wx0 - w[1], wy0 - w[2]
-	local xs, ys = Axis(cw, w[1], w[3], wx0), Axis(ch, w[2], w[4], wy0)
+	local xs, ys = Axis(cw), Axis(ch)
 	local o = { canvas = { cw, ch }, shift = { dx, dy }, paper = {}, ornaments = {}, rays = {}, frame = {} }
 	local majorX = #xs >= #ys
 	for i, x in ipairs(xs) do
@@ -175,7 +145,11 @@ local function Place()
 		n = n + 1
 	end
 	if n == 0 then return end
-	place = { a / (2 * n), bx / n, by / n }
+	a, bx, by = a / (2 * n), bx / n, by / n
+	-- the world D.scale times bigger against his art than he drew it, about the world map's middle
+	local s = D.scale or 1
+	local cx, cy = bx + a * W / 2, by + a * H / 2
+	place = { a * s, cx - a * s * W / 2, cy - a * s * H / 2 }
 	return place
 end
 
