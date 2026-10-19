@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.6.0-beta (2026-10-18)
+
 ### New
 
 - **Sea chart** (Options, and the map's menu): zoomed right out, the world map lies on a sea chart
@@ -10,50 +12,6 @@
   window is wide, square or tall. The game's own world map stays in the middle, fading into his sea.
   Zoom out past the whole world to see all of it; the map pans to its edges and no further. Off
   unless you turn it on.
-- **Clearing map pins**: the Pins list's **Clear** deletes every pin (it asks first), and Alt-click
-  deletes one at once, on the map or in the list.
-- **The Pins list** can be dragged anywhere and stays where you put it. Sharing every pin is one
-  **Share all** button with a menu (as a code, to your group, to your guild), so sending them all to
-  your guild is never one stray click.
-
-### Fixed
-
-- **Fade while moving** faded for a moment and then came back: the game's own map fade (held off
-  while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade
-  now stays.
-- **Map size** in the map's menu ran away as you dragged it: it scales the window the menu is in, so
-  the slider moved under the cursor. The size now changes when you let go.
-- The continents' names lost their glow each time you zoomed and flickered back on: they keep it now
-  (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
-- Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
-  now drawn where the map is at that step.
-- **Ironforge's minimap detail up close.** Zooming in on Stormwind brings in the game's minimap;
-  on Ironforge only the painted map showed: the game's minimap there, outside, is the mountain over
-  the city, so OpenMap kept it off. Now the game's own minimap of the city inside (what your minimap
-  shows walking through it) comes in over Ironforge's map as you zoom in, as the minimap does over
-  Stormwind; the Undercity's too.
-- **Ironforge's map whole up close.** The Mystic Ward, the Forlorn Cavern, the Hall of Explorers and
-  the Gates were faded out into the mountain: the city's map faded out in a round from its middle,
-  and Ironforge's wards reach right out to its frame. It's cut to the city instead, as the
-  Undercity's is, with Dun Morogh's mountain round it.
-- **The Wetlands' Excavation Site stays hidden until you've found it.** With Unexplored areas on
-  Hide, the painted mountains south of Whelgar's Excavation Site showed WoW Forever's new valley
-  there (green, with paths and a lake) before you'd been anywhere near it. It's blank parchment now
-  until you've explored Whelgar's Excavation Site or Angerfang Encampment, the parts of the
-  Wetlands' map over it (the game itself keeps no record of exploring the valley), close up too; on
-  Darken it's darkened until then.
-- **Zones' edges against the sea and the painted gaps.** A zone's own map is drawn whole to its
-  frame on land, so its coasts and mountains no longer fade out early into an orange band of blank
-  land (Arathi's east coast) or a grey smudge of sea (Arathi's mountains above the Wetlands); where
-  it paints the sea up to its frame, the sea fades in from the frame instead of stopping in a
-  straight line (Eastern Plaguelands' east coast). Mountain strokes mistaken for a printed name no
-  longer cut holes in a zone's map (the brown blot at Thoradin's Wall), and past its own land a zone
-  gives way to Santiago Reyes's painted gaps where they reach.
-
-## v0.6.0-beta (2026-10-18)
-
-### New
-
 - **OpenMap in your language**: German, French, Spanish (Spain and Latin America), Italian,
   Portuguese (Brazil), Russian, Korean and Chinese (Simplified and Traditional), with the game's own
   words for things (flight masters, map pins, the quest log ...). Place names were already the
@@ -77,6 +35,8 @@
 - **Map pins into chat**: Shift-click a pin (on the map or in the Pins list) to put it in chat, as
   Blizzard's map pin link where the game takes one (whoever clicks it gets the waypoint), with its
   note; else its note, zone and position as text.
+- **Clearing map pins**: the Pins list's **Clear** deletes every pin (it asks first), and Alt-click
+  deletes one at once, on the map or in the list.
 - **Mailboxes** in the menu's Townsfolk (from Questie's list of them, as its own map shows them).
 - **Icon size** (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.
 - **Credits** (What's new's **Credits** button): who has made OpenMap, Santiago Reyes's painted
@@ -105,6 +65,9 @@
 - **For other addons**: `OpenMapAPI.CursorPosition()` (API version 3), the point under the cursor;
   with `MapAt`, the zone under it at any zoom, so a zone-hover tooltip (Zonewise's) can keep working
   zoomed in, where the map underneath is the zone, not the continent.
+- **The Pins list** can be dragged anywhere and stays where you put it. Sharing every pin is one
+  **Share all** button with a menu (as a code, to your group, to your guild), so sending them all to
+  your guild is never one stray click.
 
 ### Fixed
 
@@ -137,6 +100,37 @@
   less of it comes into the window, and the drop lays it out at that same scale, with no jump.
 - **Townsfolk without Questie**: they come from Questie's database, so without Questie the menu
   says so instead of offering switches that showed nothing, and turning one on says so once in chat.
+- **Zones' edges against the sea and the painted gaps.** A zone's own map is drawn whole to its
+  frame on land, so its coasts and mountains no longer fade out early into an orange band of blank
+  land (Arathi's east coast) or a grey smudge of sea (Arathi's mountains above the Wetlands); where
+  it paints the sea up to its frame, the sea fades in from the frame instead of stopping in a
+  straight line (Eastern Plaguelands' east coast). Mountain strokes mistaken for a printed name no
+  longer cut holes in a zone's map (the brown blot at Thoradin's Wall), and past its own land a zone
+  gives way to Santiago Reyes's painted gaps where they reach.
+- **Ironforge's map whole up close.** The Mystic Ward, the Forlorn Cavern, the Hall of Explorers and
+  the Gates were faded out into the mountain: the city's map faded out in a round from its middle,
+  and Ironforge's wards reach right out to its frame. It's cut to the city instead, as the
+  Undercity's is, with Dun Morogh's mountain round it.
+- **Ironforge's minimap detail up close.** Zooming in on Stormwind brings in the game's minimap;
+  on Ironforge only the painted map showed: the game's minimap there, outside, is the mountain over
+  the city, so OpenMap kept it off. Now the game's own minimap of the city inside (what your minimap
+  shows walking through it) comes in over Ironforge's map as you zoom in, as the minimap does over
+  Stormwind; the Undercity's too.
+- **The Wetlands' Excavation Site stays hidden until you've found it.** With Unexplored areas on
+  Hide, the painted mountains south of Whelgar's Excavation Site showed WoW Forever's new valley
+  there (green, with paths and a lake) before you'd been anywhere near it. It's blank parchment now
+  until you've explored Whelgar's Excavation Site or Angerfang Encampment, the parts of the
+  Wetlands' map over it (the game itself keeps no record of exploring the valley), close up too; on
+  Darken it's darkened until then.
+- **Fade while moving** faded for a moment and then came back: the game's own map fade (held off
+  while OpenMap's runs) kept setting the map back to full on every frame you moved. OpenMap's fade
+  now stays.
+- **Map size** in the map's menu ran away as you dragged it: it scales the window the menu is in, so
+  the slider moved under the cursor. The size now changes when you let go.
+- The continents' names lost their glow each time you zoomed and flickered back on: they keep it now
+  (the seas' names still rest theirs while the map moves, which keeps zooming smooth).
+- Blizzard's quest areas trailed the map as you zoomed and sprang back when you stopped: each is
+  now drawn where the map is at that step.
 
 ## v0.5.0-beta (2026-10-16)
 
