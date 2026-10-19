@@ -83,6 +83,13 @@ steps = L.eval("""function(ns, scenario)
         if not ok2 then ERRORS[#ERRORS + 1] = "slash " .. cmd .. ": " .. tostring(e2) end
     end
     RunTimers(2)
+    -- your pins hidden and back (the menu's Pins, right-clicked)
+    if scenario ~= "pad" and scenario ~= "padmap" and ns.modules.worldmap.SetPinsHidden then
+        local m = ns.modules.worldmap
+        local ok5, e5 = pcall(function() m.SetPinsHidden(true) m.SetPinsHidden(false) end)
+        if not ok5 then ERRORS[#ERRORS + 1] = "pins hidden: " .. tostring(e5) end
+        if m.db.pinsHidden then ERRORS[#ERRORS + 1] = "pins hidden: they didn't come back" end
+    end
     if scenario == "pad" then
         -- (Setup never ran: it would have said the stub's map isn't the expected kind)
         local m = ns.modules.worldmap

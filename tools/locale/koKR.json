@@ -139,7 +139,7 @@
  "Enter saves, Escape cancels": "Enter: 저장, ESC: 취소",
  "Entrances open Dungeon Journal": "입구 클릭 시 Dungeon Journal 열기",
  "Erase": "지우개",
- "Every map pin: go to one, share them, or add pins from a code someone gave you.": "모든 지도 핀: 핀으로 이동하거나, 공유하거나, 다른 사람이 준 코드로 핀을 추가합니다.",
+ "Every map pin: go to one, share them, or add pins from a code someone gave you. Right-click: hide your pins on the map (this goes grey) or show them again.": "모든 지도 핀: 핀으로 이동하거나, 공유하거나, 다른 사람이 준 코드로 핀을 추가합니다. 우클릭: 지도에서 내 핀을 숨기거나(버튼이 회색이 됩니다) 다시 표시합니다.",
  "Every note: click one to go there.": "모든 메모: 클릭하면 그곳으로 이동합니다.",
  "Every pin as a code to copy and paste anywhere.": "모든 핀을 어디에나 복사해 붙여넣을 수 있는 코드로 만듭니다.",
  "Every pin to your guild (those with OpenMap are asked whether to add them).": "모든 핀을 길드에 공유합니다 (OpenMap 사용자에게는 추가할지 묻습니다).",

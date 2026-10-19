@@ -140,7 +140,7 @@
  "Enter saves, Escape cancels": "Enter 儲存，Esc 取消",
  "Entrances open Dungeon Journal": "入口開啟 Dungeon Journal",
  "Erase": "橡皮擦",
- "Every map pin: go to one, share them, or add pins from a code someone gave you.": "所有地圖標記：前往其中一個、分享，或從別人給你的代碼加入標記。",
+ "Every map pin: go to one, share them, or add pins from a code someone gave you. Right-click: hide your pins on the map (this goes grey) or show them again.": "所有地圖標記：前往其中一個、分享，或從別人給你的代碼加入標記。右鍵：隱藏地圖上你的標記（按鈕變灰），或重新顯示。",
  "Every note: click one to go there.": "所有註記：點擊即可前往。",
  "Every pin as a code to copy and paste anywhere.": "將所有標記轉為代碼，可複製貼到任何地方。",
  "Every pin to your guild (those with OpenMap are asked whether to add them).": "將所有標記傳給你的公會（有 OpenMap 的人會被詢問是否加入）。",

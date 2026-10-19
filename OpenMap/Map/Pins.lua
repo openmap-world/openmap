@@ -19,6 +19,7 @@ local Look, Safe, L = ns.Look, ns.Safe, ns.L
 mod.defaults.pins = { list = {}, nextId = 1 }
 mod.defaults.pinsShared = true  -- pins others share reach you (you're asked first)
 mod.defaults.pinsAt = false     -- the Pins list's place once dragged: { point, relPoint, x, y } (UIParent's)
+mod.defaults.pinsHidden = false -- your pins off the map (right-click Pins; the list still has them)
 
 local PREFIX = "OpenMap"        -- (its addon messages)
 local CODE = "OMPINS1:"         -- (a code of pins, to paste)
@@ -175,6 +176,7 @@ function mod.RefreshPins()
 			pin.OnClick = PinClick
 		end
 	end
+	S.SetPinSetOn(set, not mod.db.pinsHidden)
 	if list and list:IsShown() then RefreshList() end
 	if editor and editor:IsShown() and editor.pin then
 		editor.follow:SetText(Followed(editor.pin) and L["Stop following"] or L["Follow"])
@@ -586,8 +588,18 @@ Edit = function(p)
 	editor.box:HighlightText()
 end
 
--- a new pin where the map was clicked: followed, and its card open for a note
+-- your pins on the map or not (the menu's Pins, right-clicked: it greys while they're hidden)
+function mod.PinsHidden() return mod.db.pinsHidden == true end
+function mod.SetPinsHidden(hidden)
+	mod.db.pinsHidden = hidden and true or false
+	mod.RefreshPins()
+	if mod.RefreshPanel then mod:RefreshPanel() end
+end
+
+-- a new pin where the map was clicked: followed, and its card open for a note (your pins shown
+-- again if they were hidden: else it would be dropped out of sight)
 function mod.AddPin(mapID, x, y)
+	if mod.db.pinsHidden then mod.SetPinsHidden(false) end
 	local p = Add(mapID, x, y, "")
 	Follow(p)
 	mod.RefreshPins()

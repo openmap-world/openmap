@@ -131,7 +131,7 @@ end
 --------------------------------------------------------------------------------
 
 -- the actions: { label, id =, icon =, tip =, run = fn(mouseButton), lit = fn (optional: it's on),
--- right = true (it takes right-clicks itself) }
+-- right = true (it takes right-clicks itself), grey = fn (optional: its icon greyed, as a setting's off) }
 local function Actions()
 	local list = {
 		{ L["Find me"], id = "find", icon = Icon("Ability_Hunter_SniperShot"),   -- (a crosshair)
@@ -149,8 +149,12 @@ local function Actions()
 			end,
 			lit = function() return mod.PinMode() end, right = true },
 		{ L["Pins"], id = "pins", icon = Icon("INV_Misc_Map_01"),
-			tip = L["Every map pin: go to one, share them, or add pins from a code someone gave you."],
-			run = function() mod:TogglePins() end, lit = function() return mod.PinsShown and mod.PinsShown() end },
+			tip = L["Every map pin: go to one, share them, or add pins from a code someone gave you. Right-click: hide your pins on the map (this goes grey) or show them again."],
+			run = function(button)
+				if button == "RightButton" then mod.SetPinsHidden(not mod.PinsHidden()) else mod:TogglePins() end
+			end,
+			lit = function() return mod.PinsShown and mod.PinsShown() end, right = true,
+			grey = function() return mod.PinsHidden and mod.PinsHidden() end },
 		{ L["Quill"], id = "quill", icon = Icon("INV_Feather_04"),
 			tip = L["Draw on the map in ink: lines, arrows, rings and raid marks, kept for you. A map pin's card can draw on that pin."],
 			run = function() if mod.ToggleSketch then mod:ToggleSketch() end end, lit = function() return mod.IsSketching and mod:IsSketching() end },
@@ -348,8 +352,10 @@ local function SetLit(b, state)
 		b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
 	end
 	b.glow:SetShown(state == "on")
-	b.icon:SetDesaturated(state == "off")
-	b.icon:SetAlpha(state == "off" and 0.55 or 1)
+	-- (an action can be greyed and lit at once: the Pins list open while your pins are hidden)
+	local grey = state == "off" or (b.entry and b.entry.grey and b.entry.grey()) or false
+	b.icon:SetDesaturated(grey)
+	b.icon:SetAlpha(grey and 0.55 or 1)
 end
 
 -- iconSize: a tile with a face and an edge, its icon that size at the top (a label goes under
@@ -621,7 +627,7 @@ end
 local function BuildRail()
 	rail = CreateFrame("Frame", nil, map)
 	rail:SetAllPoints(sc)                       -- (its tabs are placed on sc's edges; it takes no clicks itself)
-	rail:SetFrameLevel(math.min(sc:GetFrameLevel() + 9300, 9950))   -- (over the map, its border and a dungeon's map)
+	rail:SetFrameLevel(math.min(sc:GetFrameLevel() + 9300, 9950))   -- (over the map and a dungeon's map)
 	rail:SetScript("OnHide", EndDrag)           -- (the map closed mid-drag)
 	rail.main = RailTab()
 	ShowIcon(rail.main.icon, OPENMAP_ICON)

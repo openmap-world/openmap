@@ -38,6 +38,9 @@
   note; else its note, zone and position as text.
 - **Clearing map pins**: the Pins list's **Clear** deletes every pin (it asks first), and Alt-click
   deletes one at once, on the map or in the list.
+- **Hiding your map pins**: right-click **Pins** (in the OpenMap menu, or its button on the map) and
+  your pins leave the map, the button greyed while they're away; right-click again for them back.
+  The Pins list still has them all, and dropping a new pin brings them back.
 - **Mailboxes** in the menu's Townsfolk (from Questie's list of them, as its own map shows them).
 - **Icon size** (the menu's sliders, and Options): OpenMap's icons on the map bigger or smaller.
 - **Credits** (What's new's **Credits** button): who has made OpenMap, Santiago Reyes's painted
