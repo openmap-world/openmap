@@ -121,7 +121,8 @@ def check_truncation(path):
 # is a nil global in game, which the offline stub hides. Using a new API: add it here.
 WOW_API = {
     "CreateFrame", "CreateFromMixins", "CreateVector2D", "Clamp", "HideUIPanel", "ShowUIPanel",
-    "LibStub", "GetTime", "GetCursorPosition", "InCombatLockdown", "IsControlKeyDown", "IsShiftKeyDown",
+    "LibStub", "GetTime", "GetCursorPosition", "InCombatLockdown", "IsControlKeyDown", "IsShiftKeyDown", "IsAltKeyDown",
+    "GameTooltip_Hide",
     "StaticPopup_Show", "StaticPopup_Hide", "UnitClass", "UnitExists", "UnitIsUnit", "UnitFactionGroup", "UnitOnTaxi",
     "IsInGroup", "IsInRaid", "GetNumRoutes", "NumTaxiNodes", "TaxiNodeGetType", "TaxiNodeName",
     "GetAddOnMemoryUsage", "UpdateAddOnMemoryUsage", "UnitLevel", "GetQuestDifficultyColor", "GetCVar",

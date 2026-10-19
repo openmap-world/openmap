@@ -96,6 +96,13 @@ local function Follow(p)
 	if mod.TrackPoint then mod.TrackPoint(p.map, p.x, p.y, p.note ~= "" and p.note or nil) end
 end
 
+-- a pin gone: no longer followed, its drawing with it (mod.RefreshPins after)
+local function Drop(p)
+	if Followed(p) then mod.ClearPin() end
+	Remove(p)
+	if mod.DropSketches then mod.DropSketches(p.id) end
+end
+
 --------------------------------------------------------------------------------
 -- On the map
 --------------------------------------------------------------------------------
@@ -119,6 +126,7 @@ local function PinEnter(self)
 	if Followed(p) then GameTooltip:AddLine(L["Followed (the waypoint)"], 0.5, 0.95, 0.4) end
 	GameTooltip:AddLine(L["Click to edit its note, follow, share or delete it"], 0.6, 0.6, 0.6)
 	GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(L["Alt-click: delete it"], 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 end
 
@@ -147,7 +155,11 @@ local function Chatting() return IsModifiedClick and IsModifiedClick("CHATLINK")
 
 local function PinClick(self)
 	if not self.data then return end
-	if Chatting() then ChatLink(self.data) else Edit(self.data) end
+	if IsAltKeyDown() then                          -- (gone at once: many pins cleared quickly)
+		GameTooltip_Hide()
+		Drop(self.data)
+		mod.RefreshPins()
+	elseif Chatting() then ChatLink(self.data) else Edit(self.data) end
 end
 
 function mod.RefreshPins()
@@ -545,11 +557,7 @@ local function Editor()
 		local p = editor.pin
 		editor.pin = nil
 		editor:Hide()
-		if p then
-			if Followed(p) then mod.ClearPin() end
-			Remove(p)
-			if mod.DropSketches then mod.DropSketches(p.id) end
-		end
+		if p then Drop(p) end
 		mod.RefreshPins()
 	end):SetPoint("TOPRIGHT", -16, -86 - top)
 	editor:SetScript("OnHide", function() if editor.pin then Close(true) end end)
@@ -641,6 +649,7 @@ local function BuildList()
 		row:SetScript("OnClick", function(self, button)
 			local p = self.pin
 			if not p then return end
+			if IsAltKeyDown() then Drop(p) mod.RefreshPins() return end
 			if button == "RightButton" then Edit(p) return end
 			if Chatting() then ChatLink(p) return end
 			if S.Rect(p.map) then
@@ -657,6 +666,7 @@ local function BuildList()
 			if p.from then GameTooltip:AddLine(L["Shared by %s"]:format(p.from), 0.6, 0.8, 1) end
 			GameTooltip:AddLine(L["Click to go there, right-click to open its card"], 0.6, 0.6, 0.6)
 			GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(L["Alt-click: delete it"], 0.6, 0.6, 0.6)
 			GameTooltip:Show()
 		end)
 		row:SetScript("OnLeave", GameTooltip_Hide)
@@ -678,8 +688,24 @@ local function BuildList()
 		btn:SetPoint("BOTTOMLEFT", x, 12)
 		x = x + b[2] + 4
 	end
+	-- every pin off the map at once (asked first)
+	Button(list, 60, L["Clear"], function()
+		local n = #DB().list
+		if n > 0 then StaticPopup_Show("OPENMAP_PINS_CLEAR", L["Delete all %d map pins?"]:format(n)) end
+	end, L["Delete every map pin (you're asked first). One at a time: Alt-click it."]):SetPoint("BOTTOMRIGHT", -16, 12)
 	list:Hide()
 end
+
+StaticPopupDialogs.OPENMAP_PINS_CLEAR = {
+	text = "%s",
+	button1 = L["Delete"],
+	button2 = CANCEL,
+	OnAccept = function()
+		for i = #DB().list, 1, -1 do Drop(DB().list[i]) end
+		mod.RefreshPins()
+	end,
+	timeout = 0, whileDead = true, hideOnEscape = true,
+}
 
 function mod:TogglePins(on)
 	if not list then return end
