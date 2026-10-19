@@ -497,7 +497,12 @@ end
 local FADE_RATE = 6             -- the fade's approach, per second
 local fader = CreateFrame("Frame")
 fader:Hide()
-local faded = 1
+local faded, ours = 1, false
+local function SetFade(a)
+	ours = true
+	map:SetAlpha(a)
+	ours = false
+end
 fader:SetScript("OnUpdate", function(_, elapsed)
 	local moving = false
 	if GetUnitSpeed then
@@ -506,12 +511,19 @@ fader:SetScript("OnUpdate", function(_, elapsed)
 	end
 	local want = (moving and not (map:IsMouseOver() or mod.PadCursor())) and 1 - (mod.db.moveFade or 0) or 1
 	if math.abs(faded - want) < 0.005 then
-		if faded ~= want then faded = want map:SetAlpha(want) end
-		return
+		faded = want
+	else
+		faded = faded + (want - faded) * math.min(1, elapsed * FADE_RATE)
 	end
-	faded = faded + (want - faded) * math.min(1, elapsed * FADE_RATE)
-	map:SetAlpha(faded)
+	if math.abs(map:GetAlpha() - faded) > 0.001 then SetFade(faded) end
 end)
+-- Blizzard's own movement fader (PlayerMovementFrameFader) sets the map's alpha every frame while you move,
+-- toward full (the game's fade is held off while ours runs): it faded for a moment, then came back. Ours is
+-- put straight back over it
+local function KeepFade(self, a)
+	if ours or not fader:IsShown() or math.abs((a or 1) - faded) <= 0.001 then return end
+	SetFade(faded)
+end
 
 -- the frame rate capped while the map shows (Map frame rate cap): a big map is many layers over the
 -- whole screen, every frame, and a still map needn't be drawn 120 times a second. The game's own
@@ -549,7 +561,8 @@ end
 function mod:SetupExtras(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) ApplyFpsCap() end)
-	map:HookScript("OnHide", function() fader:Hide() faded = 1 map:SetAlpha(1) ApplyFpsCap() end)
+	map:HookScript("OnHide", function() fader:Hide() faded = 1 SetFade(1) ApplyFpsCap() end)
+	hooksecurefunc(map, "SetAlpha", KeepFade)
 	SetUpAllPins()
 	map:HookScript("OnShow", SetUpAllPins)            -- (a copy an addon loaded since brought)
 	if type(map.OnCanvasScaleChanged) == "function" then hooksecurefunc(map, "OnCanvasScaleChanged", OnZoomStep) end
