@@ -16,6 +16,9 @@
 
 - **Choose your map**: the choice the first time the map opens is in the map window's own frame,
   with plainer words.
+- **The map stays open while you talk to an NPC** (or open a vendor, the bags' windows ...): the
+  windowed map is no longer put away to make room. Escape still closes it; maximized, it behaves as
+  before.
 
 ### Fixed
 
