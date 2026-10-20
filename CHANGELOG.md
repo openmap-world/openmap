@@ -2,7 +2,18 @@
 
 ## Unreleased
 
+### Improved
+
+- **The map window can go partly off the screen**: drag it up until its title and the bar under it
+  are past the top, for just the map (Options' Reset window brings it back), or past the sides and
+  bottom while some of it stays on.
+
 ### Fixed
+
+- **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they rested only
+  while you zoom, but anything that set the map's scale counted as zooming (a view put back, the map
+  underneath switching, the window laid out again), which could keep them away. Now only your own
+  zooming does, and never for more than a moment.
 
 - **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
   seen you visit since it was installed (and, on a client not in English, none). It now asks the

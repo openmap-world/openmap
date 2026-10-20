@@ -373,14 +373,17 @@ end
 -- canvas is laid out again on each frame of a zoom, and with Questie's hundreds that costs the frame
 -- rate; back as soon as the zoom stops (ZOOM_REST). Pins only: Blizzard's own icons stay
 local ZOOM_REST = 0.15
+local ZOOM_MOST = 1.5                   -- (never hidden longer than this at a time, zooming or not)
 local pinTemplates = {}                 -- the pin templates of the copies set up (SetUpPins)
 local zoomHid = {}                      -- pin -> true: hidden by us for a zoom
-local zoomAt = 0
+local zoomAt, zoomFirst = 0, nil
 local zoomWatch = CreateFrame("Frame")
 zoomWatch:Hide()
 zoomWatch:SetScript("OnUpdate", function(self)
-	if GetTime() - zoomAt < ZOOM_REST then return end
+	local now = GetTime()
+	if now - zoomAt < ZOOM_REST and now - (zoomFirst or now) < ZOOM_MOST then return end
 	self:Hide()
+	zoomFirst = nil
 	-- (only the pins still on the map: one let go meanwhile is the pool's again)
 	for template in pairs(pinTemplates) do
 		for pin in map:EnumeratePinsByTemplate(template) do
@@ -391,7 +394,12 @@ zoomWatch:SetScript("OnUpdate", function(self)
 end)
 local function OnZoomStep()
 	if mod.db.zoomHidePins == false or not mod.IsStitched() or not map:IsShown() then return end
+	-- (only the user's own zooming: a view put back, a map switch or the window laid out again rescale
+	-- the canvas too, and some of those come over and over, which kept other addons' icons away)
+	if not (mod.Zooming and mod.Zooming()) then return end
 	zoomAt = GetTime()
+	zoomFirst = zoomFirst or zoomAt
+	if zoomAt - zoomFirst >= ZOOM_MOST then return end
 	for template in pairs(pinTemplates) do
 		for pin in map:EnumeratePinsByTemplate(template) do
 			if pin:IsShown() then pin:Hide() zoomHid[pin] = true end

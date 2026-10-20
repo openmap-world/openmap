@@ -19,6 +19,7 @@ d.windowSize = false            -- { width, height } once resized
 d.fullWidth = true              -- the maximized map fills the screen's width (the stitched map has no edges to keep)
 local MIN_SCALE, MAX_SCALE = 0.5, 1.6
 local MIN_W, MIN_H = 480, 320
+local TOP_OFF = 68               -- px of the window's top that may go above the screen: its title and the bar under it
 
 local map, handle, grip         -- (grip: both corners' grips)
 local FillScreen, SetupQuestLog, TurnArrows
@@ -198,6 +199,16 @@ function mod:SetupWindow(worldMap)
 	-- (with Move Any: none of this. Its own drag and resize place the window, and nothing puts it back)
 	if not moveAny then
 		map:SetClampedToScreen(true)
+		-- partly off the screen: sideways and down while some of it stays on, and up as far as its title
+		-- and the bar under it (a map with no bar over it: Options' Reset window brings it back)
+		local function Clamp()
+			local w, h = map:GetWidth(), map:GetHeight()
+			if not (w and h) or w <= 0 or InCombatLockdown() then return end
+			local side = math.max(0, w - 160)
+			map:SetClampRectInsets(side, -side, -TOP_OFF, math.max(0, h - TOP_OFF - 80))
+		end
+		Clamp()
+		map:HookScript("OnSizeChanged", Clamp)
 		if not Maximized() then blizzardSize = { map:GetWidth(), map:GetHeight() } end
 
 		-- the title bar: a strip along the top, clear of the corner buttons

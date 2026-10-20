@@ -348,6 +348,7 @@ local function PadZoom(elapsed)
 	local to = Clamp(zoom * math.exp(tilt * PAD_ZOOM_RATE * elapsed), LeastZoom(), most)
 	if math.abs(to - zoom) < 1e-6 then return end
 	pu, pv = PerPx(to)
+	mod.padZoomAt = GetTime()
 	ShowWorld(cu - sx * pu, cv - sy * pv, to)
 end
 
@@ -1086,6 +1087,9 @@ end
 
 -- for Extras / Flights / Townsfolk / Panel / Paint
 function mod.IsStitched() return active end
+-- a zoom of the user's under way (the wheel's, a click's glide, the gamepad's stick): for Extras.lua's
+-- icons resting while the map zooms (not a view put back, a map switch or the window laid out again)
+function mod.Zooming() return anim ~= nil or GetTime() - (mod.padZoomAt or -10) < 0.2 end
 function mod.WheelZoom(delta) if active then ZoomAtCursor(delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP) end end
 -- the world point (normalized) under the cursor, and world units per view px
 function mod.CursorWorld()
