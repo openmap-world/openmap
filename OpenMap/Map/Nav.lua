@@ -102,6 +102,7 @@ function mod.SavedView(mapID, onlySaved)
 	end
 	if mapID and mapID ~= zone and mapID ~= display then return end
 	local u, v, best = UnitWorld("player")
+	if u and mode == "zoom" and saved then return u, v, saved[3] end   -- (the zoom it closed at)
 	if u then return u, v, mod.FitZoom(best) end
 end
 
@@ -473,9 +474,9 @@ end
 function mod:NavOptions(opts, get, set, off)
 	opts.reopenView = { type = "select", name = L["When reopening the map"], order = 11,
 		get = mod.GetReopenView, set = set, disabled = off,
-		values = { player = L["Center on player"], always = L["Always remember"],
-			visible = L["Remember while visible"] }, sorting = { "player", "always", "visible" },
-		desc = L["Choose one behavior. Center on player: always open on you. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area."] }
+		values = { player = L["Center on player"], zoom = L["Center on player, keep zoom"], always = L["Always remember"],
+			visible = L["Remember while visible"] }, sorting = { "player", "zoom", "always", "visible" },
+		desc = L["Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area."] }
 	opts.group = { type = "toggle", name = L["Party and raid members"], order = 35, get = get, set = set, disabled = off,
 		desc = L["Class-coloured dots for your group anywhere on the stitched map."] }
 end
