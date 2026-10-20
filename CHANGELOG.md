@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
+  seen you visit since it was installed (and, on a client not in English, none). It now asks the
+  game which you've found.
+- **Fishing on the zone hover** shows on WoW Forever: OpenMap looked for your Fishing skill in a way
+  the game no longer offers, and found none.
+
 ## v0.7.0-beta (2026-10-20)
 
 ### New

@@ -254,11 +254,20 @@ end
 -- Fishing (the skill's name in the game's language) and the player's rank in it, looked up again
 -- every few seconds at most (the hover label runs every frame); nil without Fishing
 local FISHING_SPELL = 7620
+local FISHING_SKILL = 356         -- (its skill line)
 local fishing = { at = -10 }
 local function FishingRank()
 	local now = GetTime()
 	if now - fishing.at < 3 then return fishing.name, fishing.rank end
 	fishing.at, fishing.rank = now, nil
+	-- (WoW Forever: the skill by its ID, C_SkillInfo; the older clients' skill lines by name else)
+	local byID = C_SkillInfo and C_SkillInfo.GetSkillLineInfoByID
+	local ok, info = false, nil
+	if byID then ok, info = pcall(byID, FISHING_SKILL) end
+	if ok and type(info) == "table" and type(info.rank) == "number" and info.rank > 0 then
+		fishing.name, fishing.rank = info.name, info.rank
+		return fishing.name, fishing.rank
+	end
 	local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(FISHING_SPELL)
 		or GetSpellInfo and GetSpellInfo(FISHING_SPELL)
 	fishing.name = name
