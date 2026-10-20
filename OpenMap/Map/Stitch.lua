@@ -241,8 +241,26 @@ function S.Rect(mapID)
 		if mapID == WORLD then
 			r = { 0, 1, 0, 1 }
 		else
-			local ok, l, rr, t, b = pcall(C_Map.GetMapRectOnMap, mapID, WORLD)
-			r = (ok and l and rr > l and b > t) and { l, rr, t, b } or false
+			-- (a city, on a client with a world of its own: from its corners' world positions, as the
+			-- player, its flight master and the minimap are placed. Retail's rect on Azeroth's map,
+			-- reached through its zone and continent, is off by tens of yards for Stormwind: your arrow
+			-- and Blizzard's icons on it were beside where they are, a player's report)
+			local w = ns.MapWorld
+			if w and w.zones and w.zones[mapID] == 2 and S.FromYards then
+				local ok0, c0, p0 = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(0, 0))
+				local ok1, c1, p1 = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(1, 1))
+				if ok0 and ok1 and p0 and p1 and c0 == c1 then
+					local u0, v0 = S.FromYards(c0, ns.Safe.XY(p0))
+					local u1, v1 = S.FromYards(c1, ns.Safe.XY(p1))
+					if u0 and u1 and math.abs(u1 - u0) > 1e-6 and math.abs(v1 - v0) > 1e-6 then
+						r = { math.min(u0, u1), math.max(u0, u1), math.min(v0, v1), math.max(v0, v1) }
+					end
+				end
+			end
+			if not r then
+				local ok, l, rr, t, b = pcall(C_Map.GetMapRectOnMap, mapID, WORLD)
+				r = (ok and l and rr > l and b > t) and { l, rr, t, b } or false
+			end
 		end
 		rects[mapID] = r
 	end
