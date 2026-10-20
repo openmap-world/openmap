@@ -94,7 +94,8 @@ function mod.SavedView(mapID, onlySaved)
 		local hu, hv = mod.ViewHalfExtents(saved[3])
 		restore = math.abs(u - saved[1]) <= hu and math.abs(v - saved[2]) <= hv
 	end
-	if onlySaved and not restore then return end
+	-- (with "zoom", the zoom kept counts as saved: put back on the next frame too, as a saved view is)
+	if onlySaved and not restore and not (saved and mode == "zoom") then return end
 	local display = Safe.Call(MapUtil and MapUtil.GetDisplayableMapForPlayer)
 	if restore then
 		if mapID and mapID ~= saved[5] and mapID ~= zone and mapID ~= display then return end
