@@ -1331,7 +1331,7 @@ function mod:Options()
 			desc = ns.L["Blizzard's glow on the zone you're pointing at."] },
 		-- (not shown yet: it isn't working in game; the setting and Gamepad.lua's keys stay for when it's taken up again)
 		padMap = { type = "toggle", name = ns.L["OpenMap's map with the controller (test)"], order = 12, width = "full", get = get,
-			set = function(info, v) set(info, v) mod.SetPadMap(v) end, hidden = true,
+			set = function(info, v) set(info, v) mod.SetPadMap(v) end,
 			desc = ns.L["With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload."] },
 		lookHeader = ns.Header(ns.L["Look"], 20),
 		colorMatch = { type = "range", name = ns.L["Colour matching"], order = 21, min = 0, max = 1, step = 0.05, isPercent = true,
