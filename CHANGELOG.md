@@ -13,6 +13,11 @@
 - **Shortest Path Forever from anywhere on the map**: Shift-click a spot in another zone, on
   another continent or zoomed right out over the whole world, and its journey is planned there. Its
   own Shift-click only reached the map underneath (the zone or continent you were last zoomed into).
+- **NeedRoll opens where you click**: a boss in a dungeon's Bosses tab opens NeedRoll on that boss's
+  loot (Shift-click: where the boss is, on NeedRoll's map of the dungeon), and a quest in the Quests
+  tab opens its page there; the Loot tab's button opens the dungeon's own loot. Dire Maul's, Scarlet
+  Monastery's, Stratholme's and Blackrock Spire's wings open on the right one. Needs NeedRoll's
+  newest version (thanks to its author, mikebvs, for the links).
 
 ### Improved
 

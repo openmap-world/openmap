@@ -1540,13 +1540,29 @@ RefreshCard = function()
 	card:Show()
 end
 -- the view's side panel: rows of one tab (bosses, quests, loot), each made as needed and kept
--- NeedRoll's window: at this dungeon (and `boss`) if NeedRoll offers a call for it, else just opened
--- (its /nr toggles: an open window is only brought up, not closed)
-local function OpenNeedRoll(boss)
-	local show = _G.NeedRoll_ShowLoot
+-- NeedRoll's window: at this dungeon's loot (on `boss`), or its map (`what` "map") or a quest (`quest`),
+-- through NeedRoll's own calls (NeedRoll_ShowLoot ...: its API.md) where it has them; else just opened
+-- (its /nr toggles: an open window is only brought up, not closed). The dungeon by its English name
+-- first (a wing's, "Scarlet Monastery - Library", is NeedRoll's "Scarlet Monastery: Library": it reads
+-- past punctuation), then its instance map ID (a boss then opens the wing it's in), then a boss alone
+local function OpenNeedRoll(boss, what, quest)
+	if quest then
+		local show = _G.NeedRoll_ShowQuest
+		if type(show) == "function" then
+			local ok, done = pcall(show, quest)
+			if ok and done then return end
+		end
+	end
+	local show = what == "map" and _G.NeedRoll_ShowMap or _G.NeedRoll_ShowLoot
 	if type(show) == "function" and view and view.inst then
-		local ok, done = pcall(show, S.InstanceName(view.inst), boss)
-		if ok and done then return end
+		local inst = view.inst
+		local tries = { { inst[2], boss } }
+		if inst[1] > 0 then tries[#tries + 1] = { inst[1], boss } end
+		if boss then tries[#tries + 1] = { nil, boss } end
+		for _, t in ipairs(tries) do
+			local ok, done = pcall(show, t[1], t[2])
+			if ok and done then return end
+		end
 	end
 	for _, name in ipairs({ "NeedRollFrame", "NeedRollNativeFrame" }) do
 		local f = _G[name]
@@ -1585,11 +1601,12 @@ FillSide = function()
 	if tab == "bosses" then
 		local bosses = (Places().bosses or {})[inst[1]] or {}
 		for i, name in ipairs(bosses) do
-			items[#items + 1] = { kind = "row", ("|cff998866%d.|r  %s"):format(i, name), click = NeedRoll() and function() OpenNeedRoll(name) end,
+			items[#items + 1] = { kind = "row", ("|cff998866%d.|r  %s"):format(i, name), click = NeedRoll() and function() OpenNeedRoll(name, IsShiftKeyDown() and "map" or nil) end,
 				tip = function(owner)
 					GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
 					GameTooltip:AddLine(name, 1, 0.82, 0)
 					GameTooltip:AddLine(NeedRoll() and L["Click to see loot in NeedRoll"] or L["See the Loot tab for loot"], 0.6, 0.6, 0.6)
+					if _G.NeedRoll_ShowMap then GameTooltip:AddLine(L["Shift-click: where it is, on NeedRoll's map"], 0.6, 0.6, 0.6) end
 					GameTooltip:Show()
 				end }
 		end
@@ -1631,6 +1648,7 @@ FillSide = function()
 				for _, q in ipairs(list) do
 					items[#items + 1] = { kind = "row", ("%s[%d] %s|r"):format(QuestColour(q), q.level, q.name),
 						right = q.done and ("|cff808080" .. L["done"] .. "|r") or q.inLog and ("|cff80f070" .. L["in your log"] .. "|r") or nil,
+						click = _G.NeedRoll_ShowQuest and function() OpenNeedRoll(nil, nil, q.id) end,
 						tip = function(owner)
 							GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
 							GameTooltip:AddLine(q.name, 1, 0.82, 0, true)
@@ -1641,6 +1659,7 @@ FillSide = function()
 							local okReq, req = pcall(QDB.QueryQuestSingle, q.id, "requiredLevel")
 							GameTooltip:AddLine((LEVEL or "Level") .. " " .. q.level .. (okReq and req and req > 0 and ("  (" .. L["from %d"]:format(req) .. ")") or ""), 0.8, 0.8, 0.8)
 							GameTooltip:AddLine(q.done and L["Completed"] or q.inLog and L["In your quest log"] or "", 0.5, 0.95, 0.4)
+							if _G.NeedRoll_ShowQuest then GameTooltip:AddLine(L["Click to see it in NeedRoll"], 0.6, 0.6, 0.6) end
 							GameTooltip:Show()
 						end }
 				end
