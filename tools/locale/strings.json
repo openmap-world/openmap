@@ -239,7 +239,7 @@
  {
   "en": "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).",
   "where": [
-   "Map/WorldMap.lua:1321"
+   "Map/WorldMap.lua:1344"
   ]
  },
  {
@@ -348,7 +348,7 @@
  {
   "en": "Blizzard's glow on the zone you're pointing at.",
   "where": [
-   "Map/WorldMap.lua:1304"
+   "Map/WorldMap.lua:1327"
   ]
  },
  {
@@ -375,20 +375,20 @@
   "en": "Boat and zeppelin routes",
   "where": [
    "Map/Panel.lua:202",
-   "Map/WorldMap.lua:1326"
+   "Map/WorldMap.lua:1349"
   ]
  },
  {
   "en": "Boat docks (click one: the other end), and boats' routes when routes are shown.",
   "where": [
-   "Map/WorldMap.lua:1330"
+   "Map/WorldMap.lua:1353"
   ]
  },
  {
   "en": "Boats",
   "where": [
    "Map/Panel.lua:198",
-   "Map/WorldMap.lua:1329"
+   "Map/WorldMap.lua:1352"
   ]
  },
  {
@@ -455,6 +455,12 @@
   ]
  },
  {
+  "en": "Choose your map",
+  "where": [
+   "Map/Welcome.lua:39"
+  ]
+ },
+ {
   "en": "Circle",
   "where": [
    "Map/Sketch.lua:45"
@@ -475,7 +481,7 @@
  {
   "en": "Classic",
   "where": [
-   "Map/Welcome.lua:58"
+   "Map/Welcome.lua:56"
   ]
  },
  {
@@ -615,7 +621,7 @@
   "en": "Colour matching",
   "where": [
    "Map/Panel.lua:1367",
-   "Map/WorldMap.lua:1310"
+   "Map/WorldMap.lua:1333"
   ]
  },
  {
@@ -654,7 +660,7 @@
  {
   "en": "Darken",
   "where": [
-   "Map/WorldMap.lua:1320"
+   "Map/WorldMap.lua:1343"
   ]
  },
  {
@@ -673,7 +679,7 @@
   "en": "Deepest zoom",
   "where": [
    "Map/Panel.lua:1335",
-   "Map/WorldMap.lua:1322"
+   "Map/WorldMap.lua:1345"
   ]
  },
  {
@@ -839,7 +845,7 @@
  {
   "en": "Dungeon and raid entrances, with their levels (click one: its map).",
   "where": [
-   "Map/WorldMap.lua:1328"
+   "Map/WorldMap.lua:1351"
   ]
  },
  {
@@ -888,7 +894,7 @@
   "en": "Dungeons and raids",
   "where": [
    "Map/Panel.lua:197",
-   "Map/WorldMap.lua:1327"
+   "Map/WorldMap.lua:1350"
   ]
  },
  {
@@ -966,7 +972,7 @@
  {
   "en": "Every slider here (and the OpenMap menu's) back to how OpenMap comes.",
   "where": [
-   "Map/WorldMap.lua:1357"
+   "Map/WorldMap.lua:1380"
   ]
  },
  {
@@ -1003,7 +1009,7 @@
  {
   "en": "Filled gaps",
   "where": [
-   "Map/WorldMap.lua:1317"
+   "Map/WorldMap.lua:1340"
   ]
  },
  {
@@ -1047,7 +1053,7 @@
   "en": "Flight masters",
   "where": [
    "Map/Panel.lua:200",
-   "Map/WorldMap.lua:1333"
+   "Map/WorldMap.lua:1356"
   ]
  },
  {
@@ -1081,7 +1087,7 @@
   "en": "Follow the view",
   "where": [
    "Map/Panel.lua:292",
-   "Map/WorldMap.lua:1301"
+   "Map/WorldMap.lua:1324"
   ]
  },
  {
@@ -1156,7 +1162,7 @@
  {
   "en": "Hide",
   "where": [
-   "Map/WorldMap.lua:1320"
+   "Map/WorldMap.lua:1343"
   ]
  },
  {
@@ -1168,7 +1174,7 @@
  {
   "en": "Highlight the zone under the cursor",
   "where": [
-   "Map/WorldMap.lua:1303"
+   "Map/WorldMap.lua:1326"
   ]
  },
  {
@@ -1180,7 +1186,7 @@
  {
   "en": "How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours.",
   "where": [
-   "Map/WorldMap.lua:1312"
+   "Map/WorldMap.lua:1335"
   ]
  },
  {
@@ -1193,7 +1199,7 @@
   "en": "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged.",
   "where": [
    "Map/Panel.lua:1337",
-   "Map/WorldMap.lua:1324"
+   "Map/WorldMap.lua:1347"
   ]
  },
  {
@@ -1209,22 +1215,16 @@
   ]
  },
  {
-  "en": "How should the map start out?",
-  "where": [
-   "Map/Welcome.lua:42"
-  ]
- },
- {
   "en": "Icon size",
   "where": [
    "Map/Panel.lua:1359",
-   "Map/WorldMap.lua:1338"
+   "Map/WorldMap.lua:1361"
   ]
  },
  {
   "en": "Icons",
   "where": [
-   "Map/WorldMap.lua:1325"
+   "Map/WorldMap.lua:1348"
   ]
  },
  {
@@ -1236,7 +1236,7 @@
  {
   "en": "Icons from zoom",
   "where": [
-   "Map/WorldMap.lua:1335"
+   "Map/WorldMap.lua:1358"
   ]
  },
  {
@@ -1308,7 +1308,7 @@
  {
   "en": "Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there.",
   "where": [
-   "Map/WorldMap.lua:1318"
+   "Map/WorldMap.lua:1341"
   ]
  },
  {
@@ -1351,7 +1351,7 @@
   "en": "Look",
   "where": [
    "Map/Panel.lua:180",
-   "Map/WorldMap.lua:1309"
+   "Map/WorldMap.lua:1332"
   ]
  },
  {
@@ -1681,7 +1681,7 @@
  {
   "en": "Once the map stops moving, the map underneath becomes the zone or continent you're looking at, so quest areas, coordinates and the zone name match what's on screen.",
   "where": [
-   "Map/WorldMap.lua:1302"
+   "Map/WorldMap.lua:1325"
   ]
  },
  {
@@ -1719,7 +1719,7 @@
  {
   "en": "OpenMap",
   "where": [
-   "Map/Welcome.lua:59"
+   "Map/Welcome.lua:57"
   ]
  },
  {
@@ -1750,7 +1750,7 @@
  {
   "en": "OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options.",
   "where": [
-   "Map/WorldMap.lua:1340"
+   "Map/WorldMap.lua:1363"
   ]
  },
  {
@@ -1762,7 +1762,7 @@
  {
   "en": "OpenMap's map with the controller (test)",
   "where": [
-   "Map/WorldMap.lua:1306"
+   "Map/WorldMap.lua:1329"
   ]
  },
  {
@@ -1854,7 +1854,7 @@
  {
   "en": "Put every slider back to its default?",
   "where": [
-   "Map/WorldMap.lua:1358"
+   "Map/WorldMap.lua:1381"
   ]
  },
  {
@@ -1899,7 +1899,7 @@
   "en": "Quests from every zone",
   "where": [
    "Map/Panel.lua:206",
-   "Map/WorldMap.lua:1341"
+   "Map/WorldMap.lua:1364"
   ]
  },
  {
@@ -2011,14 +2011,14 @@
  {
   "en": "Reset sliders to defaults",
   "where": [
-   "Map/WorldMap.lua:1356"
+   "Map/WorldMap.lua:1379"
   ]
  },
  {
   "en": "Responsive ocean & border",
   "where": [
    "Map/Panel.lua:257",
-   "Map/WorldMap.lua:1315"
+   "Map/WorldMap.lua:1338"
   ]
  },
  {
@@ -2107,13 +2107,19 @@
  {
   "en": "Show",
   "where": [
-   "Map/WorldMap.lua:1320"
+   "Map/WorldMap.lua:1343"
   ]
  },
  {
   "en": "Show or hide the quest log beside the map, for more room for the map.",
   "where": [
    "Map/Panel.lua:164"
+  ]
+ },
+ {
+  "en": "Show the whole map, with dungeon entrances, flight masters, zone levels and favourite buttons.",
+  "where": [
+   "Map/Welcome.lua:57"
   ]
  },
  {
@@ -2183,7 +2189,7 @@
   "en": "Take colour out",
   "where": [
    "Map/Panel.lua:1368",
-   "Map/WorldMap.lua:1313"
+   "Map/WorldMap.lua:1336"
   ]
  },
  {
@@ -2237,20 +2243,20 @@
  {
   "en": "The Gamepad UI is off: OpenMap's map is back.",
   "where": [
-   "Map/WorldMap.lua:1154"
+   "Map/WorldMap.lua:1177"
   ]
  },
  {
   "en": "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.",
   "where": [
-   "Map/WorldMap.lua:1136"
+   "Map/WorldMap.lua:1159"
   ]
  },
  {
   "en": "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).",
   "where": [
-   "Map/WorldMap.lua:1142",
-   "Map/WorldMap.lua:1166"
+   "Map/WorldMap.lua:1165",
+   "Map/WorldMap.lua:1189"
   ]
  },
  {
@@ -2324,7 +2330,7 @@
  {
   "en": "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.",
   "where": [
-   "Map/WorldMap.lua:1342"
+   "Map/WorldMap.lua:1365"
   ]
  },
  {
@@ -2341,15 +2347,9 @@
   ]
  },
  {
-  "en": "The whole map shown, with dungeon entrances, flight masters, zone levels and favourite buttons.",
-  "where": [
-   "Map/Welcome.lua:59"
-  ]
- },
- {
   "en": "The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show.",
   "where": [
-   "Map/WorldMap.lua:1337"
+   "Map/WorldMap.lua:1360"
   ]
  },
  {
@@ -2373,7 +2373,7 @@
  {
   "en": "This version's changes, and the versions before.",
   "where": [
-   "Map/WorldMap.lua:1355"
+   "Map/WorldMap.lua:1378"
   ]
  },
  {
@@ -2443,13 +2443,13 @@
   "en": "Unexplored areas",
   "where": [
    "Map/Panel.lua:250",
-   "Map/WorldMap.lua:1319"
+   "Map/WorldMap.lua:1342"
   ]
  },
  {
-  "en": "Unexplored areas hidden. No dungeon or flight master icons and no zone levels; the favourite buttons folded away.",
+  "en": "Unexplored areas hidden. No dungeon or flight master icons and no zone levels.",
   "where": [
-   "Map/Welcome.lua:58"
+   "Map/Welcome.lua:56"
   ]
  },
  {
@@ -2512,7 +2512,7 @@
   "en": "What's new",
   "where": [
    "Map/Panel.lua:170",
-   "Map/WorldMap.lua:1354"
+   "Map/WorldMap.lua:1377"
   ]
  },
  {
@@ -2585,7 +2585,7 @@
  {
   "en": "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.",
   "where": [
-   "Map/WorldMap.lua:1308"
+   "Map/WorldMap.lua:1331"
   ]
  },
  {
@@ -2597,13 +2597,13 @@
  {
   "en": "World map: Blizzard's map isn't the expected kind; the seamless map is off.",
   "where": [
-   "Map/WorldMap.lua:885"
+   "Map/WorldMap.lua:908"
   ]
  },
  {
   "en": "World map: Blizzard's map layers aren't the expected ones; the stitched art may cover some map icons.",
   "where": [
-   "Map/WorldMap.lua:901"
+   "Map/WorldMap.lua:924"
   ]
  },
  {
@@ -2627,14 +2627,14 @@
  {
   "en": "You can change any of it later in OpenMap's menu (its button on the map, or /openmap).",
   "where": [
-   "Map/Welcome.lua:46"
+   "Map/Welcome.lua:44"
   ]
  },
  {
   "en": "Your arrow",
   "where": [
    "Map/Panel.lua:203",
-   "Map/WorldMap.lua:1343"
+   "Map/WorldMap.lua:1366"
   ]
  },
  {
@@ -2660,7 +2660,7 @@
  {
   "en": "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap.",
   "where": [
-   "Map/WorldMap.lua:1344"
+   "Map/WorldMap.lua:1367"
   ]
  },
  {
@@ -2679,14 +2679,14 @@
  {
   "en": "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown.",
   "where": [
-   "Map/WorldMap.lua:1332"
+   "Map/WorldMap.lua:1355"
   ]
  },
  {
   "en": "Zeppelins",
   "where": [
    "Map/Panel.lua:199",
-   "Map/WorldMap.lua:1331"
+   "Map/WorldMap.lua:1354"
   ]
  },
  {
@@ -2717,7 +2717,7 @@
  {
   "en": "Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border.",
   "where": [
-   "Map/WorldMap.lua:1316"
+   "Map/WorldMap.lua:1339"
   ]
  },
  {

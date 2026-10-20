@@ -12,6 +12,11 @@
   another continent or zoomed right out over the whole world, and its journey is planned there. Its
   own Shift-click only reached the map underneath (the zone or continent you were last zoomed into).
 
+### Improved
+
+- **Choose your map**: the choice the first time the map opens is in the map window's own frame,
+  with plainer words.
+
 ### Fixed
 
 - **Ironforge's map shows once you've been there**, even if you came by the Deeprun Tram and haven't
