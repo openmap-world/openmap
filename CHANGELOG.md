@@ -7,6 +7,8 @@
 - **The map window can go partly off the screen**: drag it up until its title and the bar under it
   are past the top, for just the map (Options' Reset window brings it back), or past the sides and
   bottom while some of it stays on.
+- **With Enhance QoL**, OpenMap says once in chat to turn off its Mover > World Map: the two both
+  size the map, and its scale goes wrong (a player's finding).
 
 ### Fixed
 
