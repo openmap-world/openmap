@@ -4,7 +4,7 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [3] = "Improved", [6] = "Fixed", }, items = {
+	{ version = "v0.7.0-beta", date = "2026-10-20", heads = { [1] = "New", [3] = "Improved", [6] = "Fixed", }, items = {
 		"|cff6e2c0aFishing on the zone hover|r: if you know Fishing, hovering a zone shows the skill at which every cast there lands (Elwynn Forest 25, Hillsbrad Foothills 150, Stranglethorn Vale 225 ...), green if you have it, yellow if most casts land, red if most get away. With |cff6e2c0aZone levels|r, from the original game's values; WoW Forever's own zones have none yet.",
 		"|cff6e2c0aShortest Path Forever from anywhere on the map|r: Shift-click a spot in another zone, on another continent or zoomed right out over the whole world, and its journey is planned there. Its own Shift-click only reached the map underneath (the zone or continent you were last zoomed into).",
 		"|cff6e2c0aChoose your map|r: the choice the first time the map opens is in the map window's own frame, with plainer words.",

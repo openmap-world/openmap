@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.7.0-beta (2026-10-20)
+
 ### New
 
 - **Fishing on the zone hover**: if you know Fishing, hovering a zone shows the skill at which every
