@@ -7,6 +7,8 @@
 - **Retail: your arrow and the map's icons where they are in the cities**: in Stormwind, your arrow,
   Blizzard's flight master and the other icons on the city's map were drawn tens of yards from where
   they are (a player's report).
+- **With Enhance QoL**, OpenMap says once in chat to turn off its Mover > World Map: the two both
+  size the map, and its scale goes wrong (a player's finding).
 
 ## v0.7.0-beta (2026-10-20)
 

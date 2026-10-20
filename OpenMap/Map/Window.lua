@@ -281,6 +281,19 @@ end
 function mod:SetupWindow(worldMap)
 	map = worldMap
 	moveAny = MoveAnyOn()
+	-- Enhance QoL's Mover (World Map) sizes and places the map too, and the two fight over its scale (a
+	-- player's report). Its setting can't be read from here, so with Enhance QoL on it's said once
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+	if loaded and not mod.db.eqolNoted then
+		local on = false
+		for _, name in ipairs({ "EnhanceQoL", "EnhanceQoLMover", "EnhanceQoL_Mover" }) do
+			if loaded(name) then on = true end
+		end
+		if on then
+			mod.db.eqolNoted = true
+			ns:Print(L["Enhance QoL: if its Mover > World Map is on, turn it off. It and OpenMap both size the map, and the map's scale goes wrong."])
+		end
+	end
 	grip = {}
 	-- (with Move Any: none of this. Its own drag and resize place the window, and nothing puts it back)
 	if not moveAny then

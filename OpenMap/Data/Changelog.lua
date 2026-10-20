@@ -6,6 +6,7 @@ local _, ns = ...
 ns.MapChangelog = {
 	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
 		"|cff6e2c0aRetail: your arrow and the map's icons where they are in the cities|r: in Stormwind, your arrow, Blizzard's flight master and the other icons on the city's map were drawn tens of yards from where they are (a player's report).",
+		"|cff6e2c0aWith Enhance QoL|r, OpenMap says once in chat to turn off its Mover > World Map: the two both size the map, and its scale goes wrong (a player's finding).",
 	} },
 	{ version = "v0.7.0-beta", date = "2026-10-20", heads = { [1] = "New", [2] = "Improved", }, items = {
 		"|cff6e2c0aOpenMap for retail|r (Midnight): the same seamless map, from retail's own maps. Every continent on Azeroth's map, its zones stitched in as you zoom with their explored areas painted (or hidden until you've been there, as Blizzard's own map does), Blizzard's art as it is; the world's parchment out to its torn edge and on past it; dungeon and raid entrances from the encounter journal with every floor of their maps, flight masters, boats and zeppelins, the close-up minimap. A download of its own on CurseForge.",
