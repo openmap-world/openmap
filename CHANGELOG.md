@@ -8,6 +8,9 @@
   cast there lands (Elwynn Forest 25, Hillsbrad Foothills 150, Stranglethorn Vale 225 ...), green if
   you have it, yellow if most casts land, red if most get away. With **Zone levels**, from the
   original game's values; WoW Forever's own zones have none yet.
+- **Shortest Path Forever from anywhere on the map**: Shift-click a spot in another zone, on
+  another continent or zoomed right out over the whole world, and its journey is planned there. Its
+  own Shift-click only reached the map underneath (the zone or continent you were last zoomed into).
 
 ### Fixed
 

@@ -4,8 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [2] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", [3] = "Fixed", }, items = {
 		"|cff6e2c0aFishing on the zone hover|r: if you know Fishing, hovering a zone shows the skill at which every cast there lands (Elwynn Forest 25, Hillsbrad Foothills 150, Stranglethorn Vale 225 ...), green if you have it, yellow if most casts land, red if most get away. With |cff6e2c0aZone levels|r, from the original game's values; WoW Forever's own zones have none yet.",
+		"|cff6e2c0aShortest Path Forever from anywhere on the map|r: Shift-click a spot in another zone, on another continent or zoomed right out over the whole world, and its journey is planned there. Its own Shift-click only reached the map underneath (the zone or continent you were last zoomed into).",
 		"|cff6e2c0aIronforge's map shows once you've been there|r, even if you came by the Deeprun Tram and haven't found the land round it yet. With unexplored areas hidden, the city counted as found only once you'd explored the part of Dun Morogh over it; now going into a city finds it too.",
 	} },
 	{ version = "v0.6.0-beta", date = "2026-10-18", heads = { [1] = "New", [12] = "Improved", [21] = "Fixed", }, items = {

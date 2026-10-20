@@ -811,6 +811,29 @@ local function DropAtCursor()
 end
 
 -- clicks: in = the next map down under the cursor, out = the map above
+-- Shift-click with Shortest Path Forever: its own click plans a journey to the point on the map
+-- underneath (its GetNormalizedCursorPosition), which past that map's edge is off it (another
+-- continent, or the whole world's view, where the game places nothing). There, the journey goes
+-- through its API instead, to the point on the zone under the cursor
+local function PathTo()
+	local api = _G.ShortestPathForever and _G.ShortestPathForever.API
+	if type(api) ~= "table" or type(api.Navigate) ~= "function" then return false end
+	local chat = (ChatFrameUtil and ChatFrameUtil.GetActiveWindow) or _G.ChatEdit_GetActiveWindow
+	if chat and chat() then return false end   -- (a chat box open: Shift-click puts a link in it)
+	local u, v = mod.CursorWorld()
+	if not u then return false end
+	local host = map:GetMapID()
+	local hx, hy = FromWorld(host, u, v)
+	if host ~= WORLD and hx >= 0 and hx <= 1 and hy >= 0 and hy <= 1 then return false end
+	local chain = S.ChainAt(u, v)
+	local zone = chain[#chain]
+	if not zone or zone == WORLD then return false end
+	local x, y = FromWorld(zone, u, v)
+	if x < 0 or x > 1 or y < 0 or y > 1 then return false end
+	local ok, started = pcall(api.Navigate, "OpenMap", zone, x, y)
+	return ok and started and true or false
+end
+
 local function OnCanvasClick(from, button)
 	if not active then return false end
 	if Dropping(button) then
@@ -819,7 +842,7 @@ local function OnCanvasClick(from, button)
 	end
 	-- (Shift-click is other addons' first, Shortest Path Forever's journeys: handled by none of them,
 	-- it comes back here through NavigateToCursor, `from` nil, and zooms in as a click)
-	if from and button == "LeftButton" and IsShiftKeyDown() then return false end
+	if from and button == "LeftButton" and IsShiftKeyDown() then return PathTo() end
 	local u, v = mod.CursorWorld()
 	local _, _, zoom = View()
 	local chain = S.ChainAt(u, v)
