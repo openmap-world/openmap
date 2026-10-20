@@ -4,8 +4,11 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [2] = "Improved", }, items = {
+	{ version = "v0.7.0-beta", date = "2026-10-20", heads = { [1] = "New", [2] = "Improved", }, items = {
 		"|cff6e2c0aOpenMap for retail|r (Midnight): the same seamless map, from retail's own maps. Every continent on Azeroth's map, its zones stitched in as you zoom with their explored areas painted (or hidden until you've been there, as Blizzard's own map does), Blizzard's art as it is; the world's parchment out to its torn edge and on past it; dungeon and raid entrances from the encounter journal with every floor of their maps, flight masters, boats and zeppelins, the close-up minimap. A download of its own on CurseForge.",
+		"|cff6e2c0aThe map stays open while you talk to an NPC|r (or open a vendor, the bags' windows ...): the windowed map is no longer put away to make room. Escape still closes it; maximized, it behaves as before.",
+		"|cff6e2c0aReopen map: Center on player, keep zoom|r (the menu's Reopen map, and Options): the map opens on you at the zoom you closed it at.",
+		"|cff6e2c0aChoose your map|r: the choice the first time the map opens is in the map window's own frame, with plainer words.",
 		"|cff6e2c0aA little lighter at the whole-world view|r: a city's map isn't drawn at all until it starts to fade in (before, it was drawn unseen).",
 	} },
 	{ version = "v0.5.0-beta", date = "2026-10-16", heads = { [1] = "New", [12] = "Improved", [18] = "Fixed", }, items = {

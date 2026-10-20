@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.7.0-beta (2026-10-20)
+
 ### New
 
 - **OpenMap for retail** (Midnight): the same seamless map, from retail's own maps. Every continent on
@@ -13,6 +15,13 @@
 
 ### Improved
 
+- **The map stays open while you talk to an NPC** (or open a vendor, the bags' windows ...): the
+  windowed map is no longer put away to make room. Escape still closes it; maximized, it behaves as
+  before.
+- **Reopen map: Center on player, keep zoom** (the menu's Reopen map, and Options): the map opens
+  on you at the zoom you closed it at.
+- **Choose your map**: the choice the first time the map opens is in the map window's own frame,
+  with plainer words.
 - **A little lighter at the whole-world view**: a city's map isn't drawn at all until it starts to fade
   in (before, it was drawn unseen).
 
