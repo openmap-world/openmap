@@ -19,6 +19,8 @@
 - **The map stays open while you talk to an NPC** (or open a vendor, the bags' windows ...): the
   windowed map is no longer put away to make room. Escape still closes it; maximized, it behaves as
   before.
+- **Reopen map: Center on player, keep zoom** (the menu's Reopen map, and Options): the map opens
+  on you at the zoom you closed it at.
 
 ### Fixed
 

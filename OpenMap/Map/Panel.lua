@@ -291,7 +291,7 @@ local function Rows()
 	rows[#rows + 1] = { L["Moving about"], tab = "more" }
 	rows[#rows + 1] = optRow(L["Follow the view"], "autoSwitch", Icon("Ability_Hunter_Pathfinding"))
 	rows[#rows + 1] = { L["Reopen map (choose one)"] }
-	for _, choice in ipairs({ { "player", L["Center on player"] }, { "always", L["Always remember"] },
+	for _, choice in ipairs({ { "player", L["Center on player"] }, { "zoom", L["Center on player, keep zoom"] }, { "always", L["Always remember"] },
 		{ "visible", L["Remember while visible"] } }) do
 		local mode = choice[1]
 		rows[#rows + 1] = row(choice[2], "reopenView." .. mode, Icon("INV_Misc_Rune_01"),

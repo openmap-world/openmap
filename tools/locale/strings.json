@@ -226,7 +226,7 @@
  {
   "en": "Always remember",
   "where": [
-   "Map/Nav.lua:471",
+   "Map/Nav.lua:472",
    "Map/Panel.lua:294"
   ]
  },
@@ -444,14 +444,21 @@
  {
   "en": "Center on player",
   "where": [
-   "Map/Nav.lua:471",
+   "Map/Nav.lua:472",
    "Map/Panel.lua:294"
   ]
  },
  {
-  "en": "Choose one behavior. Center on player: always open on you. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.",
+  "en": "Center on player, keep zoom",
   "where": [
-   "Map/Nav.lua:473"
+   "Map/Nav.lua:472",
+   "Map/Panel.lua:294"
+  ]
+ },
+ {
+  "en": "Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.",
+  "where": [
+   "Map/Nav.lua:474"
   ]
  },
  {
@@ -475,7 +482,7 @@
  {
   "en": "Class-coloured dots for your group anywhere on the stitched map.",
   "where": [
-   "Map/Nav.lua:475"
+   "Map/Nav.lua:476"
   ]
  },
  {
@@ -560,7 +567,7 @@
  {
   "en": "Click to stop following it",
   "where": [
-   "Map/Nav.lua:205"
+   "Map/Nav.lua:206"
   ]
  },
  {
@@ -640,7 +647,7 @@
  {
   "en": "Continent",
   "where": [
-   "Map/Nav.lua:275"
+   "Map/Nav.lua:276"
   ]
  },
  {
@@ -821,7 +828,7 @@
   "en": "Dungeon",
   "where": [
    "Map/Dungeons.lua:529",
-   "Map/Nav.lua:282"
+   "Map/Nav.lua:283"
   ]
  },
  {
@@ -1015,7 +1022,7 @@
  {
   "en": "Find a place",
   "where": [
-   "Map/Nav.lua:365"
+   "Map/Nav.lua:366"
   ]
  },
  {
@@ -1046,7 +1053,7 @@
  {
   "en": "Flight master",
   "where": [
-   "Map/Nav.lua:287"
+   "Map/Nav.lua:288"
   ]
  },
  {
@@ -1112,7 +1119,7 @@
   "en": "Full-screen map fills the width",
   "where": [
    "Map/Panel.lua:283",
-   "Map/Window.lua:434"
+   "Map/Window.lua:442"
   ]
  },
  {
@@ -1459,7 +1466,7 @@
   "en": "Map size",
   "where": [
    "Map/Panel.lua:1366",
-   "Map/Window.lua:431"
+   "Map/Window.lua:439"
   ]
  },
  {
@@ -1792,7 +1799,7 @@
  {
   "en": "Party and raid members",
   "where": [
-   "Map/Nav.lua:474",
+   "Map/Nav.lua:475",
    "Map/Panel.lua:204"
   ]
  },
@@ -1914,7 +1921,7 @@
    "Map/Dungeons.lua:1111",
    "Map/Dungeons.lua:1157",
    "Map/Dungeons.lua:1566",
-   "Map/Nav.lua:282"
+   "Map/Nav.lua:283"
   ]
  },
  {
@@ -1959,7 +1966,7 @@
  {
   "en": "Remember while visible",
   "where": [
-   "Map/Nav.lua:472",
+   "Map/Nav.lua:473",
    "Map/Panel.lua:295"
   ]
  },
@@ -2005,7 +2012,7 @@
   "en": "Reset size and place",
   "where": [
    "Map/Panel.lua:1406",
-   "Map/Window.lua:441"
+   "Map/Window.lua:449"
   ]
  },
  {
@@ -2042,7 +2049,7 @@
  {
   "en": "Scales the whole windowed map. Drag either of its bottom corners to change its width and height, and its title bar to move it.",
   "where": [
-   "Map/Window.lua:433"
+   "Map/Window.lua:441"
   ]
  },
  {
@@ -2093,7 +2100,7 @@
  {
   "en": "Shift-click: share in chat",
   "where": [
-   "Map/Nav.lua:206",
+   "Map/Nav.lua:207",
    "Map/Pins.lua:130",
    "Map/Pins.lua:691"
   ]
@@ -2324,7 +2331,7 @@
   "where": [
    "Map/Dungeons.lua:551",
    "Map/Panel.lua:120",
-   "Map/Window.lua:328"
+   "Map/Window.lua:336"
   ]
  },
  {
@@ -2493,7 +2500,7 @@
  {
   "en": "Waypoint",
   "where": [
-   "Map/Nav.lua:203"
+   "Map/Nav.lua:204"
   ]
  },
  {
@@ -2524,13 +2531,13 @@
  {
   "en": "When maximized, the map takes the screen's whole width instead of keeping Blizzard's shape with bars at the sides.",
   "where": [
-   "Map/Window.lua:440"
+   "Map/Window.lua:448"
   ]
  },
  {
   "en": "When reopening the map",
   "where": [
-   "Map/Nav.lua:469"
+   "Map/Nav.lua:470"
   ]
  },
  {
@@ -2692,7 +2699,7 @@
  {
   "en": "Zone",
   "where": [
-   "Map/Nav.lua:275"
+   "Map/Nav.lua:276"
   ]
  },
  {
