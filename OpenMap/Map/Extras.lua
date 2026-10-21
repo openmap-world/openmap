@@ -439,7 +439,8 @@ local function OnZoomStep()
 	zoomAt = now
 	zoomFirst = zoomFirst or now
 	if now - zoomFirst >= ZOOM_MOST then return end
-	local cx, cy = mod.PadCursor and mod.PadCursor()   -- (the gamepad's cursor, while it's the one in use)
+	local cx, cy
+	if mod.PadCursor then cx, cy = mod.PadCursor() end   -- (the gamepad's cursor, while it's the one in use)
 	if not cx then cx, cy = GetCursorPosition() end
 	local sc = map.ScrollContainer
 	local r = (sc:GetHeight() or 0) * (sc:GetEffectiveScale() or 1) * NEAR_CURSOR
