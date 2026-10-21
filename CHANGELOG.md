@@ -20,6 +20,8 @@
   you haven't found (border mountains, the blank land between them, along their coasts) stayed light
   where it was further than a short way from any zone, so the zones showed as dark patches with
   light seams, most from the continent's view. Each zone's shade now reaches twice as far round it.
+- **The painted land between zones darkens with them** (north of the Plaguelands, Gilneas, round
+  Ahn'Qiraj ...): while the zones round a painted stretch are all unfound, it's darkened too.
 - **Zeppelin towers show for the Alliance too** when Zeppelins is on: they were the Horde's only,
   though their routes showed for everyone and the goblins' zeppelins take anyone.
 - **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they rested only

@@ -2426,6 +2426,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
 	Shade.Places.Show()
+	Shade.Fills.Show()
 	if root then
 		for _, c in ipairs(cities) do c.dark = nil end   -- (the grade above set their colours afresh)
 		cities.Dim()
@@ -2759,6 +2760,55 @@ function Shade.Places.Show()
 		if e.hide and e.hide:IsShown() ~= hide then e.hide:SetShown(hide) end
 		if e.dim and e.dim:IsShown() ~= dim then e.dim:SetShown(dim) end
 	end
+end
+
+-- The gaps painted by hand (ns.MapGapFills) darkened with the zones round them: each fill's shade
+-- through its own tiles' alpha (as masks), while every zone with pieces its box touches isn't found at
+-- all (they stayed bright between dark zones: a player's report). Made the first time it's wanted
+Shade.Fills = {}
+function Shade.Fills.Show()
+	if not root or not S.fillRoot then return end
+	local F = Shade.Fills
+	if not F.list then
+		F.list = {}
+		for _, x in ipairs(ns.MapGapFills or NONE) do
+			local r, zones = x[2], {}
+			for mapID in pairs(pieces) do
+				local l, rr, t, b = S.Rect(mapID)
+				if l and rr > r[1] and l < r[3] and b > r[2] and t < r[4] then zones[#zones + 1] = mapID end
+			end
+			F.list[#F.list + 1] = { x = x, zones = zones }
+		end
+	end
+	for _, e in ipairs(F.list) do
+		local dark = Shade.on and S.fillRoot:IsShown() and #e.zones > 0
+		if dark then
+			for _, zoneID in ipairs(e.zones) do
+				if Shade.Unexplored(zoneID) ~= "all" then dark = false break end
+			end
+		end
+		if dark and not e.frame then e.frame = F.Frame(e.x) end
+		if e.frame and e.frame:IsShown() ~= dark then e.frame:SetShown(dark) end
+	end
+end
+function Shade.Fills.Frame(x)
+	local num, r, fw, fh, cols, list = unpack(x)
+	local sx, sy = (r[3] - r[1]) * W / fw, (r[4] - r[2]) * H / fh
+	local f = CreateFrame("Frame", nil, shadeRoot)
+	f:SetAllPoints(root)
+	for _, i in ipairs(list) do
+		local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
+		local pw, ph = math.min(256, fw - col * 256), math.min(256, fh - row * 256)
+		local x0, y0 = r[1] * W + col * 256 * sx, r[2] * H + row * 256 * sy
+		local mask = f:CreateMaskTexture()
+		mask:SetTexture(TEX .. "MapGapFill\\" .. num .. "_" .. i, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		Record(mask, x0, y0, 256 * sx, 256 * sy)        -- (the whole tile: an edge tile's file is 256 px too)
+		local tex = f:CreateTexture(nil, "ARTWORK")
+		Shade.Tint(tex)
+		Record(tex, x0, y0, pw * sx, ph * sy)
+		tex:AddMaskTexture(mask)
+	end
+	return f
 end
 
 -- whether an unfound place covers the world point (u, v) (normalized), by its cells (16 a side:
