@@ -1669,6 +1669,8 @@ function S.SetZoom(zoom, scale)
 	end
 	Step("names")
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
+	-- (the continent's greyed copies under unfound zones: only till the zones' detail is in over them)
+	if S.greyRoot and S.greyRoot:IsShown() ~= (detailNow < 0.98) then S.greyRoot:SetShown(detailNow < 0.98) end
 	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
 		local _, ph = GetPhysicalScreenSize()
 		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
@@ -2070,8 +2072,15 @@ end
 function Shade.Grey(mapID, p, share, x, y, w, h)
 	local info = C_Map.GetMapInfo(mapID)
 	if not (info and info.parentMapID and contRoot) then return end
-	local land = ZoneMask(contRoot, p, ZONELAND)
-	local rim = contRoot:CreateMaskTexture()
+	if not S.greyRoot then
+		S.greyRoot = CreateFrame("Frame", nil, contRoot)
+		S.greyRoot:SetAllPoints(root)
+		S.greyRoot:SetFrameLevel(contRoot:GetFrameLevel())
+		S.greyRoot:SetShown(detailNow < 0.98)
+	end
+	local g = S.greyRoot
+	local land = ZoneMask(g, p, ZONELAND)
+	local rim = g:CreateMaskTexture()
 	rim:SetTexture(TEX .. "MapZoneBorder\\" .. mapID, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 	Record(rim, x, y, w, h)
 	local out = {}
@@ -2088,21 +2097,26 @@ function Shade.Grey(mapID, p, share, x, y, w, h)
 					local tx, ty = c.left + (k - 1) * tw * c.sx, c.top + (j - 1) * th * c.sy
 					local pw = math.min(tw, c.layer.layerWidth - (k - 1) * tw)
 					local ph = math.min(th, c.layer.layerHeight - (j - 1) * th)
-					-- (only the tiles over the zone's rectangle and its share round it)
-					if file and tx < x + w and tx + pw * c.sx > x and ty < y + h and ty + ph * c.sy > y then
-						for _, mask in ipairs({ land or false, rim }) do
-							if mask then
-								local tex = contRoot:CreateTexture(nil, "ARTWORK", nil, 1)
-								tex:SetTexture(file, nil, nil, "TRILINEAR")
-								tex:SetTexCoord(0, pw / tw, 0, ph / th)
-								Record(tex, tx, ty, pw * c.sx, ph * c.sy)
-								tex:AddMaskTexture(mask)
-								tex.omWorld = artID == WORLD or nil
-								tex:Hide()
-								S.greyTex = S.greyTex or {}
-								S.greyTex[tex] = true
-								out[#out + 1] = tex
-							end
+					-- (each copy cut to its mask's own box: the zone's art rectangle, or that and its share's
+					-- reach round it; a whole tile under every zone was drawn over and over, costing the frame
+					-- rate as the map zoomed)
+					local boxes = { { land or false, p.left, p.top, p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy }, { rim, x, y, w, h } }
+					for _, bx in ipairs(boxes) do
+						local mask = bx[1]
+						local x0, y0 = math.max(tx, bx[2]), math.max(ty, bx[3])
+						local x1, y1 = math.min(tx + pw * c.sx, bx[2] + bx[4]), math.min(ty + ph * c.sy, bx[3] + bx[5])
+						if file and mask and x1 > x0 and y1 > y0 then
+							local tex = g:CreateTexture(nil, "ARTWORK", nil, 1)
+							tex:SetTexture(file, nil, nil, "TRILINEAR")
+							local ku, kv = 1 / (tw * c.sx), 1 / (th * c.sy)
+							tex:SetTexCoord((x0 - tx) * ku, (x1 - tx) * ku, (y0 - ty) * kv, (y1 - ty) * kv)
+							Record(tex, x0, y0, x1 - x0, y1 - y0)
+							tex:AddMaskTexture(mask)
+							tex.omWorld = artID == WORLD or nil
+							tex:Hide()
+							S.greyTex = S.greyTex or {}
+							S.greyTex[tex] = true
+							out[#out + 1] = tex
 						end
 					end
 				end
@@ -2502,13 +2516,12 @@ function S.ApplyGrade(strength, desat, unexplored)
 		tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1)
 		tex:SetDesaturation(desat)
 	end
-	-- a zone not found at all: its art greyed (DIMK's desaturation) under its shade, so the lighter bands
-	-- and lines its art paints don't show bright through it; the baked tiles can't be, so they give way
-	-- to the live layers while one is (as with unexplored areas hidden)
-	local greyed = false
+	-- a zone not found at all: its live art greyed (DIMK's desaturation) under its shade, so the lighter
+	-- bands and lines its art paints don't show bright through it up close. (The baked tiles, drawn
+	-- further out, stay as they are: the live layers at every zoom cost too much frame rate, and from
+	-- there the continent's painting, greyed by Shade.Grey, is most of what shows)
 	for mapID, list in pairs(zoneTex) do
 		local grey = Shade.on and Shade.Unexplored(mapID) == "all"
-		if grey then greyed = true end
 		if grey or list.greyed then
 			list.greyed = grey or nil
 			local d = grey and math.max(desat, Shade.DIMK[4]) or desat
@@ -2525,7 +2538,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and math.abs(desat - art.desaturate) < 0.001
-		and unexplored ~= "hide" and not Baked.noFills and not greyed) and true or false
+		and unexplored ~= "hide" and not Baked.noFills) and true or false
 	if root then
 		appliedDetail = nil
 		ApplyDetail()
