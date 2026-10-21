@@ -1256,6 +1256,15 @@ def island_coast(m):
             if coast.any(): _cache[k] = coast
     return _cache[k]
 
+# The masks' alpha raised where it's part-way (SHADE_GAIN): where two zones' masks meet (or a zone's and a
+# border share), each partly, the two shades over each other came out lighter than one whole shade (a
+# light seam along every border between unfound zones). With a = (1 - (1 - A)^s) / A for a share s, two
+# shares that add up to 1 lay exactly the shade A (UNDISCOVERED's alpha, at full Darkening) between them
+def shade_gain(img):
+    A = 0.62                                      # (UNDISCOVERED's alpha before Darkening: render.py's, Stitch.lua's)
+    s_ = np.asarray(img).astype(np.float32) / 255
+    return Image.fromarray((np.clip((1 - (1 - A) ** s_) / A, 0, 1) * 255 + 0.5).astype(np.uint8))
+
 def bake_zone_land():
     outdir_ = os.path.join(TEXDIR, "MapZoneLand")
     os.makedirs(outdir_, exist_ok=True)
@@ -1264,7 +1273,7 @@ def bake_zone_land():
         if not reveal.get(m["art"]) or m["id"] not in grade: continue   # (Stitch.lua's ZoneMask: colour-matched zones)
         land = zone_land_shared(m)
         if land is None: continue
-        a = Image.fromarray((np.clip(land, 0, 1) * 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS)
+        a = shade_gain(Image.fromarray((np.clip(land, 0, 1) * 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS))
         Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (a,)).save(os.path.join(outdir_, "%d.tga" % m["id"]))
         n += 1
     print("baked", n, "zone land masks", flush=True)
@@ -1272,7 +1281,7 @@ def bake_zone_land():
     os.makedirs(outdir_, exist_ok=True)
     borders = zone_borders()
     for zid, share in borders.items():
-        a = Image.fromarray((np.clip(share, 0, 1) * 255).astype(np.uint8)).resize((BORDER_PX, BORDER_PX), Image.LANCZOS)
+        a = shade_gain(Image.fromarray((np.clip(share, 0, 1) * 255).astype(np.uint8)).resize((BORDER_PX, BORDER_PX), Image.LANCZOS))
         Image.merge("RGBA", (Image.new("L", (BORDER_PX, BORDER_PX), 255),) * 3 + (a,)).save(os.path.join(outdir_, "%d.tga" % zid))
     print("baked", len(borders), "zone border masks", flush=True)
 
