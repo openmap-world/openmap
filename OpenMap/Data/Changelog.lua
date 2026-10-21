@@ -10,7 +10,6 @@ ns.MapChangelog = {
 		"|cff6e2c0aThe map window can go partly off the screen|r: drag it up until its title and the bar under it are past the top, for just the map (Options' Reset window brings it back), or past the sides and bottom while some of it stays on.",
 		"|cff6e2c0aWith Enhance QoL|r, OpenMap says once in chat to turn off its Mover > World Map: the two both size the map, and its scale goes wrong (a player's finding).",
 		"|cff6e2c0aOther addons' icons stay on the map|r (RestedXP's, Nauticus's, Questie's ...): they could flicker and go, as anything that set the map's scale counted as zooming. Now only your own zooming does, and never for more than a moment.",
-		"|cff6e2c0aQuest icons on the other continent|r (Questie's, and other addons' map icons): panned across to it, its icons now come in once you stop, not only when the map underneath switches.",
 		"|cff6e2c0aFlight masters you've learned are in colour|r, all of them: OpenMap knew only the ones it had seen you visit since it was installed (and, on a client not in English, none). It now asks the game which you've found.",
 		"|cff6e2c0aFishing on the zone hover|r shows: OpenMap looked for your Fishing skill in a way WoW Forever no longer offers, and found none.",
 		"|cff6e2c0aZeppelin towers show for the Alliance too|r when Zeppelins is on: they were the Horde's only, though their routes showed for everyone and the goblins' zeppelins take anyone.",

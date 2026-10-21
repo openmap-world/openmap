@@ -26,8 +26,6 @@
 - **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they could
   flicker and go, as anything that set the map's scale counted as zooming. Now only your own
   zooming does, and never for more than a moment.
-- **Quest icons on the other continent** (Questie's, and other addons' map icons): panned across
-  to it, its icons now come in once you stop, not only when the map underneath switches.
 - **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
   seen you visit since it was installed (and, on a client not in English, none). It now asks the
   game which you've found.

@@ -443,38 +443,6 @@ end
 
 local questie = { placed = 0, ours = 0, moved = 0 }   -- for /openmap status: since the map last changed
 
--- The pins are placed when the map underneath changes (each library's RefreshAllData), for the view
--- then: panned a long way with no switch (across to the other continent), the zones come into view
--- without theirs. So once the view has stopped, a good way from where they were last placed, each
--- library places its pins again (not while it moves: hundreds of them, laid out again)
-local pinProviders = {}                 -- the libraries' map providers taken over (SetUpPins)
-local REPIN_STILL, REPIN_MOVED = 0.4, 0.5   -- seconds still; and the view's half-widths away, or its zoom 1.5x off
-local placedFor                         -- the view the pins were last placed for: { u, v, half width, half height }
-local repin = CreateFrame("Frame")
-local repinWait, repinLast = 0, nil
-repin:SetScript("OnUpdate", function(_, elapsed)
-	repinWait = repinWait + elapsed
-	if repinWait < 0.1 then return end
-	local dt = repinWait
-	repinWait = 0
-	if not (map and map:IsShown() and mod.IsStitched() and mod.PinView) or #pinProviders == 0 then return end
-	local u, v, hu, hv = mod.PinView()
-	if not u then return end
-	local last = repinLast
-	repinLast = { u, v, hu, hv, still = 0 }
-	if not last or math.abs(u - last[1]) > hu * 0.01 or math.abs(v - last[2]) > hv * 0.01 or math.abs(hu - last[3]) > hu * 0.01 then return end
-	repinLast.still = (last.still or 0) + dt
-	if repinLast.still < REPIN_STILL then return end
-	local p = placedFor
-	if p and math.abs(u - p[1]) < p[3] * REPIN_MOVED and math.abs(v - p[2]) < p[4] * REPIN_MOVED
-		and hu < p[3] * 1.5 and hu > p[3] / 1.5 then return end
-	placedFor = { u, v, hu, hv }
-	for _, provider in ipairs(pinProviders) do
-		local ok, err = pcall(provider.RefreshAllData, provider)
-		if not ok then geterrorhandler()(err) end
-	end
-end)
-
 -- The same for every addon's copy of HereBeDragons' pins (TomTom, gatherers, notes ... each may bring
 -- its own): a pin placed from a map point (`uiMapID`, `mapX`, `mapY`: AddWorldMapIconMap) goes where it
 -- belongs on the stitched map, a neighbouring zone's too. Questie's copy has its own pin template and
@@ -509,7 +477,6 @@ local function SetUpPins(name, pins)
 	local template = PoolTemplate(spec)
 	if not template then return "waiting" end
 	provider.openmapPins = true
-	pinProviders[#pinProviders + 1] = provider
 	pinTemplates[template] = true
 	local count = spec.questie and questie or { placed = 0, ours = 0, moved = 0 }
 	if spec.questie then questie.pins = pins end
@@ -560,10 +527,6 @@ local function SetUpPins(name, pins)
 	local Refresh = provider.RefreshAllData
 	if type(Refresh) == "function" then        -- (a copy without it: nothing calls it, nothing to wrap)
 		provider.RefreshAllData = function(self, ...)
-			if mod.PinView then
-				local u, v, hu, hv = mod.PinView()
-				if u then placedFor = { u, v, hu, hv } end
-			end
 			local before = self:GetMap() and self:GetMap():GetMapID()
 			if before ~= count.mapID then count.placed, count.ours, count.moved, count.mapID = 0, 0, 0, before end
 			return Refresh(self, ...)
