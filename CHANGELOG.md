@@ -4,6 +4,8 @@
 
 ### Improved
 
+- **Other addons' icons rest while zooming** is in the map's menu (the Show tab, under Questie's
+  icons): it was only in the Options window, which the menu stands in for.
 - **Darkening** (the menu's sliders, and Options): how dark unexplored areas are when they're
   darkened, from a light shade to the full one it was (a player's request: too dark on the whole
   world's map and in the zones).

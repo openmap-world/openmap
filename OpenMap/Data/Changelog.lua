@@ -4,7 +4,8 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "Improved", [4] = "Fixed", }, items = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Improved", [5] = "Fixed", }, items = {
+		"|cff6e2c0aOther addons' icons rest while zooming|r is in the map's menu (the Show tab, under Questie's icons): it was only in the Options window, which the menu stands in for.",
 		"|cff6e2c0aDarkening|r (the menu's sliders, and Options): how dark unexplored areas are when they're darkened, from a light shade to the full one it was (a player's request: too dark on the whole world's map and in the zones).",
 		"|cff6e2c0aThe map window can go partly off the screen|r: drag it up until its title and the bar under it are past the top, for just the map (Options' Reset window brings it back), or past the sides and bottom while some of it stays on.",
 		"|cff6e2c0aWith Enhance QoL|r, OpenMap says once in chat to turn off its Mover > World Map: the two both size the map, and its scale goes wrong (a player's finding).",
