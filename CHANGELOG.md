@@ -13,8 +13,9 @@
   no light seams between them, and the painted land between zones (north of the Plaguelands,
   Gilneas, round Ahn'Qiraj ...) darkens with them.
 - **Other addons' icons fade while you zoom** (Questie's, RestedXP's ...), out as a zoom starts and
-  back in after it, instead of blinking off and on. **Fade icons while zooming**, in the map's menu
-  (the Show tab), turns it off.
+  back in after it, instead of blinking off and on; those near your cursor stay, so what you're
+  zooming into keeps its icons. **Fade icons while zooming**, in the map's menu (the Show tab), turns
+  it off.
 - **The map window can go partly off the screen**: drag it up until its title and the bar under it
   are past the top, for just the map (Options' Reset window brings it back), or past the sides and
   bottom while some of it stays on.

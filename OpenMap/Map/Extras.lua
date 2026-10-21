@@ -375,52 +375,61 @@ end
 local ZOOM_REST = 0.15
 local ZOOM_MOST = 1.5                   -- (never hidden longer than this at a time, zooming or not)
 local FADE_OUT, FADE_IN = 0.12, 0.3     -- seconds they fade out as a zoom starts, and back in after it (not at once)
+local NEAR_CURSOR = 0.25                -- ... but those within this share of the view's height of the cursor stay: what
+                                        --  you're zooming into keeps its icons (a few laid out, not hundreds)
 local pinTemplates = {}                 -- the pin templates of the copies set up (SetUpPins)
-local zoomHid = {}                      -- pin -> { when it began fading out, its alpha then }: resting for a zoom
-local fadingIn = {}                     -- pin -> when it began fading back in
+local zoomHid = {}                      -- pin -> { when it began fading out, its alpha then, hidden }: resting for a zoom
+local fadingIn = {}                     -- pin -> when it began fading back in (less what it had already)
 local zoomAt, zoomFirst = 0, nil
 local zoomWatch = CreateFrame("Frame")
 zoomWatch:Hide()
+
+-- a pin back, fading in from the alpha it has
+local function Back(pin, now)
+	local h = zoomHid[pin]
+	zoomHid[pin] = nil
+	if h and h[3] then pin:SetAlpha(0) pin:Show() end
+	fadingIn[pin] = now - (pin:GetAlpha() or 0) * FADE_IN
+end
+
 zoomWatch:SetScript("OnUpdate", function(self)
 	local now = GetTime()
-	if now - zoomAt < ZOOM_REST and now - (zoomFirst or now) < ZOOM_MOST then
-		-- resting: each fades out, then goes (hidden, it isn't laid out again on every frame)
+	local resting = now - zoomAt < ZOOM_REST and now - (zoomFirst or now) < ZOOM_MOST
+	if resting then
+		-- each fades out, then goes (hidden, it isn't laid out again on every frame)
 		for pin, h in pairs(zoomHid) do
 			if pin:IsShown() then
 				local a = h[2] * (1 - (now - h[1]) / FADE_OUT)
 				if a <= 0 then pin:Hide() pin:SetAlpha(1) h[3] = true else pin:SetAlpha(a) end
 			end
 		end
-		return
-	end
-	if zoomFirst then
+	elseif zoomFirst then
 		zoomFirst = nil
 		-- back, fading in (only the pins still on the map: one let go meanwhile is the pool's again, at
 		-- full alpha for whoever takes it next)
-		local back = {}
+		local onMap = {}
 		for template in pairs(pinTemplates) do
 			for pin in map:EnumeratePinsByTemplate(template) do
-				if zoomHid[pin] then back[pin] = true end
+				if zoomHid[pin] then onMap[pin] = true end
 			end
 		end
 		for pin, h in pairs(zoomHid) do
-			if back[pin] and (h[3] or pin:IsShown()) then   -- (ours to bring back: one its addon hid stays so)
-				fadingIn[pin] = now
-				pin:SetAlpha(0)
-				pin:Show()
+			if onMap[pin] and (h[3] or pin:IsShown()) then   -- (ours to bring back: one its addon hid stays so)
+				Back(pin, now)
 			else
 				pin:SetAlpha(1)
+				zoomHid[pin] = nil
 			end
 		end
-		wipe(zoomHid)
 	end
 	local any = false
 	for pin, t in pairs(fadingIn) do
 		local a = (now - t) / FADE_IN
 		if a >= 1 or not pin:IsShown() then pin:SetAlpha(1) fadingIn[pin] = nil else pin:SetAlpha(a) any = true end
 	end
-	if not any then self:Hide() end
+	if not resting and not any then self:Hide() end
 end)
+
 local function OnZoomStep()
 	if mod.db.zoomHidePins == false or not mod.IsStitched() or not map:IsShown() then return end
 	-- (only the user's own zooming: a view put back, a map switch or the window laid out again rescale
@@ -430,9 +439,22 @@ local function OnZoomStep()
 	zoomAt = now
 	zoomFirst = zoomFirst or now
 	if now - zoomFirst >= ZOOM_MOST then return end
+	local cx, cy = mod.PadCursor and mod.PadCursor()   -- (the gamepad's cursor, while it's the one in use)
+	if not cx then cx, cy = GetCursorPosition() end
+	local sc = map.ScrollContainer
+	local r = (sc:GetHeight() or 0) * (sc:GetEffectiveScale() or 1) * NEAR_CURSOR
 	for template in pairs(pinTemplates) do
 		for pin in map:EnumeratePinsByTemplate(template) do
-			if pin:IsShown() and not zoomHid[pin] then
+			local px, py = pin:GetCenter()
+			local near = false
+			if px and cx then
+				local es = pin:GetEffectiveScale()
+				local dx, dy = px * es - cx, py * es - cy
+				near = dx * dx + dy * dy < r * r
+			end
+			if near then
+				if zoomHid[pin] then Back(pin, now) end
+			elseif pin:IsShown() and not zoomHid[pin] then
 				zoomHid[pin] = { now, pin:GetAlpha() }   -- (from where it is: it may be fading in still)
 				fadingIn[pin] = nil
 			end
