@@ -1094,8 +1094,8 @@ function mod:Options()
 	local function off() return not mod.db.enabled end
 	local opts = {
 		intro = ns.Desc("Blizzard's world map with every zone stitched together: scroll out of a zone into the next, drag across the whole world. The quest log, the map's controls and Questie all keep working.\n\n|cffffd100Wheel|r zooms at the cursor, |cffffd100drag|r pans, |cffffd100left-click|r zooms into the place under the cursor, |cffffd100right-click|r zooms out a level.\n\nIf you use Leatrix Maps or another world map addon, turn it off.", 1),
-		autoSwitch = { type = "toggle", name = "Follow the view", order = 10, width = "full", get = get, set = set, disabled = off,
-			desc = "Once the map stops moving, the map underneath becomes the zone or continent you're looking at, so quest areas, coordinates and the zone name match what's on screen." },
+		autoSwitch = { type = "toggle", name = "Load the zone in view", order = 10, width = "full", get = get, set = set, disabled = off,
+			desc = "Once the map stops moving, it loads the zone or continent you're looking at: its quest areas, coordinates and name, and other addons' icons for it (Questie's, GatherLite's ...). Off, the map keeps the zone it opened on." },
 		hoverHighlight = { type = "toggle", name = "Highlight the zone under the cursor", order = 11, width = "full", get = get, set = set, disabled = off,
 			desc = "Blizzard's glow on the zone you're pointing at." },
 		lookHeader = ns.Header("Look", 20),
