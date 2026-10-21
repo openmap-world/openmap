@@ -337,7 +337,7 @@ USE_BASE = os.environ.get("OPENMAP_BASE", "1") == "1"
 # has explored, so a preview picks it: OPENMAP_UNEXPLORED="Westfall=all;Duskwood=half"
 # (all: none of it found; half: every other overlay piece unexplored)
 UNDISCOVERED = (0.05, 0.06, 0.08, 0.62)
-DIM = (0.38, 0.39, 0.43, 0.25)  # an unexplored piece's colour in a zone you've been to (Stitch.lua's Shade.DIM): r, g, b, desaturation
+DIM = (0.38, 0.39, 0.43, 0.8)   # an unexplored piece's colour in a zone you've been to (Stitch.lua's Shade.DIM): r, g, b, desaturation
 # Options' Darkening (Stitch.lua's S.SetDarkening): the shade's alpha and DIM toward none, alike
 DARKEN = float(os.environ.get("OPENMAP_DARKEN", "1"))
 UNDISCOVERED = UNDISCOVERED[:3] + (UNDISCOVERED[3] * DARKEN,)
@@ -647,10 +647,31 @@ def render(cu, cv, zoom, path):
                   **(dict(tint=tuple(t_[:3]), dsat=t_[3]) if t_ else {}))
         else:
             place(m, base, f * sea, **dict(back, alpha=alpha * (1 - sm_)))
-    if not ZONES_ONLY: backdrop(world, M_MIDDLE if USE_CHART else M_WIDE, back["alpha"] * (1 - math.floor(smooth(zf, (1.7, 2.2)) * 20) / 20))   # (Stitch.lua: its land gives way to the continents')
+    def grey_over(cm, alpha):
+        """under a zone not found at all and its share round it, the art greyed (Stitch.lua's Shade.Grey)"""
+        if not UNEXPLORED_SIM or UNEXPLORED_HIDE: return
+        art_ = base(cm)
+        cl, cr, ct, cb = cm["rect"]
+        for z in zones:
+            if UNEXPLORED_SIM.get(z["name"]) != "all": continue
+            l, r, t, b_ = z["rect"]
+            if r < cl or l > cr or b_ < ct or t > cb: continue
+            for rect, mk in (((l, r, t, b_), mask("MapZoneLand/%d" % z["id"])),
+                             ((l - BORDER_REACH / W_, r + BORDER_REACH / W_, t - BORDER_REACH / H_, b_ + BORDER_REACH / H_), mask("MapZoneBorder/%d" % z["id"]))):
+                if mk is None: continue
+                rl, rr, rt, rb = rect                     # the art over that rectangle, in its own px
+                ax, ay = (rr - rl) / (cr - cl), (rb - rt) / (cb - ct)
+                ox, oy = (rl - cl) / (cr - cl) * 1002, (rt - ct) / (cb - ct) * 668
+                crop = np.dstack([np.asarray(Image.fromarray(art_[..., i].astype(np.float32), "F").transform((1002, 668), Image.AFFINE,
+                        (ax, 0, ox, 0, ay, oy), Image.BILINEAR, fillcolor=0)) for i in range(art_.shape[2])])
+                place({"id": z["id"], "rect": rect}, crop, mk, **dict(back, alpha=alpha, dsat=max(back["dsat"], DIM[3])))
+    wa_ = back["alpha"] * (1 - math.floor(smooth(zf, (1.7, 2.2)) * 20) / 20)
+    if not ZONES_ONLY: backdrop(world, M_MIDDLE if USE_CHART else M_WIDE, wa_)   # (Stitch.lua: its land gives way to the continents')
+    if not ZONES_ONLY: grey_over(world, wa_)
     for m in maps:
         if m["kind"] == 2 and not ZONES_ONLY:
             backdrop(m, M_WIDE, back["alpha"] * smooth(zf, (1.3, 1.7)))
+            grey_over(m, back["alpha"] * smooth(zf, (1.3, 1.7)))
             if USE_SEA and max(m_, sm_) > 0: hatch_over(m, max(m_, sm_) * smooth(zf, CONT_FADE))
             lf = max(m_, UNDER_T)
             if LAND_FILL and lf > 0:                     # its land stays land as the sea mutes
@@ -673,21 +694,23 @@ def render(cu, cv, zoom, path):
         for x in (gap_fills() if USE_FILLS else []):      # the gaps painted by hand (Stitch.lua's fillRoot), over those
             place(x, x["img"], None, alpha=d)
     has_over = {m["id"]: bool(reveal.get(m["art"])) for m in zones}
+    # a zone not found at all (darkened): greyed under its shade (Stitch.lua's ApplyGrade, DIM's desaturation)
+    grey = lambda m: DIM[3] if UNEXPLORED_SIM and not UNEXPLORED_HIDE and UNEXPLORED_SIM.get(m["name"]) == "all" else 0.0
     for m in zones:                                       # base art, biggest zone first, with its border copy
         if not has_over[m["id"]] or not USE_BASE or USE_BAKED: continue
         t_ = terr(m)
         # (Stitch.lua: through its territory, which ends at its own frame; MapFeather without one, and for
         # gapfill.py's measure of the gaps, which the paintings were made for)
         fm = M_FEATHER if t_ is None else t_ if not TERR_OWN else M_FEATHER * t_
-        place(m, base, fm, alpha=d)
+        place(m, base, fm, alpha=d, dsat=grey(m))
         g = grade.get(m["id"])
         bd = band(m)
-        if g and bd is not None: place(m, base, fm * bd, tint=g, alpha=d)
+        if g and bd is not None: place(m, base, fm * bd, tint=g, alpha=d, dsat=grey(m))
     for m in zones:                                       # overlays (less those hidden: OPENMAP_UNEXPLORED_HIDE)
-        if has_over[m["id"]] and not USE_BAKED: place(m, over_shown, over_edge(m), alpha=d)
+        if has_over[m["id"]] and not USE_BAKED: place(m, over_shown, over_edge(m), alpha=d, dsat=grey(m))
     for m in zones:                                       # their border copies
         g = grade.get(m["id"]); bd = band(m)
-        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over_shown, over_edge(m) * bd, tint=g, alpha=d)
+        if has_over[m["id"]] and g and bd is not None and not USE_BAKED: place(m, over_shown, over_edge(m) * bd, tint=g, alpha=d, dsat=grey(m))
     if USE_CORE and not USE_BAKED:
         for m in zones:                                   # every zone's interior again, over its neighbours' halos
             if has_over[m["id"]]: place(m, over_shown, over_edge(m) * core(m), alpha=d)

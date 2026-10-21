@@ -23,6 +23,9 @@
 - **The painted land between zones darkens with them** (north of the Plaguelands, Gilneas, round
   Ahn'Qiraj ...): each part with the nearest zone, while that zone is unfound, as the mountains
   between zones are.
+- **Unfound land greyed as well as darkened**: the zones' and continents' paintings have lighter bands
+  and lines along their borders, which showed bright through the shade; under unfound zones the
+  colour now goes too (less with a lower Darkening).
 - **Zeppelin towers show for the Alliance too** when Zeppelins is on: they were the Horde's only,
   though their routes showed for everyone and the goblins' zeppelins take anyone.
 - **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they rested only

@@ -1703,6 +1703,7 @@ function S.SetZoom(zoom, scale)
 			tex:SetVertexColor(c, c * 0.97, c * 0.92)
 			Fade(tex, (1 - BACK_MUTE * m) * (worldArt[tex] and (1 - wo) or 1))
 		end
+		S.GreyMute()                                   -- (Shade.Grey's greyed copies of it: muted alike)
 		local tint = S.chartTint                       -- (the sea chart: the world's open sea eased toward its sea)
 		for _, tex in ipairs(backdropSea) do
 			if worldArt[tex] then                      -- the world's sea: the ocean, as Blizzard painted it
@@ -1984,10 +1985,10 @@ end
 -- or false. REACH: world units round a zone its border share covers (render.py's BORDER_REACH).
 -- DIM: an unexplored piece's colour, { r, g, b (multipliers), desaturation }: near the shade's (UNDISCOVERED
 -- at its alpha over the art), as a texture can only multiply (render.py's DIM)
-local Shade = { zones = {}, on = false, REACH = 64, DIM = { 0.38, 0.39, 0.43, 0.25 } }
+local Shade = { zones = {}, on = false, REACH = 64, DIM = { 0.38, 0.39, 0.43, 0.8 } }
 -- how dark (Options' Darkening, 0..1 of the full shade): the shade's alpha and DIM toward none, alike, and
 -- every shade texture made (tinted), coloured again when it changes. DIMK: DIM at that strength
-Shade.k, Shade.tinted, Shade.DIMK = 1, {}, { 0.38, 0.39, 0.43, 0.25 }
+Shade.k, Shade.tinted, Shade.DIMK = 1, {}, { 0.38, 0.39, 0.43, 0.8 }
 function Shade.Tint(tex)
 	Shade.tinted[#Shade.tinted + 1] = tex
 	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * Shade.k)
@@ -1998,8 +1999,14 @@ function S.SetDarkening(k)
 	Shade.k = k
 	for i = 1, 3 do Shade.DIMK[i] = 1 - (1 - Shade.DIM[i]) * k end
 	Shade.DIMK[4] = Shade.DIM[4] * k
+	S.greyD = Shade.DIMK[4]
+	S.GreyMute()
 	for _, tex in ipairs(Shade.tinted) do tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * k) end
-	for _, z in pairs(Shade.zones) do if z then z.coloured = nil end end
+	for _, z in pairs(Shade.zones) do
+		if z then
+			z.coloured = nil
+		end
+	end
 	if lastGrade then S.ApplyGrade(unpack(lastGrade)) end
 end
 
@@ -2036,12 +2043,74 @@ function Shade.Zone(mapID)
 			Shade.Tint(z.rim)
 			Record(z.rim, x, y, w, h)
 			z.rim:AddMaskTexture(share)
+			z.grey = Shade.Grey(mapID, p, share, x, y, w, h)
 		else
 			frame:Hide()
 		end
 	end
 	Shade.zones[mapID] = z
 	return z
+end
+
+-- From the continent's view the art is the continent's own painting, its zones' bands and lines painted
+-- lighter, and they showed bright through the shade (a screenshot): under a zone not found at all
+-- and its share of the land round it, a greyed copy of the continent's art (Shade.DIMK's desaturation),
+-- in the continent's layer (fading with it), its tiles near the zone only
+-- Shade.Grey's copies muted as the art they copy is (S.SetZoom): the world's giving way to the continents'
+function S.GreyMute()
+	local m, wo = math.max(muted, 0), math.max(worldOut, 0)
+	local c = 1 - 0.45 * m
+	for tex in pairs(S.greyTex or NONE) do
+		tex:SetDesaturation(math.max(S.greyD or Shade.DIMK[4], 0.8 * m))
+		tex:SetVertexColor(c, c * 0.97, c * 0.92)
+		tex:SetAlpha((1 - BACK_MUTE * m) * (tex.omWorld and (1 - wo) or 1))
+	end
+end
+
+function Shade.Grey(mapID, p, share, x, y, w, h)
+	local info = C_Map.GetMapInfo(mapID)
+	if not (info and info.parentMapID and contRoot) then return end
+	local land = ZoneMask(contRoot, p, ZONELAND)
+	local rim = contRoot:CreateMaskTexture()
+	rim:SetTexture(TEX .. "MapZoneBorder\\" .. mapID, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+	Record(rim, x, y, w, h)
+	local out = {}
+	-- (the continent's painting, and the world's from further out: each greyed as it shows)
+	for _, artID in ipairs({ info.parentMapID, WORLD }) do
+		local c, files = Place(artID), ArtFiles(artID)
+		if c and files and #files > 0 then
+			local tw, th = c.layer.tileWidth, c.layer.tileHeight
+			local cols = math.ceil(c.layer.layerWidth / tw)
+			for j = 1, math.ceil(c.layer.layerHeight / th) do
+				for k = 1, cols do
+					local file = files[(j - 1) * cols + k]
+					file = tonumber(file) or file
+					local tx, ty = c.left + (k - 1) * tw * c.sx, c.top + (j - 1) * th * c.sy
+					local pw = math.min(tw, c.layer.layerWidth - (k - 1) * tw)
+					local ph = math.min(th, c.layer.layerHeight - (j - 1) * th)
+					-- (only the tiles over the zone's rectangle and its share round it)
+					if file and tx < x + w and tx + pw * c.sx > x and ty < y + h and ty + ph * c.sy > y then
+						for _, mask in ipairs({ land or false, rim }) do
+							if mask then
+								local tex = contRoot:CreateTexture(nil, "ARTWORK", nil, 1)
+								tex:SetTexture(file, nil, nil, "TRILINEAR")
+								tex:SetTexCoord(0, pw / tw, 0, ph / th)
+								Record(tex, tx, ty, pw * c.sx, ph * c.sy)
+								tex:AddMaskTexture(mask)
+								tex.omWorld = artID == WORLD or nil
+								tex:Hide()
+								S.greyTex = S.greyTex or {}
+								S.greyTex[tex] = true
+								out[#out + 1] = tex
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	S.GreyMute()
+	return out
 end
 
 -- a zone you've been to: every piece's art again, as the overlays are drawn (the zone's frame, its
@@ -2153,6 +2222,10 @@ function Shade.Show(mapID)
 		if z then
 			z.frame:Hide()
 			if z.dim then z.dim:Hide() end
+			if z.grey and z.greyShown then
+				z.greyShown = false
+				for _, tex in ipairs(z.grey) do tex:Hide() end
+			end
 		end
 		return
 	end
@@ -2161,6 +2234,11 @@ function Shade.Show(mapID)
 	local here = Shade.Near(mapID)
 	z.near = here
 	z.frame:SetShown(here and state == "all")
+	local grey = here and state == "all"
+	if z.grey and z.greyShown ~= grey then
+		z.greyShown = grey
+		for _, tex in ipairs(z.grey) do tex:SetShown(grey) end
+	end
 	local some = here and state == "some"
 	if some and not z.pieces then Shade.Pieces(mapID, z) end
 	if z.dim then
@@ -2424,6 +2502,19 @@ function S.ApplyGrade(strength, desat, unexplored)
 		tex:SetVertexColor(1 + (m[1] - 1) * strength, 1 + (m[2] - 1) * strength, 1 + (m[3] - 1) * strength, 1)
 		tex:SetDesaturation(desat)
 	end
+	-- a zone not found at all: its art greyed (DIMK's desaturation) under its shade, so the lighter bands
+	-- and lines its art paints don't show bright through it; the baked tiles can't be, so they give way
+	-- to the live layers while one is (as with unexplored areas hidden)
+	local greyed = false
+	for mapID, list in pairs(zoneTex) do
+		local grey = Shade.on and Shade.Unexplored(mapID) == "all"
+		if grey then greyed = true end
+		if grey or list.greyed then
+			list.greyed = grey or nil
+			local d = grey and math.max(desat, Shade.DIMK[4]) or desat
+			for _, e in ipairs(list) do e[1]:SetDesaturation(d) end
+		end
+	end
 	for mapID in pairs(zoneTex) do ShowZone(mapID) end
 	Shade.Places.Show()
 	if root then
@@ -2434,7 +2525,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and math.abs(desat - art.desaturate) < 0.001
-		and unexplored ~= "hide" and not Baked.noFills) and true or false
+		and unexplored ~= "hide" and not Baked.noFills and not greyed) and true or false
 	if root then
 		appliedDetail = nil
 		ApplyDetail()
