@@ -1099,9 +1099,11 @@ def zone_land(m):
 # stretch of zones you haven't found is dark from one to the next, not dark zones in bright
 # parchment; the shares don't overlap, so where two meet there's no doubled seam. Each covers
 # the zone's art rectangle and BORDER_REACH round it (Stitch.lua places it so), coarsely: mountains
-BORDER_REACH = 24               # world units (Stitch.lua's Shade.REACH)
+BORDER_REACH = 64               # world units round a zone its share covers (Stitch.lua's Shade.REACH): the gaps
+                                # painted by hand (GapFills.lua) all of the way out to it ...
+BORDER_LAND = 24                # ... the rest of the land no zone has as far as this
 BORDER_GRID = 2                 # px per world unit, laying a continent's zones out together
-BORDER_PX = 128                 # the masks' size
+BORDER_PX = 192                 # the masks' size
 BORDER_SOFT = 2.5               # its edge falloff, in BORDER_GRID px (it meets the zones' land masks soft too)
 W_, H_ = 1002.0, 668.0          # Azeroth's map in world units (render()'s W, H)
 
@@ -1142,10 +1144,13 @@ def zone_borders():
             paste(sea, np.clip(t - zone_land(m), 0, 1), box(m), lambda d, a: np.maximum(d, a, out=d))
         land = np.zeros((gh, gw), np.float32)
         paste(land, field_img(c)[..., 3], (0, 0, gw, gh), lambda d, a: np.maximum(d, a, out=d))
-        free = (land > 0.5) & (sea < 0.5) & (covered < 0.99)
+        fills = np.zeros((gh, gw), np.float32)            # the gaps painted by hand: land, wherever the continent's
+        for x in gap_fills():                             # art has it or not (north of the Plaguelands, Gilneas)
+            paste(fills, x["img"][..., 3], box(x), lambda d, a: np.maximum(d, a, out=d))
+        free = ((land > 0.5) | (fills > 0.5)) & (sea < 0.5) & (covered < 0.99)
         dist, (iy, ix) = ndimage.distance_transform_edt(label == 0, return_indices=True)
         nearest = label[iy, ix]
-        free &= dist <= BORDER_REACH * G
+        free &= (dist <= BORDER_LAND * G) | ((fills > 0.5) & (dist <= BORDER_REACH * G))
         for i, m in enumerate(mine, 1):
             share = ndimage.gaussian_filter((free & (nearest == i)).astype(np.float32), BORDER_SOFT)
             share *= np.clip(1 - covered, 0, 1)              # (only what the zones' own land leaves)
