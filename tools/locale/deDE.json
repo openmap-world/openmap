@@ -85,6 +85,8 @@
  "Click to open its map": "Klicken, um die Karte zu öffnen",
  "Click to pick one and open its map": "Klicken, um einen auszuwählen und seine Karte zu öffnen",
  "Click to see loot in NeedRoll": "Klicken, um die Beute in NeedRoll zu sehen",
+ "Darkening": "Abdunkeln",
+ "How dark unexplored areas are when they're darkened.": "Wie dunkel unerforschte Gebiete sind, wenn sie abgedunkelt werden.",
  "Enhance QoL: if its Mover > World Map is on, turn it off. It and OpenMap both size the map, and the map's scale goes wrong.": "Enhance QoL: Wenn dort Mover > World Map an ist, schaltet es aus. Es und OpenMap ändern beide die Größe der Karte, und ihre Skalierung stimmt dann nicht.",
  "Shift-click: where it is, on NeedRoll's map": "Umschalt-Klick: wo er ist, auf NeedRolls Karte",
  "Click to see it in NeedRoll": "Klicken, um es in NeedRoll anzusehen",

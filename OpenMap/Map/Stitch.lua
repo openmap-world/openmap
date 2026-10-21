@@ -1985,10 +1985,27 @@ end
 -- DIM: an unexplored piece's colour, { r, g, b (multipliers), desaturation }: near the shade's (UNDISCOVERED
 -- at its alpha over the art), as a texture can only multiply (render.py's DIM)
 local Shade = { zones = {}, on = false, REACH = 12, DIM = { 0.38, 0.39, 0.43, 0.25 } }
+-- how dark (Options' Darkening, 0..1 of the full shade): the shade's alpha and DIM toward none, alike, and
+-- every shade texture made (tinted), coloured again when it changes. DIMK: DIM at that strength
+Shade.k, Shade.tinted, Shade.DIMK = 1, {}, { 0.38, 0.39, 0.43, 0.25 }
+function Shade.Tint(tex)
+	Shade.tinted[#Shade.tinted + 1] = tex
+	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * Shade.k)
+end
+function S.SetDarkening(k)
+	k = math.max(0, math.min(1, tonumber(k) or 1))
+	if k == Shade.k then return end
+	Shade.k = k
+	for i = 1, 3 do Shade.DIMK[i] = 1 - (1 - Shade.DIM[i]) * k end
+	Shade.DIMK[4] = Shade.DIM[4] * k
+	for _, tex in ipairs(Shade.tinted) do tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * k) end
+	for _, z in pairs(Shade.zones) do if z then z.coloured = nil end end
+	if lastGrade then S.ApplyGrade(unpack(lastGrade)) end
+end
 
 function Shade.Texture(z, x, y, w, h)
 	local tex = z.frame:CreateTexture(nil, "ARTWORK")
-	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+	Shade.Tint(tex)
 	Record(tex, x, y, w, h)
 	tex:AddMaskTexture(z.land)
 	return tex
@@ -2016,7 +2033,7 @@ function Shade.Zone(mapID)
 			share:SetTexture(TEX .. "MapZoneBorder\\" .. mapID, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 			Record(share, x, y, w, h)
 			z.rim = frame:CreateTexture(nil, "ARTWORK")
-			z.rim:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+			Shade.Tint(z.rim)
 			Record(z.rim, x, y, w, h)
 			z.rim:AddMaskTexture(share)
 		else
@@ -2082,11 +2099,11 @@ function Shade.Colour(mapID, z)
 	-- (only when the settings or the pieces explored have changed: this runs with each cull)
 	local un = 0
 	for piece in pairs(z.pieces) do if piece.unexplored then un = un + 1 end end
-	local done = strength .. ":" .. desat .. ":" .. un
+	local done = strength .. ":" .. desat .. ":" .. un .. ":" .. Shade.k
 	if z.coloured == done then return end
 	z.coloured = done
 	local m = ns.MapGrade and ns.MapGrade[mapID]
-	local D = Shade.DIM
+	local D = Shade.DIMK
 	for piece, list in pairs(z.pieces) do
 		local dark = piece.unexplored and true or false
 		for _, e in ipairs(list) do
@@ -2233,7 +2250,7 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 		local land = ZoneMask(f, p, ZONELAND)
 		for _, r in ipairs(rects) do
 			local tex = f:CreateTexture(nil, "ARTWORK")
-			tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+			Shade.Tint(tex)
 			Record(tex, p.left + r[1] * p.sx, p.top + r[2] * p.sy, (r[3] - r[1]) * p.sx, (r[4] - r[2]) * p.sy)
 			if land then tex:AddMaskTexture(land) end
 		end
@@ -2626,7 +2643,7 @@ end
 -- darkened as the zone's unexplored art is (Shade.DIM). Both are drawn over the darkening (the banner
 -- over everything, the city over a visited zone's darkened pieces), so it doesn't reach them
 cities.Dim = function()
-	local D = Shade.DIM
+	local D = Shade.DIMK
 	local strength, desat = gradeNow[1], gradeNow[2]
 	for _, c in ipairs(cities) do
 		local dark = Shade.on and c.piece and c.piece.unexplored and true or false
@@ -2656,7 +2673,7 @@ function S.UndergroundCity(mapID)
 	for _, c in ipairs(cities) do
 		if c.mapID == mapID then
 			local lost = c.piece and c.piece.unexplored
-			return c[1], (lost and gradeNow[3] == "hide") and true or false, lost and Shade.on and Shade.DIM or nil
+			return c[1], (lost and gradeNow[3] == "hide") and true or false, lost and Shade.on and Shade.DIMK or nil
 		end
 	end
 end
@@ -2715,7 +2732,7 @@ function Shade.Places.Frame(e, how)
 		end
 	elseif how == "dim" then
 		local tex = f:CreateTexture(nil, "ARTWORK")
-		tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4])
+		Shade.Tint(tex)
 		Record(tex, x, y, w, h)
 		tex:AddMaskTexture(mask)
 	end

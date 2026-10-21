@@ -4,6 +4,10 @@
 
 ### Improved
 
+- **Darkening** (the menu's sliders, and Options): how dark unexplored areas are when they're
+  darkened, from a light shade to the full one it was (a player's request: too dark on the whole
+  world's map and in the zones).
+
 - **The map window can go partly off the screen**: drag it up until its title and the bar under it
   are past the top, for just the map (Options' Reset window brings it back), or past the sides and
   bottom while some of it stays on.

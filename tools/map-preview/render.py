@@ -338,6 +338,10 @@ USE_BASE = os.environ.get("OPENMAP_BASE", "1") == "1"
 # (all: none of it found; half: every other overlay piece unexplored)
 UNDISCOVERED = (0.05, 0.06, 0.08, 0.62)
 DIM = (0.38, 0.39, 0.43, 0.25)  # an unexplored piece's colour in a zone you've been to (Stitch.lua's Shade.DIM): r, g, b, desaturation
+# Options' Darkening (Stitch.lua's S.SetDarkening): the shade's alpha and DIM toward none, alike
+DARKEN = float(os.environ.get("OPENMAP_DARKEN", "1"))
+UNDISCOVERED = UNDISCOVERED[:3] + (UNDISCOVERED[3] * DARKEN,)
+DIM = tuple(1 - (1 - d) * DARKEN for d in DIM[:3]) + (DIM[3] * DARKEN,)
 UNEXPLORED_SIM = dict(p.split("=", 1) for p in os.environ.get("OPENMAP_UNEXPLORED", "").split(";") if "=" in p)
 # ... OPENMAP_UNEXPLORED_HIDE=1: those areas hidden instead (Options' Hide): their pieces left out, the zone's
 # blank base art showing; Stitch.lua draws the live layers then, not the baked tiles. (Up close, Stitch.lua

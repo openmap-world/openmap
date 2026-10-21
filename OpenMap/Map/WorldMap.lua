@@ -30,6 +30,7 @@ local mod = ns:NewModule("worldmap", {
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
 		iconsFrom = 0,          -- the places' icons from this zoom (ICONS_FROM; 1: the whole world); 0: each from its own (Auto)
 		iconScale = 1,          -- OpenMap's icons at this times their own size (ICON_SCALE)
+		darkening = 1,          -- how dark darkened unexplored areas are (0..1 of the full shade)
 		routes = false,         -- boat and zeppelin routes
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
@@ -1234,6 +1235,7 @@ function mod:Refresh()
 	S.SetPlacesFrom(self.db.iconsFrom)
 	S.SetIconScale(self.db.iconScale or 1)
 	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
+	if S.SetDarkening then S.SetDarkening(self.db.darkening or 1) end
 	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
@@ -1346,6 +1348,9 @@ function mod:Options()
 		unexplored = { type = "select", name = ns.L["Unexplored areas"], order = 23, get = get, set = set, disabled = off,
 			values = { show = ns.L["Show"], dim = ns.L["Darken"], hide = ns.L["Hide"] }, sorting = { "show", "dim", "hide" },
 			desc = ns.L["Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)."] },
+		darkening = { type = "range", name = ns.L["Darkening"], order = 23.5, min = 0.2, max = 1, step = 0.05, isPercent = true,
+			get = get, set = set, disabled = function() return off() or mod.db.unexplored ~= "dim" end,
+			desc = ns.L["How dark unexplored areas are when they're darkened."] },
 		maxZoom = { type = "range", name = ns.L["Deepest zoom"], order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
 			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,
 			desc = ns.L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] },

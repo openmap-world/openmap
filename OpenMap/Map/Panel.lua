@@ -1366,6 +1366,7 @@ function mod:SetupPanel(worldMap)
 		{ "windowScale", L["Map size"], Icon("INV_Misc_Spyglass_02") },
 		{ "colorMatch", L["Colour matching"], Icon("INV_Misc_Map_01") },
 		{ "desaturate", L["Take colour out"], Icon("Spell_Shadow_Twilight") },
+		{ "darkening", L["Darkening"], Icon("Spell_Shadow_DarkRitual") },
 		{ "minimapMix", L["Minimap strength"], Icon("Spell_Nature_FarSight") },
 		{ "moveFade", L["Fade while moving"], Icon("Ability_Stealth") },
 		{ "mapFpsCap", L["Map frame rate cap"], Icon("Spell_Nature_Sleep") },
@@ -1384,7 +1385,7 @@ function mod:SetupPanel(worldMap)
 	end
 	-- each column's, top down
 	local height = 0
-	for col, list in ipairs({ { "zoom", "icons", "iconSize", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "moveFade", "mapFpsCap" } }) do
+	for col, list in ipairs({ { "zoom", "icons", "iconSize", "windowScale", "colorMatch", "desaturate" }, { "from", "minimapMix", "opacity", "darkening", "moveFade", "mapFpsCap" } }) do
 		local y = -22
 		for _, key in ipairs(list) do
 			local r = made[key]
