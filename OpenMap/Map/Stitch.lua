@@ -1984,7 +1984,7 @@ end
 -- or false. REACH: world units round a zone its border share covers (render.py's BORDER_REACH).
 -- DIM: an unexplored piece's colour, { r, g, b (multipliers), desaturation }: near the shade's (UNDISCOVERED
 -- at its alpha over the art), as a texture can only multiply (render.py's DIM)
-local Shade = { zones = {}, on = false, REACH = 12, DIM = { 0.38, 0.39, 0.43, 0.25 } }
+local Shade = { zones = {}, on = false, REACH = 24, DIM = { 0.38, 0.39, 0.43, 0.25 } }
 -- how dark (Options' Darkening, 0..1 of the full shade): the shade's alpha and DIM toward none, alike, and
 -- every shade texture made (tinted), coloured again when it changes. DIMK: DIM at that strength
 Shade.k, Shade.tinted, Shade.DIMK = 1, {}, { 0.38, 0.39, 0.43, 0.25 }

@@ -1099,7 +1099,7 @@ def zone_land(m):
 # stretch of zones you haven't found is dark from one to the next, not dark zones in bright
 # parchment; the shares don't overlap, so where two meet there's no doubled seam. Each covers
 # the zone's art rectangle and BORDER_REACH round it (Stitch.lua places it so), coarsely: mountains
-BORDER_REACH = 12               # world units (Stitch.lua's BORDER_REACH)
+BORDER_REACH = 24               # world units (Stitch.lua's Shade.REACH)
 BORDER_GRID = 2                 # px per world unit, laying a continent's zones out together
 BORDER_PX = 128                 # the masks' size
 BORDER_SOFT = 2.5               # its edge falloff, in BORDER_GRID px (it meets the zones' land masks soft too)
