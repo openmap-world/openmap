@@ -422,10 +422,14 @@ local function Switch(target)
 	end
 end
 
+-- (a current value of nil is Blizzard's "lay it out again" (MarkCanvasDirty, on every pin another addon
+-- adds), not a move: it's the target then. Taken as a move, the map underneath never followed the view
+-- with such an addon on, Questie's or GatherLite's icons never coming in for the zone you'd panned to)
 local function Settled()
 	return not anim and not sc.mouseButtonInfo.LeftButton.down
-		and sc.currentScale == sc.targetScale
-		and sc.currentScrollX == sc.targetScrollX and sc.currentScrollY == sc.targetScrollY
+		and (sc.currentScale or sc.targetScale) == sc.targetScale
+		and (sc.currentScrollX or sc.targetScrollX) == sc.targetScrollX
+		and (sc.currentScrollY or sc.targetScrollY) == sc.targetScrollY
 end
 
 -- the player's arrow on top of every other icon (#31): Blizzard's (its group members pin, the party's
