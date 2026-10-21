@@ -6,6 +6,9 @@
 
 ### Fixed
 
+- **The map underneath follows where you pan again** (Follow the view): with an addon adding map
+  icons, it could stay on the zone you started on, so the zone you'd panned to showed none of their
+  icons until you clicked it.
 - **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
   seen you visit since it was installed (and, on a client not in English, none). It now asks the
   game which you've found.
