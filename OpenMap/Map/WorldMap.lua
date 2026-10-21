@@ -1092,6 +1092,25 @@ end
 
 -- for Extras / Flights / Townsfolk / Panel / Paint
 function mod.IsStitched() return active end
+-- Unexplored areas: every character's (the account's setting), or this character's own once it has one
+-- (Unexplored areas for this character, the menu's: mod.char.unexploredOwn)
+function mod.Unexplored()
+	local c = mod.char
+	if c and c.unexploredOwn and c.unexplored then return c.unexplored end
+	return mod.db.unexplored
+end
+function mod.SetUnexplored(v)
+	local c = mod.char
+	if c and c.unexploredOwn then c.unexplored = v else mod.db.unexplored = v end
+	mod:Refresh()
+end
+function mod.SetUnexploredOwn(on)
+	local c = mod.char
+	if not c then return end
+	if on and not c.unexploredOwn then c.unexplored = mod.db.unexplored end   -- (starts as it is now)
+	c.unexploredOwn = on and true or nil
+	mod:Refresh()
+end
 -- a zoom of the user's under way (the wheel's, a click's glide, the gamepad's stick): for Extras.lua's
 -- icons resting while the map zooms (not a view put back, a map switch or the window laid out again)
 function mod.Zooming() return anim ~= nil or GetTime() - (mod.padZoomAt or -10) < 0.2 end
@@ -1240,7 +1259,7 @@ function mod:Refresh()
 	S.SetIconScale(self.db.iconScale or 1)
 	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
 	if S.SetDarkening then S.SetDarkening(self.db.darkening or 1) end
-	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, self.db.unexplored)
+	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, mod.Unexplored())
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
 	if self.RefreshTownsfolk then self:RefreshTownsfolk() end
@@ -1349,11 +1368,12 @@ function mod:Options()
 			desc = ns.L["Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border."] },
 		gapFills = { type = "toggle", name = ns.L["Filled gaps"], order = 23.5, get = get, set = set, disabled = off,
 			desc = ns.L["Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there."] },
-		unexplored = { type = "select", name = ns.L["Unexplored areas"], order = 23, get = get, set = set, disabled = off,
+		unexplored = { type = "select", name = ns.L["Unexplored areas"], order = 23, disabled = off,
+			get = function() return mod.Unexplored() end, set = function(_, v) mod.SetUnexplored(v) end,
 			values = { show = ns.L["Show"], dim = ns.L["Darken"], hide = ns.L["Hide"] }, sorting = { "show", "dim", "hide" },
 			desc = ns.L["Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there)."] },
 		darkening = { type = "range", name = ns.L["Darkening"], order = 23.5, min = 0.2, max = 1, step = 0.05, isPercent = true,
-			get = get, set = set, disabled = function() return off() or mod.db.unexplored ~= "dim" end,
+			get = get, set = set, disabled = function() return off() or mod.Unexplored() ~= "dim" end,
 			desc = ns.L["How dark unexplored areas are when they're darkened."] },
 		maxZoom = { type = "range", name = ns.L["Deepest zoom"], order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
 			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,

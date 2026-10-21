@@ -252,9 +252,12 @@ local function Rows()
 	rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
 	-- (darkened or hidden; neither ticked: shown as they are)
 	for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
-		rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return db.unexplored == mode[1] end,
-			function(v) db.unexplored = v and mode[1] or "show" mod:Refresh() end)
+		rows[#rows + 1] = row(mode[2], "unexplored." .. mode[1], Icon(mode[3]), function() return mod.Unexplored() == mode[1] end,
+			function(v) mod.SetUnexplored(v and mode[1] or "show") end)
 	end
+	-- (this character's own choice of the two, or every character's)
+	rows[#rows + 1] = row(L["Only for this character"], "unexploredOwn", Icon("INV_Misc_Head_Human_01"),
+		function() return mod.char and mod.char.unexploredOwn or false end, function(v) mod.SetUnexploredOwn(v) end)
 	rows[#rows + 1] = { L["The map"] }
 	rows[#rows + 1] = optRow(L["Responsive ocean & border"], "chart", Icon("INV_Misc_Map02"))
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))

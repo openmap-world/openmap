@@ -153,7 +153,7 @@ local function Info()
 	Line("addons loaded %d (Questie %s); map %s; at %.4f, %.4f; art regions %d placed, %d live",
 		loaded, isLoaded("Questie") and "on" or "off", tostring(map:GetMapID()), home[1], home[2], placed, live)
 	Line("settings: minimap %s (from %sx), soften %s, unexplored %s, colour match %s, routes %s, icons %s (boats %s, zeppelins %s), fade while moving %s",
-		tostring(mod.db.minimap), tostring(mod.db.minimapFrom), tostring(mod.db.soften), tostring(mod.db.unexplored),
+		tostring(mod.db.minimap), tostring(mod.db.minimapFrom), tostring(mod.db.soften), tostring(mod.Unexplored and mod.Unexplored() or mod.db.unexplored),
 		tostring(mod.db.colorMatch), tostring(mod.db.routes), tostring(mod.db.icons), tostring(mod.db.boats), tostring(mod.db.zeppelins), tostring(mod.db.moveFade))
 end
 

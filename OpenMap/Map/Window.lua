@@ -34,7 +34,9 @@ local function MoveAnyOn()
 	if loaded and loaded("MoveAny") then return true end
 	local state = C_AddOns and C_AddOns.GetAddOnEnableState
 	if not state then return false end
-	local ok, on = pcall(state, "MoveAny", UnitName("player"))
+	-- (no character: this one. UnitName gives WoW Forever's first and last name, and the first alone
+	-- named no character, which reads as enabled: Move Any counted as on whenever installed, a player's report)
+	local ok, on = pcall(state, "MoveAny")
 	return ok and type(on) == "number" and on > 0
 end
 
