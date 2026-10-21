@@ -221,6 +221,7 @@ local function Rows()
 	end
 	-- (it was only in Options, which the menu stands in for: players couldn't find it)
 	rows[#rows + 1] = optRow(L["Fade icons while zooming"], "zoomHidePins", Icon("Ability_Stealth"))
+	rows[#rows].note = L["Improves performance"]      -- (a second line, so nobody turns it off unaware)
 	rows[#rows + 1] = { L["Dungeons"] }
 	rows[#rows + 1] = optRow(L["Level ranges"], "dungeonLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Dungeon bosses"], "dungeonBosses", Icon("INV_Misc_Bone_ElfSkull_01"))
@@ -844,6 +845,7 @@ local function CheckBox(parent)
 end
 
 local ROW_H = 22
+local NOTE_H = 12               -- (a row's note, its second line)
 local filling = false
 Fill = function()
 	RefreshTiles()
@@ -860,7 +862,11 @@ Fill = function()
 		local s = sections[#sections]
 		s[#s + 1] = row
 	end
-	local function Height(s) return (#s - 1) * ROW_H + 32 end   -- (its heading, the gap before it, its rows)
+	local function Height(s)                       -- (its heading, the gap before it, its rows, their notes)
+		local h = (#s - 1) * ROW_H + 32
+		for _, row in ipairs(s) do if row.note then h = h + NOTE_H end end
+		return h
+	end
 	local pick, best = 0, math.huge
 	for mask = 0, 2 ^ #sections - 1 do
 		local a, b, m = 0, 0, mask
@@ -918,6 +924,9 @@ Fill = function()
 					it.border = IconBorder(checks, it.icon, 16)   -- (spell icons only: map symbols go bare)
 					it.label = checks:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 					it.label:SetPoint("LEFT", it.icon, "RIGHT", 6, 0)
+					-- (a row's note: a second, smaller line in gold under its label)
+					it.note = checks:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+					it.note:SetPoint("TOPLEFT", it.label, "BOTTOMLEFT", 0, -1)
 					-- the whole line clicks the box
 					it.hit = CreateFrame("Button", nil, checks)
 					it.hit:SetHeight(ROW_H)
@@ -934,6 +943,8 @@ Fill = function()
 				it.icon:Show()
 				it.label:SetText(row[1])
 				it.label:Show()
+				it.note:SetText(row.note or "")
+				it.note:SetShown(row.note ~= nil)
 				it:SetChecked(row[2]() and true or false)
 				it.hit:SetWidth(COL - 44)
 				SetStar(it.star, row.id)
@@ -942,7 +953,7 @@ Fill = function()
 				it.star:SetShown(row.id ~= nil)
 				it:Show()
 				it.hit:Show()
-				y = y - ROW_H
+				y = y - ROW_H - (row.note and NOTE_H or 0)
 			end
 		end
 		tallest = math.max(tallest, -y)
