@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## v0.7.2-beta (2026-10-21)
+
+### Improved
+
+- **Zooming is smoother with unexplored areas darkened**: greying the land you haven't found cost
+  a lot of frame rate while zooming; it now costs far less.
+- **Unexplored areas for one character only**: the menu's **Only for this character**, under
+  Unexplored areas, gives this character its own choice (darkened, hidden or shown); every other
+  character keeps the shared one (a player's request).
+- **Fade icons while zooming** says **Improves performance** under it in the map's menu, so it
+  isn't turned off unawares.
+
+### Fixed
+
+- **The map loads the zone you pan or zoom to again**: with an addon adding map icons (Questie,
+  GatherLite ...), it could stay on the zone you started on, so the zone or continent you'd panned to
+  showed none of their icons until you clicked it (a player's report from 0.6, and ours). Its setting,
+  once Follow the view, is now **Load the zone in view** (the menu's More tab), saying what it does.
+- **The map window drags and resizes with Move Any installed but turned off**: OpenMap asked whether
+  Move Any was on for a character named by your first name alone (WoW Forever gives a first and last
+  name), which the game took as on, and left the window to it (a player's report, with the fix).
+
 ## v0.7.1-beta (2026-10-21)
 
 ### Improved
@@ -18,9 +40,6 @@
 - **The map window can go partly off the screen**: drag it up until its title and the bar under it
   are past the top, for just the map (Options' Reset window brings it back), or past the sides and
   bottom while some of it stays on.
-- **Unexplored areas for one character only**: the menu's **Only for this character**, under
-  Unexplored areas, gives this character its own choice (darkened, hidden or shown); every other
-  character keeps the shared one (a player's request).
 - **With Enhance QoL**, OpenMap says once in chat to turn off its Mover > World Map: the two both
   size the map, and its scale goes wrong (a player's finding).
 
@@ -29,13 +48,6 @@
 - **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they could
   flicker and go, as anything that set the map's scale counted as zooming. Now only your own
   zooming does, and never for more than a moment.
-- **The map loads the zone you pan or zoom to again**: with an addon adding map icons (Questie,
-  GatherLite ...), it could stay on the zone you started on, so the zone or continent you'd panned to
-  showed none of their icons until you clicked it (a player's report from 0.6, and ours). Its setting,
-  once Follow the view, is now **Load the zone in view** (the menu's More tab), saying what it does.
-- **The map window drags and resizes with Move Any installed but turned off**: OpenMap asked whether
-  Move Any was on for a character named by your first name alone (WoW Forever gives a first and last
-  name), which the game took as on, and left the window to it (a player's report, with the fix).
 - **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
   seen you visit since it was installed (and, on a client not in English, none). It now asks the
   game which you've found.
