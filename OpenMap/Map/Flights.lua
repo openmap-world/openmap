@@ -30,12 +30,31 @@ local factionBit
 -- Known flight masters (per character) and measured times
 --------------------------------------------------------------------------------
 
+-- the flight masters the game says you've found (C_TaxiMap.GetTaxiNodesForMap: isUndiscovered false),
+-- read afresh as the map opens: every one learned, before OpenMap was installed too, and named in any
+-- language (the names seen at a flight master are the client's own, the tables' English)
+local found = {}
+local function ReadFound()
+	if not (C_TaxiMap and C_TaxiMap.GetTaxiNodesForMap) then return end
+	local continents = ns.MapWorld and ns.MapWorld.continents or { 1414, 1415 }
+	for _, mapID in ipairs(continents) do
+		local ok, list = pcall(C_TaxiMap.GetTaxiNodesForMap, mapID)
+		if ok and type(list) == "table" then
+			for _, info in ipairs(list) do
+				if type(info) == "table" and info.nodeID and info.isUndiscovered == false then found[info.nodeID] = true end
+			end
+		end
+	end
+end
+
 local function Known(id)
+	if found[id] then return true end
 	local n = F.nodes[id]
 	return n and mod.char.flightsKnown and mod.char.flightsKnown[n[1]]
 end
 
 local function RefreshLook()
+	ReadFound()
 	for id, pin in pairs(pins) do
 		local known = Known(id)
 		pin.Icon:SetDesaturated(not known)
@@ -268,5 +287,7 @@ function mod:ClearFlightRoute() ClearRoute() end
 
 function mod:SetupFlights()
 	ns.RegisterEvent(mod, "TAXIMAP_OPENED", OnTaxiMap)
+	ns.RegisterEvent(mod, "TAXI_NODE_STATUS_CHANGED", function() if set then RefreshLook() end end)
+	if WorldMapFrame then WorldMapFrame:HookScript("OnShow", function() if set then RefreshLook() end end) end
 	if TakeTaxiNode then hooksecurefunc("TakeTaxiNode", OnTakeTaxi) end
 end

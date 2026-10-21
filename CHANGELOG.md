@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+## v0.7.1-beta (2026-10-21)
+
 ### Fixed
+
+- **Flight masters you've learned are in colour**, all of them: OpenMap knew only the ones it had
+  seen you visit since it was installed (and, on a client not in English, none). It now asks the
+  game which you've found.
 
 - **Retail: your arrow and the map's icons where they are in the cities**: in Stormwind, your arrow,
   Blizzard's flight master and the other icons on the city's map were drawn tens of yards from where
