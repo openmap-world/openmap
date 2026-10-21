@@ -12,6 +12,8 @@
 
 ### Fixed
 
+- **Zeppelin towers show for the Alliance too** when Zeppelins is on: they were the Horde's only,
+  though their routes showed for everyone and the goblins' zeppelins take anyone.
 - **Other addons' icons stay on the map** (RestedXP's, Nauticus's, Questie's ...): they rested only
   while you zoom, but anything that set the map's scale counted as zooming (a view put back, the map
   underneath switching, the window laid out again), which could keep them away. Now only your own

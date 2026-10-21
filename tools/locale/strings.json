@@ -2702,7 +2702,7 @@
   ]
  },
  {
-  "en": "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown.",
+  "en": "Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown.",
   "where": [
    "Map/WorldMap.lua:1359"
   ]

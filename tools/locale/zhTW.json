@@ -397,7 +397,7 @@
  "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap.": "你在世界地圖上的箭頭。關閉時，你得用老派的方式靠周圍地形認路；隊友仍會顯示，小地圖也一樣。",
  "Your party or raid (those with OpenMap are asked whether to add it).": "你的隊伍或團隊（有 OpenMap 的人會被詢問是否加入）。",
  "Zeppelin": "飛艇",
- "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown.": "飛艇塔（僅限部落；點擊：前往另一端），並在顯示航線時顯示飛艇航線。",
+ "Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown.": "飛艇塔（點擊：前往另一端），並在顯示航線時顯示飛艇航線。",
  "Zeppelins": "飛艇",
  "Zone": "區域",
  "Zone highlight on hover": "游標停留時醒目顯示區域",

@@ -1022,10 +1022,10 @@ local function BuildPins()
 	if S.BuildDungeonPins then
 		for _, pin in ipairs(S.BuildDungeonPins(dungeons)) do pins[#pins + 1] = pin end   -- (Dungeons.lua)
 	end
-	local horde = UnitFactionGroup("player") == "Horde"
+	-- (zeppelins for everyone: the goblins' towers take the Alliance too, as their routes show)
 	for _, d in ipairs(P.transports or {}) do
 		local u, v = S.FromYards(d[3], d[4], d[5])
-		if u and travel[d[1]] and LOOK[d[1]] and (d[1] ~= "zeppelin" or horde) then
+		if u and travel[d[1]] and LOOK[d[1]] then
 			local pin = S.AddPin(travel[d[1]], u, v, LOOK[d[1]])
 			pin.kind = d[1]
 			if d[6] then

@@ -395,7 +395,7 @@
  "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap.": "세계 지도에 내 화살표를 표시합니다. 끄면 옛날처럼 주변 지형을 보고 길을 찾아야 합니다. 파티원과 미니맵은 그대로 표시됩니다.",
  "Your party or raid (those with OpenMap are asked whether to add it).": "파티 또는 공격대에 공유합니다 (OpenMap 사용자에게는 추가할지 묻습니다).",
  "Zeppelin": "비행선",
- "Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown.": "비행선 탑(호드 전용, 클릭: 반대편 끝으로 이동)과, 항로를 표시할 때는 비행선 항로를 표시합니다.",
+ "Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown.": "비행선 탑(클릭: 반대편 끝으로 이동)과, 항로를 표시할 때는 비행선 항로를 표시합니다.",
  "Zeppelins": "비행선",
  "Zone": "지역",
  "Zone highlight on hover": "마우스를 올린 지역 강조",

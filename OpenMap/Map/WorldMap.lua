@@ -1356,7 +1356,7 @@ function mod:Options()
 		boats = { type = "toggle", name = ns.L["Boats"], order = 31.4, get = get, set = set, disabled = off,
 			desc = ns.L["Boat docks (click one: the other end), and boats' routes when routes are shown."] },
 		zeppelins = { type = "toggle", name = ns.L["Zeppelins"], order = 31.6, get = get, set = set, disabled = off,
-			desc = ns.L["Zeppelin towers (Horde only; click one: the other end), and zeppelins' routes when routes are shown."] },
+			desc = ns.L["Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown."] },
 		flight = { type = "toggle", name = ns.L["Flight masters"], order = 32, get = get, set = set,
 			disabled = off },
 		iconsFrom = { type = "range", name = ns.L["Icons from zoom"], order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
