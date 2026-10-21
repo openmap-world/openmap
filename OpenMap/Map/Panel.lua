@@ -220,7 +220,7 @@ local function Rows()
 			end)
 	end
 	-- (it was only in Options, which the menu stands in for: players couldn't find it)
-	rows[#rows + 1] = optRow(L["Other addons' icons rest while zooming"], "zoomHidePins", Icon("Ability_Stealth"))
+	rows[#rows + 1] = optRow(L["Fade icons while zooming"], "zoomHidePins", Icon("Ability_Stealth"))
 	rows[#rows + 1] = { L["Dungeons"] }
 	rows[#rows + 1] = optRow(L["Level ranges"], "dungeonLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Dungeon bosses"], "dungeonBosses", Icon("INV_Misc_Bone_ElfSkull_01"))

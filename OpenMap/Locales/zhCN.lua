@@ -167,6 +167,7 @@ L["Every slider back to how OpenMap comes: the deepest zoom, the minimap's detai
 L["Every slider here (and the OpenMap menu's) back to how OpenMap comes."] = "将这里（以及OpenMap菜单中）的所有滑块恢复为OpenMap的初始设置。"
 L["Everyone who reports problems and ideas on CurseForge."] = "所有在CurseForge上报告问题和提出建议的人。"
 L["Export"] = "导出"
+L["Fade icons while zooming"] = "缩放时淡出图标"
 L["Fade while moving"] = "移动时地图透明"
 L["Favourites are tabs at the window's edge, above the OpenMap tab."] = "收藏的按钮以标签形式显示在窗口边缘，位于OpenMap标签上方。"
 L["Favourites sit in a row beside the OpenMap button, in the map's bottom-left corner."] = "收藏的按钮排成一行，位于地图左下角的OpenMap按钮旁。"

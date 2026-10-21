@@ -85,6 +85,7 @@
  "Click to open its map": "Щелкните, чтобы открыть карту",
  "Click to pick one and open its map": "Щелкните, чтобы выбрать и открыть карту",
  "Click to see loot in NeedRoll": "Щелкните, чтобы посмотреть добычу в NeedRoll",
+ "Fade icons while zooming": "Скрывать значки при масштабировании",
  "Darkening": "Затемнение",
  "How dark unexplored areas are when they're darkened.": "Насколько темными становятся неисследованные области при затемнении.",
  "Enhance QoL: if its Mover > World Map is on, turn it off. It and OpenMap both size the map, and the map's scale goes wrong.": "Enhance QoL: если у него включен Mover > World Map, выключите его. И он, и OpenMap меняют размер карты, и ее масштаб сбивается.",

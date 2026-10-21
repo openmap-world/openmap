@@ -85,6 +85,7 @@
  "Click to open its map": "点击打开其地图",
  "Click to pick one and open its map": "点击选择一个并打开其地图",
  "Click to see loot in NeedRoll": "点击在NeedRoll中查看战利品",
+ "Fade icons while zooming": "缩放时淡出图标",
  "Darkening": "变暗程度",
  "How dark unexplored areas are when they're darkened.": "未探索区域变暗时的暗度。",
  "Enhance QoL: if its Mover > World Map is on, turn it off. It and OpenMap both size the map, and the map's scale goes wrong.": "Enhance QoL：如果开启了它的 Mover > World Map，请关闭。它和OpenMap都会调整地图大小，导致地图缩放出错。",

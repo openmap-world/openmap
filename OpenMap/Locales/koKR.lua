@@ -167,6 +167,7 @@ L["Every slider back to how OpenMap comes: the deepest zoom, the minimap's detai
 L["Every slider here (and the OpenMap menu's) back to how OpenMap comes."] = "여기의 모든 슬라이더(OpenMap 메뉴의 슬라이더 포함)를 OpenMap 기본값으로 되돌립니다."
 L["Everyone who reports problems and ideas on CurseForge."] = "CurseForge에서 문제를 신고하고 아이디어를 내 주시는 모든 분."
 L["Export"] = "내보내기"
+L["Fade icons while zooming"] = "확대/축소 중 아이콘 흐리게"
 L["Fade while moving"] = "이동 중 흐리게"
 L["Favourites are tabs at the window's edge, above the OpenMap tab."] = "즐겨찾기는 창 가장자리, OpenMap 탭 위에 탭으로 표시됩니다."
 L["Favourites sit in a row beside the OpenMap button, in the map's bottom-left corner."] = "즐겨찾기는 지도 왼쪽 아래 OpenMap 버튼 옆에 한 줄로 표시됩니다."

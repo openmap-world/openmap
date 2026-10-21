@@ -75,7 +75,7 @@
  {
   "en": "(the stars in the OpenMap menu put buttons here)",
   "where": [
-   "Map/Panel.lua:529"
+   "Map/Panel.lua:531"
   ]
  },
  {
@@ -111,7 +111,7 @@
  {
   "en": "A bar along the map's foot: your position, and the zone and position under the cursor.",
   "where": [
-   "Map/Extras.lua:632"
+   "Map/Extras.lua:665"
   ]
  },
  {
@@ -153,7 +153,7 @@
  {
   "en": "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.",
   "where": [
-   "Map/Extras.lua:512"
+   "Map/Extras.lua:545"
   ]
  },
  {
@@ -171,7 +171,7 @@
  {
   "en": "A star puts that action or setting on the map as a button of its own.",
   "where": [
-   "Map/Panel.lua:1422"
+   "Map/Panel.lua:1424"
   ]
  },
  {
@@ -227,7 +227,7 @@
   "en": "Always remember",
   "where": [
    "Map/Nav.lua:473",
-   "Map/Panel.lua:294"
+   "Map/Panel.lua:296"
   ]
  },
  {
@@ -281,7 +281,7 @@
  {
   "en": "Auto",
   "where": [
-   "Map/Panel.lua:1356"
+   "Map/Panel.lua:1358"
   ]
  },
  {
@@ -419,7 +419,7 @@
  {
   "en": "Buttons as edge tabs",
   "where": [
-   "Map/Panel.lua:261"
+   "Map/Panel.lua:263"
   ]
  },
  {
@@ -438,21 +438,21 @@
  {
   "en": "Caves underground",
   "where": [
-   "Map/Panel.lua:289"
+   "Map/Panel.lua:291"
   ]
  },
  {
   "en": "Center on player",
   "where": [
    "Map/Nav.lua:473",
-   "Map/Panel.lua:294"
+   "Map/Panel.lua:296"
   ]
  },
  {
   "en": "Center on player, keep zoom",
   "where": [
    "Map/Nav.lua:473",
-   "Map/Panel.lua:294"
+   "Map/Panel.lua:296"
   ]
  },
  {
@@ -512,7 +512,7 @@
  {
   "en": "Click the map...",
   "where": [
-   "Map/Panel.lua:812"
+   "Map/Panel.lua:814"
   ]
  },
  {
@@ -633,7 +633,7 @@
  {
   "en": "Colour matching",
   "where": [
-   "Map/Panel.lua:1367",
+   "Map/Panel.lua:1369",
    "Map/WorldMap.lua:1339"
   ]
  },
@@ -659,8 +659,8 @@
  {
   "en": "Coordinates",
   "where": [
-   "Map/Extras.lua:631",
-   "Map/Panel.lua:260"
+   "Map/Extras.lua:664",
+   "Map/Panel.lua:262"
   ]
  },
  {
@@ -679,34 +679,34 @@
  {
   "en": "Darken unexplored areas",
   "where": [
-   "Map/Panel.lua:252"
+   "Map/Panel.lua:254"
   ]
  },
  {
   "en": "Darkening",
   "where": [
-   "Map/Panel.lua:1369",
+   "Map/Panel.lua:1371",
    "Map/WorldMap.lua:1351"
   ]
  },
  {
   "en": "Debug overlay (FPS)",
   "where": [
-   "Map/Panel.lua:309"
+   "Map/Panel.lua:311"
   ]
  },
  {
   "en": "Deepest zoom",
   "where": [
-   "Map/Panel.lua:1335",
+   "Map/Panel.lua:1337",
    "Map/WorldMap.lua:1354"
   ]
  },
  {
   "en": "Defaults",
   "where": [
-   "Map/Panel.lua:1409",
-   "Map/Panel.lua:1412"
+   "Map/Panel.lua:1411",
+   "Map/Panel.lua:1414"
   ]
  },
  {
@@ -732,7 +732,7 @@
  {
   "en": "Detail",
   "where": [
-   "Map/Panel.lua:1333"
+   "Map/Panel.lua:1335"
   ]
  },
  {
@@ -747,7 +747,7 @@
  {
   "en": "Drag it anywhere round the map's edge.",
   "where": [
-   "Map/Panel.lua:649"
+   "Map/Panel.lua:651"
   ]
  },
  {
@@ -871,7 +871,7 @@
  {
   "en": "Dungeon bosses",
   "where": [
-   "Map/Panel.lua:224"
+   "Map/Panel.lua:226"
   ]
  },
  {
@@ -895,7 +895,7 @@
  {
   "en": "Dungeon quests",
   "where": [
-   "Map/Panel.lua:227"
+   "Map/Panel.lua:229"
   ]
  },
  {
@@ -907,7 +907,7 @@
  {
   "en": "Dungeons",
   "where": [
-   "Map/Panel.lua:222"
+   "Map/Panel.lua:224"
   ]
  },
  {
@@ -944,7 +944,7 @@
  {
   "en": "Entrances open Dungeon Journal",
   "where": [
-   "Map/Panel.lua:230"
+   "Map/Panel.lua:232"
   ]
  },
  {
@@ -992,7 +992,7 @@
  {
   "en": "Every slider back to how OpenMap comes: the deepest zoom, the minimap's detail and opacity, and those in Options.",
   "where": [
-   "Map/Panel.lua:1412"
+   "Map/Panel.lua:1414"
   ]
  },
  {
@@ -1014,22 +1014,28 @@
   ]
  },
  {
+  "en": "Fade icons while zooming",
+  "where": [
+   "Map/Panel.lua:223"
+  ]
+ },
+ {
   "en": "Fade while moving",
   "where": [
-   "Map/Extras.lua:641",
-   "Map/Panel.lua:1371"
+   "Map/Extras.lua:674",
+   "Map/Panel.lua:1373"
   ]
  },
  {
   "en": "Favourites are tabs at the window's edge, above the OpenMap tab.",
   "where": [
-   "Map/Panel.lua:449"
+   "Map/Panel.lua:451"
   ]
  },
  {
   "en": "Favourites sit in a row beside the OpenMap button, in the map's bottom-left corner.",
   "where": [
-   "Map/Panel.lua:450"
+   "Map/Panel.lua:452"
   ]
  },
  {
@@ -1097,8 +1103,8 @@
  {
   "en": "Fold your buttons away",
   "where": [
-   "Map/Panel.lua:665",
-   "Map/Panel.lua:1167"
+   "Map/Panel.lua:667",
+   "Map/Panel.lua:1169"
   ]
  },
  {
@@ -1112,7 +1118,7 @@
  {
   "en": "Follow the view",
   "where": [
-   "Map/Panel.lua:292",
+   "Map/Panel.lua:294",
    "Map/WorldMap.lua:1330"
   ]
  },
@@ -1137,7 +1143,7 @@
  {
   "en": "Full-screen map fills the width",
   "where": [
-   "Map/Panel.lua:283",
+   "Map/Panel.lua:285",
    "Map/Window.lua:466"
   ]
  },
@@ -1194,7 +1200,7 @@
  {
   "en": "Hide unexplored areas",
   "where": [
-   "Map/Panel.lua:252"
+   "Map/Panel.lua:254"
   ]
  },
  {
@@ -1206,7 +1212,7 @@
  {
   "en": "Hovering a zone shows its level range, coloured for your level, and if you know Fishing, the skill at which every cast there lands.",
   "where": [
-   "Map/Extras.lua:634"
+   "Map/Extras.lua:667"
   ]
  },
  {
@@ -1230,26 +1236,26 @@
  {
   "en": "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged.",
   "where": [
-   "Map/Panel.lua:1337",
+   "Map/Panel.lua:1339",
    "Map/WorldMap.lua:1356"
   ]
  },
  {
   "en": "How far in the minimap's detail starts to mix in: lower comes in sooner, higher later.",
   "where": [
-   "Map/Panel.lua:1342"
+   "Map/Panel.lua:1344"
   ]
  },
  {
   "en": "How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it.",
   "where": [
-   "Map/Extras.lua:643"
+   "Map/Extras.lua:676"
   ]
  },
  {
   "en": "Icon size",
   "where": [
-   "Map/Panel.lua:1359",
+   "Map/Panel.lua:1361",
    "Map/WorldMap.lua:1370"
   ]
  },
@@ -1262,7 +1268,7 @@
  {
   "en": "Icons from",
   "where": [
-   "Map/Panel.lua:1353"
+   "Map/Panel.lua:1355"
   ]
  },
  {
@@ -1358,7 +1364,7 @@
  {
   "en": "Level ranges",
   "where": [
-   "Map/Panel.lua:223"
+   "Map/Panel.lua:225"
   ]
  },
  {
@@ -1431,14 +1437,14 @@
  {
   "en": "Map frame rate cap",
   "where": [
-   "Map/Extras.lua:638",
-   "Map/Panel.lua:1372"
+   "Map/Extras.lua:671",
+   "Map/Panel.lua:1374"
   ]
  },
  {
   "en": "Map notes",
   "where": [
-   "Map/Panel.lua:305"
+   "Map/Panel.lua:307"
   ]
  },
  {
@@ -1490,7 +1496,7 @@
  {
   "en": "Map size",
   "where": [
-   "Map/Panel.lua:1366",
+   "Map/Panel.lua:1368",
    "Map/Window.lua:463"
   ]
  },
@@ -1515,27 +1521,27 @@
  {
   "en": "Minimap",
   "where": [
-   "Map/Panel.lua:1334"
+   "Map/Panel.lua:1336"
   ]
  },
  {
   "en": "Minimap button",
   "where": [
    "Map/Launcher.lua:103",
-   "Map/Panel.lua:269"
+   "Map/Panel.lua:271"
   ]
  },
  {
   "en": "Minimap detail",
   "where": [
    "Map/Close.lua:817",
-   "Map/Panel.lua:285"
+   "Map/Panel.lua:287"
   ]
  },
  {
   "en": "Minimap detail from",
   "where": [
-   "Map/Panel.lua:1338"
+   "Map/Panel.lua:1340"
   ]
  },
  {
@@ -1548,7 +1554,7 @@
   "en": "Minimap detail in major cities",
   "where": [
    "Map/Close.lua:828",
-   "Map/Panel.lua:286"
+   "Map/Panel.lua:288"
   ]
  },
  {
@@ -1560,7 +1566,7 @@
  {
   "en": "Minimap in the gaps",
   "where": [
-   "Map/Panel.lua:287"
+   "Map/Panel.lua:289"
   ]
  },
  {
@@ -1572,14 +1578,14 @@
  {
   "en": "Minimap opacity",
   "where": [
-   "Map/Panel.lua:1343"
+   "Map/Panel.lua:1345"
   ]
  },
  {
   "en": "Minimap strength",
   "where": [
    "Map/Close.lua:819",
-   "Map/Panel.lua:1370"
+   "Map/Panel.lua:1372"
   ]
  },
  {
@@ -1591,7 +1597,7 @@
  {
   "en": "Moving about",
   "where": [
-   "Map/Panel.lua:291"
+   "Map/Panel.lua:293"
   ]
  },
  {
@@ -1682,7 +1688,7 @@
  {
   "en": "Off: click to turn it on",
   "where": [
-   "Map/Panel.lua:528"
+   "Map/Panel.lua:530"
   ]
  },
  {
@@ -1694,7 +1700,7 @@
  {
   "en": "On the map",
   "where": [
-   "Map/Extras.lua:630",
+   "Map/Extras.lua:663",
    "Map/Panel.lua:179"
   ]
  },
@@ -1707,7 +1713,7 @@
  {
   "en": "On: click to turn it off",
   "where": [
-   "Map/Panel.lua:528"
+   "Map/Panel.lua:530"
   ]
  },
  {
@@ -1764,7 +1770,7 @@
   "en": "OpenMap button on the map",
   "where": [
    "Map/Launcher.lua:105",
-   "Map/Panel.lua:262"
+   "Map/Panel.lua:264"
   ]
  },
  {
@@ -1788,7 +1794,7 @@
  {
   "en": "OpenMap's icons on the map at this size: dungeons, flight masters, boats, townsfolk, your pins. Questie's icons have their own size, in Questie's options.",
   "where": [
-   "Map/Panel.lua:1363"
+   "Map/Panel.lua:1365"
   ]
  },
  {
@@ -1818,7 +1824,7 @@
  {
   "en": "Other addons' icons rest while zooming",
   "where": [
-   "Map/Extras.lua:635"
+   "Map/Extras.lua:668"
   ]
  },
  {
@@ -1855,7 +1861,7 @@
  {
   "en": "Pins others share with you",
   "where": [
-   "Map/Panel.lua:302",
+   "Map/Panel.lua:304",
    "Map/Pins.lua:796"
   ]
  },
@@ -1892,7 +1898,7 @@
  {
   "en": "Put this on the map as a button",
   "where": [
-   "Map/Panel.lua:448"
+   "Map/Panel.lua:450"
   ]
  },
  {
@@ -1916,7 +1922,7 @@
  {
   "en": "Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate.",
   "where": [
-   "Map/Extras.lua:637"
+   "Map/Extras.lua:670"
   ]
  },
  {
@@ -1964,7 +1970,7 @@
  {
   "en": "Rare mobs",
   "where": [
-   "Map/Panel.lua:247",
+   "Map/Panel.lua:249",
    "Map/Townsfolk.lua:36"
   ]
  },
@@ -1992,7 +1998,7 @@
   "en": "Remember while visible",
   "where": [
    "Map/Nav.lua:474",
-   "Map/Panel.lua:295"
+   "Map/Panel.lua:297"
   ]
  },
  {
@@ -2004,7 +2010,7 @@
  {
   "en": "Reopen map (choose one)",
   "where": [
-   "Map/Panel.lua:293"
+   "Map/Panel.lua:295"
   ]
  },
  {
@@ -2036,7 +2042,7 @@
  {
   "en": "Reset size and place",
   "where": [
-   "Map/Panel.lua:1407",
+   "Map/Panel.lua:1409",
    "Map/Window.lua:473"
   ]
  },
@@ -2049,7 +2055,7 @@
  {
   "en": "Responsive ocean & border",
   "where": [
-   "Map/Panel.lua:257",
+   "Map/Panel.lua:259",
    "Map/WorldMap.lua:1344"
   ]
  },
@@ -2080,8 +2086,8 @@
  {
   "en": "Search, find me, map pins, the quest log, report a problem, options, and what the map shows.",
   "where": [
-   "Map/Panel.lua:648",
-   "Map/Panel.lua:1138"
+   "Map/Panel.lua:650",
+   "Map/Panel.lua:1140"
   ]
  },
  {
@@ -2113,7 +2119,7 @@
  {
   "en": "Sharing",
   "where": [
-   "Map/Panel.lua:301"
+   "Map/Panel.lua:303"
   ]
  },
  {
@@ -2139,7 +2145,7 @@
  {
   "en": "Shift-right-click: take it off the map",
   "where": [
-   "Map/Panel.lua:526"
+   "Map/Panel.lua:528"
   ]
  },
  {
@@ -2169,13 +2175,13 @@
  {
   "en": "Soften and paper grain",
   "where": [
-   "Map/Panel.lua:288"
+   "Map/Panel.lua:290"
   ]
  },
  {
   "en": "Spirit healers",
   "where": [
-   "Map/Panel.lua:246",
+   "Map/Panel.lua:248",
    "Map/Townsfolk.lua:34"
   ]
  },
@@ -2226,7 +2232,7 @@
  {
   "en": "Take colour out",
   "where": [
-   "Map/Panel.lua:1368",
+   "Map/Panel.lua:1370",
    "Map/WorldMap.lua:1342"
   ]
  },
@@ -2239,7 +2245,7 @@
  {
   "en": "Take this button off the map",
   "where": [
-   "Map/Panel.lua:448"
+   "Map/Panel.lua:450"
   ]
  },
  {
@@ -2306,7 +2312,7 @@
  {
   "en": "The OpenMap button is hidden. Its menu opens with /openmap, the minimap button or the minimap's AddOns list.",
   "where": [
-   "Map/Panel.lua:265"
+   "Map/Panel.lua:267"
   ]
  },
  {
@@ -2318,7 +2324,7 @@
  {
   "en": "The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes.",
   "where": [
-   "Map/Extras.lua:640"
+   "Map/Extras.lua:673"
   ]
  },
  {
@@ -2330,7 +2336,7 @@
  {
   "en": "The map",
   "where": [
-   "Map/Panel.lua:256"
+   "Map/Panel.lua:258"
   ]
  },
  {
@@ -2348,7 +2354,7 @@
  {
   "en": "The most the minimap's detail ever shows, at any zoom.",
   "where": [
-   "Map/Panel.lua:1348"
+   "Map/Panel.lua:1350"
   ]
  },
  {
@@ -2380,8 +2386,8 @@
  {
   "en": "The stars in the OpenMap menu put buttons here; Shift-right-click one to take it off.",
   "where": [
-   "Map/Panel.lua:666",
-   "Map/Panel.lua:1168"
+   "Map/Panel.lua:668",
+   "Map/Panel.lua:1170"
   ]
  },
  {
@@ -2393,7 +2399,7 @@
  {
   "en": "The zoom the icons for places show from: dungeons, boats, zeppelins and flight masters. 1x: from the whole world; higher: only further in. Auto: each from its own zoom. Townsfolk never show further out than their own; your pins, drawings and party always show.",
   "where": [
-   "Map/Panel.lua:1357"
+   "Map/Panel.lua:1359"
   ]
  },
  {
@@ -2442,19 +2448,19 @@
  {
   "en": "Tools",
   "where": [
-   "Map/Panel.lua:303"
+   "Map/Panel.lua:305"
   ]
  },
  {
   "en": "Townsfolk",
   "where": [
-   "Map/Panel.lua:235"
+   "Map/Panel.lua:237"
   ]
  },
  {
   "en": "Townsfolk (needs Questie)",
   "where": [
-   "Map/Panel.lua:235"
+   "Map/Panel.lua:237"
   ]
  },
  {
@@ -2480,7 +2486,7 @@
  {
   "en": "Unexplored areas",
   "where": [
-   "Map/Panel.lua:250",
+   "Map/Panel.lua:252",
    "Map/WorldMap.lua:1348"
   ]
  },
@@ -2501,7 +2507,7 @@
   "en": "Up close",
   "where": [
    "Map/Close.lua:816",
-   "Map/Panel.lua:284"
+   "Map/Panel.lua:286"
   ]
  },
  {
@@ -2678,8 +2684,8 @@
  {
   "en": "Your buttons",
   "where": [
-   "Map/Panel.lua:665",
-   "Map/Panel.lua:1167"
+   "Map/Panel.lua:667",
+   "Map/Panel.lua:1169"
   ]
  },
  {
@@ -2736,14 +2742,14 @@
  {
   "en": "Zone highlight on hover",
   "where": [
-   "Map/Panel.lua:258"
+   "Map/Panel.lua:260"
   ]
  },
  {
   "en": "Zone levels",
   "where": [
-   "Map/Extras.lua:633",
-   "Map/Panel.lua:259"
+   "Map/Extras.lua:666",
+   "Map/Panel.lua:261"
   ]
  },
  {

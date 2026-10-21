@@ -4,18 +4,15 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "Improved", [5] = "Fixed", }, items = {
-		"|cff6e2c0aOther addons' icons rest while zooming|r is in the map's menu (the Show tab, under Questie's icons): it was only in the Options window, which the menu stands in for. They fade out as a zoom starts and back in after it, not all at once.",
-		"|cff6e2c0aDarkening|r (the menu's sliders, and Options): how dark unexplored areas are when they're darkened, from a light shade to the full one it was (a player's request: too dark on the whole world's map and in the zones).",
+	{ version = "v0.7.1-beta", date = "2026-10-21", heads = { [1] = "Improved", [5] = "Fixed", }, items = {
+		"|cff6e2c0aDarkened unexplored areas look better|r (Unexplored areas: Darken): a |cff6e2c0aDarkening|r slider (the menu's sliders, and Options) sets how dark they are, from a light shade to the full one; unfound land is greyed as well as darkened, so the lighter lines Blizzard paints along zones' borders no longer show bright through it; neighbouring zones you haven't found blend into one another, with no light seams between them, and the painted land between zones (north of the Plaguelands, Gilneas, round Ahn'Qiraj ...) darkens with them.",
+		"|cff6e2c0aOther addons' icons fade while you zoom|r (Questie's, RestedXP's ...), out as a zoom starts and back in after it, instead of blinking off and on. |cff6e2c0aFade icons while zooming|r, in the map's menu (the Show tab), turns it off.",
 		"|cff6e2c0aThe map window can go partly off the screen|r: drag it up until its title and the bar under it are past the top, for just the map (Options' Reset window brings it back), or past the sides and bottom while some of it stays on.",
 		"|cff6e2c0aWith Enhance QoL|r, OpenMap says once in chat to turn off its Mover > World Map: the two both size the map, and its scale goes wrong (a player's finding).",
-		"|cff6e2c0aDarkened zones blend into each other|r: with unexplored areas darkened, the land between zones you haven't found (border mountains, the blank land between them, along their coasts) stayed light where it was further than a short way from any zone, so the zones showed as dark patches with light seams, most from the continent's view. Each zone's shade now reaches further round it.",
-		"|cff6e2c0aThe painted land between zones darkens with them|r (north of the Plaguelands, Gilneas, round Ahn'Qiraj ...): each part with the nearest zone, while that zone is unfound, as the mountains between zones are.",
-		"|cff6e2c0aUnfound land greyed as well as darkened|r: the zones' and continents' paintings have lighter bands and lines along their borders, which showed bright through the shade; under unfound zones the colour now goes too (less with a lower Darkening).",
-		"|cff6e2c0aZeppelin towers show for the Alliance too|r when Zeppelins is on: they were the Horde's only, though their routes showed for everyone and the goblins' zeppelins take anyone.",
-		"|cff6e2c0aOther addons' icons stay on the map|r (RestedXP's, Nauticus's, Questie's ...): they rested only while you zoom, but anything that set the map's scale counted as zooming (a view put back, the map underneath switching, the window laid out again), which could keep them away. Now only your own zooming does, and never for more than a moment.",
+		"|cff6e2c0aOther addons' icons stay on the map|r (RestedXP's, Nauticus's, Questie's ...): they could flicker and go, as anything that set the map's scale counted as zooming. Now only your own zooming does, and never for more than a moment.",
 		"|cff6e2c0aFlight masters you've learned are in colour|r, all of them: OpenMap knew only the ones it had seen you visit since it was installed (and, on a client not in English, none). It now asks the game which you've found.",
-		"|cff6e2c0aFishing on the zone hover|r shows on WoW Forever: OpenMap looked for your Fishing skill in a way the game no longer offers, and found none.",
+		"|cff6e2c0aFishing on the zone hover|r shows: OpenMap looked for your Fishing skill in a way WoW Forever no longer offers, and found none.",
+		"|cff6e2c0aZeppelin towers show for the Alliance too|r when Zeppelins is on: they were the Horde's only, though their routes showed for everyone and the goblins' zeppelins take anyone.",
 	} },
 	{ version = "v0.7.0-beta", date = "2026-10-20", heads = { [1] = "New", [4] = "Improved", [7] = "Fixed", }, items = {
 		"|cff6e2c0aFishing on the zone hover|r: if you know Fishing, hovering a zone shows the skill at which every cast there lands (Elwynn Forest 25, Hillsbrad Foothills 150, Stranglethorn Vale 225 ...), green if you have it, yellow if most casts land, red if most get away. With |cff6e2c0aZone levels|r, from the original game's values; WoW Forever's own zones have none yet.",

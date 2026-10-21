@@ -167,6 +167,7 @@ L["Every slider back to how OpenMap comes: the deepest zoom, the minimap's detai
 L["Every slider here (and the OpenMap menu's) back to how OpenMap comes."] = "Вернуть все ползунки здесь (и в меню OpenMap) к исходным значениям OpenMap."
 L["Everyone who reports problems and ideas on CurseForge."] = "Все, кто сообщает о проблемах и предлагает идеи на CurseForge."
 L["Export"] = "Экспорт"
+L["Fade icons while zooming"] = "Скрывать значки при масштабировании"
 L["Fade while moving"] = "Прозрачность в движении"
 L["Favourites are tabs at the window's edge, above the OpenMap tab."] = "Избранное — вкладки у края окна, над вкладкой OpenMap."
 L["Favourites sit in a row beside the OpenMap button, in the map's bottom-left corner."] = "Избранное — ряд кнопок рядом с кнопкой OpenMap, в левом нижнем углу карты."
