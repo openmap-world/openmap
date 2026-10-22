@@ -888,7 +888,7 @@ Fill = function()
 	checks.boxes = checks.boxes or {}
 	for _, it in ipairs(checks.heads) do it:Hide() it.rule:Hide() end
 	-- (a row's icon, frame and label are the list's, not its box's: hidden with it, or another tab's show through)
-	for _, it in ipairs(checks.boxes) do it:Hide() it.hit:Hide() it.star:Hide() it.icon:Hide() it.border:Hide() it.label:Hide() end
+	for _, it in ipairs(checks.boxes) do it:Hide() it.hit:Hide() it.star:Hide() it.icon:Hide() it.border:Hide() it.label:Hide() it.note:Hide() end
 	local nh, nb, tallest = 0, 0, 0
 	for col = 1, 2 do
 		local y = 0

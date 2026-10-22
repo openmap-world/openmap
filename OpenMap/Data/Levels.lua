@@ -1,7 +1,7 @@
 -- Zone level ranges: [uiMapID] = { min, max }. The client's tables don't carry them, so this
 -- is entered by hand (as Fishing.lua is): the ranges are those listed on the Warcraft Wiki's
 -- "Zones by level (original)" page (warcraft.wiki.gg/wiki/Zones_by_level_(original)).
--- Zones it doesn't list (WoW Forever's own, cities) have no entry. Corrections: cite a source.
+-- Zones it doesn't list (cities, and WoW Forever's own unless cited below) have no entry. Corrections: cite a source.
 
 local _, ns = ...
 
@@ -48,4 +48,7 @@ ns.MapLevels = {
 	[1450] = { 55, 60 },   -- Moonglade
 	[1451] = { 55, 60 },   -- Silithus
 	[1452] = { 55, 60 },   -- Winterspring
+	-- WoW Forever's own, from each zone's Warcraft Wiki page (its infobox's level)
+	[2548] = { 35, 45 },   -- Riverglades (warcraft.wiki.gg/wiki/Riverglades)
+	[2521] = { 1, 12 },    -- Zephras Isle (warcraft.wiki.gg/wiki/Zephras_Isle)
 }
