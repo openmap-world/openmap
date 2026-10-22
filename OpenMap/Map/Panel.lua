@@ -1463,6 +1463,27 @@ function mod:OpenMenu()
 	return true
 end
 
+-- Key bindings (Bindings.xml, the game's Key Bindings > AddOns): an action of the menu's by its id,
+-- opening the map first if it's closed (a player's request: a key for Find me)
+_G.BINDING_HEADER_OPENMAP = "OpenMap"
+_G.BINDING_NAME_OPENMAP_FIND = L["Find me"]
+_G.BINDING_NAME_OPENMAP_PIN = L["Drop a pin"]
+_G.BINDING_NAME_OPENMAP_PINS = L["Pins"]
+_G.BINDING_NAME_OPENMAP_QUILL = L["Quill"]
+_G.BINDING_NAME_OPENMAP_QUESTLOG = L["Quest log"]
+_G.BINDING_NAME_OPENMAP_MENU = L["The map's menu"]
+function _G.OpenMap_Binding(id)
+	if not (mod.enabled and menu) then return end
+	if id == "menu" then mod:OpenMenu() return end
+	local run
+	for _, e in ipairs(Actions()) do if e.id == id then run = e.run end end
+	if not run then return end
+	if map:IsShown() then run("LeftButton") return end
+	if InCombatLockdown() then return end          -- (as the menu's own button: no opening the map in combat)
+	ToggleWorldMap()
+	C_Timer.After(0, function() if map:IsShown() then run("LeftButton") end end)
+end
+
 -- the menu's ticks and the favourites follow settings changed elsewhere
 function mod:RefreshPanel()
 	if menu and menu:IsShown() then Fill() end

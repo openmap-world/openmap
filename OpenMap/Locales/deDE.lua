@@ -382,6 +382,7 @@ L["The frame rate at most while the map is open (0: off). A big map draws many l
 L["The game lists no bosses for it."] = "Das Spiel führt hierfür keine Bosse auf."
 L["The map"] = "Die Karte"
 L["The map is off."] = "Die Karte ist deaktiviert."
+L["The map's menu"] = "Menü der Karte"
 L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] = "Die Details der Minikarte über den eigenen Karten der sechs Hauptstädte, höchstens halb so stark, damit der Stadtplan vorne bleibt. Aus: nur ihre eigenen Karten."
 L["The most the minimap's detail ever shows, at any zoom."] = "Wie deutlich die Details der Minikarte höchstens zu sehen sind, auf jeder Zoomstufe."
 L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] = "Wie deutlich die Details der Minikarte höchstens zu sehen sind, auf jeder Zoomstufe: Zoomt Ihr weiter hinein, als die gemalte Karte noch Details hat, übernimmt die Minikarte bis zu diesem Wert."

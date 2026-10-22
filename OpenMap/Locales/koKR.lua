@@ -382,6 +382,7 @@ L["The frame rate at most while the map is open (0: off). A big map draws many l
 L["The game lists no bosses for it."] = "게임에 이 던전의 우두머리 정보가 없습니다."
 L["The map"] = "지도"
 L["The map is off."] = "지도가 꺼져 있습니다."
+L["The map's menu"] = "지도 메뉴"
 L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] = "여섯 대도시 자체 지도 위의 미니맵 세부 묘사입니다. 도시 지도가 앞서도록 최대 절반 강도로 표시합니다. 끄면 도시 자체 지도만 보입니다."
 L["The most the minimap's detail ever shows, at any zoom."] = "어떤 확대 배율에서든 미니맵 세부 묘사가 보이는 최대치입니다."
 L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] = "어떤 확대 배율에서든 미니맵 세부 묘사가 보이는 최대치입니다. 그려진 지도의 세부 묘사가 다하는 곳 너머로 확대하면 미니맵이 이 값까지 점점 더 많이 보입니다."

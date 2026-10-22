@@ -382,6 +382,7 @@ L["The frame rate at most while the map is open (0: off). A big map draws many l
 L["The game lists no bosses for it."] = "游戏中没有列出它的首领。"
 L["The map"] = "地图"
 L["The map is off."] = "地图功能已关闭。"
+L["The map's menu"] = "地图菜单"
 L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] = "六座主城自带地图上的小地图细节，最多为一半强度，让城市平面图为主。关闭：只显示主城自己的地图。"
 L["The most the minimap's detail ever shows, at any zoom."] = "在任何缩放下，小地图细节的最大显示程度。"
 L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] = "在任何缩放下，小地图细节的最大显示程度：放大到手绘地图已没有细节可显示时，小地图会逐渐接替，最多到这个程度。"

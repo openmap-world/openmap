@@ -1,0 +1,10 @@
+<!-- Key bindings: the game's Key Bindings > AddOns > OpenMap. Each runs an action of the map's menu
+     (Panel.lua's OpenMap_Binding), opening the map first if it's closed; their names are set there -->
+<Bindings>
+	<Binding name="OPENMAP_FIND" header="OPENMAP" category="ADDONS">OpenMap_Binding("find")</Binding>
+	<Binding name="OPENMAP_PIN" category="ADDONS">OpenMap_Binding("pin")</Binding>
+	<Binding name="OPENMAP_PINS" category="ADDONS">OpenMap_Binding("pins")</Binding>
+	<Binding name="OPENMAP_QUILL" category="ADDONS">OpenMap_Binding("quill")</Binding>
+	<Binding name="OPENMAP_QUESTLOG" category="ADDONS">OpenMap_Binding("questlog")</Binding>
+	<Binding name="OPENMAP_MENU" category="ADDONS">OpenMap_Binding("menu")</Binding>
+</Bindings>

@@ -382,6 +382,7 @@ L["The frame rate at most while the map is open (0: off). A big map draws many l
 L["The game lists no bosses for it."] = "В данных игры у него нет боссов."
 L["The map"] = "Карта"
 L["The map is off."] = "Карта выключена."
+L["The map's menu"] = "Меню карты"
 L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] = "Детали мини-карты поверх собственных карт шести столиц, не больше чем вполсилы, чтобы план города оставался главным. Выключено: только их собственные карты."
 L["The most the minimap's detail ever shows, at any zoom."] = "Наибольшая видимость деталей мини-карты при любом масштабе."
 L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] = "Наибольшая видимость деталей мини-карты при любом масштабе: когда при приближении у рисованной карты заканчиваются детали, мини-карта постепенно проступает до этого значения."
