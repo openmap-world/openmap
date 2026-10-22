@@ -155,8 +155,10 @@ end
 -- little before it (WARM, of FADE's start: their files load meanwhile) and the tiles fade off them; and
 -- while their files are still coming in (busy) the tiles stay (holding), or the zones' plain parchment,
 -- the first of their files to arrive, showed for a moment between the two
+-- desat: the tiles' own desaturation, the rest of the way from what they're baked at to the setting
+-- (desaturating twice is desaturating once by 1 - (1 - a)(1 - b)), so they serve any Take colour out
 local Baked = { FADE = { 1.2, 1.6 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
-	path = TEX .. "MapZones\\" }
+	path = TEX .. "MapZones\\", desat = 0 }
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
@@ -2538,8 +2540,13 @@ function S.ApplyGrade(strength, desat, unexplored)
 	end
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece)
 	local art = ns.MapZoneArt
-	Baked.use = (art and Baked.frame and strength == art.colorMatch and math.abs(desat - art.desaturate) < 0.001
+	Baked.use = (art and Baked.frame and strength == art.colorMatch and desat >= art.desaturate - 0.001
 		and unexplored ~= "hide" and not Baked.noFills) and true or false
+	local bd = art and math.max(0, (desat - art.desaturate) / (1 - art.desaturate)) or 0
+	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
+		Baked.desat = bd
+		for _, t in ipairs(Baked.tiles) do if t.tex then t.tex:SetDesaturation(bd) end end
+	end
 	if root then
 		appliedDetail = nil
 		ApplyDetail()
@@ -2660,6 +2667,7 @@ function Baked.Cull()
 			t.tex = f:CreateTexture(nil, "ARTWORK")
 			t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
 			t.tex:SetTexCoord(Baked.inset, 1 - Baked.inset, Baked.inset, 1 - Baked.inset)
+			t.tex:SetDesaturation(Baked.desat)
 			Record(t.tex, t.x, t.y, t.size, t.size)
 			t.shown = true
 		end

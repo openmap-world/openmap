@@ -6,7 +6,7 @@ local _, ns = ...
 
 ns.MapZoneArt = {
 	px = 16, size = 512, step = 510,   -- px per world unit; a tile's px, and those of it the world (the rest: its neighbours' edge)
-	desaturate = 0.1, colorMatch = 1,   -- the settings it's baked at
+	desaturate = 0, colorMatch = 1,   -- the settings it's baked at (Stitch.lua desaturates it further)
 	tiles = {   -- i * 256 + j: column i, row j
 		770, 1026, 1282, 1538, 6402, 6658, 6914, 7170, 771, 1027, 1283, 1539, 6147, 6403, 6659, 6915,
 		7171, 772, 1028, 1284, 1540, 1796, 2052, 2308, 2564, 5124, 5380, 5636, 5892, 6148, 6404, 6660,

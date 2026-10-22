@@ -9,6 +9,7 @@ ns.MapChangelog = {
 		"|cff6e2c0aThe quill draws on dungeons' maps|r: with a dungeon's map up, what you draw goes on its picture and is kept with that dungeon, not on the world map behind it (a player's request).",
 		"|cff6e2c0aOnly places you've found|r (the menu's On the map tab, under Places): dungeon entrances, docks and zeppelin towers once you've explored where they are, flight masters once you've learned them. Off unless you turn it on (a player's request).",
 		"|cff6e2c0aTownsfolk from another addon's NPC database|r: an addon with a database in Questie's shape can give it to OpenMap (OpenMapAPI.RegisterTownsfolkProvider, docs/api.md), so townsfolk and rare mobs show without Questie (a player's request).",
+		"|cff6e2c0aSmooth zooming at any Take colour out|r: the zones' fast pre-drawn art was only used at the setting's default (10%); at any other, every zone was drawn from its hundreds of pieces and the frame rate dropped as their detail came in. It's now used at every setting.",
 		"|cff6e2c0aFull screen stays full screen|r, and the quest log you closed stays closed, the next time the map opens: it went back to the window and the quest log each time (a player's report).",
 		"|cff6e2c0aImproves performance|r under Fade icons while zooming no longer stays on show over the menu's other tabs (a player's report).",
 		"|cff6e2c0aRiverglades and Zephras Isle show their levels|r on the zone hover (35-45 and 1-12, from the Warcraft Wiki; a player's report).",

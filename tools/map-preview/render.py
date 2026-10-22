@@ -686,6 +686,7 @@ def render(cu, cv, zoom, path):
             i_, j_ = map(int, f_[:-4].split("_"))
             img_ = np.asarray(Image.open(os.path.join(TEXDIR, "MapZones", f_)).convert("RGBA")).astype(np.float32) / 255
             img_ = np.asarray(Image.fromarray((img_ * 255).astype(np.uint8)).crop((1, 1, ZONE_TILE - 1, ZONE_TILE - 1)).resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
+            img_[..., :3] = desat(img_[..., :3], (ZONE_DESAT - BAKE_DESAT) / (1 - BAKE_DESAT))   # (Stitch.lua's Baked.desat)
             place({"rect": (i_ * T_ / W, (i_ + 1) * T_ / W, j_ * T_ / H, (j_ + 1) * T_ / H)}, img_, None,
                   alpha=1 - (1 - d) ** 2)                 # (Stitch.lua's: as strong as the live layers stacked)
     if USE_GAP and not ZONES_ONLY and not USE_BAKED:
@@ -1545,7 +1546,9 @@ def bake_territory():
 
 ZONE_PX = 16                    # baked zone art: px per world unit (a zone map's own: 4 in the Barrens, 11 most, 22 the smallest; 16 carries zone-fit zooms)
 ZONE_TILE, ZONE_STEP = 512, 510 # ... its tiles, and the world each covers (the other 2 px: its neighbours' edge, for filtering)
-ZONE_DESAT, ZONE_MATCH = 0.1, 1 # the settings it's baked at (Stitch.lua's defaults: desaturate, colorMatch)
+ZONE_DESAT, ZONE_MATCH = 0.1, 1 # Stitch.lua's defaults (desaturate, colorMatch): the preview's
+BAKE_DESAT = 0                  # ... and the desaturation the zones are baked at: none, so the tiles serve any
+                                #  setting (Stitch.lua desaturates them the rest of the way, Baked.desat)
 
 def bake_zones():
     """MapZones/<i>_<j>.blp and Data/ZoneArt.lua: every zone's art as the stitched map draws it at
@@ -1566,19 +1569,19 @@ def bake_zones():
         layers.append((x["rect"], lambda x=x: x["img"], lambda: None, None, 0))   #  Filled gaps off draws the live layers)
     for m in live:                                       # (a frame each, biggest first: base, then its copy)
         g = grade.get(m["id"])
-        layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: terr(m) if g and terr(m) is not None else M_FEATHER, None, ZONE_DESAT))
+        layers.append((m["rect"], lambda m=m: base(m), lambda m=m, g=g: terr(m) if g and terr(m) is not None else M_FEATHER, None, BAKE_DESAT))
         if g and band(m) is not None:
-            layers.append((m["rect"], lambda m=m: base(m), lambda m=m: (terr(m) if terr(m) is not None else M_FEATHER) * band(m), g, ZONE_DESAT))
+            layers.append((m["rect"], lambda m=m: base(m), lambda m=m: (terr(m) if terr(m) is not None else M_FEATHER) * band(m), g, BAKE_DESAT))
     def edge_of(m): return over_edge(m) if grade.get(m["id"]) else M_THIN   # (Stitch.lua: MapEdge for graded zones)
     for m in live:                                       # (overlayRoot: every zone's overlays, then their copies)
-        layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m), None, ZONE_DESAT))
+        layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m), None, BAKE_DESAT))
     for m in live:
         g = grade.get(m["id"])
         if g and band(m) is not None:
-            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * band(m), g, ZONE_DESAT))
+            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * band(m), g, BAKE_DESAT))
     for m in live:                                       # (coreRoot: the interiors, graded zones only)
         if grade.get(m["id"]) and os.path.exists(os.path.join(TEXDIR, "MapCore", "%d.tga" % m["id"])):
-            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, ZONE_DESAT))
+            layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, BAKE_DESAT))
     out_dir = os.path.join(TEXDIR, "MapZones")
     os.makedirs(out_dir, exist_ok=True)
     for f in os.listdir(out_dir):
@@ -1630,7 +1633,7 @@ def bake_zones():
         f.write("local _, ns = ...\n\n")
         f.write("ns.MapZoneArt = {\n")
         f.write("\tpx = %d, size = %d, step = %d,   -- px per world unit; a tile's px, and those of it the world (the rest: its neighbours' edge)\n" % (ZONE_PX, ZONE_TILE, ZONE_STEP))
-        f.write("\tdesaturate = %g, colorMatch = %g,   -- the settings it's baked at\n" % (ZONE_DESAT, ZONE_MATCH))
+        f.write("\tdesaturate = %g, colorMatch = %g,   -- the settings it's baked at (Stitch.lua desaturates it further)\n" % (BAKE_DESAT, ZONE_MATCH))
         f.write("\ttiles = {   -- i * 256 + j: column i, row j\n")
         for k in range(0, len(made), 16):
             f.write("\t\t" + ", ".join(str(v_) for v_ in made[k:k + 16]) + ",\n")

@@ -17,6 +17,9 @@
 
 ### Fixed
 
+- **Smooth zooming at any Take colour out**: the zones' fast pre-drawn art was only used at the
+  setting's default (10%); at any other, every zone was drawn from its hundreds of pieces and the
+  frame rate dropped as their detail came in. It's now used at every setting.
 - **Full screen stays full screen**, and the quest log you closed stays closed, the next time the
   map opens: it went back to the window and the quest log each time (a player's report).
 - **Improves performance** under Fade icons while zooming no longer stays on show over the menu's
