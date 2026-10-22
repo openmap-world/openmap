@@ -234,15 +234,17 @@ local function Rows()
 			function() return db.entranceClick == "journal" end,
 			function(v) db.entranceClick = v and "journal" or "map" if ns.NotifyOptions then ns.NotifyOptions() end end)
 	end
-	-- (they all come from Questie's NPC database: without Questie, only the heading, saying so)
-	rows[#rows + 1] = { questie and L["Townsfolk"] or L["Townsfolk (needs Questie)"] }
+	-- (they all come from Questie's NPC database, or one like it another addon gives: without, only the
+	-- heading, saying so)
+	local folkDB = mod.HasTownsfolk and mod.HasTownsfolk()
+	rows[#rows + 1] = { folkDB and L["Townsfolk"] or L["Townsfolk (needs Questie)"] }
 	local kinds = {}
 	for _, k in ipairs(mod.TOWNSFOLK or {}) do kinds[k.key] = k end
 	local function folk(label, key)
 		return row(label, "townsfolk." .. key, kinds[key] and kinds[key].look or Icon("INV_Misc_QuestionMark"),
 			function() return db.townsfolk[key] end, function(v) db.townsfolk[key] = v mod:RefreshTownsfolk() end)
 	end
-	if questie then
+	if folkDB then
 		for _, k in ipairs(mod.TOWNSFOLK or {}) do
 			if not k.rare and k.key ~= "spirit" then rows[#rows + 1] = folk(k.name, k.key) end
 		end

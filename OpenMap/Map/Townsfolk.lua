@@ -1,6 +1,7 @@
 --------------------------------------------------------------------------------
 -- Townsfolk and rare mobs on the world map, from Questie's NPC database
--- (npcFlags, rank, spawns). Each kind is a pin set, built the first time it's
+-- (npcFlags, rank, spawns), or another addon's database of the same shape
+-- (OpenMapAPI.RegisterTownsfolkProvider). Each kind is a pin set, built the first time it's
 -- turned on (a few hundred NPCs a frame, so nothing stalls).
 --------------------------------------------------------------------------------
 
@@ -48,7 +49,30 @@ local tries = 0                 -- retries while Questie's database loads
 local RANK = { [2] = ns.L["Rare Elite"], [4] = ns.L["Rare"] }
 local told = false              -- said once this session that Questie isn't installed
 
+-- another addon's NPC database in Questie's shape (OpenMapAPI.RegisterTownsfolkProvider): { db, zones,
+-- mailboxes = fn(faction "A" / "H") -> object IDs (optional) }
+local provider
+function mod.SetTownsfolkProvider(p)
+	provider = p
+	for k in pairs(built) do
+		built[k] = nil
+		local set = S.GetPinSet("tf_" .. k)
+		if set then S.ClearPinSet(set) end
+	end
+	tries = 0
+	if mod.RefreshPanel then mod:RefreshPanel() end
+	mod:RefreshTownsfolk()
+end
+
+-- whether there's a database to read: Questie's, or one given (a player's own: Questie's database
+-- without Questie)
+function mod.HasTownsfolk()
+	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+	return provider ~= nil or _G.QuestieLoader ~= nil or (loaded and loaded("Questie")) and true or false
+end
+
 local function Questie()
+	if provider then return provider.db, provider.zones end
 	local loader = _G.QuestieLoader
 	if not loader then return end
 	local ok, db = pcall(loader.ImportModule, loader, "QuestieDB")
@@ -99,6 +123,15 @@ local function Build(kinds, done)
 	-- the mailboxes, all at once (a few dozen objects): your faction's, as Questie sorts them, or
 	-- every one where it can't
 	local function Mailboxes(k)
+		if provider then
+			if not (provider.mailboxes and QDB.QueryObjectSingle) then return end
+			local info = { name = MINIMAP_TRACKING_MAILBOX or "Mailbox" }
+			for _, id in ipairs(provider.mailboxes(faction) or {}) do
+				local spawns = QDB.QueryObjectSingle(id, "spawns")
+				if spawns then Pins(k, spawns, info) end
+			end
+			return
+		end
 		local folk = _G.QuestieLoader and select(2, pcall(_G.QuestieLoader.ImportModule, _G.QuestieLoader, "Townsfolk"))
 		if type(folk) ~= "table" or not folk.GetMailboxes or not QDB.QueryObjectSingle then return end
 		local list
@@ -192,8 +225,7 @@ function mod:RefreshTownsfolk()
 	end
 	if #todo == 0 or building then return end
 	-- no Questie at all (not just its database still loading): nothing to wait for
-	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-	if loaded and not loaded("Questie") then
+	if not mod.HasTownsfolk() then
 		if not told then
 			told = true
 			ns:Print(ns.L["World map: townsfolk and rare mobs come from Questie's database. Install and enable Questie to see them."])

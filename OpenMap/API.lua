@@ -19,7 +19,7 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 
-local API = { major = 1, version = 3 }
+local API = { major = 1, version = 4 }
 OpenMapAPI = API
 
 local CBH = LibStub and LibStub("CallbackHandler-1.0", true)
@@ -126,6 +126,20 @@ function API.RegisterDungeonSection(owner, fn)
 	end
 	sections[owner] = fn
 	if mod.RefreshDungeonCard then mod.RefreshDungeonCard() end
+end
+
+-- (version 4) townsfolk and rare mobs from your NPC database, in Questie's shape, for players without
+-- Questie (with it too: yours is used): provider = { db = { NPCPointers = { [npcID] = ... }, npcFlags = {
+-- VENDOR = bit, ... }, QueryNPCSingle = fn(npcID, field), QueryObjectSingle = fn(objectID, field) (for
+-- mailboxes) }, zones = { GetUiMapIdByAreaId = fn(self, areaID) }, mailboxes = fn("A" | "H") -> { objectID,
+-- ... } (optional) }. nil takes yours off. See docs/api.md
+function API.RegisterTownsfolkProvider(owner, provider)
+	if type(owner) ~= "string" or (provider ~= nil and (type(provider) ~= "table" or type(provider.db) ~= "table"
+		or type(provider.zones) ~= "table" or type(provider.db.QueryNPCSingle) ~= "function"
+		or type(provider.db.NPCPointers) ~= "table" or type(provider.zones.GetUiMapIdByAreaId) ~= "function")) then
+		error("OpenMapAPI.RegisterTownsfolkProvider(owner, { db = { NPCPointers, npcFlags, QueryNPCSingle [, QueryObjectSingle] }, zones = { GetUiMapIdByAreaId } [, mailboxes] })", 2)
+	end
+	if mod.SetTownsfolkProvider then mod.SetTownsfolkProvider(provider) end
 end
 
 -- for Panel.lua: the toggles, as its checklist's rows (each tab's under its section's heading)

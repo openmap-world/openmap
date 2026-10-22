@@ -111,4 +111,30 @@ It's shown on the card OpenMap puts on a dungeon's map, after OpenMap's own boss
 whenever the card is filled. Keep it quick: it runs on the map's change. Pass `nil` as the function
 to take it off.
 
+### Townsfolk from your own NPC database
+
+(version 4) OpenMap's townsfolk and rare mobs (On the map > Townsfolk) come from Questie's NPC
+database. An addon with a database of the same shape can give it instead, so players without Questie
+get them too:
+
+```lua
+OM.RegisterTownsfolkProvider("MyNPCs", {
+	db = {
+		NPCPointers = MyNPCs.byID,          -- [npcID] = anything: the NPCs to go through
+		npcFlags = MyNPCs.flags,            -- { VENDOR = bit, REPAIR = bit, INNKEEPER = bit, BANKER = bit,
+		                                    --   AUCTIONEER = bit, STABLEMASTER = bit, TRAINER = bit }
+		QueryNPCSingle = function(npcID, field) return MyNPCs:Get(npcID, field) end,
+		-- fields read: "name", "subName", "npcFlags", "rank" (2 rare elite, 4 rare), "minLevel",
+		-- "maxLevel", "friendlyToFaction" ("A", "H", "AH"), "spawns" ({ [areaID] = { { x, y }, ... },
+		-- x and y 0..100)
+		QueryObjectSingle = function(objectID, field) return MyNPCs:GetObject(objectID, field) end,   -- optional ("spawns": mailboxes)
+	},
+	zones = { GetUiMapIdByAreaId = function(self, areaID) return MyNPCs.uiMapOf[areaID] end },
+	mailboxes = function(faction) return MyNPCs.mailboxes[faction] end,   -- optional: object IDs, faction "A" or "H"
+})
+```
+
+Questie's own `QuestieDB` and `ZoneDB` modules have this shape. Yours is used whenever it's
+registered, Questie or not; pass `nil` to take it off.
+
 Errors in your functions are reported (the game's error handler) and don't break the map.
