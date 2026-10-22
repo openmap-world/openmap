@@ -2,9 +2,11 @@
 
 ## Unreleased
 
+## v0.7.3-beta (2026-10-22)
+
 ### New
 
-- **Key bindings** (the game's Keybindings > OpenMap, or search "OpenMap"): Find me, Drop a pin, Pins, Quill,
+- **Key bindings** (the game's Keybindings > OpenMap): Find me, Drop a pin, Pins, Quill,
   Quest log and the map's menu, each opening the map first if it's closed (players' requests).
 - **The quill draws on dungeons' maps**: with a dungeon's map up, what you draw goes on its picture
   and is kept with that dungeon, not on the world map behind it (a player's request).

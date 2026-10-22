@@ -4,8 +4,8 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "New", [5] = "Fixed", }, items = {
-		"|cff6e2c0aKey bindings|r (the game's Keybindings > OpenMap, or search \"OpenMap\"): Find me, Drop a pin, Pins, Quill, Quest log and the map's menu, each opening the map first if it's closed (players' requests).",
+	{ version = "v0.7.3-beta", date = "2026-10-22", heads = { [1] = "New", [5] = "Fixed", }, items = {
+		"|cff6e2c0aKey bindings|r (the game's Keybindings > OpenMap): Find me, Drop a pin, Pins, Quill, Quest log and the map's menu, each opening the map first if it's closed (players' requests).",
 		"|cff6e2c0aThe quill draws on dungeons' maps|r: with a dungeon's map up, what you draw goes on its picture and is kept with that dungeon, not on the world map behind it (a player's request).",
 		"|cff6e2c0aOnly places you've found|r (the menu's On the map tab, under Places): dungeon entrances, docks and zeppelin towers once you've explored where they are, flight masters once you've learned them. Off unless you turn it on (a player's request).",
 		"|cff6e2c0aTownsfolk from another addon's NPC database|r: an addon with a database in Questie's shape can give it to OpenMap (OpenMapAPI.RegisterTownsfolkProvider, docs/api.md), so townsfolk and rare mobs show without Questie (a player's request).",
