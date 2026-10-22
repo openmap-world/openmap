@@ -85,6 +85,8 @@
  "Click to open its map": "点击打开其地图",
  "Click to pick one and open its map": "点击选择一个并打开其地图",
  "Click to see loot in NeedRoll": "点击在NeedRoll中查看战利品",
+ "Only places you've found": "仅显示已发现的地点",
+ "Dungeons, boats and zeppelins only once you've explored where they are, and flight masters only once you've learned them.": "地下城、船只和飞艇只在你探索过其所在区域后显示，飞行管理员只在你发现后显示。",
  "The map's menu": "地图菜单",
  "Improves performance": "提升性能",
  "Only for this character": "仅限此角色",

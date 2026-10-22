@@ -32,6 +32,7 @@ local mod = ns:NewModule("worldmap", {
 		iconScale = 1,          -- OpenMap's icons at this times their own size (ICON_SCALE)
 		darkening = 1,          -- how dark darkened unexplored areas are (0..1 of the full shade)
 		routes = false,         -- boat and zeppelin routes
+		foundOnly = false,      -- dungeons, docks and towers only once explored there; flight masters once learned
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
@@ -1256,6 +1257,8 @@ function mod:Refresh()
 	if S.RefreshRoutes then S.RefreshRoutes() end
 	S.SetPlayerHidden(self.db.playerArrow == false)
 	S.SetPlacesFrom(self.db.iconsFrom)
+	S.SetFoundOnly(self.db.foundOnly)
+	if self.RefreshFlightsFound then self.RefreshFlightsFound() end
 	S.SetIconScale(self.db.iconScale or 1)
 	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
 	if S.SetDarkening then S.SetDarkening(self.db.darkening or 1) end
@@ -1388,6 +1391,8 @@ function mod:Options()
 			desc = ns.L["Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown."] },
 		flight = { type = "toggle", name = ns.L["Flight masters"], order = 32, get = get, set = set,
 			disabled = off },
+		foundOnly = { type = "toggle", name = ns.L["Only places you've found"], order = 32.5, get = get, set = set, disabled = off,
+			desc = ns.L["Dungeons, boats and zeppelins only once you've explored where they are, and flight masters only once you've learned them."] },
 		iconsFrom = { type = "range", name = ns.L["Icons from zoom"], order = 33.5, min = ICONS_FROM[1], max = ICONS_FROM[2], step = ICONS_FROM[3],
 			get = get, set = set, disabled = off,
 			desc = ns.L["The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show."] },

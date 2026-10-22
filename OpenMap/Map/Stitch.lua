@@ -1040,6 +1040,7 @@ local function BuildPins()
 		end
 	end
 	S.stats.pins = #pins
+	S.RefreshFound()
 
 	if S.BuildRoutes then S.BuildRoutes() end     -- Routes.lua
 end
@@ -2903,4 +2904,44 @@ function S.RefreshExplored()
 	if cities.Refresh() then changed = true end
 	if changed then Shade.Places.Refresh() end
 	if changed and lastGrade then S.ApplyGrade(unpack(lastGrade)) end
+	if changed then S.RefreshFound() end
+end
+
+-- Only places you've found (the menu's): a dungeon's entrance, a dock or a zeppelin tower shown once
+-- you've explored the zone's land where it is (or a little round it: a dock stands in the water), as
+-- Blizzard's own map reveals it; one in no zone always (a player's request)
+function places.Found(u, v)
+	local chain = S.ChainAt(u, v)
+	local zone = chain[#chain]
+	if #chain < 3 then return true end
+	local l, r, t, b = S.Rect(zone)
+	if not l then return true end
+	local x, y = (u - l) / (r - l), (v - t) / (b - t)
+	local at = C_MapExplorationInfo and C_MapExplorationInfo.GetExploredAreaIDsAtPosition
+	if not at then return true end
+	for _, o in ipairs({ { 0, 0 }, { 0.015, 0 }, { -0.015, 0 }, { 0, 0.015 }, { 0, -0.015 } }) do
+		local ok, areas = pcall(at, zone, CreateVector2D(x + o[1], y + o[2]))
+		if ok and type(areas) == "table" and #areas > 0 then return true end
+	end
+	return false
+end
+
+function S.SetFoundOnly(on)
+	on = on and true or false
+	if places.foundOnly == on then return end
+	places.foundOnly = on
+	S.RefreshFound()
+end
+
+function S.RefreshFound()
+	for _, pin in ipairs(pins) do
+		if pin.u then
+			if places.foundOnly then
+				if pin.found == nil or not pin.found then pin.found = places.Found(pin.u, pin.v) end
+				pin:SetShown(pin.found)
+			else
+				pin:Show()
+			end
+		end
+	end
 end

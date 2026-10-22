@@ -85,6 +85,8 @@
  "Click to open its map": "클릭하면 지도를 엽니다",
  "Click to pick one and open its map": "클릭하여 하나를 골라 지도를 엽니다",
  "Click to see loot in NeedRoll": "클릭하면 NeedRoll에서 전리품을 봅니다",
+ "Only places you've found": "발견한 장소만",
+ "Dungeons, boats and zeppelins only once you've explored where they are, and flight masters only once you've learned them.": "던전, 배, 비행선은 그곳을 탐험한 뒤에만, 비행 조련사는 발견한 뒤에만 표시합니다.",
  "The map's menu": "지도 메뉴",
  "Improves performance": "성능 향상",
  "Only for this character": "이 캐릭터에만 적용",

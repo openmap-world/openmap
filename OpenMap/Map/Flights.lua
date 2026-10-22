@@ -56,6 +56,7 @@ local function RefreshLook()
 	ReadFound()
 	for id, pin in pairs(pins) do
 		local known = Known(id)
+		pin:SetShown(known or not mod.db.foundOnly)   -- (Only places you've found: learned ones only)
 		pin.Icon:SetDesaturated(not known)
 		pin.Icon:SetAlpha(known and 1 or 0.55)
 		pin:SetSize(known and 18 or 14, known and 18 or 14)
@@ -284,6 +285,7 @@ function mod:BuildFlights()
 end
 
 function mod:ClearFlightRoute() ClearRoute() end
+function mod.RefreshFlightsFound() if set then RefreshLook() end end
 
 function mod:SetupFlights()
 	ns.RegisterEvent(mod, "TAXIMAP_OPENED", OnTaxiMap)
