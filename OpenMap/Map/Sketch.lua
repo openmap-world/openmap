@@ -589,7 +589,12 @@ end
 
 --------------------------------------------------------------------------------
 
-function mod:IsSketching() return drawing end
+function mod:IsSketching() return drawing or (mod.DungeonDrawing and mod.DungeonDrawing()) or false end
+-- the ink chosen, as { r, g, b } (Dungeons.lua's pen on a dungeon's map)
+function mod.SketchInk()
+	local ink = INKS[mod.db.sketch.ink] or INKS[1]
+	return { ink[2], ink[3], ink[4] }
+end
 function mod.SketchPin() return drawing and forPin or nil end
 
 -- the quill up (on) or down; `pin`: what's drawn is attached to that map pin, and `dock` (its card) has
@@ -597,6 +602,13 @@ function mod.SketchPin() return drawing and forPin or nil end
 -- (Report.lua): { head, title, done (its Done button's name), doneTip, onEnd = fn(strokes, finished) },
 -- its strokes its own, never kept; onEnd gets them as the quill goes down (finished: by its Done)
 function mod:ToggleSketch(on, pin, dock, sess)
+	-- (a dungeon's map up: the quill draws on its picture, kept with it: Dungeons.lua)
+	if not pin and not sess and not drawing and mod.DungeonViewShown and mod.DungeonViewShown() and mod.DungeonDraw then
+		if on == nil then on = not mod.DungeonDrawing() end
+		mod.DungeonDraw(on)
+		if mod.RefreshPanel then mod:RefreshPanel() end
+		return
+	end
 	if on == nil then on = not drawing end
 	if not map then return end
 	if on and not map:IsShown() then

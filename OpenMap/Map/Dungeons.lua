@@ -612,28 +612,46 @@ end
 -- Markup: drawing on a dungeon's map for a report (Report.lua). Red pen lines on the floor's
 -- picture, in its own measure (0..1 across and down, so they keep their place as it zooms and pans),
 -- each on the floor it was drawn on. A left-drag draws, a right-drag pans; its bar: Undo, Next, Cancel.
+-- The quill on a dungeon's map (a player's request: what was drawn went on the world map) is the same
+-- pen, in the quill's ink, kept: the sketch's dungeons[instance] (shown with Your drawings); its bar:
+-- Undo, Clear, Done.
 --------------------------------------------------------------------------------
 
 local MARK_STEP = 3             -- px the cursor moves before the pen adds a point
 local MARK_MAX = 300            -- points in one line
 local MARK_INK = { 0.92, 0.18, 0.14 }
 
+-- the quill's drawings on this dungeon's map (the sketch's dungeons, by the instance's map ID)
+local function Kept(make)
+	local sk = mod.db.sketch
+	local inst = view.inst
+	local key = inst and (inst[1] ~= 0 and inst[1] or inst[2])   -- (0: WoW Forever's own, by name)
+	if not (sk and key) then return end
+	if make then sk.dungeons = sk.dungeons or {} end
+	local all = sk.dungeons
+	if make and not all[key] then all[key] = {} end
+	return all and all[key]
+end
+
 PlaceMarks = function(pw, ph)
+	view.markLines = view.markLines or {}
 	local lines = view.markLines
-	if not lines then return end
+	local list = view.markup and view.markup.strokes or view.heldMarks
+		or (mod.db.sketchShown ~= false and Kept()) or {}
 	local n = 0
-	for _, st in ipairs(view.markup and view.markup.strokes or view.heldMarks or {}) do
+	for _, st in ipairs(list) do
 		if st.floor == view.floor then
 			local p = st.pts
+			local ink = st.ink or MARK_INK
 			for k = 1, #p - 3, 2 do
 				n = n + 1
 				local line = lines[n]
 				if not line then
 					line = view.page:CreateLine(nil, "OVERLAY")
-					line:SetColorTexture(MARK_INK[1], MARK_INK[2], MARK_INK[3], 1)
 					line:SetThickness(3)
 					lines[n] = line
 				end
+				line:SetColorTexture(ink[1], ink[2], ink[3], 1)
 				line:SetStartPoint("TOPLEFT", view.page, p[k] * pw, -p[k + 1] * ph)
 				line:SetEndPoint("TOPLEFT", view.page, p[k + 2] * pw, -p[k + 3] * ph)
 				line:Show()
@@ -666,7 +684,7 @@ local function MarkStart()
 	local m = view.markup
 	local px, py = PageAt()
 	if not m or not px then return end
-	local st = { floor = view.floor, pts = { Round4(px), Round4(py) } }
+	local st = { floor = view.floor, pts = { Round4(px), Round4(py) }, ink = m.ink }
 	m.strokes[#m.strokes + 1] = st
 	local x, y = GetCursorPosition()
 	m.live = { st = st, x = x, y = y }
@@ -739,11 +757,56 @@ local function MarkBar()
 	return bar
 end
 
+-- the quill's bar on a dungeon's map: what to do, Undo, Clear, Done
+local function DrawBar()
+	if view.drawBar then return view.drawBar end
+	local bar = CreateFrame("Frame", nil, view)
+	bar:SetPoint("TOP", view.port, "TOP", 0, -6)
+	bar:SetSize(560, 38)
+	bar:SetFrameLevel(view:GetFrameLevel() + 30)
+	bar:EnableMouse(true)
+	Look:Panel(bar, { inset = 0, alpha = 0.92 })
+	local text = Look:Font(bar:CreateFontString(nil, "OVERLAY"), 12)
+	text:SetPoint("LEFT", 10, 0)
+	text:SetText(L["Draw on this dungeon's map (right-drag pans)"])
+	local function Btn(label, x, fn)
+		local b = CreateFrame("Button", nil, bar, "UIPanelButtonTemplate")
+		b:SetSize(70, 24)
+		b:SetPoint("RIGHT", x, 0)
+		b:SetText(label)
+		b:SetScript("OnClick", fn)
+		return b
+	end
+	Btn(L["Done"], -8, function() EndMarkup(false) end)
+	Btn(L["Clear"], -82, function()
+		local m = view.markup
+		if not m then return end
+		for i = #m.strokes, 1, -1 do if m.strokes[i].floor == view.floor then tremove(m.strokes, i) end end
+		RedrawMarks()
+	end)
+	Btn(L["Undo"], -156, function()
+		local m = view.markup
+		if not m then return end
+		for i = #m.strokes, 1, -1 do if m.strokes[i].floor == view.floor then tremove(m.strokes, i) break end end
+		RedrawMarks()
+	end)
+	mod.padRoots[#mod.padRoots + 1] = bar      -- (the gamepad's cursor presses its buttons: Gamepad.lua)
+	view.drawBar = bar
+	return bar
+end
+
 EndMarkup = function(finished)
 	local m = view and view.markup
 	if not m then return end
 	view.markup = nil
 	if view.markBar then view.markBar:Hide() end
+	if view.drawBar then view.drawBar:Hide() end
+	if m.keep then                              -- (the quill's: already kept, as drawn)
+		RedrawMarks()
+		if mod.OnSketchChanged then mod.OnSketchChanged() end
+		if mod.RefreshPanel then mod:RefreshPanel() end
+		return
+	end
 	view.heldMarks = finished and m.strokes or nil   -- (Next: still shown while the note's written; else gone)
 	RedrawMarks()
 	local place = finished and { inst = view.inst[1], u = view.fromU, v = view.fromV } or nil
@@ -757,6 +820,24 @@ function mod.DungeonMarkupRelease()
 		RedrawMarks()
 	end
 end
+
+-- the quill on the dungeon's map shown (Sketch.lua's ToggleSketch, while one is): on or off
+function mod.DungeonDraw(on)
+	if not view then return end
+	if not on then
+		if view.markup and view.markup.keep then EndMarkup(false) end
+		return
+	end
+	if not view:IsShown() then return end
+	EndMarkup(false)
+	view.MarkStart, view.MarkMove, view.MarkFinish = MarkStart, MarkMove, MarkFinish
+	view.markup = { strokes = Kept(true), keep = true, ink = mod.SketchInk and mod.SketchInk() }
+	view.hint:Hide()
+	DrawBar():Show()
+	RedrawMarks()
+	if mod.OnSketchChanged then mod.OnSketchChanged() end
+end
+function mod.DungeonDrawing() return view and view.markup and view.markup.keep and true or false end
 
 -- Report.lua's: on (with onEnd(strokes, place, finished), as the markup ends), or off (no report)
 function mod.DungeonMarkup(on, onEnd)
