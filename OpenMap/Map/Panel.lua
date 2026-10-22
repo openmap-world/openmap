@@ -1468,13 +1468,12 @@ end
 
 -- Key bindings (Bindings.xml, the game's Key Bindings > AddOns): an action of the menu's by its id,
 -- opening the map first if it's closed (a player's request: a key for Find me)
-_G.BINDING_HEADER_OPENMAP = "OpenMap"
-_G.BINDING_NAME_OPENMAP_FIND = L["Find me"]
-_G.BINDING_NAME_OPENMAP_PIN = L["Drop a pin"]
-_G.BINDING_NAME_OPENMAP_PINS = L["Pins"]
-_G.BINDING_NAME_OPENMAP_QUILL = L["Quill"]
-_G.BINDING_NAME_OPENMAP_QUESTLOG = L["Quest log"]
-_G.BINDING_NAME_OPENMAP_MENU = L["The map's menu"]
+-- (in a section of their own, each named OpenMap: ..., so the bindings' search finds them: in the AddOns
+-- section, under a header, they were hard to find)
+for key, text in pairs({ FIND = L["Find me"], PIN = L["Drop a pin"], PINS = L["Pins"], QUILL = L["Quill"],
+	QUESTLOG = L["Quest log"], MENU = L["The map's menu"] }) do
+	_G["BINDING_NAME_OPENMAP_" .. key] = "OpenMap: " .. text
+end
 function _G.OpenMap_Binding(id)
 	if not (mod.enabled and menu) then return end
 	if id == "menu" then mod:OpenMenu() return end
