@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### New
+
+- **Key bindings** (the game's Key Bindings > AddOns > OpenMap): Find me, Drop a pin, Pins, Quill,
+  Quest log and the map's menu, each opening the map first if it's closed (players' requests).
+- **The quill draws on dungeons' maps**: with a dungeon's map up, what you draw goes on its picture
+  and is kept with that dungeon, not on the world map behind it (a player's request).
+- **Only places you've found** (the menu's On the map tab, under Places): dungeon entrances, docks
+  and zeppelin towers once you've explored where they are, flight masters once you've learned them.
+  Off unless you turn it on (a player's request).
+- **Townsfolk from another addon's NPC database**: an addon with a database in Questie's shape can
+  give it to OpenMap (`OpenMapAPI.RegisterTownsfolkProvider`, docs/api.md), so townsfolk and rare
+  mobs show without Questie (a player's request).
+
+### Fixed
+
+- **Full screen stays full screen**, and the quest log you closed stays closed, the next time the
+  map opens: it went back to the window and the quest log each time (a player's report).
+- **Improves performance** under Fade icons while zooming no longer stays on show over the menu's
+  other tabs (a player's report).
+- **Riverglades and Zephras Isle show their levels** on the zone hover (35-45 and 1-12, from the
+  Warcraft Wiki; a player's report).
+
 ## v0.7.2-beta (2026-10-21)
 
 ### Improved
