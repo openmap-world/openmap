@@ -289,6 +289,29 @@ function mod:SetupWindow(worldMap)
 	end
 	if map.Maximize then hooksecurefunc(map, "Maximize", Mode) end
 	if map.Minimize then hooksecurefunc(map, "Minimize", Mode) end
+	-- Full screen or windowed, and the quest log beside it, kept for next time: Blizzard opens the map as
+	-- its CVars say (miniWorldMap, questLogOpen), and on this client its buttons don't always write them, so
+	-- the map went back to the window each time it was closed (a player's report). Only the CVars: Blizzard's
+	-- own code, opening the map, does the rest
+	local function Keep(cvar, value)
+		local ok, now = pcall(GetCVar, cvar)
+		if ok and now ~= nil and now ~= value then pcall(SetCVar, cvar, value) end
+	end
+	if map.HandleUserActionMaximizeSelf then
+		hooksecurefunc(map, "HandleUserActionMaximizeSelf", function() Keep("miniWorldMap", "0") end)
+	end
+	if map.HandleUserActionMinimizeSelf then
+		hooksecurefunc(map, "HandleUserActionMinimizeSelf", function() Keep("miniWorldMap", "1") end)
+	end
+	for _, name in ipairs({ "HandleUserActionToggleSidePanel", "HandleUserActionOpenSidePanel", "HandleUserActionCloseSidePanel" }) do
+		if map[name] then
+			hooksecurefunc(map, name, function()
+				if Maximized() then return end      -- (full screen hides it: OpenMap's maxQuestLog keeps that one)
+				local log = map.QuestLog
+				if log then Keep("questLogOpen", log:IsShown() and "1" or "0") end
+			end)
+		end
+	end
 	-- The windowed map stays open beside other windows (talking to an NPC, a vendor ...): the game lays
 	-- its windows out side by side and puts one away to make room, but not a window that's been moved
 	-- off its place (Edit Mode marks such a frame `editModeManuallyShown`: it's then shown and hidden
