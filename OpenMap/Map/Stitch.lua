@@ -1920,8 +1920,9 @@ end
 -- zones' files waiting to be set, a few each frame (LOAD_PER_FRAME), so a zone coming into
 -- view (or the map opening on one) doesn't stall a frame setting them all at once
 -- Each fades in as it gets its file (LOAD_FADE), not popping in (the file itself streams in
--- over a few frames)
-local LOAD_PER_FRAME = 40
+-- over a few frames). A long queue (the map opening on a zone up close: a thousand and more) is
+-- set over its frames at the most, not 40 a frame (in testing: two seconds for the detail to come in)
+local LOAD_PER_FRAME = { 40, frames = 6, most = 300 }   -- (one local: the file is at Lua's limit of 200)
 local LOAD_FADE = 0.3           -- seconds
 local loadQueue, loadAt = {}, 1
 local fading, fadingN = {}, 0   -- texture -> when it got its file
@@ -1931,7 +1932,9 @@ loader:SetScript("OnUpdate", function(self)
 	-- (files wanted since the zoom last changed, by a pan or a cull: the tiles held over them too)
 	if Baked.busy and Baked.use and not Baked.holding then ApplyDetail() end
 	local n, now = 0, GetTime()
-	while loadAt <= #loadQueue and n < LOAD_PER_FRAME do
+	local L_ = LOAD_PER_FRAME
+	local most = math.min(L_.most, math.max(L_[1], math.ceil((#loadQueue - loadAt + 1) / L_.frames)))
+	while loadAt <= #loadQueue and n < most do
 		local tex = loadQueue[loadAt]
 		loadAt = loadAt + 1
 		if tex.omFile then
