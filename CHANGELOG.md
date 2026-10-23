@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v0.7.4-beta (2026-10-23)
+
 ### New
 
 - **Chat over the full-screen map** (the menu's Look tab, and Options): the chat windows stay on show
@@ -10,6 +12,8 @@
 - **Faster to load**: only your language's translations are read (the other nine were a quarter of
   OpenMap's code), and its look through every addon's map icons for combat waits till you're in the
   world, not the loading screen (a player's report: half a second more load time).
+- **The zones' detail comes in sooner** when the map first opens up close: it took a couple of
+  seconds after a login or reload.
 - **`/openmap status` says what loading costs**: OpenMap's files, the login, the map's setup and
   building the map (a player found it added load time: this shows where).
 
