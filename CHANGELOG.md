@@ -2,8 +2,12 @@
 
 ## Unreleased
 
+## v0.7.5-beta (2026-10-23)
+
 ### Fixed
 
+- **The map's art is there at once when you open it**: since 0.7.4 the zones showed blank parchment
+  for a moment each time the map opened.
 - **Clicking a quest on the map keeps the map as it is**: the quest is tracked and the map zooms in on
   it, full screen or windowed. It opened the quest's details, which Blizzard shows in the windowed
   map, so a full-screen map left full screen. With the quest log open beside the map, its details

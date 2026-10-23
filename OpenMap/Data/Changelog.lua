@@ -4,7 +4,8 @@
 local _, ns = ...
 
 ns.MapChangelog = {
-	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+	{ version = "v0.7.5-beta", date = "2026-10-23", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aThe map's art is there at once when you open it|r: since 0.7.4 the zones showed blank parchment for a moment each time the map opened.",
 		"|cff6e2c0aClicking a quest on the map keeps the map as it is|r: the quest is tracked and the map zooms in on it, full screen or windowed. It opened the quest's details, which Blizzard shows in the windowed map, so a full-screen map left full screen. With the quest log open beside the map, its details show there too.",
 		"|cff6e2c0aHiding your pins hides their drawings too|r (the menu's Pins, right-clicked): what you drew on a pin stayed on the map without it.",
 	} },
