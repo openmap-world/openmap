@@ -15,6 +15,7 @@
 --------------------------------------------------------------------------------
 
 local ADDON, ns = ...
+if ns.loadMs.start then ns.loadMs.files = debugprofilestop() - ns.loadMs.start end
 
 local function Options()
 	local mod = ns:GetModule("worldmap")
@@ -68,7 +69,9 @@ boot:SetScript("OnEvent", function(self, event, name)
 		ns:InitDB()
 		self:UnregisterEvent("ADDON_LOADED")
 	elseif event == "PLAYER_LOGIN" then
+		local t0 = debugprofilestop and debugprofilestop()
 		ns:EnableModules()
+		if t0 then ns.loadMs.login = debugprofilestop() - t0 end
 		local AC = LibStub("AceConfig-3.0", true)
 		if AC then AC:RegisterOptionsTable("OpenMap", Options) end
 		-- a page in Blizzard's settings that opens the options window

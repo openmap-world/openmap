@@ -628,6 +628,7 @@ end
 -- zoom levels from the whole world to street level, in this map's scale
 local function OnCreateZoomLevels(self)
 	if not S.IsBuilt() then
+		local t0 = debugprofilestop and debugprofilestop()
 		local fl = map:GetPinFrameLevelsManager()
 		S.Build(map:GetCanvas(), fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_STITCH"), ART_RANGE,
 			fl:GetValidFrameLevel("PIN_FRAME_LEVEL_OPENMAP_ICONS"))
@@ -637,6 +638,7 @@ local function OnCreateZoomLevels(self)
 		if mod.BuildNav then mod:BuildNav() end
 		if mod.BuildMapPins then mod:BuildMapPins() end
 		mod:Refresh()
+		if t0 then ns.loadMs.build, ns.loadMs.builtShown = debugprofilestop() - t0, map:IsShown() end
 	end
 	Attach(self.mapID)
 	if not active then return end
@@ -908,7 +910,16 @@ local function OnBlizzardPinAction(_, action, button)
 	return action ~= MapCanvasMixin.MouseAction.Up
 end
 
+-- one part of the setup, its time kept (ns.loadMs.parts: /openmap status)
+local function Timed(name, fn, ...)
+	if not fn then return end
+	local t0 = debugprofilestop and debugprofilestop()
+	fn(...)
+	if t0 then ns.loadMs.parts[name] = debugprofilestop() - t0 end
+end
+
 local function Setup()
+	local setupStart = debugprofilestop and debugprofilestop()
 	map = _G.WorldMapFrame
 	sc = map and map.ScrollContainer
 	if not sc or not sc.CreateZoomLevels or not map.GetPinFrameLevelsManager or not map:GetPinFrameLevelsManager() then
@@ -1066,26 +1077,28 @@ local function Setup()
 	end
 	map:AddDataProvider(dp)
 
-	if mod.SetupExtras then mod:SetupExtras(map) end
-	if mod.SetupFlights then mod:SetupFlights() end
+	Timed("Extras", mod.SetupExtras, mod, map)
+	Timed("Flights", mod.SetupFlights, mod)
 	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function() if S.IsBuilt() then S.RefreshExplored() end end)
 	-- (into a city: found, though nothing was explored there just now)
 	ns.RegisterEvent(mod, "ZONE_CHANGED_NEW_AREA", function() if S.IsBuilt() then S.RefreshCities() end end)
-	if mod.SetupNav then mod:SetupNav(map) end          -- (before the menu: it holds Nav's search box)
-	if mod.SetupPins then mod:SetupPins(map) end
-	if mod.SetupQuests then mod:SetupQuests(map) end
-	if mod.SetupDungeons then mod:SetupDungeons(map) end
-	if mod.SetupCombat then mod:SetupCombat(map) end
-	if mod.SetupNews then mod:SetupNews() end
-	if mod.SetupPanel then mod:SetupPanel(map) end
-	if mod.SetupPaint then mod:SetupPaint(map) end
-	if mod.SetupSketch then mod:SetupSketch(map) end
-	if mod.SetupDebug then mod:SetupDebug(map) end
-	if mod.SetupBench then mod:SetupBench(map) end
-	if mod.SetupGamepad then mod:SetupGamepad(map) end
-	if mod.SetupReport then mod:SetupReport(map) end
-	if mod.SetupWindow then mod:SetupWindow(map) end
-	if mod.SetupCompat then mod:SetupCompat(map) end
+	Timed("Nav", mod.SetupNav, mod, map)          -- (before the menu: it holds Nav's search box)
+	Timed("Pins", mod.SetupPins, mod, map)
+	Timed("Quests", mod.SetupQuests, mod, map)
+	Timed("Dungeons", mod.SetupDungeons, mod, map)
+	Timed("Combat", mod.SetupCombat, mod, map)
+	Timed("News", mod.SetupNews, mod)
+	Timed("Panel", mod.SetupPanel, mod, map)
+	Timed("Paint", mod.SetupPaint, mod, map)
+	Timed("Sketch", mod.SetupSketch, mod, map)
+	Timed("Debug", mod.SetupDebug, mod, map)
+	Timed("Bench", mod.SetupBench, mod, map)
+	Timed("Gamepad", mod.SetupGamepad, mod, map)
+	Timed("Report", mod.SetupReport, mod, map)
+	Timed("Window", mod.SetupWindow, mod, map)
+	Timed("Compat", mod.SetupCompat, mod, map)
+
+	if setupStart then ns.loadMs.setup = debugprofilestop() - setupStart end
 
 	-- the map may already be showing something
 	if map:IsShown() and map:GetMapID() then sc:OnCanvasSizeChanged() end
@@ -1274,6 +1287,16 @@ end
 
 -- /openmap status: what the map is doing
 function mod:Diag()
+	-- what loading cost: its files, the login, the map's setup (its dearest parts)
+	local lm = ns.loadMs
+	local parts = {}
+	for name, ms in pairs(lm.parts) do parts[#parts + 1] = { name, ms } end
+	table.sort(parts, function(x, y) return x[2] > y[2] end)
+	local top = {}
+	for i = 1, math.min(5, #parts) do top[i] = ("%s %.0f"):format(parts[i][1], parts[i][2]) end
+	ns:Print("Loading: files %.0f ms, login %.0f ms (the map's setup %.0f: %s); building the map %.0f ms (%s).", lm.files or 0,
+		lm.login or 0, lm.setup or 0, table.concat(top, ", "), lm.build or 0,
+		lm.build == nil and "not yet" or lm.builtShown and "as it opened" or "before it was opened")
 	if not map or not sc or not S.IsBuilt() then
 		ns:Print("World map: not built yet (it's built the first time the map opens).")
 		return

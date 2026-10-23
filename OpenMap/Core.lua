@@ -18,6 +18,8 @@ ns.ACCENT = "e6b85c"
 -- CurseForge (the GitHub repository's issues, map-problem.yml, are out of reach for now)
 ns.ISSUES_URL = "https://www.curseforge.com/wow/addons/openmap/comments"
 ns.Media = { path = "Interface\\AddOns\\" .. ADDON .. "\\Media\\" }
+-- what loading costs (ms): its files, the login, the map's setup and its parts (/openmap status)
+ns.loadMs = { start = debugprofilestop and debugprofilestop(), parts = {} }
 
 -- Translations: ns.L["English text"] gives the text for the player's language once a
 -- translation fills it in (none yet), else the English. Place names come from the game.
