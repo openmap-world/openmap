@@ -2627,6 +2627,16 @@ function S.Cull(u0, v0, u1, v1)
 	cullBox.done = true
 end
 
+-- the zones near the view kept ready while the map's closed (the game's map preloading, as Blizzard's
+-- own map does for the player's zone: its art files are the zones' own). Without it their art was read
+-- again each time the map opened, blank parchment for a second
+function S.Preload()
+	if not (C_Map and C_Map.RequestPreloadMap) then return end
+	for mapID, near in pairs(inView) do
+		if near then pcall(C_Map.RequestPreloadMap, mapID) end
+	end
+end
+
 -- the map shown again: the next S.Cull runs in full, and the cities are shown afresh, their frames,
 -- textures and fades (a city left hidden showed the zone's painting of it till a /reload: #30)
 function S.Recull()

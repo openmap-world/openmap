@@ -1060,6 +1060,7 @@ local function Setup()
 		live = nil
 		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
+		if S.IsBuilt() then S.Preload() end            -- (the zones you were looking at, ready for next time)
 	end
 	local shown = Ours("map shown", function()
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
