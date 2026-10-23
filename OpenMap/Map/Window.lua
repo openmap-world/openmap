@@ -17,6 +17,7 @@ d.window = false                -- { point, relPoint, x, y } once moved
 d.windowScale = 1
 d.windowSize = false            -- { width, height } once resized
 d.fullWidth = true              -- the maximized map fills the screen's width (the stitched map has no edges to keep)
+d.chatOverMap = false           -- the chat windows over the full-screen map, to keep talking while it's open
 local MIN_SCALE, MAX_SCALE = 0.5, 1.6
 local MIN_W, MIN_H = 480, 320
 local TOP_OFF = 68               -- px of the window's top that may go above the screen: its title and the bar under it
@@ -283,6 +284,7 @@ function mod:SetupWindow(worldMap)
 	end
 	local function Mode()
 		local max = Maximized()
+		mod.ChatOverMap()
 		if handle then handle:SetShown(not max) end
 		for _, g in ipairs(grip) do g:SetShown(not max) end
 		if max then FillScreen() else Apply() end
@@ -319,6 +321,8 @@ function mod:SetupWindow(worldMap)
 	-- time; maximized, it's the game's again. Changed only while it's closed, so it's opened and closed
 	-- the same way; Escape still closes it
 	tinsert(UISpecialFrames, map:GetName())
+	map:HookScript("OnShow", function() mod.ChatOverMap() end)
+	map:HookScript("OnHide", function() mod.ChatOverMap() end)
 	map:HookScript("OnHide", function(self) self.editModeManuallyShown = not Maximized() or nil end)
 	-- Blizzard re-sizes the maximized map when the screen or UI scale changes
 	if map.UpdateMaximizedSize then hooksecurefunc(map, "UpdateMaximizedSize", function() if Maximized() then FillScreen() end end) end
@@ -483,6 +487,48 @@ SetupQuestLog = function()
 	map:HookScript("OnHide", function() ShowMaxLog(false) end)
 end
 
+--------------------------------------------------------------------------------
+-- The chat over the full-screen map (chatOverMap; a player's request: keep talking while the map is
+-- open): the chat windows, their tabs and their buttons a strata over the map's while it's full screen,
+-- and back as they were when it isn't. Only their strata (they're not protected: no taint)
+--------------------------------------------------------------------------------
+
+local STRATA = { "BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG", "FULLSCREEN", "FULLSCREEN_DIALOG", "TOOLTIP" }
+local raised = {}               -- frame -> its own strata, while raised
+
+local function ChatFrames()
+	local list = {}
+	local function add(f) if type(f) == "table" and f.SetFrameStrata then list[#list + 1] = f end end
+	for i = 1, (NUM_CHAT_WINDOWS or 10) do
+		add(_G["ChatFrame" .. i])
+		add(_G["ChatFrame" .. i .. "Tab"])
+		add(_G["ChatFrame" .. i .. "EditBox"])
+	end
+	for _, name in ipairs({ "GeneralDockManager", "ChatFrameMenuButton", "ChatFrameChannelButton", "QuickJoinToastButton",
+		"ChatFrameToggleVoiceDeafenButton", "ChatFrameToggleVoiceMuteButton", "ChatAlertFrame" }) do
+		add(_G[name])
+	end
+	return list
+end
+
+function mod.ChatOverMap()
+	local want = map and mod.db.chatOverMap and map:IsShown() and Maximized()
+	if want then
+		local above = "FULLSCREEN_DIALOG"
+		local own = map:GetFrameStrata()
+		for i, s in ipairs(STRATA) do
+			if s == own then above = STRATA[math.min(i + 1, #STRATA - 1)] end
+		end
+		for _, f in ipairs(ChatFrames()) do
+			if not raised[f] then raised[f] = f:GetFrameStrata() end
+			if f:GetFrameStrata() ~= above then f:SetFrameStrata(above) end
+		end
+	elseif next(raised) then
+		for f, s in pairs(raised) do f:SetFrameStrata(s) end
+		wipe(raised)
+	end
+end
+
 function mod:WindowOptions(opts, get, set, off)
 	local function moved() return off() or moveAny end   -- (Move Any's to size and place)
 	opts.windowScale = { type = "range", name = L["Map size"], order = 25, min = MIN_SCALE, max = MAX_SCALE, step = 0.05, isPercent = true,
@@ -495,6 +541,9 @@ function mod:WindowOptions(opts, get, set, off)
 			if map.UpdateMaximizedSize then map:UpdateMaximizedSize() else FillScreen() end   -- (off: Blizzard's size again on the next maximize)
 		end, disabled = off,
 		desc = L["When maximized, the map takes the screen's whole width instead of keeping Blizzard's shape with bars at the sides."] }
+	opts.chatOverMap = { type = "toggle", name = L["Chat over the full-screen map"], order = 27.5, get = get,
+		set = function(info, v) set(info, v) mod.ChatOverMap() end, disabled = off,
+		desc = L["Keeps the chat windows on show over the map while it's full screen, to keep talking while you look."] }
 	opts.resetWindow = { type = "execute", name = L["Reset size and place"], order = 26, disabled = moved,
 		func = function() mod:ResetWindow() end }
 end

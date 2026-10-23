@@ -85,6 +85,8 @@
  "Click to open its map": "點擊開啟地圖",
  "Click to pick one and open its map": "點擊以選擇其中一個並開啟地圖",
  "Click to see loot in NeedRoll": "點擊在 NeedRoll 中查看戰利品",
+ "Chat over the full-screen map": "在全螢幕地圖上顯示聊天",
+ "Keeps the chat windows on show over the map while it's full screen, to keep talking while you look.": "地圖全螢幕時，聊天視窗仍顯示在地圖上方，方便你邊看地圖邊聊天。",
  "Draw on this dungeon's map (right-drag pans)": "在此地城地圖上繪畫（右鍵拖曳平移）",
  "Only places you've found": "僅顯示已發現的地點",
  "Dungeons, boats and zeppelins only once you've explored where they are, and flight masters only once you've learned them.": "地城、船隻和飛艇只在你探索過其所在區域後顯示，飛行管理員只在你發現後顯示。",
