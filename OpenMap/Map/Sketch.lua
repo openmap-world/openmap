@@ -130,7 +130,11 @@ end
 Redraw = function()
 	if not set then return end
 	S.ClearPinSet(set)
-	for _, st in ipairs(mod.db.sketch.strokes) do Draw(st, set) end
+	-- (a pin's drawing hidden with your pins, the menu's Pins right-clicked: but not while you draw on it)
+	local pinsHidden = mod.db.pinsHidden
+	for _, st in ipairs(mod.db.sketch.strokes) do
+		if not (st.pin and pinsHidden and st.pin ~= (forPin and forPin.id)) then Draw(st, set) end
+	end
 	for _, st in ipairs(session and session.db.strokes or held or {}) do Draw(st, set) end
 	S.SetPinSetOn(set, mod.db.sketchShown or drawing or held ~= nil)
 end

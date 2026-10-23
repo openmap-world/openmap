@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- **Hiding your pins hides their drawings too** (the menu's Pins, right-clicked): what you drew on a
+  pin stayed on the map without it.
+
 ## v0.7.4-beta (2026-10-23)
 
 ### New

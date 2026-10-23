@@ -593,6 +593,7 @@ function mod.PinsHidden() return mod.db.pinsHidden == true end
 function mod.SetPinsHidden(hidden)
 	mod.db.pinsHidden = hidden and true or false
 	mod.RefreshPins()
+	if mod.RefreshSketch then mod.RefreshSketch() end   -- (the pins' drawings go and come with them)
 	if mod.RefreshPanel then mod:RefreshPanel() end
 end
 
