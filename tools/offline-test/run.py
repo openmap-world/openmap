@@ -25,6 +25,9 @@ def toc_files():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        # (a file's inline directives, [AllowLoadTextLocale deDE] ...: every file is loaded here all the
+        # same, so each is checked; a translation's own file returns early in another language)
+        while re.search(r"\s*\[[^\]]*\]\s*$", line): line = re.sub(r"\s*\[[^\]]*\]\s*$", "", line)
         out.extend(expand(line.replace("\\", os.sep)))
     return out
 

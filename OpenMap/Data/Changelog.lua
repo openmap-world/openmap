@@ -6,6 +6,7 @@ local _, ns = ...
 ns.MapChangelog = {
 	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
 		"|cff6e2c0aChat over the full-screen map|r (the menu's Look tab, and Options): the chat windows stay on show over the map while it's full screen, to keep talking while you look. Off unless you turn it on (a player's request).",
+		"|cff6e2c0aFaster to load|r: only your language's translations are read (the other nine were a quarter of OpenMap's code), and its look through every addon's map icons for combat waits till you're in the world, not the loading screen (a player's report: half a second more load time).",
 		"|cff6e2c0a/openmap status says what loading costs|r: OpenMap's files, the login, the map's setup and building the map (a player found it added load time: this shows where).",
 	} },
 	{ version = "v0.7.3-beta", date = "2026-10-22", heads = { [1] = "New", [5] = "Fixed", }, items = {

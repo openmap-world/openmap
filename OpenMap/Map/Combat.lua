@@ -13,6 +13,9 @@
 -- from one, is pointed at ours; pins made after that inherit it as they're made. Mixins of addons
 -- loaded later are pointed once after they load (one sweep a frame, not one an addon), and a new pool
 -- of pins as the canvas first redraws with it (never every pin on every acquire: that's N squared).
+-- The sweep (every global: some 20 ms) isn't at login but a few seconds into the world (a player:
+-- OpenMap added to the load time, and this was most of its login), or as the map opens if that's
+-- sooner; the pins made meanwhile are pointed with their pools as it opens.
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -24,6 +27,7 @@ local originalPropagation       -- ... and UpdateMousePropagation
 local waiting = setmetatable({}, { __mode = "k" })   -- pin -> { passthrough = { n, ... }, propagation = { n, ... } }
 local seen = setmetatable({}, { __mode = "k" })      -- pin pools already pointed
 local sweepSoon = false
+local swept = false             -- the globals swept since the last addon loaded (Sweep)
 local owner = {}
 
 local function Wait(pin, key, ...)
@@ -88,15 +92,21 @@ end
 
 local function Sweep()
 	sweepSoon = false
+	swept = true
 	for _, value in pairs(_G) do Point(value) end
 	PointPins()
 end
 
--- (addons loading one after another at login: one sweep, on the next frame)
-local function SweepSoon()
+-- (addons loading one after another: one sweep, on the next frame with the map open, else a moment later)
+local function SweepSoon(wait)
+	swept = false
 	if sweepSoon then return end
 	sweepSoon = true
-	C_Timer.After(0, Sweep)
+	C_Timer.After(map and map:IsShown() and 0 or wait or 2, function() sweepSoon = false if not swept then Sweep() end end)
+end
+
+local function Shown()
+	if swept then PointPins() else Sweep() end
 end
 
 local function Flush()
@@ -118,11 +128,11 @@ function mod:SetupCombat(worldMap)
 	local propagation = SuperTrackablePinMixin and SuperTrackablePinMixin.UpdateMousePropagation
 	originalPropagation = type(propagation) == "function" and propagation or nil
 	map = worldMap
-	Sweep()
+	SweepSoon(5)
 	ScanPools()
-	map:HookScript("OnShow", PointPins)
+	map:HookScript("OnShow", Shown)
 	local sc = map.ScrollContainer
 	if sc and sc.MarkCanvasDirty then hooksecurefunc(sc, "MarkCanvasDirty", ScanPools) end
-	ns.RegisterEvent(owner, "ADDON_LOADED", SweepSoon)
+	ns.RegisterEvent(owner, "ADDON_LOADED", function() SweepSoon() end)
 	ns.RegisterEvent(owner, "PLAYER_REGEN_ENABLED", Flush)
 end
