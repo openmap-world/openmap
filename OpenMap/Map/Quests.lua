@@ -51,17 +51,30 @@ local function Enter(pin)
 			if text and not finished then GameTooltip:AddLine((_G.QUEST_DASH or "- ") .. text, 1, 1, 1, true) end
 		end
 	end
-	GameTooltip:AddLine(L["Click: the quest in your quest log"], 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(L["Click: track this quest and zoom to it"], 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 end
 
+-- a click: the quest tracked (as Blizzard's own quest icons do) and the view in on it, the map kept as it is,
+-- full screen or windowed. (It opened the quest's details, and Blizzard opens those in the windowed map
+-- with its quest log: full screen was left.) With the quest log beside the map, its details there too
+local ZOOM_TO = 6
 local function Click(pin)
 	local q = pin.data
+	if not q then return end
+	if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
+		if C_QuestLog.AddQuestWatch and not (C_QuestLog.GetQuestWatchType and C_QuestLog.GetQuestWatchType(q.id)) then
+			pcall(C_QuestLog.AddQuestWatch, q.id)
+		end
+		C_SuperTrack.SetSuperTrackedQuestID(q.id)
+	end
+	if S.GlideToWorld then S.GlideToWorld(pin.u, pin.v, ZOOM_TO) end
 	-- (in combat with the gamepad's UI, Blizzard's quest details would set the pad's buttons from
-	-- OpenMap's code, which combat blocks: it waits, as a dungeon's map does)
+	-- OpenMap's code, which combat blocks: they wait, as a dungeon's map does)
 	if mod.PadWaits and mod.PadWaits() then return end
-	local open = G("QuestMapFrame_OpenToQuestDetails")
-	if q and open then open(q.id) end
+	local log = map and map.QuestLog
+	local details = G("QuestMapFrame_ShowQuestDetails")
+	if log and log:IsShown() and details and not (map.IsMaximized and map:IsMaximized()) then details(q.id) end
 end
 
 -- the state mark over a pin's badge (made once: pins are pooled, and this set's are only ever quests)

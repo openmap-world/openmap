@@ -4,6 +4,10 @@
 
 ### Fixed
 
+- **Clicking a quest on the map keeps the map as it is**: the quest is tracked and the map zooms in on
+  it, full screen or windowed. It opened the quest's details, which Blizzard shows in the windowed
+  map, so a full-screen map left full screen. With the quest log open beside the map, its details
+  show there too.
 - **Hiding your pins hides their drawings too** (the menu's Pins, right-clicked): what you drew on a
   pin stayed on the map without it.
 
