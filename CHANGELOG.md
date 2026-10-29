@@ -4,6 +4,8 @@
 
 ### Improved
 
+- **OpenMap has its own icon**, a compass over a parchment map, in the AddOns list, on the
+  minimap button and in the map's menu (it borrowed the game's Eastern Kingdoms icon).
 - **OpenMap is back on GitHub**, at github.com/openmap-world/openmap: Report a problem opens a
   report there again, and What's new and the AddOns list link to it.
 
