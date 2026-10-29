@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Improved
+
+- **OpenMap is back on GitHub**, at github.com/openmap-world/openmap: Report a problem opens a
+  report there again, and What's new and the AddOns list link to it.
+
 ## v0.7.1-beta (2026-10-21)
 
 ### Fixed

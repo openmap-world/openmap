@@ -14,7 +14,7 @@
 ## X-Category: Map
 ## X-License: MIT (code); map art is Blizzard's
 ## X-Curse-Project-ID: 1735937
-## X-Website: https://www.curseforge.com/wow/addons/openmap
+## X-Website: https://github.com/openmap-world/openmap
 
 # WoW Forever's toc: its data and textures are the Forever folders (Data\Forever\Client.lua)
 Data\Forever\Client.lua
