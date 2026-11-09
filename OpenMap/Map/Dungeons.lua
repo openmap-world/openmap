@@ -21,6 +21,7 @@ d.questSource = "auto"          -- the quests from: "questie", "journal" (Dungeo
 d.entranceClick = "map"         -- clicking an entrance: "map" (its map here) or "journal" (its Dungeon Journal page, where it has one)
 d.dungeonCard = true            -- the card open (false: folded to its title)
 d.dungeonLevels = true          -- each entrance's level range under its icon
+d.disableInstanceMaps = false  -- let another addon handle the map opened while inside a dungeon or raid
 d.dungeonHints = 0              -- dungeon maps opened with the how-to-leave hint (it shows for the first few)
 d.dungeonTab = "floors"         -- the dungeon map's side panel: floors, bosses, quests or loot
 d.entrances = {}                -- lines /openmap entrance recorded, to paste into build.py
@@ -1933,6 +1934,8 @@ end
 --------------------------------------------------------------------------------
 
 function mod:DungeonOptions(opts, get, set, off)
+	opts.disableInstanceMaps = { type = "toggle", name = L["Disable dungeon maps inside instances"], order = 31.02, width = "full", get = get, set = set, disabled = off,
+		desc = L["When inside a dungeon or raid, do not automatically open OpenMap's dungeon map. Other map addons can handle the map instead. Dungeon entrances still open their maps outside instances."] }
 	opts.dungeonBosses = { type = "toggle", name = L["Dungeon maps: bosses"], order = 31.1, width = "full", get = get, set = set, disabled = off,
 		desc = L["A dungeon's map lists its bosses, in the game's order."] }
 	opts.dungeonLevels = { type = "toggle", name = L["Dungeon level ranges"], order = 31.05, width = "full", get = get, set = set, disabled = off,
@@ -2059,6 +2062,7 @@ function mod:SetupDungeons(worldMap)
 				end
 				here = info.parentMapID
 			end
+			if mod.db.disableInstanceMaps and IsInInstance and IsInInstance() then return end
 			local inst = InstanceHere()
 			if not inst then return end
 			local id = DungeonMap(inst)
