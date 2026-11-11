@@ -258,6 +258,47 @@ class FriendsTests(unittest.TestCase):
                 self.assertEqual(self.lua.eval("pins[1].full"), sender)
                 self.assertIn("Edda Silverleaf", self.lua.eval("BadgeNames()").split(","))
 
+        self.lua.eval("SetGroup")("party")
+        self.run_(3)
+        self.lua.execute("guild[1][4] = false Fire('GUILD_ROSTER_UPDATE')")
+        self.run_(3)
+        self.assertEqual((self.lua.eval("#pins"), self.lua.eval("BadgeNames()")), (0, "Mara Emberfall"))
+
+        self.lua.eval("Fire")("CHAT_MSG_ADDON", "OpenMapLoc", "L1\t1429\t0.7\t0.4\tMAGE\t30", "GUILD", sender)
+        self.run_(3)
+        self.assertEqual(self.lua.eval("#pins"), 0)
+
+        self.lua.eval("SetGroup")(None)
+        self.run_(3)
+        self.assertEqual(self.lua.eval("pins[1].full"), sender)
+        self.assertEqual(self.lua.eval("pins[1].p.x"), 0.7)
+
+    def test_a_battle_net_sender_keeps_their_own_identity(self):
+        self.lua.execute("""
+            ns.Client = 'Forever'
+            GetNormalizedRealmName = function() return 'CAMWOWEU5Realm12PvP' end
+            guild = {
+                { 'Mara Stonefist-CAMWOWEU5Realm12PvP', 30, 'Elwynn Forest', true, 'MAGE', 'Player-1-0002' },
+            }
+            IsInGroup = function() return true end
+            groupedGUID = 'Player-1-0002'
+            C_PartyInfo = { IsGUIDInGroup = function(guid) return guid == groupedGUID end }
+            C_BattleNet = { GetGameAccountInfoByID = function()
+                return {
+                    characterName = 'Mara Stonefist', realmName = 'CAMWOWUS1Realm4PvP',
+                    playerGuid = 'Player-2-0003', isInCurrentRegion = false,
+                }
+            end }
+            Fire('GUILD_ROSTER_UPDATE')
+        """)
+        self.run_(3)
+        self.lua.execute("Fire('BN_CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1429\\t0.3\\t0.4\\tMAGE\\t30', 'WHISPER', 42)")
+        self.run_(3)
+        self.assertEqual(self.lua.eval("pins[1] and pins[1].full"), "Mara Stonefist-CAMWOWUS1Realm4PvP")
+
+        self.lua.execute("groupedGUID = 'Player-2-0003' mod.RefreshFriends()")
+        self.assertEqual(self.lua.eval("#pins"), 0)
+
     def test_no_dot_or_badge_for_yourself_however_your_realm_is_written(self):
         # the guild writes your realm its own way (WoW Forever: "CAMWOWUS1Realm2PvP"); your entry has your GUID
         self.lua.execute("""

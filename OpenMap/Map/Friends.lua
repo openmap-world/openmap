@@ -43,11 +43,11 @@ local BADGE = { atlas = "socialqueuing-icon-group", texture = "Interface\\Friend
 local me = {}                       -- (this file's events' owner: Pins.lua has the module's CHAT_MSG_ADDON)
 local map
 local dotSet, zoneSet
-local roster = {}                   -- full name -> { name, class, level, area, guild, friend }: online now
+local roster = {}                   -- full name -> { name, class, level, area, guild, friend, guid }: online now
 local guildGuids = {}                -- Forever character name -> guild GUID, or false if ambiguous
 local friends = {}                  -- full name -> { whisper = name } or { bn = gameAccountID }: online now
 local known = {}                    -- full name -> true: friends who use OpenMap
-local live = {}                     -- full name -> { map, x, y, class, level, guild, at }: those sharing
+local live = {}                     -- full name -> { map, x, y, class, level, guild, guildKey, guid, at }: those sharing
 local looks = {}                    -- class -> a dot's look
 local dirty = false
 local zoneByName, classByName, realm
@@ -152,10 +152,13 @@ local function GuildNameKey(name)
 	if first then return (first .. "-" .. surname):lower() end
 end
 
-local function InGroup(full, guildKey)
-	if not IsInGroup() then return false end
+local function GuildGUID(full, guildKey)
 	local r = roster[full]
-	local guid = (r and r.guid) or (guildKey and guildGuids[guildKey])
+	return (r and r.guid) or (guildKey and guildGuids[guildKey]) or nil
+end
+
+local function InGroup(full, guid)
+	if not IsInGroup() then return false end
 	if guid then
 		local grouped = Safe.Call(C_PartyInfo and C_PartyInfo.IsGUIDInGroup, guid)
 		if grouped ~= nil then return grouped end
@@ -349,8 +352,15 @@ local function Scan()
 		local ok, err = pcall(scan)
 		if not ok then geterrorhandler()(err) end
 	end
-	for _, t in ipairs({ roster, friends, live }) do
+	for _, t in ipairs({ roster, friends }) do
 		for full in pairs(t) do if IsMe(full) then t[full] = nil end end
+	end
+	for full, p in pairs(live) do
+		if IsMe(full) then
+			live[full] = nil
+		else
+			p.guid = p.guid or GuildGUID(full, p.guildKey)
+		end
 	end
 	-- a friend just online: a hello, to learn whether they use OpenMap (they learn you do)
 	if mod.db.friends or mod.db.guild or mod.db.friendsShare then
@@ -379,7 +389,7 @@ end
 -- Receiving
 --------------------------------------------------------------------------------
 
-local function Heard(full, text, guild, sender)
+local function Heard(full, text, guild, sender, guid)
 	local kind, m, x, y, class, level = strsplit("\t", text, 6)
 	if friends[full] then known[full] = true end
 	if kind == "H1" or kind == "H2" then
@@ -393,8 +403,12 @@ local function Heard(full, text, guild, sender)
 	elseif kind == "L1" then
 		m, x, y = tonumber(m), tonumber(x), tonumber(y)
 		if not (m and x and y) or x < 0 or x > 1 or y < 0 or y > 1 or not S.Rect(m) then return end
+		local previous = live[full]
+		local guildKey = GuildNameKey(sender)
+		-- Keep the GUID with the last shared location through guild roster refreshes.
+		guid = guid or (previous and previous.guid) or GuildGUID(full, guildKey)
 		live[full] = { map = m, x = x, y = y, class = class and class:match("^%u+$"), level = tonumber(level),
-			guild = guild or (roster[full] and roster[full].guild) or false, guildKey = GuildNameKey(sender), at = GetTime() }
+			guild = guild or (roster[full] and roster[full].guild) or false, guildKey = guildKey, guid = guid, at = GetTime() }
 		dirty = true
 	end
 end
@@ -413,9 +427,12 @@ local function OnBattleNetMessage(_, _, prefix, text, _, id)
 	if Safe.IsSecret(text) or Safe.IsSecret(id) or type(text) ~= "string" or type(id) ~= "number" then return end
 	local g = C_BattleNet and C_BattleNet.GetGameAccountInfoByID and C_BattleNet.GetGameAccountInfoByID(id)
 	local full = type(g) == "table" and Full(g.characterName, g.realmName)
-	if not full or IsMe(full) or (g.playerGuid and g.playerGuid == Safe.Call(UnitGUID, "player")) then return end
+	if not full or IsMe(full) then return end
+	local guid = Safe.Value(g.playerGuid)
+	if type(guid) ~= "string" or guid == "" then guid = nil end
+	if guid and guid == Safe.Call(UnitGUID, "player") then return end
 	friends[full] = friends[full] or { bn = id }     -- (a Battle.net friend, whatever the last scan saw)
-	Heard(full, text, false, g.characterName)
+	Heard(full, text, false, g.characterName, guid)
 end
 
 --------------------------------------------------------------------------------
@@ -488,7 +505,7 @@ local function Redraw()
 	for full, p in pairs(live) do
 		if now - p.at > GONE_AFTER or IsMe(full) then
 			live[full] = nil
-		elseif not InGroup(full, p.guildKey) and Shows(full, p.guild) then
+		elseif not InGroup(full, p.guid) and Shows(full, p.guild) then
 			local u, v = mod.ToWorld(p.map, p.x, p.y)
 			if u then
 				local pin = S.AddPin(dotSet, u, v, DotLook(p.class), { full = full, p = p })
@@ -499,7 +516,7 @@ local function Redraw()
 	end
 	-- the rest by zone: one badge each, in the middle of the zone
 	for full, r in pairs(roster) do
-		local id = not live[full] and not InGroup(full) and Shows(full, false) and ZoneMap(r.area)
+		local id = not live[full] and not InGroup(full, r.guid) and Shows(full, false) and ZoneMap(r.area)
 		if id then
 			zones[id] = zones[id] or {}
 			tinsert(zones[id], r)
