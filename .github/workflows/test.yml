@@ -38,6 +38,8 @@ jobs:
       - run: python -P tools/offline-test/friends.py
       - run: python -P tools/offline-test/bosses.py
       - run: python -P tools/offline-test/questie.py
+      - run: python -P tools/offline-test/layer.py
+      - run: python -P tools/offline-test/padlayer.py
       # (WoW Forever's own data: its combat list, caves, painted gaps and sea chart)
       - if: matrix.client == 'forever'
         run: |

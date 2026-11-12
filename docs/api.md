@@ -35,6 +35,7 @@ map isn't showing.
 | `OM.CursorPosition()` | (version 3) `u, v` under the cursor, or nil (not stitched, or the cursor's off the map). With `MapAt`: the zone under the cursor at any zoom. The map underneath follows the view, so zoomed in it's a zone and `C_Map.GetMapInfoAtPosition` on it sees no other: a zone-hover tooltip should ask this instead while `OM.IsStitched()` |
 | `OM.GetView()` | the view's centre `u, v` and its zoom (1: the whole world fits) |
 | `OM.ShowWorld(u, v [, zoom])` | glides the stitched map there; false if it isn't showing |
+| `OM.Showing()` | (version 5) which of OpenMap's maps is on screen now: `"stitched"` (its usual map), `"pad"` (its controller view, with the game's Gamepad UI), or `false` (Blizzard's own map, or the map closed) |
 
 ### Frames of your own on the world map's canvas
 
@@ -69,6 +70,7 @@ CallbackHandler-1.0: `OM.RegisterCallback(self, event, method)`, `OM.UnregisterC
 | `OpenMap_ViewChanged` | `u, v, zoom`: the stitched view moved (a few times a second at most, and the last always) |
 | `OpenMap_DungeonMapShown` | `info`: a dungeon's map is up (below) |
 | `OpenMap_DungeonMapHidden` | none |
+| `OpenMap_Showing` | (version 5) `kind`: which of OpenMap's maps is on screen changed: `"stitched"`, `"pad"` or `false` |
 
 `info` is `{ mapID = uiMapID, instances = { { name, minLevel, maxLevel, raid, bosses = { name, ... } }, ... } }`
 (`mapID` is nil when the client has no map of the dungeon: WoW Forever has none, so its card shows over
@@ -77,6 +79,39 @@ more than one instance when the map is shared (Dire Maul's wings). Bosses are th
 its order.
 
 ## Adding your own
+
+### A layer of pins and lines
+
+(version 5) With the game's Gamepad UI, OpenMap draws its map on a frame of its own over Blizzard's
+(its controller view): `OM.IsStitched()` is false there and Blizzard's canvas is see-through, so frames
+put on `WorldMapFrame:GetCanvas()` aren't seen. A layer shows on both of OpenMap's maps:
+
+```lua
+local function Fill()
+	local layer = OM.Layer("MyAddon")           -- nil until the map has opened once on one of OpenMap's maps
+	if not layer then return end
+	layer:Clear()
+	local pin = layer:AddPin(uiMapID, x, y, { atlas = "WhiteCircle-RaidBlips", size = 12, color = { 1, 0.82, 0, 1 } },
+		function(pin) MyAddon:ShowTip(pin) end,     -- the mouse, or the controller's cursor, on it
+		function(pin) MyAddon:HideTip() end)        -- ... and off it
+	layer:AddLine(uiMapID, x, y, x2, y2, 3, 1, 0.82, 0, 0.9)   -- thickness in px, then r, g, b, a
+end
+OM.RegisterCallback(MyAddon, "OpenMap_Showing", function(_, kind) if kind then Fill() end end)
+```
+
+- `OM.Layer(owner [, level])`: your layer, made the first time it's asked for and handed back after
+  that. `level` is 1 to 20 (default 6, over OpenMap's own icons).
+- `layer:AddPin(uiMapID, x, y, look [, enter, leave])`: a pin at a point of a uiMap, at its own size on
+  screen at any zoom; nil where that map isn't part of the stitched world. `look` is `{ atlas = ... }`
+  or `{ texture = ..., coords = { ... } }`, with `size` (px, default 16) and `color = { r, g, b, a }`.
+  The pin is a Button of OpenMap's: add your own textures and texts to it (it's handed back, with
+  them, by a later `AddPin` after `Clear`). The controller's A on it zooms into the zone under it, as
+  beside it, unless you give it an `OnClick` field (`pin.OnClick = function(pin) ... end`).
+- `layer:AddLine(uiMapID, x1, y1, x2, y2 [, thickness, r, g, b, a])`: a line between two points of a uiMap.
+- `layer:Clear()`, `layer:SetShown(on)`.
+
+With the Gamepad UI on, a tooltip frame of your own is the safe choice from `enter` (OpenMap keeps
+Questie's tooltips off `GameTooltip` there).
 
 ### A switch in OpenMap's menu
 

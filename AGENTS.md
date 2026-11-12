@@ -50,6 +50,8 @@ python -P tools/offline-test/chart.py
 python -P tools/offline-test/friends.py
 python -P tools/offline-test/questie.py
 python -P tools/offline-test/bosses.py
+python -P tools/offline-test/layer.py
+python -P tools/offline-test/padlayer.py
 ```
 
 All must pass, and the first eight again with `OPENMAP_CLIENT=retail` (retail's toc: one branch holds

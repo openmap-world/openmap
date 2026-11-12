@@ -221,7 +221,9 @@ local function Step(inward)
 		mod.CloseMenu()
 		return
 	end
-	if inward and hovered and hovered:IsVisible() then return Press(hovered) end
+	-- (the icon under the cursor pressed. One marked as having nothing to press (openmapNoPress, and no
+	-- OnClick given it) lets A through: the zone under it is zoomed into, as beside it)
+	if inward and hovered and hovered:IsVisible() and not (hovered.openmapNoPress and not hovered.OnClick) then return Press(hovered) end
 	local cu, cv
 	if lastX then cu, cv = WorldAt(Offset(lastX, lastY)) else cu, cv = u, v end
 	local chain = S.ChainAt(cu, cv)
@@ -727,6 +729,7 @@ local function Show()
 	if not On() or not Build() then
 		view:Hide()
 		if built then sc.Child:SetAlpha(1) end
+		if mod.OnPadView then mod.OnPadView(false) end   -- (API.lua: other addons told)
 		return
 	end
 	if not u then FirstView() end
@@ -737,6 +740,7 @@ local function Show()
 	sc.Child:SetAlpha(0)      -- (Blizzard's map underneath: there, unseen; nothing of it written)
 	view:Show()
 	dirty = true
+	if mod.OnPadView then mod.OnPadView(true) end   -- (API.lua: other addons told, their layers filled)
 end
 
 local function Hide()
@@ -749,12 +753,26 @@ local function Hide()
 	if pointer then pointer:Hide() end
 	glide, lastX, lastY = nil, nil, nil
 	if sc and sc.Child then sc.Child:SetAlpha(1) end
+	if mod.OnPadView then mod.OnPadView(false) end
 end
 
 -- for WorldMap.lua: built here, OpenMap's usual map can't be (its art is on this view): a reload then
 function mod.PadViewBuilt() return built end
+-- for API.lua: this view is on screen now: the map open, the view over it. (The map's own state too: in
+-- another addon's OnHide, run before this view's, the view isn't hidden yet. Not On(): the option turned
+-- off leaves the view up until the map closes)
+function mod.PadViewShown() return built and view ~= nil and view:IsShown() and map:IsShown() and true or false end
 -- for Dungeons.lua: this view is the map now (Blizzard's left as it is)
 function mod.PadViewOn() return built and On() end
+-- for the files whose pins are handed out again as they're redrawn (Stitch.lua's sets reuse their frames):
+-- the pin under the controller's cursor, if it's one of `pins`, is left first, as the mouse would leave it,
+-- and entered again if it's back, its tooltip as it is then
+function mod.PadViewForget(pins)
+	if not hovered or type(pins) ~= "table" then return end
+	for _, pin in ipairs(pins) do
+		if pin == hovered then Enter(nil) return end
+	end
+end
 
 -- /openmap padview: how the controller view is getting on
 function mod.PadViewDiag()

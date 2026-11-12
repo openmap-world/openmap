@@ -47,6 +47,8 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python -P tools/offline-test/friends.py  # friends and guild on the map: what Friends.lua hears and sends
    python -P tools/offline-test/bosses.py   # boss pins' data: each on one of its dungeon's floors, on the picture
    python -P tools/offline-test/questie.py  # Questie's icons found as a LibStub library (to 12.7) and a module (12.8)
+   python -P tools/offline-test/layer.py    # OpenMapAPI.Layer: where another addon's pins and lines land, who's told which map is on screen
+   python -P tools/offline-test/padlayer.py # ... and on the controller view: its pins entered, left, cleared and pressed
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is
    a load error that takes the whole file down), calls to functions that don't exist, and
