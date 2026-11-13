@@ -223,6 +223,7 @@ local function Rows()
 		optRow(L["Party and raid members"], "group", Icon("Spell_Holy_PrayerOfFortitude")),
 		optRow(L["Friends on the map"], "friends", Icon("INV_Misc_GroupNeedMore")),
 		optRow(L["Guild members on the map"], "guild", Icon("INV_Shirt_GuildTabard_01")),
+		optRow(L["Hide world markers in instances"], "hideWorldPinsInInstances", Icon("INV_Misc_Map_01")),
 		optRow(L["Your drawings"], "sketchShown", Icon("INV_Feather_04")),
 	}
 	if mod.defaults.allQuests ~= nil then        -- (Quests.lua: WoW Forever's toc loads it, retail's doesn't)

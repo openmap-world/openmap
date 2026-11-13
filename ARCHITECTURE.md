@@ -104,6 +104,14 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   screen and a zoom only moves them. A set with `build` makes its pins the first
   time it shows.
 
+The optional `hideWorldPinsInInstances` setting adds a temporary filter in `Stitch.lua`'s
+`ShowSets`: friends and guild dots/zone badges, boat and zeppelin icons/routes, flight
+masters/selected flight routes and OpenMap's all-zone quest pins are hidden in player
+instances (`party`, `raid`, `pvp`, `arena`). `WorldMap.lua` refreshes it at enable, instance
+events, map attachment and option changes. It leaves `set.on`, saved marker preferences,
+group pins and other addons' frames alone. Sets created while filtered start hidden too;
+later refreshes and view changes go through the same filter.
+
 **Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
 layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
 maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the

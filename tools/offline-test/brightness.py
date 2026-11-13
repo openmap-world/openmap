@@ -42,6 +42,8 @@ class BrightnessTests(unittest.TestCase):
                 function(info, value) getTable()[info[#info]] = value; refresh() end
         end
         function GetLocale() return "ruRU" end
+        function IsInInstance() return false, "none" end
+        ns.Safe = { Value = function(v) return v end }
         Enum = { UIMapType = {Continent = 2, Zone = 3} }
         C_Map = {GetMapInfo = function(id) return {mapType = id == 1 and 3 or 4} end}
         local S = {WORLD = 947, artTop = 180, built = true}
@@ -56,6 +58,7 @@ class BrightnessTests(unittest.TestCase):
         function S.GetPinSet() end
         S.SetPlayer = noop
         S.SetPlayerHidden = noop
+        S.SetWorldPinsHidden = noop
         S.SetPlacesFrom = noop
         S.SetFoundOnly = noop
         S.SetIconScale = noop

@@ -21,6 +21,7 @@ class PlayerTests(unittest.TestCase):
             function ApplyChart() end
             function ApplyZoom() end
             function mod:UpdateBrightness() end
+            function mod:RefreshInstancePins() end
             function mod.Unexplored() return 'show' end
             function InCombatLockdown() return combat end
             function hooksecurefunc(pin, key, callback)

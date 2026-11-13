@@ -27,6 +27,7 @@ local mod = ns:NewModule("worldmap", {
 		boats = true,           -- boat docks and routes
 		zeppelins = true,       -- zeppelin towers (Horde's) and routes
 		flight = true,
+		hideWorldPinsInInstances = false,
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
 		iconsFrom = 0,          -- the places' icons from this zoom (ICONS_FROM; 1: the whole world); 0: each from its own (Auto)
 		iconScale = 1,          -- OpenMap's icons at this times their own size (ICON_SCALE)
@@ -791,6 +792,7 @@ function mod:UpdateBrightness()
 end
 
 local function Attach(mapID)
+	mod:RefreshInstancePins()
 	active = mod.enabled and Stitchable(mapID) and S.IsBuilt() and S.Layout(mapID) or false
 	S.SetShown(active)
 	mod:UpdateBrightness()
@@ -1467,6 +1469,11 @@ function mod.SetPadView(on)
 end
 
 function mod:OnEnable()
+	self.instancePinsEvents = self.instancePinsEvents or {}
+	for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS" }) do
+		ns.RegisterEvent(self.instancePinsEvents, event, function() mod:RefreshInstancePins() end)
+	end
+	mod:RefreshInstancePins()
 	ns.RegisterEvent(styleOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
 	if PadUI() and not self.db.padMap then
 		self.enabled, self.padWaits = false, true
@@ -1499,7 +1506,16 @@ local function ApplyChart()
 	end
 end
 
+function mod:RefreshInstancePins()
+	-- Use the player's instance, not the displayed map: NeedRoll can keep a world map as host.
+	local inside, kind = IsInInstance()
+	inside, kind = ns.Safe.Value(inside), ns.Safe.Value(kind)
+	S.SetWorldPinsHidden(self.db.hideWorldPinsInInstances and inside
+		and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena"))
+end
+
 function mod:Refresh()
+	self:RefreshInstancePins()
 	ApplyChart()
 	self:UpdateBrightness()
 	for key, opt in pairs(SET_OPTION) do
@@ -1701,6 +1717,9 @@ function mod:Options()
 		allQuests = { type = "toggle", name = ns.L["Quests from every zone"], order = 33.7, get = get, set = set, disabled = off,
 			hidden = function() return mod.defaults.allQuests == nil end,   -- (Quests.lua: not in retail's toc)
 			desc = ns.L["The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone."] },
+		hideWorldPinsInInstances = { type = "toggle", name = ns.L["Hide world markers in instances"], order = 33.8,
+			get = get, set = set, disabled = off,
+			desc = ns.L["In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept."] },
 		playerArrow = { type = "toggle", name = ns.L["Your arrow"], order = 33, get = get, set = set, disabled = off,
 			desc = ns.L["Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap."] },
 	}

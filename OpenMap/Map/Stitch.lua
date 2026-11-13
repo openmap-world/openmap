@@ -738,6 +738,7 @@ function S.PinSet(key, minZoom, level)
 			pins = {}, lines = {}, anchors = {}, pinPool = {}, linePool = {} }
 		set.frame:SetAllPoints(pinRoot)
 		sets[key] = set
+		if S.WorldPinsHidden(key) then set.shownNow = false set.frame:Hide() end
 	end
 	if level then set.frame:SetFrameLevel(pinRoot:GetFrameLevel() + level) end
 	return set
@@ -925,7 +926,13 @@ end
 -- (one local: this file is near Lua's 200 a chunk)
 -- from: nil, each from its own zoom (Auto); else that zoom, further out or further in than its own.
 -- (Townsfolk are never shown further out than their own: there are thousands of them)
-local places = { from = nil, sets = { dungeons = true, boats = true, zeppelins = true, flight = true } }
+local places = { from = nil, sets = { dungeons = true, boats = true, zeppelins = true, flight = true },
+	world = { friends = true, friendzones = true, boats = true, zeppelins = true,
+		routes = true, flight = true, route = true, quests = true } }
+
+function S.WorldPinsHidden(key)
+	return places.hidden and places.world[key] or false
+end
 
 local function ShowSets()
 	for key, set in pairs(sets) do
@@ -933,7 +940,8 @@ local function ShowSets()
 		local folk = key:sub(1, 3) == "tf_"
 		if places.from and (places.sets[key] or folk) then from = folk and math.max(from, places.from) or places.from end
 		-- (further out than the whole world, on the sea chart: as at the whole world)
-		local shown = set.on and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
+		local shown = set.on and not S.WorldPinsHidden(key)
+			and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
 		if shown and set.build then
 			local build = set.build
 			set.build = nil
@@ -944,6 +952,12 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+
+-- A temporary visibility filter, independent of each set's saved choice and refreshes.
+function S.SetWorldPinsHidden(hidden)
+	places.hidden = hidden and true or false
+	ShowSets()
+end
 
 -- the menu's Icon size: every icon of OpenMap's at this times its own size (each about its own
 -- middle: it's anchored there)

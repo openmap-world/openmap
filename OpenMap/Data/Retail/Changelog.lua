@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
+		"|cff6e2c0aHide world markers in instances|r: an optional temporary filter hides OpenMap's friends, guild and transport markers in dungeons, raids and battlegrounds. Group members and other addons' maps and markers remain visible; marker preferences are kept on leaving.",
+	} },
 	{ version = "v0.8.8", date = "2026-11-13", heads = { [1] = "Fixed", }, items = {
 		"|cff6e2c0aParty and raid markers stay steady|r: one marker per member, moving smoothly. OpenMap's ring now follows Blizzard's own dot where the game places a member, instead of a second dot of its own that lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.",
 		"|cff6e2c0aFriends on the map: your own faction only.|r Your place is only shared with, and shown from, players of your own faction: Battle.net friends on the other faction no longer see where you are, nor you them (a player's report: it let Horde and Alliance find each other for PvP).",
@@ -33,10 +36,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aClicking a quest's icon on the windowed map shows it in the quest log|r: the quest log beside the map opens if it was closed, with the quest's details, as well as tracking the quest and zooming in on it. (On the full-screen map a click still tracks and zooms only.)",
 		"|cff6e2c0aA dungeon map remembers its tab|r: picking Quests beside the quest log keeps it picked the next time a dungeon's map opens.",
 		"|cff6e2c0aNo more dot in the bottom-left corner of the screen|r after closing the map, or inside a dungeon: the map art OpenMap keeps loaded while the map is closed was drawn there, hundreds of faint copies on one pixel. Found by ryanull24.",
-	} },
-	{ version = "v0.8.2", date = "2026-11-08", heads = { [1] = "Improved", [2] = "Fixed", }, items = {
-		"|cff6e2c0aPanning no longer hitches|r: the map set up to 300 textures' files in a single frame where a pan brought new ground into view, and each set is a load and an upload, so that frame showed as a hitch of about 35 ms. It sets 60 a frame now; the art still fades in, a few frames later.",
-		"|cff6e2c0aThe map no longer stalls a moment after it opens|r: since 0.8.0 OpenMap keeps the map's art loaded while it's closed, then let go of it all in one frame a second into the opening, which the game unloaded at once (about a second's freeze). It now lets go of it a little at a time.",
-		"|cff6e2c0aZooming in notch by notch is smooth again|r: since 0.8.1 the blur came back all at once each time the map stopped, one long frame the next wheel notch landed on. It now waits out a pause between notches and comes back a few zones a frame. Questie's mob paths are worked out once the map stops, not on every frame of a zoom.",
 	} },
 }

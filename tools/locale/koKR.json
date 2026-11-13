@@ -533,5 +533,7 @@
  "Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Center on your zone: open on the whole zone you're in, wherever you are in it. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.": "하나를 선택하십시오. 플레이어 중심: 항상 내 위치에서 엽니다. 플레이어 중심, 확대 유지: 내 위치에서 열되, 지도를 닫을 때의 확대 배율을 유지합니다. 내 지역 중앙: 지역 안 어디에 있든 내가 있는 지역 전체를 보여 줍니다. 항상 기억: 지역을 옮긴 후에도 이전 위치와 확대 배율을 복원합니다. 보이는 동안 기억: 현재 위치가 이전 화면 안에 있을 때만 복원합니다(지역 경계를 넘어도 마찬가지입니다). 그렇지 않으면 내 위치에서 엽니다. 퀘스트 때문에 연 지도는 여전히 퀘스트 지역을 보여 줍니다.",
  "one marker per friend or guildmate, none left over when they join your group, and the newest dungeons' entrances": "친구나 길드원마다 표시 하나, 파티에 들어오면 남는 표시 없음, 그리고 최신 던전 입구",
  "Learned flight paths forgotten for this character: talk to a flight master to learn the ones you have again.": "이 캐릭터의 배운 비행 경로를 잊었습니다. 비행 조련사와 대화하면 가진 경로를 다시 배웁니다.",
- "Questie 12.8's icons found on the map": "지도에서 Questie 12.8 아이콘 찾기"
+ "Questie 12.8's icons found on the map": "지도에서 Questie 12.8 아이콘 찾기",
+ "Hide world markers in instances": "인스턴스에서 세계 지도 표시 숨기기",
+ "In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept.": "던전, 공격대 및 전장에서 OpenMap의 친구, 길드, 교통 및 세계 지도 퀘스트 표시를 일시적으로 숨깁니다. 파티원과 공격대원, 다른 애드온의 지도와 표시는 계속 표시됩니다. 표시 설정은 유지됩니다."
 }

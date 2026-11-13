@@ -55,6 +55,21 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] The close-up minimap shows at Menethil Harbor, Darnassus, Feathermoon and Southshore; over Quel'Thalas there's no green retail terrain.
 
 ## 5. Getting around (3 min)
+
+- [ ] OpenMap's Dungeon maps off, NeedRoll's Map in dungeons set to NeedRoll: turn on
+  "Hide world markers in instances" in OpenMap's On the map tab (off by default).
+  Enter a dungeon, raid and battleground with the map closed, then open it: OpenMap's
+  friend/guild dots and zone badges, boats, zeppelins, transport routes, flight masters,
+  selected flight route and all-zone quest pins are hidden. NeedRoll's map, bosses and
+  players and the party/raid markers remain visible according to their own settings.
+- [ ] Repeat entering/leaving with the map open and in combat; zoom, change floors,
+  refresh quests and friends, close/reopen, and reload inside: hidden markers stay hidden.
+  Turn the filter off inside: markers return according to their existing options and zoom.
+  Turn it on again, leave: the same markers return; an individually disabled marker type
+  stays disabled. Saved marker settings are unchanged except for the new filter choice.
+- [ ] With the filter off, enter an instance: existing behavior is unchanged. Outside,
+  browse a dungeon map: the filter follows the player's location, not the map being viewed.
+
 - [ ] Search box: type "gadg", click Gadgetzan → glides there with a marker. Type "deadm" → the Deadmines entrance.
 - [ ] Find me button: glides to you.
 - [ ] The menu's More tab, "Reopen map (choose one)": Center on player / Always remember / Remember while visible, only one ticked at a time (Options' "When reopening the map" is the same choice). A fresh install starts on Center on player; an existing "Reopen where you left off" on / off becomes Always remember / Center on player.

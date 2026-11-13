@@ -533,5 +533,7 @@
  "Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Center on your zone: open on the whole zone you're in, wherever you are in it. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.": "選擇一種方式。以玩家為中心：總是在你的位置開啟。以玩家為中心並保留縮放：在你的位置開啟，並使用你關閉地圖時的縮放。以你所在區域為中心：顯示你所在的整個區域，無論你在區域中的哪裡。總是記住：恢復上次的位置與縮放，即使換了區域也一樣。在畫面內時記住：只有當你目前的位置在上次的畫面內時才恢復，跨越區域邊界也算；否則在你的位置開啟。為任務開啟的地圖仍會顯示任務區域。",
  "one marker per friend or guildmate, none left over when they join your group, and the newest dungeons' entrances": "每位好友或公會成員只有一個標記，加入你的隊伍後不再殘留，以及最新地城的入口",
  "Learned flight paths forgotten for this character: talk to a flight master to learn the ones you have again.": "已為此角色忘記已學會的飛行路線：與飛行管理員交談即可重新學會你已有的路線。",
- "Questie 12.8's icons found on the map": "在地圖上找到 Questie 12.8 的圖示"
+ "Questie 12.8's icons found on the map": "在地圖上找到 Questie 12.8 的圖示",
+ "Hide world markers in instances": "在副本中隱藏世界地圖標記",
+ "In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept.": "在地城、團隊副本和戰場中，暫時隱藏 OpenMap 的好友、公會、交通和世界地圖任務標記。隊伍和團隊成員以及其他插件的地圖和標記仍然可見。保留原有的標記設定。"
 }

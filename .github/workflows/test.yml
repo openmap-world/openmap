@@ -33,6 +33,7 @@ jobs:
       - run: python tools/offline-test/run.py padview
       - run: python tools/offline-test/navigation.py
       - run: python -P tools/offline-test/player.py
+      - run: python -P tools/offline-test/instances.py
       - run: python -P tools/offline-test/press.py
       - run: python -P tools/offline-test/brightness.py
       - run: python -P tools/offline-test/friends.py
