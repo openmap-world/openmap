@@ -44,6 +44,12 @@ end
 -- Find me, and reopening where you left off
 --------------------------------------------------------------------------------
 
+function mod.RememberOutsideInstance()
+	local u, v, best = UnitWorld("player")
+	-- No viewport needed: this also runs before the map's first opening.
+	if u then mod.outsideInstanceView = { u, v, best } end
+end
+
 function mod:FindMe(keepZoom)
 	if not mod.IsStitched() and not (mod.PadViewOn and mod.PadViewOn()) then return end
 	local u, v, best = UnitWorld("player")

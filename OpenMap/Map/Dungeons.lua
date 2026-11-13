@@ -2267,6 +2267,23 @@ local function InstanceHere()
 	end
 end
 
+-- The outdoor entrance is a useful world position while the player's coordinates are indoors.
+function mod.InstanceEntranceView()
+	local instanceID = Safe.Value(select(8, GetInstanceInfo()))
+	if not instanceID or instanceID == 0 then return end
+	for _, g in ipairs(Places().instances or {}) do
+		for _, inst in ipairs(g[4]) do
+			if inst[1] == instanceID then
+				local u, v = S.EntranceAt(g)
+				if not u then return end
+				local chain = S.ChainAt(u, v)
+				local zone = chain[#chain]
+				return u, v, math.min(mod.FitZoom(zone), mod.db.maxZoom or math.huge)
+			end
+		end
+	end
+end
+
 -- The dungeon you're in, kept warm: the game lets go of a closed map's files, so every opening of its
 -- map read each floor's 12 tiles again (the floor shown and the Floors tab's pictures of every floor:
 -- 84 files in Shadowfang Keep), a second or two each time. Inside a dungeon its floors' files are

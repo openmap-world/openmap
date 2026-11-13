@@ -12,6 +12,10 @@
   overlay, including world-zone hover labels, coordinates, zone-selection clicks and
   world-position group dots. Real dungeon-map group blips remain visible.
 
+- Right-click an instance overlay to browse the normal world map at the dungeon's outdoor
+  entrance (or the last known outdoor player position). Further clicks navigate normally;
+  reopening the map restores the instance filter.
+
 ## v0.8.8 (2026-11-13)
 
 ### Fixed

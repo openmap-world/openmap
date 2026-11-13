@@ -73,6 +73,13 @@ Write down anything odd, with `/openmap status` output, or use the map's own
   blips are absent; NeedRoll's actual players and bosses stay. On a real dungeon map,
   native group blips remain. Leave the instance or turn the filter off: world interaction
   and group markers return. Repeat entering in combat; protected blips wait until it ends.
+- [ ] In Ragefire Chasm with NeedRoll visible, right-click: the normal interactive world
+  opens around its entrance in Orgrimmar at the city's zoom. Hover names/coordinates and
+  world markers work again. Left-click/wheel zoom in and further right-clicks zoom out
+  normally, without recentering. Close/reopen: NeedRoll and the filter return. Repeat in
+  another dungeon and in combat, and check that right-clicking the quest log/menu does
+  not dismiss the instance view or recenter the world. Reopen immediately after a click:
+  the old deferred click must not affect the new instance view.
 - [ ] With the filter off, enter an instance: existing behavior is unchanged. Outside,
   browse a dungeon map: the filter follows the player's location, not the map being viewed.
 

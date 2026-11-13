@@ -66,6 +66,18 @@ class NavigationTests(unittest.TestCase):
             end
         """)
 
+    def test_last_outdoor_position_is_remembered_without_a_viewport(self):
+        self.lua.execute("""
+            function mod.FitZoom() error('no map viewport at login') end
+            playerU, playerV, zone = .3, .7, 1454
+            mod.RememberOutsideInstance()
+            assert(mod.outsideInstanceView[1] == .3 and mod.outsideInstanceView[2] == .7)
+            assert(mod.outsideInstanceView[3] == 1454)
+            playerU = nil
+            mod.RememberOutsideInstance()
+            assert(mod.outsideInstanceView[1] == .3, 'unknown position overwrote outdoor fallback')
+        """)
+
     def test_saved_preferences_migrate(self):
         for old, expected in [('', 'player'), ('rememberView=true', 'always'),
                               ("reopenView='zone'", 'always'),

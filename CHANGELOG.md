@@ -12,6 +12,11 @@
   overlay: no world-zone hover labels, coordinates, zone-selection clicks or world-position
   group dots over NeedRoll. NeedRoll's own players and real dungeon-map group blips remain.
 
+- Right-click an instance overlay to browse the normal world map again, centred on its
+  outdoor entrance at the surrounding zone/city's zoom (Ragefire Chasm: Orgrimmar). Further
+  right-clicks navigate normally. Reopening the map restores the instance filter. An unknown
+  entrance falls back to the last known outdoor player position when available.
+
 ## v0.8.8 (2026-11-13)
 
 ### Fixed

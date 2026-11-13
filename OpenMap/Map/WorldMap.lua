@@ -1283,11 +1283,15 @@ local function Setup()
 		if mod.RefreshPortrait then pcall(mod.RefreshPortrait) end   -- (OpenMap's icon only while stitching)
 	end
 	dp.OnHide = function()
+		mod.instanceWorldBrowsing = nil
+		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
 		live = nil
 		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
 	end
 	local shown = Ours("map shown", function()
+		mod.instanceWorldBrowsing = nil
+		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
 		if not S.IsBuilt() and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
 		mod:RefreshInstancePins()
 		if mod.instanceWorldHidden then ticker:Show() RaisePlayer() end
@@ -1487,6 +1491,16 @@ function mod:OnEnable()
 	for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS" }) do
 		ns.RegisterEvent(self.instancePinsEvents, event, function() mod:RefreshInstancePins() end)
 	end
+	ns.RegisterEvent(self.instancePinsEvents, "GLOBAL_MOUSE_UP", function(_, _, button)
+		if button ~= "RightButton" or not mod.instancePinsHidden or mod.db.dungeonMaps ~= false
+			or mod.instanceWorldBrowsing or not map or not map:IsShown() or not sc:IsMouseOver()
+			or (mod.MenuShown and mod.MenuShown()) then return end
+		local generation = mod.instanceMapGeneration
+		-- NeedRoll also watches this event. Let its handler dismiss the overlay first.
+		C_Timer.After(0, function()
+			if generation == mod.instanceMapGeneration then mod:BrowseInstanceWorld() end
+		end)
+	end)
 	mod:RefreshInstancePins()
 	ns.RegisterEvent(styleOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
 	if PadUI() and not self.db.padMap then
@@ -1522,7 +1536,7 @@ end
 
 function mod.InstanceWorldHidden(mapID)
 	-- A real dungeon map keeps its native player/group positions. Only suspend a world host.
-	return mod.instancePinsHidden and mod.db.dungeonMaps == false
+	return mod.instancePinsHidden and not mod.instanceWorldBrowsing and mod.db.dungeonMaps == false
 		and Stitchable(mapID or (map and map:GetMapID())) or false
 end
 
@@ -1532,11 +1546,30 @@ function mod:RefreshInstancePins(onlyPins)
 	inside, kind = ns.Safe.Value(inside), ns.Safe.Value(kind)
 	self.instancePinsHidden = self.db.hideWorldPinsInInstances and inside
 		and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena") or false
-	S.SetWorldPinsHidden(self.instancePinsHidden)
+	if not self.instancePinsHidden then self.instanceWorldBrowsing = nil end
+	if not inside and self.RememberOutsideInstance then self.RememberOutsideInstance() end
+	S.SetWorldPinsHidden(self.instancePinsHidden and not self.instanceWorldBrowsing)
 	if not onlyPins and map and sc and S.IsBuilt()
 		and self.instanceWorldHidden ~= self.InstanceWorldHidden(map:GetMapID()) then
 		Attach(map:GetMapID(), true)
 	end
+end
+
+function mod:BrowseInstanceWorld()
+	if not self.instancePinsHidden or self.db.dungeonMaps ~= false or self.instanceWorldBrowsing
+		or not map or not map:IsShown() or not Stitchable(map:GetMapID()) then return end
+	self.instanceWorldBrowsing = true
+	self:RefreshInstancePins()
+	sc:CreateZoomLevels()
+	local u, v, zoom
+	if self.InstanceEntranceView then u, v, zoom = self.InstanceEntranceView() end
+	if not u and self.outsideInstanceView then
+		local last = self.outsideInstanceView
+		u, v = last[1], last[2]
+		zoom = math.min(self.FitZoom(last[3]), self.db.maxZoom or math.huge)
+	end
+	if u then self.ShowNow(u, v, zoom) end
+	self:Refresh()
 end
 
 function mod:Refresh()

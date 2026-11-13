@@ -159,7 +159,10 @@ class InstanceHostTests(unittest.TestCase):
         for name in ('InstanceWorldHidden', 'CursorWorld'):
             helpers += re.search(r'function mod\.' + name + r'\(.*?\nend\n', WORLD, re.S).group()
         helpers += re.search(r'function mod:RefreshInstancePins\(.*?\nend\n', WORLD, re.S).group()
+        helpers += re.search(r'function mod:BrowseInstanceWorld\(.*?\nend\n', WORLD, re.S).group()
         helpers += re.search(r'local function OnCanvasClick\(.*?\nend\n', WORLD, re.S).group()
+        mouse = WORLD[WORLD.index('\tns.RegisterEvent(self.instancePinsEvents, "GLOBAL_MOUSE_UP"'):]
+        mouse = mouse[:mouse.index('\n\tmod:RefreshInstancePins()')]
         self.lua.execute("""
             mod = { db = { hideWorldPinsInInstances = true, dungeonMaps = false }, enabled = true }
             S = { shown = true }
@@ -170,12 +173,23 @@ class InstanceHostTests(unittest.TestCase):
             function S.SetWorldPinsHidden(on) S.filtered = on end
             function mod:UpdateBrightness() end
             ns = { Safe = { Value = function(v) return v end } }
+            events, timers = {}, {}
+            function ns.RegisterEvent(_, event, fn) events[event] = fn end
+            C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end }
+            overlay = true
+            function mod:Refresh() self:RefreshInstancePins() refreshed = (refreshed or 0) + 1 end
+            function mod.ShowNow(u, v, zoom)
+                assert(not overlay, 'world restored before the instance overlay was dismissed')
+                target = { u, v, zoom }
+            end
             inside, kind = false, 'none'
             function IsInInstance() return inside, kind end
             local map = { id = 947, shown = true }
             function map:GetMapID() return self.id end
             function map:IsShown() return self.shown end
             local sc = {}
+            function sc:IsMouseOver() return not outside end
+            function sc:CreateZoomLevels() levels = (levels or 0) + 1 end
             function sc:SetMouseWheelZoomMode(value) self.wheel = value end
             function sc:SetScalingMode(value) self.scaling = value end
             local ticker = {}
@@ -187,7 +201,7 @@ class InstanceHostTests(unittest.TestCase):
             local active, anim = true, {}
             local wheelMode, scalingMode = 'native', 'native'
             MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_NONE = 'openmap'
-        """ + helpers + """
+        """ + helpers + '\nlocal self = mod\n' + mouse + """
             function State(id)
                 if id then map.id = id end
                 Attach(map.id)
@@ -198,6 +212,121 @@ class InstanceHostTests(unittest.TestCase):
             function Closed(on) map.shown = not on end
             function Wheel() return sc.wheel end
             function Ticking() return ticker.shown end
+            function Mouse(button) events.GLOBAL_MOUSE_UP(nil, 'GLOBAL_MOUSE_UP', button) end
+            function Flush()
+                local pending = timers
+                timers = {}
+                for _, fn in ipairs(pending) do fn() end
+            end
+            function Reopen()
+                mod.instanceWorldBrowsing = nil
+                mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
+                mod:RefreshInstancePins()
+            end
+        """)
+
+    def test_right_click_restores_interactive_world_after_needroll_closes(self):
+        self.lua.execute("""
+            inside, kind = true, 'party'
+            function mod.InstanceEntranceView() return .4, .3, 24 end
+            State(947)
+            Mouse('RightButton')
+            assert(not Active() and overlay and not target, 'dismissal was not deferred')
+            overlay = false
+            Flush()
+            assert(Active() and S.shown and not S.filtered and mod.instanceWorldBrowsing)
+            assert(target[1] == .4 and target[2] == .3 and target[3] == 24)
+            assert(levels == 1 and refreshed == 1, 'zoom levels or markers were not refreshed')
+            assert(not mod.instanceWorldHidden, 'world hover/group blips still disabled')
+            Mouse('RightButton')
+            Flush()
+            assert(levels == 1, 'subsequent world right-click recentered instead of zooming out')
+            overlay = true
+            Reopen()
+            assert(not Active() and S.filtered and mod.instanceWorldHidden)
+        """)
+
+    def test_world_browsing_falls_back_to_last_outdoor_player_position(self):
+        self.lua.execute("""
+            inside, kind = true, 'party'
+            mod.outsideInstanceView = { .7, .6, 1454 }
+            function mod.FitZoom(zone) assert(zone == 1454) return 24 end
+            mod.db.maxZoom = 16
+            State(947)
+            Mouse('RightButton')
+            overlay = false
+            Flush()
+            assert(target[1] == .7 and target[2] == .6 and target[3] == 16)
+            inside, kind = false, 'none'
+            mod:RefreshInstancePins()
+            assert(not mod.instanceWorldBrowsing and Active())
+        """)
+
+    def test_right_click_ignores_other_ui_and_stale_reopen_callbacks(self):
+        self.lua.execute("""
+            inside, kind = true, 'party'
+            State(947)
+            Mouse('LeftButton')
+            outside = true
+            Mouse('RightButton')
+            Flush()
+            assert(not Active() and not mod.instanceWorldBrowsing)
+            outside = false
+            function mod.MenuShown() return true end
+            Mouse('RightButton')
+            Flush()
+            assert(not Active() and not mod.instanceWorldBrowsing, 'menu click dismissed the dungeon')
+            mod.MenuShown = nil
+            Mouse('RightButton')
+            Reopen()
+            Flush()
+            assert(not Active() and not mod.instanceWorldBrowsing, 'old click affected a new dungeon view')
+            Mouse('RightButton')
+            Closed(true)
+            Flush()
+            assert(not Active() and not mod.instanceWorldBrowsing, 'closed map was restored')
+        """)
+
+    def test_unknown_entrance_and_no_outdoor_position_still_restore_navigation(self):
+        self.lua.execute("""
+            inside, kind = true, 'party'
+            State(947)
+            Mouse('RightButton')
+            overlay = false
+            Flush()
+            assert(Active() and not S.filtered and not target)
+        """)
+
+    def test_ragefire_chasm_uses_entrance_and_orgrimmar_zoom(self):
+        self.lua.execute((ROOT / 'OpenMap/Data/Forever/Places.lua').read_text(), 'OpenMap', self.lua.globals().ns)
+        dungeons = (ROOT / 'OpenMap/Map/Dungeons.lua').read_text()
+        entrance = re.search(r'function S.EntranceAt\(.*?\nend\n', dungeons, re.S).group()
+        view = re.search(r'function mod.InstanceEntranceView\(.*?\nend\n', dungeons, re.S).group()
+        self.lua.execute("""
+            local Safe = ns.Safe
+            local function Places() return ns.MapPlaces end
+            instanceID = 389
+            function GetInstanceInfo() return nil, nil, nil, nil, nil, nil, nil, instanceID end
+            function S.FromYards(continent, x, y)
+                assert(continent == 1 and x == 1816.8 and y == -4423.4, 'not the recorded RFC entrance')
+                return .23, .45
+            end
+            function S.ChainAt(u, v)
+                assert(u == .23 and v == .45)
+                return { 947, 1414, 1411, 1454 }
+            end
+            function mod.FitZoom(zone) assert(zone == 1454, 'not Orgrimmar zoom') return 24 end
+        """ + entrance + view + """
+            inside, kind = true, 'party'
+            State(947)
+            Mouse('RightButton')
+            overlay = false
+            Flush()
+            assert(target[1] == .23 and target[2] == .45 and target[3] == 24)
+            instanceID = 999999
+            assert(mod.InstanceEntranceView() == nil, 'unknown instance invented a position')
+            instanceID = 0
+            assert(mod.InstanceEntranceView() == nil)
         """)
 
     def test_world_host_suspends_and_restores_on_instance_events(self):

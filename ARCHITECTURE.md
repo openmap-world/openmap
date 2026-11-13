@@ -119,6 +119,14 @@ temporarily sized away through the existing combat-aware blip path, retried by t
 Actual dungeon-map blips and other addons' player pins are not affected. Changes to the
 instance, host map or settings attach/detach the world again without changing its map ID.
 
+A right-click over the map explicitly enters `instanceWorldBrowsing` for that opening.
+The deferred global mouse-up handler lets NeedRoll dismiss its overlay first, then restores
+world layers, marker preferences and zoom levels. Dungeons.lua locates the current instance's
+recorded entrance and uses its containing city/zone's fit zoom; Nav.lua remembers the last
+outdoor player point as a fallback, independently of the user's panned/reopen view. Further
+clicks use normal world navigation. Closing/reopening clears this temporary browsing state;
+a generation check discards callbacks from a previous opening. No map ID is forced.
+
 **Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
 layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
 maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the

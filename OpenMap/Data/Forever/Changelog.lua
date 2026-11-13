@@ -7,6 +7,7 @@ ns.MapChangelog = {
 	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
 		"|cff6e2c0aHide world markers in instances|r: an optional temporary filter hides OpenMap's friends, guild, transport and world quest markers in dungeons, raids and battlegrounds. Group members and other addons' maps and markers remain visible; marker preferences are kept on leaving.",
 		"With Dungeon maps off, that filter also suspends the world canvas behind an instance overlay: no world-zone hover labels, coordinates, zone-selection clicks or world-position group dots over NeedRoll. NeedRoll's own players and real dungeon-map group blips remain.",
+		"Right-click an instance overlay to browse the normal world map again, centred on its outdoor entrance at the surrounding zone/city's zoom (Ragefire Chasm: Orgrimmar). Further right-clicks navigate normally. Reopening the map restores the instance filter. An unknown entrance falls back to the last known outdoor player position when available.",
 	} },
 	{ version = "v0.8.8", date = "2026-11-13", heads = { [1] = "Fixed", }, items = {
 		"|cff6e2c0aParty and raid markers stay steady|r: one marker per member, moving smoothly. OpenMap's ring now follows Blizzard's own dot where the game places a member, instead of a second dot of its own that lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.",
