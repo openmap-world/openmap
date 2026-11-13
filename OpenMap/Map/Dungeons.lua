@@ -39,6 +39,147 @@ local WING_FLOORS = {
 	["Scarlet Monastery - Graveyard"] = "Graveyard", ["Scarlet Monastery - Library"] = "Library",
 	["Scarlet Monastery - Armory"] = "Armory", ["Scarlet Monastery - Cathedral"] = "Cathedral",
 }
+local LOCALIZED_NAMES = {
+	["Blackrock Spire"] = L["Blackrock Spire"],
+	["Lower Blackrock Spire"] = L["Lower Blackrock Spire"],
+	["Upper Blackrock Spire"] = L["Upper Blackrock Spire"],
+	["Dire Maul - East"] = L["Dire Maul - East"],
+	["Dire Maul - North"] = L["Dire Maul - North"],
+	["Dire Maul - West"] = L["Dire Maul - West"],
+	["The Courtyard"] = L["The Courtyard"],
+	["Dining Hall"] = L["Dining Hall"],
+	["The Vacant Den"] = L["The Vacant Den"],
+	["Lower Observatory"] = L["Lower Observatory"],
+	["Upper Observatory"] = L["Upper Observatory"],
+	["Lord Godfrey's Chamber"] = L["Lord Godfrey's Chamber"],
+	["The Wall Walk"] = L["The Wall Walk"],
+	["The Deadmines"] = L["The Deadmines"],
+	["Ironclad Cove"] = L["Ironclad Cove"],
+	["The Pool of Ask'Ar"] = L["The Pool of Ask'Ar"],
+	["Moonshrine Sanctum"] = L["Moonshrine Sanctum"],
+	["The Forgotten Pool"] = L["The Forgotten Pool"],
+	["Hall of the Keepers"] = L["Hall of the Keepers"],
+	["Khaz'Goroth's Seat"] = L["Khaz'Goroth's Seat"],
+	["The Hall of Gears"] = L["The Hall of Gears"],
+	["The Dormitory"] = L["The Dormitory"],
+	["Launch Bay"] = L["Launch Bay"],
+	["Tinkers' Court"] = L["Tinkers' Court"],
+	["Graveyard"] = L["Graveyard"],
+	["Library"] = L["Library"],
+	["Armory"] = L["Armory"],
+	["Cathedral"] = L["Cathedral"],
+	["Tazz'Alor"] = L["Tazz'Alor"],
+	["Skitterweb Tunnels"] = L["Skitterweb Tunnels"],
+	["Hordemar City"] = L["Hordemar City"],
+	["Hall of Blackhand"] = L["Hall of Blackhand"],
+	["Halycon's Lair"] = L["Halycon's Lair"],
+	["Chamber of Battle"] = L["Chamber of Battle"],
+	["Detention Block"] = L["Detention Block"],
+	["Shadowforge City"] = L["Shadowforge City"],
+	["The Reliquary"] = L["The Reliquary"],
+	["Chamber of Summoning"] = L["Chamber of Summoning"],
+	["The Upper Study"] = L["The Upper Study"],
+	["Headmaster's Study"] = L["Headmaster's Study"],
+	["Crusader's Square"] = L["Crusader's Square"],
+	["The Gauntlet"] = L["The Gauntlet"],
+	["Caverns of Maraudon"] = L["Caverns of Maraudon"],
+	["Zaetar's Grave"] = L["Zaetar's Grave"],
+	["Gordok Commons"] = L["Gordok Commons"],
+	["Capital Gardens"] = L["Capital Gardens"],
+	["Court of the Highborne"] = L["Court of the Highborne"],
+	["Prison of Immol'Thar"] = L["Prison of Immol'Thar"],
+	["Warpwood Quarter"] = L["Warpwood Quarter"],
+	["The Shrine of Eldretharr"] = L["The Shrine of Eldretharr"],
+	["Dragonmaw Garrison"] = L["Dragonmaw Garrison"],
+	["Halls of Strife"] = L["Halls of Strife"],
+	["Crimson Laboratories"] = L["Crimson Laboratories"],
+	["Nefarian's Lair"] = L["Nefarian's Lair"],
+	["The Hive Undergrounds"] = L["The Hive Undergrounds"],
+	["The Temple Gates"] = L["The Temple Gates"],
+	["Vault of C'Thun"] = L["Vault of C'Thun"],
+}
+ns.MapPlaces.instanceNames = LOCALIZED_NAMES
+
+-- Leatrix Maps asks the client for these paths instead of hard-coding file IDs.  The client
+-- resolves the same path to the localized map tiles when that locale ships them; the generated
+-- file IDs remain the fallback for locales that do not.
+local NATIVE_MAP_PATHS = {
+	[213] = "Interface\\WorldMap\\Ragefire\\Ragefire1_",
+	[225] = "Interface\\WorldMap\\TheStockade\\TheStockade1_",
+	[219] = "Interface\\WorldMap\\ZulFarrak\\ZulFarrak",
+	[220] = "Interface\\WorldMap\\TheTempleOfAtalHakkar\\TheTempleOfAtalHakkar1_",
+	[221] = "Interface\\WorldMap\\BlackFathomDeeps\\BlackFathomDeeps1_",
+	[222] = "Interface\\WorldMap\\BlackFathomDeeps\\BlackFathomDeeps2_",
+	[223] = "Interface\\WorldMap\\BlackFathomDeeps\\BlackFathomDeeps3_",
+	[226] = "Interface\\WorldMap\\Gnomeregan\\Gnomeregan1_",
+	[227] = "Interface\\WorldMap\\Gnomeregan\\Gnomeregan2_",
+	[228] = "Interface\\WorldMap\\Gnomeregan\\Gnomeregan3_",
+	[229] = "Interface\\WorldMap\\Gnomeregan\\Gnomeregan4_",
+	[230] = "Interface\\WorldMap\\Uldaman\\Uldaman1_",
+	[231] = "Interface\\WorldMap\\Uldaman\\Uldaman2_",
+	[232] = "Interface\\WorldMap\\MoltenCore\\MoltenCore1_",
+	[233] = "Interface\\WorldMap\\ZulGurub\\ZulGurub",
+	[235] = "Interface\\WorldMap\\DireMaul\\DireMaul1_",
+	[236] = "Interface\\WorldMap\\DireMaul\\DireMaul2_",
+	[237] = "Interface\\WorldMap\\DireMaul\\DireMaul3_",
+	[238] = "Interface\\WorldMap\\DireMaul\\DireMaul4_",
+	[239] = "Interface\\WorldMap\\DireMaul\\DireMaul5_",
+	[240] = "Interface\\WorldMap\\DireMaul\\DireMaul6_",
+	[247] = "Interface\\WorldMap\\RuinsofAhnQiraj\\RuinsofAhnQiraj",
+	[248] = "Interface\\WorldMap\\OnyxiasLair\\OnyxiasLair1_",
+	[242] = "Interface\\WorldMap\\BlackrockDepths\\BlackrockDepths1_",
+	[243] = "Interface\\WorldMap\\BlackrockDepths\\BlackrockDepths2_",
+	[250] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire1_",
+	[251] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire2_",
+	[252] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire3_",
+	[253] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire4_",
+	[254] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire5_",
+	[255] = "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire6_",
+	[279] = "Interface\\WorldMap\\WailingCaverns\\WailingCaverns1_",
+	[280] = "Interface\\WorldMap\\Maraudon\\Maraudon1_",
+	[281] = "Interface\\WorldMap\\Maraudon\\Maraudon2_",
+	[287] = "Interface\\WorldMap\\BlackwingLair\\BlackwingLair1_",
+	[288] = "Interface\\WorldMap\\BlackwingLair\\BlackwingLair2_",
+	[289] = "Interface\\WorldMap\\BlackwingLair\\BlackwingLair3_",
+	[290] = "Interface\\WorldMap\\BlackwingLair\\BlackwingLair4_",
+	[291] = "Interface\\WorldMap\\TheDeadmines\\TheDeadmines1_",
+	[292] = "Interface\\WorldMap\\TheDeadmines\\TheDeadmines2_",
+	[300] = "Interface\\WorldMap\\RazorfenDowns\\RazorfenDowns1_",
+	[301] = "Interface\\WorldMap\\RazorfenKraul\\RazorfenKraul1_",
+	[302] = "Interface\\WorldMap\\ScarletMonastery\\ScarletMonastery1_",
+	[303] = "Interface\\WorldMap\\ScarletMonastery\\ScarletMonastery2_",
+	[304] = "Interface\\WorldMap\\ScarletMonastery\\ScarletMonastery3_",
+	[305] = "Interface\\WorldMap\\ScarletMonastery\\ScarletMonastery4_",
+	[310] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep1_",
+	[311] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep2_",
+	[312] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep3_",
+	[313] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep4_",
+	[314] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep5_",
+	[315] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep6_",
+	[316] = "Interface\\WorldMap\\ShadowfangKeep\\ShadowfangKeep7_",
+	[317] = "Interface\\WorldMap\\Stratholme\\Stratholme1_",
+	[318] = "Interface\\WorldMap\\Stratholme\\Stratholme2_",
+	[319] = "Interface\\WorldMap\\AhnQiraj\\AhnQiraj1_",
+	[320] = "Interface\\WorldMap\\AhnQiraj\\AhnQiraj2_",
+	[321] = "Interface\\WorldMap\\AhnQiraj\\AhnQiraj3_",
+}
+
+local function NativePath(f)
+	if f.name == "Blackrock Spire" and not f.mapID then
+		return "Interface\\WorldMap\\BlackrockSpire\\BlackrockSpire7_"
+	end
+	return f.mapID and NATIVE_MAP_PATHS[f.mapID]
+end
+
+local function SetFloorTiles(tiles, f)
+	local path = NativePath(f)
+	local native = path and GetFileIDFromPath and Safe.Call(GetFileIDFromPath, path .. "1")
+	if native and native > 0 then
+		for i, tile in ipairs(tiles) do tile:SetTexture(path .. i, nil, nil, "TRILINEAR") end
+		return
+	end
+	for i, tile in ipairs(tiles) do tile:SetTexture(f.tiles and f.tiles[i], nil, nil, "TRILINEAR") end
+end
 local CARD_W = 270
 
 local map, sc, chooser, card
@@ -249,15 +390,14 @@ local function ShowFloor(i, quiet)
 	if not quiet and i ~= view.floor then Sound("IG_ABILITY_PAGE_TURN") end
 	view.floor = i
 	local f = floors[i]
-	for k, t in ipairs(view.tiles) do
-		if f.tiles then t:SetTexture(f.tiles[k], nil, nil, "TRILINEAR") end
-		t:SetShown(f.tiles and true or false)
-	end
+	SetFloorTiles(view.tiles, f)
+	for _, t in ipairs(view.tiles) do t:SetShown(f.tiles and true or false) end
 	view.blank:SetShown(f.blank and true or false)
 	view.blankText:SetShown(f.blank and true or false)
 	view.credit:SetText(f.credit and L["Map by %s"]:format(f.credit) or "")
 	view.floorName:SetText(("|cffffd100%s|r%s"):format(view.FloorName(i), #floors > 1 and ("  |cff998866%d / %d|r"):format(i, #floors) or ""))
-	view.wing:SetText(f.wing and (f.wing .. "   ") or "")
+	local wingName = f.wing and LOCALIZED_NAMES[f.wing]
+	view.wing:SetText(f.wing and ((wingName and wingName ~= f.wing and wingName or f.wing) .. "   ") or "")
 	view.where:SetText(S.InstanceName(view.inst))
 	view.prev:SetShown(#floors > 1)
 	view.next:SetShown(#floors > 1)
@@ -267,6 +407,21 @@ local function ShowFloor(i, quiet)
 	if view.side and view.side.LightThumbs then view.side.LightThumbs() end
 	view.zoom, view.ox, view.oy = 1, 0, 0
 	LayoutView()
+end
+
+-- OpenMap's Forever maps are drawn from the client's files, but their floor names are the
+-- English keys used to join the art to the map data.  Keep an explicit floor name ahead of the
+-- client lookup: imported dungeon tables reuse IDs (Gnomeregan's last floor is also ID 229,
+-- which Forever resolves as Blackrock Spire).
+local function FloorName(f)
+	if f.name then
+		local translated = LOCALIZED_NAMES[f.name]
+		return translated and translated ~= f.name and translated or f.name
+	end
+	local info = f.mapID and Safe.Call(C_Map.GetMapInfo, f.mapID)
+	if info and info.name and info.name ~= "" then return info.name end
+	local name = f.mapID and Safe.Call(GetRealZoneText, f.mapID)
+	return name and name ~= "" and name or f.name
 end
 
 -- out: back to the world, at once
@@ -381,7 +536,7 @@ local function BuildView()
 	view.wing:SetTextColor(0.8, 0.7, 0.5)
 	function view.FloorName(i)
 		local f = view.floors[i]
-		return f.name or (#view.floors > 1 and L["Floor %d"]:format(i)) or S.InstanceName(view.inst)
+		return FloorName(f) or (#view.floors > 1 and L["Floor %d"]:format(i)) or S.InstanceName(view.inst)
 	end
 	-- every floor by name, to go straight to one
 	view.floorButton:SetScript("OnClick", function(self)
@@ -1925,10 +2080,10 @@ FillSide = function()
 			w:SetPoint("TOPLEFT", 2 + col * (tw + 6), -y - 2)
 			local s = (tw - 2) / PIC_W
 			local f = view.floors[it.floor]
+			SetFloorTiles(w.tiles, f)
 			for k, t in ipairs(w.tiles) do
 				local c, r = (k - 1) % 4, math.floor((k - 1) / 4)
 				local cw, ch = math.min(256, PIC_W - c * 256), math.min(256, PIC_H - r * 256)
-				t:SetTexture(f.tiles and f.tiles[k], nil, nil, "TRILINEAR")
 				t:SetSize(cw * s, ch * s)
 				t:SetPoint("TOPLEFT", 1 + c * 256 * s, -1 - r * 256 * s)
 				t:SetTexCoord(0, cw / 256, 0, ch / 256)
