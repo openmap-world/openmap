@@ -32,7 +32,7 @@ class InstanceTests(unittest.TestCase):
         for name in ('PinSet', 'SetPinSetOn'):
             helpers += re.search(r'function S\.' + name + r'\(.*?\nend\n', STITCH, re.S).group()
         self.lua.execute(helpers)
-        self.lua.execute(re.search(r'function mod:RefreshInstancePins\(\).*?\nend\n', WORLD, re.S).group())
+        self.lua.execute(re.search(r'function mod:RefreshInstancePins\(.*?\nend\n', WORLD, re.S).group())
         self.lua.execute("""
             affected = { 'friends', 'friendzones', 'boats', 'zeppelins', 'routes', 'flight', 'route', 'quests' }
             preserved = { 'group', 'waypoint', 'ping', 'userpins', 'sketch', 'dungeons', 'needroll' }
@@ -149,6 +149,141 @@ class InstanceTests(unittest.TestCase):
                 events[event]()
                 Check(true)
             end
+        """)
+
+
+class InstanceHostTests(unittest.TestCase):
+    def setUp(self):
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        helpers = re.search(r'local function Attach\(.*?\nend\n', WORLD, re.S).group()
+        for name in ('InstanceWorldHidden', 'CursorWorld'):
+            helpers += re.search(r'function mod\.' + name + r'\(.*?\nend\n', WORLD, re.S).group()
+        helpers += re.search(r'function mod:RefreshInstancePins\(.*?\nend\n', WORLD, re.S).group()
+        helpers += re.search(r'local function OnCanvasClick\(.*?\nend\n', WORLD, re.S).group()
+        self.lua.execute("""
+            mod = { db = { hideWorldPinsInInstances = true, dungeonMaps = false }, enabled = true }
+            S = { shown = true }
+            function S.IsBuilt() return true end
+            function S.Layout() return true end
+            function S.SetShown(on) S.shown = on end
+            function S.SetPlayer() end
+            function S.SetWorldPinsHidden(on) S.filtered = on end
+            function mod:UpdateBrightness() end
+            ns = { Safe = { Value = function(v) return v end } }
+            inside, kind = false, 'none'
+            function IsInInstance() return inside, kind end
+            local map = { id = 947, shown = true }
+            function map:GetMapID() return self.id end
+            function map:IsShown() return self.shown end
+            local sc = {}
+            function sc:SetMouseWheelZoomMode(value) self.wheel = value end
+            function sc:SetScalingMode(value) self.scaling = value end
+            local ticker = {}
+            function ticker:Show() self.shown = true end
+            function ticker:Hide() self.shown = false end
+            function Stitchable(id) return id == 947 or id == 1 end
+            function BlizzardArt() end
+            function RaisePlayer() raised = (raised or 0) + 1 end
+            local active, anim = true, {}
+            local wheelMode, scalingMode = 'native', 'native'
+            MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_NONE = 'openmap'
+        """ + helpers + """
+            function State(id)
+                if id then map.id = id end
+                Attach(map.id)
+            end
+            function Active() return active end
+            function Cursor() return mod.CursorWorld() end
+            function Click(button) return OnCanvasClick(nil, button) end
+            function Closed(on) map.shown = not on end
+            function Wheel() return sc.wheel end
+            function Ticking() return ticker.shown end
+        """)
+
+    def test_world_host_suspends_and_restores_on_instance_events(self):
+        self.lua.execute("""
+            State(947)
+            assert(Active() and S.shown)
+            for _, value in ipairs({ 'party', 'raid', 'pvp', 'arena' }) do
+                inside, kind = true, value
+                mod:RefreshInstancePins()
+                assert(not Active() and not S.shown, 'world art and its group pins still shown')
+                assert(Cursor() == nil, 'world cursor still active')
+                assert(Wheel() == 'native' and Ticking(), 'native zoom or protected-pin retry lost')
+                assert(Click('LeftButton') and Click('RightButton'), 'click fell through to world navigation')
+                inside, kind = false, 'none'
+                mod:RefreshInstancePins()
+                assert(Active() and S.shown and not mod.instanceWorldHidden)
+                assert(mod.db.dungeonMaps == false and mod.db.hideWorldPinsInInstances)
+            end
+        """)
+
+    def test_native_dungeon_map_and_openmap_dungeon_setting_are_preserved(self):
+        self.lua.execute("""
+            inside, kind = true, 'party'
+            State(2)
+            assert(not Active() and not mod.instanceWorldHidden)
+            assert(not Click('LeftButton'), 'native dungeon click swallowed')
+            State(947)
+            assert(mod.instanceWorldHidden)
+            mod.db.dungeonMaps = true
+            mod:RefreshInstancePins()
+            assert(Active() and not mod.instanceWorldHidden, 'OpenMap dungeon option ignored')
+            mod.db.dungeonMaps = false
+            mod:RefreshInstancePins()
+            assert(not Active())
+            mod.db.hideWorldPinsInInstances = false
+            mod:RefreshInstancePins()
+            assert(Active() and not mod.instanceWorldHidden)
+        """)
+
+    def test_closed_map_and_host_changes(self):
+        self.lua.execute("""
+            Closed(true)
+            inside, kind = true, 'party'
+            mod:RefreshInstancePins()
+            assert(not Active() and not S.shown)
+            Closed(false)
+            State(1)
+            assert(not Active() and Ticking())
+            State(2)
+            assert(not mod.instanceWorldHidden, 'native dungeon blips would be suppressed')
+            inside, kind = false, 'none'
+            State(947)
+            assert(Active() and S.shown)
+        """)
+
+    def test_hover_label_does_not_query_world_under_overlay(self):
+        extras = (ROOT / 'OpenMap/Map/Extras.lua').read_text()
+        label = re.search(r'local function AreaLabelOnUpdate\(.*?\nend\n', extras, re.S).group()
+        self.lua.execute("""
+            MAP_AREA_LABEL_TYPE = { AREA_NAME = 1 }
+            local self = { clears = 0, evaluations = 0 }
+            function self:ClearLabel() self.clears = self.clears + 1 end
+            function self:EvaluateLabels() self.evaluations = self.evaluations + 1 end
+            -- No dataProvider: querying the world label would fail this test.
+        """ + label + """
+            inside, kind = true, 'party'
+            State(947)
+            AreaLabelOnUpdate(self)
+            assert(self.clears == 1 and self.evaluations == 1)
+        """)
+
+    def test_coordinates_do_not_query_world_under_overlay(self):
+        extras = (ROOT / 'OpenMap/Map/Extras.lua').read_text()
+        coords = re.search(r'local function UpdateCoords\(.*?\nend\n', extras, re.S).group()
+        self.lua.execute("""
+            local throttle = 0
+            local bar = { player = { at = {} }, cursor = {} }
+            function bar.player.at:SetText(text) self.text = text end
+            function bar.cursor:GetParent() return self end
+            function bar.cursor:Hide() self.hidden = true end
+            -- No C_Map: querying coordinates underneath the overlay would fail.
+        """ + coords + """
+            inside, kind = true, 'party'
+            State(947)
+            UpdateCoords(nil, 0.1)
+            assert(bar.player.at.text == '' and bar.cursor.hidden)
         """)
 
 

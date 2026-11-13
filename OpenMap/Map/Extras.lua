@@ -126,6 +126,11 @@ local function UpdateCoords(_, elapsed)
 	throttle = throttle + elapsed
 	if throttle < 0.05 then return end
 	throttle = 0
+	if mod.InstanceWorldHidden() then
+		bar.player.at:SetText("")
+		bar.cursor:GetParent():Hide()
+		return
+	end
 
 	local best = C_Map.GetBestMapForUnit("player")
 	local pos = best and C_Map.GetPlayerMapPosition(best, "player")
@@ -303,6 +308,7 @@ end
 -- area in it, its own name (Blizzard's label showed none there: its title went missing, #25)
 local function AreaLabelOnUpdate(self)
 	self:ClearLabel(MAP_AREA_LABEL_TYPE.AREA_NAME)
+	if mod.InstanceWorldHidden() then self:EvaluateLabels() return end
 	local m = self.dataProvider:GetMap()
 	if m:IsCanvasMouseFocus() or mod.PadCursor() then
 		local mapID = m:GetMapID()

@@ -217,6 +217,39 @@ class PlayerTests(unittest.TestCase):
             assert(mod.NativeGroupIconScale(pin) == .6 and math.abs(pin.sizes.party - 3.3) < 1e-6)
         """)
 
+    def test_instance_overlay_hides_world_blips_without_changing_preferences(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group = true, true
+            mod.instanceWorldHidden = true
+            Tick()
+            assert(pin.sizes.player < 1 and pin.sizes.party < 1 and pin.sizes.raid < 1)
+            pin:StartPlayerPing(2, .25)
+            assert(not pin.pinging)
+            pin:SynchronizePinSizes()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            mod.instanceWorldHidden = false
+            Tick()
+            assert(pin.sizes.player == 13.5 and pin.sizes.party == 5.5 and pin.sizes.raid == 4.125)
+            assert(mod.db.group and mod.db.playerArrow)
+        """)
+
+    def test_instance_overlay_retries_protected_blips_after_combat(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group = true, true
+            mod.instanceWorldHidden, pin.protected, combat = true, true, true
+            Tick()
+            assert(pin.sizes.party == 11, 'protected group pin changed in combat')
+            combat = false
+            Tick()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            mod.instanceWorldHidden, combat = false, true
+            Tick()
+            assert(pin.sizes.party < 1, 'protected group pin restored in combat')
+            combat = false
+            Tick()
+            assert(pin.sizes.party == 5.5 and pin.sizes.raid == 4.125)
+        """)
+
     def test_ping_without_size_method(self):
         self.lua.execute("""
             pin.SetPinSize = nil

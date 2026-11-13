@@ -67,6 +67,12 @@ Write down anything odd, with `/openmap status` output, or use the map's own
   Turn the filter off inside: markers return according to their existing options and zoom.
   Turn it on again, leave: the same markers return; an individually disabled marker type
   stays disabled. Saved marker settings are unchanged except for the new filter choice.
+- [ ] With Dungeon maps off and NeedRoll visible, move the pointer across the instance:
+  no outdoor zone names or world coordinates appear. Click empty map space: no outdoor
+  zone opens. OpenMap's approximate world-position group dots and the native world-host
+  blips are absent; NeedRoll's actual players and bosses stay. On a real dungeon map,
+  native group blips remain. Leave the instance or turn the filter off: world interaction
+  and group markers return. Repeat entering in combat; protected blips wait until it ends.
 - [ ] With the filter off, enter an instance: existing behavior is unchanged. Outside,
   browse a dungeon map: the filter follows the player's location, not the map being viewed.
 

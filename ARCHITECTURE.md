@@ -112,6 +112,13 @@ events, map attachment and option changes. It leaves `set.on`, saved marker pref
 group pins and other addons' frames alone. Sets created while filtered start hidden too;
 later refreshes and view changes go through the same filter.
 
+With Dungeon maps off and a stitched world map hosting the instance overlay, the filter
+also detaches OpenMap's world canvas and pins (`instanceWorldHidden`). World navigation,
+hover labels and coordinate readouts stop. Native world-map player/party/raid blips are
+temporarily sized away through the existing combat-aware blip path, retried by the ticker.
+Actual dungeon-map blips and other addons' player pins are not affected. Changes to the
+instance, host map or settings attach/detach the world again without changing its map ID.
+
 **Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
 layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
 maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the
