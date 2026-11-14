@@ -160,7 +160,9 @@ end
 -- desat: the tiles' own desaturation, the rest of the way from what they're baked at to the setting
 -- (desaturating twice is desaturating once by 1 - (1 - a)(1 - b)), so they serve any Take colour out
 -- english: the tiles are baked from the English client's files, names lettered on the art and all; any
--- other language draws the zones live, from the client's own art in its language
+-- other language draws the zones live, from the client's own art in its language, unless the player
+-- chose the tiles (Options' Pre-drawn zone art: S.ApplyGrade's last argument): fewer textures to draw,
+-- with the English lettering
 local Baked = { FADE = { 1.2, 1.6 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
 	path = TEX .. "MapZones\\", desat = 0, english = not GetLocale or GetLocale():sub(1, 2) == "en" }
 
@@ -2814,8 +2816,12 @@ GradeEntry = function(g, desat)
 	g[1]:SetDesaturation(desat)
 end
 
-function S.ApplyGrade(strength, desat, unexplored)
-	lastGrade = { strength, desat, unexplored }
+-- whether the baked tiles' language is the client's own (an English client): the Pre-drawn zone art
+-- option matters on any other
+function S.BakedIsEnglish() return Baked.english and true or false end
+
+function S.ApplyGrade(strength, desat, unexplored, bakedAnyLanguage)
+	lastGrade = { strength, desat, unexplored, bakedAnyLanguage }
 	gradeNow = { strength, desat, unexplored }
 	local grade = ns.MapGrade or {}
 	local dim = unexplored == "dim" and ns.MapGrade ~= nil   -- (the shades need its zones' land masks)
@@ -2847,10 +2853,10 @@ function S.ApplyGrade(strength, desat, unexplored)
 		cities.Banners()
 	end
 	-- the baked art only at the settings it was baked at (unexplored areas hidden: live, piece by piece),
-	-- and on an English client (Baked.english)
+	-- and on an English client (Baked.english) or where the player chose them (bakedAnyLanguage)
 	local art = ns.MapZoneArt
 	Baked.use = (art and Baked.frame and strength == art.colorMatch and desat >= art.desaturate - 0.001
-		and unexplored ~= "hide" and not Baked.noFills and Baked.english) and true or false
+		and unexplored ~= "hide" and not Baked.noFills and (Baked.english or bakedAnyLanguage)) and true or false
 	local bd = art and math.max(0, (desat - art.desaturate) / (1 - art.desaturate)) or 0
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd

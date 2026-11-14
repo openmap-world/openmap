@@ -38,6 +38,7 @@ local mod = ns:NewModule("worldmap", {
 		foundOnly = false,      -- dungeons, docks and towers only once explored there; flight masters once learned
 		colorMatch = 1,         -- how far zone borders move to the shared palette
 		desaturate = 0.1,
+		bakedAnyLanguage = false,   -- the zones' pre-drawn art (Stitch.lua's Baked) on a client that isn't English too, with its English lettering
 		unexplored = "show",    -- areas not explored yet: "show", "dim" or "hide"
 		gapFills = true,        -- the gaps between zones painted by hand (art/drawn/gaps)
 		maxZoom = 48 * (ns.ClientMaps and ns.ClientMaps.zoom or 1),   -- x the whole-world view (MAX_ZOOM: what it can
@@ -1609,7 +1610,7 @@ function mod:Refresh()
 	S.SetIconScale(self.db.iconScale or 1)
 	S.SetGapFillsShown(self.db.gapFills ~= false)       -- (before the grade: it decides on the baked tiles)
 	if S.SetDarkening then S.SetDarkening(self.db.darkening or 1, self.db.darkenColor or nil) end
-	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, mod.Unexplored())
+	S.ApplyGrade(self.db.colorMatch, self.db.desaturate, mod.Unexplored(), self.db.bakedAnyLanguage)
 	ApplyZoom()
 	if self.RefreshExtras then self.RefreshExtras() end
 	if self.RefreshTownsfolk then self:RefreshTownsfolk() end
@@ -1748,6 +1749,9 @@ function mod:Options()
 			desc = ns.L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours."] },
 		desaturate = { type = "range", name = ns.L["Take colour out"], order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
+		bakedAnyLanguage = { type = "toggle", name = ns.L["Pre-drawn zone art"], order = 22.5, width = "full", get = get, set = set, disabled = off,
+			hidden = function() return not S.BakedIsEnglish or S.BakedIsEnglish() end,   -- (an English client always draws the zones this way)
+			desc = ns.L["Draws the zones from pictures made ahead of time instead of layer by layer from the game's own art: far fewer textures on screen, so a smoother map. They're made from the English client's art, so any lettering on them is in English."] },
 		chart = { type = "toggle", name = ns.L["Responsive ocean & border"], order = 23.6, get = get, set = set, disabled = off,
 			hidden = function() return not ns.MapChart end,   -- (WoW Forever's only: Data\Forever\Chart.lua)
 			desc = ns.L["Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border."] },

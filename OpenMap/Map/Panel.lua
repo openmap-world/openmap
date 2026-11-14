@@ -296,6 +296,11 @@ local function Rows()
 	if ns.MapChart then                          -- (the sea chart is WoW Forever's: Data\Forever\Chart.lua)
 		rows[#rows + 1] = optRow(L["Responsive ocean & border"], "chart", Icon("INV_Misc_Map02"))
 	end
+	local stitch = ns.MapStitch
+	if stitch and stitch.BakedIsEnglish and not stitch.BakedIsEnglish() then   -- (an English client always draws the zones from the pre-drawn art)
+		rows[#rows + 1] = optRow(L["Pre-drawn zone art"], "bakedAnyLanguage", Icon("INV_Misc_Map_01"))
+		rows[#rows].note = L["Improves performance"]
+	end
 	rows[#rows + 1] = optRow(L["Zone highlight on hover"], "hoverHighlight", Icon("Spell_Holy_MindVision"))
 	rows[#rows + 1] = optRow(L["Zone levels"], "zoneLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Coordinates"], "coords", Icon("INV_Misc_Spyglass_03"))

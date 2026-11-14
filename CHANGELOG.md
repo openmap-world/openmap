@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Pre-drawn zone art on any language** (Options and the menu's On the map tab, off): the zones drawn
+  from the baked world tiles, which only an English client used because their lettering is English, on any
+  client. Far fewer textures on screen, so a smoother map, with that English lettering on the zones.
+  English clients are unchanged and don't show the option.
+
 ## v0.8.9 (2026-11-14)
 
 ### New
