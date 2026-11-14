@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Fewer hitches zooming out**: the first zoom out of a session made the lettering of every continent
+  and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles
+  fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half
+  fewer calls to the client for a zoom out. The offline test tools/offline-test/perf.py counts both.
+
 ## v0.8.9 (2026-11-14)
 
 ### New

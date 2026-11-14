@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aFewer hitches zooming out|r: the first zoom out of a session made the lettering of every continent and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half fewer calls to the client for a zoom out. The offline test tools/offline-test/perf.py counts both.",
+	} },
 	{ version = "v0.8.9", date = "2026-11-14", heads = { [1] = "New", [4] = "Improved", [9] = "Fixed", }, items = {
 		"|cff6e2c0aHide world markers in instances|r (the menu's On the map tab, and Options; off unless turned on): in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's), the world under it stops answering the mouse, and a right-click brings the world map back, at the dungeon's outdoor entrance (#232). By HonzoNebro.",
 		"|cff6e2c0aPin options|r (OpenMap's options, Moving about and Sharing): - |cff6e2c0aFollow new pins|r: on by default, as before. Off, a pin you drop doesn't become the waypoint, so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it. - |cff6e2c0aSend new pins to group|r: a pin you drop goes to your party or raid once its card is closed. - |cff6e2c0aAuto-add group's pins|r: pins your party or raid shares are added without asking. By diegodiaz1256.",
@@ -48,19 +51,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aCave maps whole|r: Blizzard's cave maps showed only the parts their pale floors give away, cut off along a straight line near the page's foot (Maraudon's entrance, Wailing Caverns', Night Web's Hollow ...); the caves' own rooms now say where they are, as was meant (#141).",
 		"|cff6e2c0aNo white diamonds at cave mouths|r: one of the game's own cave minimap pictures has a white block baked in over its tunnel's mouth, which showed up close at two caves in the Hinterlands (and one in Kalimdor); OpenMap now draws a mended copy (#114).",
 		"|cff6e2c0a/openmap forgetflights|r forgets the flight paths OpenMap remembers as learned for the character, for one counted wrongly (route planners read the list); the next flight master's map learns the real ones again (#153).",
-	} },
-	{ version = "v0.8.4", date = "2026-11-11", heads = { [1] = "New", [4] = "Improved", [5] = "Fixed", }, items = {
-		"|cff6e2c0aBosses pinned on dungeon maps|r: a numbered pin where each boss is, on its floor, numbered as the Bosses tab lists them, with its name on the tooltip (click: its loot in NeedRoll). Placed from Blizzard's own dungeon journal for 153 bosses so far; \"Dungeon maps: bosses\" turns them off with the list (#90, #93).",
-		"|cff6e2c0a/openmap bosses places the rest yourself|r: on a dungeon's map, click where the boss named in the bar is (right-click skips one, shift-click takes the last back). Your places show at once and are kept with your settings.",
-		"|cff6e2c0aDungeon maps from the minimap|r (Options, off): a dungeon's map built from the game's own minimap pictures of its rooms, a picture per floor, instead of its drawn map: The Hall of Thanes and Ruins of Lordaeron for now.",
-		"|cff6e2c0aYour party and raid get a gold-bordered dot|r on the stitched map, everywhere, so they can't be mistaken for a guild member's dot. Someone the game won't place is shown faintly in the middle of their zone, with \"Somewhere in\" on the tooltip. By KonigTX.",
-		"|cff6e2c0a\"Your arrow\" off also hides the yellow location ping|r when the world map opens or changes zones. Turning it on again restores the normal arrow and ping; party markers stay visible (#78). By Luquatic.",
-		"|cff6e2c0a\"Party and raid members\" off means off|r: Blizzard's own blips for your group are hidden too, not only OpenMap's dots (#77, found by Luquatic).",
-		"|cff6e2c0aDragging the map no longer zooms into a zone or city|r: a drag that came back near where it started counted as a click and zoomed into what was under the cursor, Ironforge from parts of Dun Morogh most of all (#37, #64).",
-		"|cff6e2c0aGuild markers clear when a guildmate joins your group|r: their shared-location dot or zone badge entry could stay when the guild roster and the party spelled the character's name differently. By puschie286.",
-		"|cff6e2c0a\"Ctrl-click drops a pin\" off leaves Ctrl-click to other addons|r: with it off, a Ctrl-click zoomed the map and went no further, so Map Pin Enhanced's own Ctrl-click did nothing (#19).",
-		"|cff6e2c0aOne map marker per friend or guildmate|r: different realm labels could make the same character count twice in a zone badge or show more than one shared-location dot (#104, #115). By puschie286.",
-		"|cff6e2c0aNo flight master at Powderfuse Port|r: the map showed one there, but there's none in the game yet; the port is reached by its boat, which stays on the map (#121, #132).",
-		"|cff6e2c0aMap size in OpenMap's menu is greyed out with Move Any|r, as it is in Options: Move Any sizes the map then, and the menu's slider moved without changing anything (perhaps #136).",
 	} },
 }

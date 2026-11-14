@@ -1844,6 +1844,34 @@ function S.Layout(mapID)
 	return true
 end
 
+-- a name's lettering, built the first time it shows at all. A name is hundreds of font strings (its halo),
+-- and all of them made in one frame was a hitch on the first zoom out of a session (350 in one step, in
+-- tools/offline-test/perf.py): one name a call, the rest a moment later
+-- (a field, not a local: the file is at Lua's limit of 200)
+names.perCall = 1
+function S.BuildNames()
+	local left = names.perCall
+	local more = false
+	for _, n in ipairs(names) do
+		if not n.built and (n[1].omFade or 0) > 0.01 then
+			if left > 0 then
+				left = left - 1
+				n.built = true
+				Letter(n[1], n[2])
+			else
+				more = true
+			end
+		end
+	end
+	if more and not names.soon then
+		names.soon = true
+		C_Timer.After(0.05, function()
+			names.soon = nil
+			S.BuildNames()
+		end)
+	end
+end
+
 -- zoom: 1 = the world fits the view; scale: the host canvas's scale (host units -> view px)
 -- for /openmap status: each part of S.SetZoom's time (ms, smoothed) and its worst
 local zoomSteps = {}
@@ -1886,8 +1914,8 @@ function S.SetZoom(zoom, scale)
 		local a = math.floor((fades[n[2].fade] or 0) * 100 + 0.5) / 100
 		Fade(n[1], a)
 		if n.near == false and n[1]:IsShown() then n[1]:Hide() end   -- (off the view: S.Cull)
-		if a > 0.01 and not n.built then Letter(n[1], n[2]); n.built = true end
 	end
+	S.BuildNames()
 	Step("names")
 	detailNow = DETAIL_HINT[3] * Smooth(DETAIL_HINT) + (1 - DETAIL_HINT[3]) * Smooth(DETAIL_FADE)
 	if Live.contK then                          -- (each continent's zones by its own art's resolution: ApplyDetail)
@@ -2181,7 +2209,7 @@ end
 -- set over its frames at the most: 60, not 300 (a frame setting 300 files was a 35 ms hitch on
 -- a 240 Hz machine, each file set being a load and an upload, in testing: two seconds for the
 -- detail to come in, and a pan into new ground arriving over a few more frames)
-local LOAD_PER_FRAME = { 40, frames = 6, most = 60 }   -- (one local: the file is at Lua's limit of 200)
+local LOAD_PER_FRAME = { 40, frames = 6, most = 60, steps = 8 }   -- (one local: the file is at Lua's limit of 200)
 local LOAD_FADE = 0.3           -- seconds
 local loadQueue, loadAt = {}, 1
 local fading, fadingN = {}, 0   -- texture -> when it got its file
@@ -2200,6 +2228,7 @@ loader:SetScript("OnUpdate", function(self)
 			tex:SetTexture(tex.omFile, nil, nil, "TRILINEAR")
 			tex.omFile = nil
 			tex:SetAlpha(0)
+			tex.omStep = 0
 			fading[tex] = now
 			fadingN = fadingN + 1
 			n = n + 1
@@ -2213,7 +2242,13 @@ loader:SetScript("OnUpdate", function(self)
 			fading[tex] = nil
 			fadingN = fadingN - 1
 		else
-			tex:SetAlpha(t * t * (3 - 2 * t))
+			-- (in steps: a fade is a call to the client a frame for every texture fading, 700 and more while a
+			-- zoom out brings the continents' tiles in; a step more than the eye sees is one it doesn't)
+			local a = math.floor(t * t * (3 - 2 * t) * L_.steps + 0.5) / L_.steps
+			if a ~= tex.omStep then
+				tex.omStep = a
+				tex:SetAlpha(a)
+			end
 		end
 	end
 	if loadAt == 1 and #loadQueue == 0 and fadingN == 0 then
