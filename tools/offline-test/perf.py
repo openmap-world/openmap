@@ -109,9 +109,14 @@ do
 	end
 end
 
-function PERF(ns, zooms, start, unexplored)
+function PERF(ns, zooms, start, unexplored, terrain)
 	local S = ns.MapStitch
 	local out = { rows = {} }
+	if terrain then
+		ns.MapMinimapLOD = ns.MapMinimapLOD or { [0] = {}, [1] = {} }
+		ns:GetModule("worldmap").db.terrainView = true
+		ns:GetModule("worldmap").db.terrainAll = true
+	end
 	local view = CreateFrame("Frame", nil, UIParent)
 	local canvas = CreateFrame("Frame", nil, view)
 	if not S.Build(canvas, 100, 80, 2000) then return { built = false } end
@@ -172,6 +177,21 @@ function PERF(ns, zooms, start, unexplored)
 	for i = 1, #zooms do
 		out.rows[#out.rows + 1] = step(zooms[i], 4)
 	end
+	local function partShown(name)
+		for _, p in ipairs(S.Parts()) do
+			if p[1] == name then
+				local f = p[2][1]
+				return f and f:IsShown() or false
+			end
+		end
+		return false
+	end
+	out.shown = {
+		base = partShown("zone base art"),
+		baked = partShown("baked zone art"),
+		overlays = partShown("zone overlays"),
+		interiors = partShown("zone interiors"),
+	}
 	return out
 end
 '''
@@ -234,6 +254,16 @@ def run(unexplored="show"):
     return rows, stats, [errs[i] for i in range(1, len(errs) + 1)]
 
 
+def run_shown(terrain):
+    """the zone layers' visibility at a settled close view, with terrain view off or on"""
+    L, ns = load_runtime()
+    res = L.eval("PERF")(ns, L.table_from([START_ZOOM]), 1429, "show", terrain)
+    if res["built"] is False: raise RuntimeError("the world did not build")
+    errs = L.eval("ERRORS")
+    shown = {k: bool(res["shown"][k]) for k in ("base", "baked", "overlays", "interiors")}
+    return shown, [errs[i] for i in range(1, len(errs) + 1)]
+
+
 def table(rows):
     lines = ["  zoom  drawn placed icons  calls   made   lua ms     kb"]
     for r in rows:
@@ -279,6 +309,15 @@ class ZoomOut(unittest.TestCase):
         L, ns = load_runtime()
         res = L.eval("PERF")(ns, L.table_from([START_ZOOM] * 4), 1429, "show")
         self.assertEqual(res["rows"][4]["calls"], 0)
+
+    def test_terrain_view_skips_the_painted_zones(self):
+        # (the imagery covers the zones, baked tiles and their colour-matched copies: don't draw them too)
+        off, errs = run_shown(False)
+        self.assertEqual(errs, [])
+        self.assertTrue(any(off.values()), off)
+        on, errs = run_shown(True)
+        self.assertEqual(errs, [])
+        self.assertFalse(any(on.values()), on)
 
 
 if __name__ == "__main__":

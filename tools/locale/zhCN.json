@@ -38,7 +38,7 @@
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "尚未探索的区域：可按原样显示；可调暗并偏冷色显示（完全未发现的区域在任何缩放下都会调暗，大陆地图上也一样）；也可像暴雪自带的地图那样隐藏（在你到达之前是一片空白的羊皮纸）。",
  "Arrow": "箭头",
  "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads.": "放大到最大时，混入多少游戏小地图来补充细节。手绘地图始终为主。",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "放大到最大时，混入游戏小地图以补充细节（树木、岩石、建筑）。关闭时，无论放大多少都只显示手绘地图。",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "在最接近的缩放级别混入游戏的小地图以增加细节（树木、岩石、建筑）。关闭：除非开启地形视图，否则只显示绘制的地图。",
  "Auctioneers": "拍卖师",
  "Auto": "自动",
  "Back": "返回",
@@ -547,5 +547,9 @@
  "Dungeon maps inside dungeons": "地下城内显示地下城地图",
  "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.": "在地下城或团队副本内打开地图时显示该地下城的地图。关闭：在那里地图像游戏自带的一样打开，地下城的地图仍可从世界地图上的入口打开。安装了 Dungeon Journal 时，在它有页面的地下城内，地图交给它显示。",
  "Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp.": "放大后，手绘地图的像素不够用：此选项会柔化地图并叠加纸张纹理。地图移动时柔化会暂停，所以缩放或拖动时地图是清晰的，停下片刻后才变柔和。关闭（默认）：始终清晰。",
- "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "在地下城中打开地图会显示 OpenMap 的地下城地图。关闭方法：OpenMap 菜单 > 地下城 > 地下城内显示地下城地图。"
+ "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "在地下城中打开地图会显示 OpenMap 的地下城地图。关闭方法：OpenMap 菜单 > 地下城 > 地下城内显示地下城地图。",
+ "Terrain view": "地形视图",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "在近距离缩放时显示游戏的真实地形，而不是绘制的地图。关闭：绘制的地图优先，放大时混入小地图细节。",
+ "Toggle terrain view": "切换地形视图",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "不仅在近距离，也在整个世界视图显示地形。需开启地形视图。"
 }

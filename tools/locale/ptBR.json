@@ -38,7 +38,7 @@
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "Áreas que você ainda não explorou: mostradas como são, escurecidas e com cores mais frias (e uma zona que você ainda nem descobriu fica escurecida em todos os zooms, inclusive nos dos continentes), ou ocultas como no próprio mapa da Blizzard (pergaminho em branco até você chegar lá).",
  "Arrow": "Seta",
  "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads.": "No zoom mais próximo, quanto do minimapa do jogo é misturado para dar detalhe. O mapa pintado sempre predomina.",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "No zoom mais próximo, mistura o minimapa do jogo para dar detalhe (vegetação, rochas, construções). Desativado, você vê só o mapa pintado, por mais que aproxime o zoom.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "No zoom mais próximo, mistura o minimapa do jogo para dar detalhe (árvores, rochas, construções). Desativado: você só vê o mapa pintado, a menos que a visão do terreno esteja ativada.",
  "Auctioneers": "Leiloeiros",
  "Auto": "Auto",
  "Back": "Voltar",
@@ -547,5 +547,9 @@
  "Dungeon maps inside dungeons": "Mapas de masmorra dentro das masmorras",
  "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.": "Abrir o mapa dentro de uma masmorra ou raide mostra o mapa dessa masmorra. Desativado: o mapa abre ali como o do próprio jogo, e o mapa de uma masmorra continua abrindo pela entrada no mapa-múndi. Com o Dungeon Journal instalado, o mapa fica com ele dentro das masmorras para as quais ele tem uma página.",
  "Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp.": "Com o zoom aproximado, o mapa pintado fica sem pixels: isto o suaviza e põe uma textura de papel por cima. A suavização pausa enquanto o mapa se move, então ele fica nítido ao dar zoom ou arrastar e suaviza um instante depois de parar. Desativado (padrão): sempre nítido.",
- "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "Abrir o mapa numa masmorra mostra o mapa dela do OpenMap. Para desativar: menu do OpenMap > Masmorras > Mapas de masmorra dentro das masmorras."
+ "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "Abrir o mapa numa masmorra mostra o mapa dela do OpenMap. Para desativar: menu do OpenMap > Masmorras > Mapas de masmorra dentro das masmorras.",
+ "Terrain view": "Visão do terreno",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "Mostra o terreno real do jogo de perto, em vez do mapa pintado. Desativado: o mapa pintado manda e o detalhe do minimapa se mistura ao aproximar o zoom.",
+ "Toggle terrain view": "Alternar visão do terreno",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "Mostra o terreno também na visão do mundo inteiro, não só de perto. Com a visão do terreno ativada."
 }

@@ -24,6 +24,8 @@ local mod = ns:GetModule("worldmap")
 
 local d = mod.defaults
 d.minimap = true                -- the minimap's detail up close at all (off: the painted map alone, everywhere)
+d.terrainView = false           -- the game's terrain imagery up close, instead of the painted map (menu, Options)
+d.terrainAll = false            -- ... from the whole-world view too, not only up close (with terrainView on)
 d.minimapMix = 0.45             -- how strong the minimap's detail is up close (0 = none)
 d.minimapDeep = 0.85            -- the most it shows at any zoom (reached at the deepest, where the painted map has nothing left)
 d.minimapFrom = 20              -- the zoom where it starts to mix in (MINI_FROM: what it can be set to)
@@ -39,8 +41,8 @@ local MINI_FROM = { 1, 60, 1 }  -- minimapFrom's least (the whole world), most, 
 mod.MINI_FROM = MINI_FROM
 local miniFade, deepFade = { 20, 34 }, { 30, 48 }   -- (the fades as set: kept, not made each view)
 local CITY_MINI = 0.5           -- the most the minimap shows over a city's own map
--- ... none over the six major cities' own maps with cityMinimap off
-local function CityMost() return mod.db.cityMinimap == false and 0 or CITY_MINI end
+-- ... none over the six major cities' own maps with cityMinimap off, all of it with Terrain view on
+local function CityMost() return mod.db.cityMinimap == false and 0 or ((ns.MapMinimapLOD and mod.db.terrainView) and 1 or CITY_MINI) end
 local GAP_FADE, GAP_MIX = { 4, 8 }, 0.6   -- ... and in the gaps between zones: where, and how strongly
 local GAP_MAX = 220             -- tiles at most (it starts further out, so more are in view)
 local SOFT_FADE = { 8, 18 }    -- ... the softening and grain
@@ -823,15 +825,18 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	else
 		BlurRest.frame:Hide()       -- (applied now: an older one waiting would undo it)
 	end
+	local terrain = ns.MapMinimapLOD and mod.db.terrainView   -- (no smaller copies: only offered where they exist)
+	local all = terrain and mod.db.terrainAll                  -- (the whole-world view too, not only up close)
+	if S.SetTerrainView then S.SetTerrainView(terrain) end
 	Try("blur", S.SetBlur, blur, u - hu, v - hv, u + hu, v + hv)
-	local base = mod.db.minimap and mod.db.minimapMix or 0
-	local k = (mod.db.minimapFrom or MINI_FADE[1]) / MINI_FADE[1]          -- (sooner or later: the fades scale with it)
+	local base = (terrain or mod.db.minimap) and (terrain and 1 or mod.db.minimapMix) or 0
+	local from = all and MINI_FROM[1] or (terrain and MINI_FADE[1] or (mod.db.minimapFrom or MINI_FADE[1]))
+	local k = from / MINI_FADE[1]          -- (sooner or later: the fades scale with it)
 	-- (the take-over toward minimapDeep moves later with it, never sooner: it's where the painted
 	-- map runs out of detail)
 	miniFade[1], miniFade[2] = MINI_FADE[1] * k, MINI_FADE[2] * k
 	deepFade[1], deepFade[2] = DEEP_FADE[1] * math.max(1, k), DEEP_FADE[2] * math.max(1, k)
-	local most = mod.db.minimapDeep or 1                     -- (the most it ever shows)
-	local from = mod.db.minimapFrom or MINI_FADE[1]
+	local most = terrain and 1 or (mod.db.minimapDeep or 1)   -- (the most it ever shows)
 	local mix = math.min(base, most) * (from <= MINI_FROM[1] and 1 or Smooth(steps, miniFade))   -- (at the least: from the whole world)
 	if base > 0 then mix = mix + (most - mix) * Smooth(steps, deepFade) end
 	-- not over an underground city's own map (the minimap there is the surface, not the city: the
@@ -873,16 +878,24 @@ end
 function mod:CloseOptions(opts, get, set, off)
 	local function noMinimap() return off() or not mod.db.minimap end
 	opts.closeHeader = ns.Header(ns.L["Up close"], 50)
+	opts.terrainView = { type = "toggle", name = ns.L["Terrain view"], order = 50.4, width = "full", get = get,
+		set = function(info, v) mod.db.terrainView = v if not v then mod.db.terrainAll = false end mod:Refresh() end,
+		disabled = off, hidden = function() return not ns.MapMinimapLOD end,
+		desc = ns.L["Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in."] }
+	opts.terrainAll = { type = "toggle", name = ns.L["Toggle terrain view"], order = 50.42, width = "full", get = get,
+		set = function(info, v) mod.db.terrainAll = v if v then mod.db.terrainView = true end mod:Refresh() end,
+		disabled = off, hidden = function() return not ns.MapMinimapLOD end,
+		desc = ns.L["Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on."] }
 	opts.minimap = { type = "toggle", name = ns.L["Minimap detail"], order = 50.5, width = "full", get = get, set = set, disabled = off,
-		desc = ns.L["At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom."] }
+		desc = ns.L["At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on."] }
 	opts.minimapMix = { type = "range", name = ns.L["Minimap strength"], order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
-		get = get, set = set, disabled = noMinimap,
+		get = get, set = set, disabled = function() return noMinimap() or (ns.MapMinimapLOD and mod.db.terrainView) end,
 		desc = ns.L["At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads."] }
 	opts.minimapFrom = { type = "range", name = ns.L["Minimap detail from zoom"], order = 51.1, min = MINI_FROM[1], max = MINI_FROM[2], step = MINI_FROM[3],
-		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
+		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 or (ns.MapMinimapLOD and mod.db.terrainView) end,
 		desc = ns.L["How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show."] }
 	opts.minimapDeep = { type = "range", name = ns.L["Minimap detail, most opacity"], order = 51.2, min = 0, max = 1, step = 0.05, isPercent = true,
-		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
+		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 or (ns.MapMinimapLOD and mod.db.terrainView) end,
 		desc = ns.L["The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this."] }
 	opts.cityMinimap = { type = "toggle", name = ns.L["Minimap detail in major cities"], order = 51.4, get = get, set = set, disabled = noMinimap,
 		desc = ns.L["The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone."] }
