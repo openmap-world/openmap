@@ -199,6 +199,7 @@ class InstanceHostTests(unittest.TestCase):
             function BlizzardArt() end
             function RaisePlayer() raised = (raised or 0) + 1 end
             local active, anim = true, {}
+            local groupBlipSizes, loweredGroupBlips = {}, {}
             local wheelMode, scalingMode = 'native', 'native'
             MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_NONE = 'openmap'
         """ + helpers + '\nlocal self = mod\n' + mouse + """

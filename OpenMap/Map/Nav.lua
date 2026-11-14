@@ -677,7 +677,7 @@ function mod.RefreshNativeRingLayout()
 	local state = nativeRings
 	if not state or not state.frame:IsShown() then return end
 	local stockPin = state.stockPin
-	if not mod.db.group or not IsInGroup() or mod.HostMap() ~= state.host or not stockPin:IsVisible()
+	if mod.instanceWorldHidden or not mod.db.group or not IsInGroup() or mod.HostMap() ~= state.host or not stockPin:IsVisible()
 		or Safe.Call(stockPin.GetUiMapID, stockPin) ~= state.host then
 		HideNativeRings()
 		rosterWait = 0

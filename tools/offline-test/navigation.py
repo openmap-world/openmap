@@ -440,6 +440,26 @@ class GroupPinTests(unittest.TestCase):
             assert(ringFrame == ring and ring.unitWidth == 16)
         """)
 
+    def test_instance_overlay_hides_new_native_rings_and_world_browsing_restores_them(self):
+        self._setup_native_map()
+        self.lua.execute("""
+            mod.IsStitched = function() return not mod.instanceWorldHidden end
+            worldMap:Show()
+            local ring = ringFrame
+            assert(ring:IsShown())
+            mod.instanceWorldHidden = true
+            mod.RefreshNativeRingLayout()
+            assert(not ring:IsShown(), 'native ring leaked over instance overlay')
+            mod.RefreshGroup()
+            assert(not ring:IsShown() and #group.pins == 0)
+            mod.RefreshNativeRingLayout()
+            assert(not ring:IsShown(), 'layout refresh restored hidden ring')
+            mod.instanceWorldHidden = false
+            mod.RefreshGroup()
+            assert(ringFrame == ring and ring:IsShown() and #group.pins == 1)
+            assert(mod.db.group, 'group preference was changed')
+        """)
+
     def test_native_ring_resizes_on_canvas_scale_change(self):
         self._setup_native_map()
         self.lua.execute("""

@@ -250,6 +250,23 @@ class PlayerTests(unittest.TestCase):
             assert(pin.sizes.party == 5.5 and pin.sizes.raid == 4.125)
         """)
 
+    def test_instance_overlay_keeps_scaled_group_blips_hidden_until_world_returns(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group, mod.db.iconScale = true, true, 2
+            Tick()
+            assert(pin.sizes.party == 11 and mod.NativeGroupIconScale(pin) == 2)
+            active, mod.instanceWorldHidden = false, true
+            Tick()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            pin:SynchronizePinSizes()
+            Tick()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1, 'new scaling path restored world blips')
+            active, mod.instanceWorldHidden = true, false
+            Tick()
+            assert(pin.sizes.party == 11 and pin.sizes.raid == 8.25)
+            assert(mod.db.iconScale == 2 and mod.db.group)
+        """)
+
     def test_ping_without_size_method(self):
         self.lua.execute("""
             pin.SetPinSize = nil
