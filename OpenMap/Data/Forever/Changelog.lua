@@ -4,6 +4,14 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aDungeon maps use the client's language|r: Forever's dungeon floors and wings now use the translated names and map artwork from the client's own game files, including Blackrock Spire and Dire Maul.",
+		"|cff6e2c0aDungeon and raid bosses use the client's language|r: Forever now includes contributor-authored boss translations for every supported locale, with English fallback where no translation is available. Season of Discovery-only encounters and duplicate combined encounters were removed from Gnomeregan and Sunken Temple; Blackfathom Deeps keeps its Vanilla Baron Aquanis and Lorgus Jett entries.",
+	} },
+	{ version = "v0.8.2", date = "2026-11-08", heads = { [1] = "Improved", [2] = "Fixed", }, items = {
+		"|cff6e2c0aPanning no longer hitches|r: the map set up to 300 textures' files in a single frame where a pan brought new ground into view, and each set is a load and an upload, so that frame showed as a hitch of about 35 ms. It sets 60 a frame now; the art still fades in, a few frames later.",
+		"|cff6e2c0aThe map no longer stalls a moment after it opens|r: since 0.8.0 OpenMap keeps the map's art loaded while it's closed, then let go of it all in one frame a second into the opening, which the game unloaded at once (about a second's freeze). It now lets go of it a little at a time.",
+		"|cff6e2c0aZooming in notch by notch is smooth again|r: since 0.8.1 the blur came back all at once each time the map stopped, one long frame the next wheel notch landed on. It now waits out a pause between notches and comes back a few zones a frame. Questie's mob paths are worked out once the map stops, not on every frame of a zoom.",
 	{ version = "v0.8.9", date = "2026-11-14", heads = { [1] = "New", [4] = "Improved", [9] = "Fixed", }, items = {
 		"|cff6e2c0aHide world markers in instances|r (the menu's On the map tab, and Options; off unless turned on): in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's), the world under it stops answering the mouse, and a right-click brings the world map back, at the dungeon's outdoor entrance (#232). By HonzoNebro.",
 		"|cff6e2c0aPin options|r (OpenMap's options, Moving about and Sharing): - |cff6e2c0aFollow new pins|r: on by default, as before. Off, a pin you drop doesn't become the waypoint, so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it. - |cff6e2c0aSend new pins to group|r: a pin you drop goes to your party or raid once its card is closed. - |cff6e2c0aAuto-add group's pins|r: pins your party or raid shares are added without asking. By diegodiaz1256.",
