@@ -21,6 +21,10 @@ mod.defaults.pinsShared = true  -- pins others share reach you (you're asked fir
 mod.defaults.pinsAt = false     -- the Pins list's place once dragged: { point, relPoint, x, y } (UIParent's)
 mod.defaults.ctrlClickPin = true -- Ctrl-click on the map drops a pin (off: another addon's Ctrl-click, Map Pin Enhanced's)
 mod.defaults.pinsHidden = false -- your pins off the map (right-click Pins; the list still has them)
+mod.defaults.pinsFollowNew = true -- a pin you drop is followed (off: Blizzard's waypoint, and the routes other addons draw to
+                                --  it, Shortest Path Forever's, are left as they are)
+mod.defaults.pinsShareGroup = false -- a pin you drop goes to your party or raid once its card is closed
+mod.defaults.pinsGroupAdd = false -- pins your party or raid shares are added without asking
 
 local PREFIX = "OpenMap"        -- (its addon messages)
 local CODE = "OMPINS1:"         -- (a code of pins, to paste)
@@ -43,6 +47,7 @@ local ROWS = 12
 local map, sc, set, editor, list, codeFrame
 local looks = {}                -- (each colour's look, followed or not: made once)
 local RefreshList, Edit, ShowDrawing   -- (below)
+local fresh = {}                -- pins just dropped, shared with the group as their card closes (pinsShareGroup)
 
 local function DB() return mod.db.pins end
 
@@ -102,6 +107,7 @@ end
 -- a pin gone: no longer followed, its drawing with it (mod.RefreshPins after)
 local function Drop(p)
 	if Followed(p) then mod.ClearPin() end
+	fresh[p] = nil
 	Remove(p)
 	if mod.DropSketches then mod.DropSketches(p.id) end
 end
@@ -319,14 +325,19 @@ waiter:SetScript("OnUpdate", function(self)
 	for from, batch in pairs(incoming) do
 		if now - batch.at > ASK_AFTER then
 			incoming[from] = nil
-			Ask(batch)
-			return
+			if batch.group and mod.db.pinsGroupAdd then
+				local n = AddAll(batch.pins, batch.from)
+				if n > 0 then ns:Print(L["Added %d map pin(s) from %s."], n, batch.from) end
+			else
+				Ask(batch)
+				return
+			end
 		end
 	end
 	if not next(incoming) then self:Hide() end
 end)
 
-local function OnAddonMessage(_, _, prefix, text, _, from)
+local function OnAddonMessage(_, _, prefix, text, channel, from)
 	if prefix ~= PREFIX or not mod.db.pinsShared then return end
 	if Safe.IsSecret(text) or Safe.IsSecret(from) or type(text) ~= "string" or type(from) ~= "string" then return end
 	local name = Ambiguate(from, "none")
@@ -335,7 +346,9 @@ local function OnAddonMessage(_, _, prefix, text, _, from)
 	if kind ~= "P1" then return end
 	local q = Valid(m, x, y, color, note or "")
 	if not q then return end
-	local batch = incoming[name] or { from = name, pins = {} }
+	-- (sent to your party or raid, so from someone in it: added without asking, with pinsGroupAdd)
+	local group = channel == "PARTY" or channel == "RAID"
+	local batch = incoming[name] or { from = name, pins = {}, group = group }
 	incoming[name] = batch
 	if #batch.pins >= SHARE_MAX then return end
 	batch.pins[#batch.pins + 1] = q
@@ -425,6 +438,11 @@ local function Close(save)
 		p.note = Clean(editor.box:GetText())
 		p.color = editor.color
 		if Followed(p) then Follow(p) end          -- (TomTom's title follows the note)
+	end
+	-- (a pin just dropped goes with its note: shared as it's dropped, it would go without one)
+	if p and fresh[p] then
+		fresh[p] = nil
+		if save and mod.db.pinsShareGroup and Channel("group") then Share({ p }, "group") end
 	end
 	mod.RefreshPins()
 end
@@ -606,7 +624,8 @@ end
 function mod.AddPin(mapID, x, y)
 	if mod.db.pinsHidden then mod.SetPinsHidden(false) end
 	local p = Add(mapID, x, y, "")
-	Follow(p)
+	if mod.db.pinsFollowNew ~= false then Follow(p) end
+	fresh[p] = true
 	mod.RefreshPins()
 	Edit(p)
 end
@@ -800,6 +819,12 @@ end
 function mod:PinOptions(opts, get, set_, off)
 	opts.pinsShared = { type = "toggle", name = L["Pins others share with you"], order = 36, width = "full", get = get, set = set_, disabled = off,
 		desc = L["Map pins your group, guild or a player shares with you: you're asked whether to add them. Off, they're ignored."] }
+	opts.pinsFollowNew = { type = "toggle", name = L["Follow new pins"], order = 35.91, width = "full", get = get, set = set_, disabled = off,
+		desc = L["A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it."] }
+	opts.pinsShareGroup = { type = "toggle", name = L["Send new pins to group"], order = 36.1, width = "full", get = get, set = set_, disabled = off,
+		desc = L["A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it)."] }
+	opts.pinsGroupAdd = { type = "toggle", name = L["Auto-add group's pins"], order = 36.2, width = "full", get = get, set = set_, disabled = off,
+		desc = L["Map pins your party or raid shares with you are added at once, without asking."] }
 	opts.ctrlClickPin = { type = "toggle", name = L["Ctrl-click drops a pin"], order = 35.9, width = "full", get = get, set = set_, disabled = off,
 		desc = L["Ctrl-click on the map drops a pin. Turn it off if another addon drops its own pin on Ctrl-click (Map Pin Enhanced): the menu's Drop a pin still works."] }
 end

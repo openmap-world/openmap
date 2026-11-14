@@ -1229,6 +1229,15 @@ local function OpenView(inst, pin)
 	for i, f in ipairs(floors) do
 		if f.wing == inst[2] or (f.name and f.name == WING_FLOORS[inst[2]]) then first = i break end
 	end
+	-- inside it: the floor of the sub-zone you're in, where a drawn floor names one (Dalaran's Underbelly)
+	if IsInInstance and IsInInstance() and inst[1] ~= 0 and select(8, GetInstanceInfo()) == inst[1] then
+		local sub = Safe.Call(GetSubZoneText)
+		for i, f in ipairs(floors) do
+			for _, s in ipairs(f.subzones or {}) do
+				if sub and s == sub then first = i break end
+			end
+		end
+	end
 	-- back to: the zone the entrance is in
 	EndMarkup(false)
 	view.heldMarks = nil
@@ -2419,6 +2428,23 @@ local function InstanceHere()
 	end
 	for _, inst in ipairs(places.unplaced or {}) do
 		if inst[1] == instID then return inst end
+	end
+end
+
+-- The outdoor entrance is a useful world position while the player's coordinates are indoors.
+function mod.InstanceEntranceView()
+	local instanceID = Safe.Value(select(8, GetInstanceInfo()))
+	if not instanceID or instanceID == 0 then return end
+	for _, g in ipairs(Places().instances or {}) do
+		for _, inst in ipairs(g[4]) do
+			if inst[1] == instanceID then
+				local u, v = S.EntranceAt(g)
+				if not u then return end
+				local chain = S.ChainAt(u, v)
+				local zone = chain[#chain]
+				return u, v, math.min(mod.FitZoom(zone), mod.db.maxZoom or math.huge)
+			end
+		end
 	end
 end
 

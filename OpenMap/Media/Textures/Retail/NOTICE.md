@@ -12,6 +12,10 @@ the minimap button, the map's menu and portrait) is OpenMap's own picture, not B
 in a gold ring, drawn by zloyeb and used with his permission (not covered by OpenMap's MIT licence),
 shrunk from `art/icon/openmap.png` by `tools/icon/build.py`.
 
+The shared `GroupRing.tga` uses Blizzard's `WhiteCircle-RaidBlips` sprite from the
+Forever atlas (file data ID 1523129). `tools/icon/group_ring.py` composites the
+original pin's tinted layers and clears the center for Blizzard's dot.
+
 **From Blizzard's art** (shapes traced from the game's map art and tables):
 
 | Texture | What it is | Made by |

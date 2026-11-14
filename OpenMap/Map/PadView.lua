@@ -26,7 +26,9 @@
 -- map pins and the waypoint, Questie's townsfolk, every addon's HereBeDragons icons (Questie's with its
 -- own tooltips) and Questie's mob paths, a dungeon's map in OpenMap's own view of it (floors and side
 -- panel), OpenMap's menu, the pins' list and cards, the quill, and Report a problem (without its note
--- step: the game's popups run the Gamepad UI's own code). Not yet: the quest log's quest areas.
+-- step: the game's popups run the Gamepad UI's own code), and the quests in your log (Quests.lua: every
+-- one is OpenMap's icon here, Blizzard's pins being on its map under this view, unseen), with the
+-- "!" of the ones to start in the zone Blizzard's map is on. Not yet: the quest log's quest areas.
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -58,6 +60,7 @@ local glide                     -- A or X's zoom under way
 local lastX, lastY              -- the pad's cursor on the last frame (screen px): Blizzard re-centres it
                                 --  as A or X changes its map, before the hooks below run
 local dirty = false
+local drag                      -- the mouse's drag under way: { x, y (screen px at its start), u, v, moved }
 local playerWait, hoverWait, groupWait = 0, 0, 0
 local hovered                   -- the icon under the pad's cursor, entered as the mouse would
 local questieLayer              -- Questie's icons, on this view
@@ -65,7 +68,6 @@ local questieAt = setmetatable({}, { __mode = "k" })   -- icon -> { u, v }: Ques
 local questieShown = {}         -- icon -> true: placed on this view now
 local questieWait = 0
 local PlaceQuestie, QuestieTip -- (below: Apply calls the one, the other the other)
-local ownWaypointAt = -10       -- when this view last set or cleared the waypoint itself (GetTime)
 local overWindow, wheelFrame    -- the pad's cursor over one of OpenMap's windows (its menu ...), and what scrolls there
 local wheelWait = 0
 local stickZoomAt = -10         -- when the right stick last zoomed the view (GetTime)
@@ -212,7 +214,6 @@ local function Step(inward)
 	if inward and mod.PinMode and mod.PinMode() and lastX and mod.DropWaypoint then
 		local cu, cv = WorldAt(Offset(lastX, lastY))
 		mod.SetPinMode(false)
-		ownWaypointAt = GetTime()
 		mod.DropWaypoint(cu, cv)
 		return
 	end
@@ -221,7 +222,9 @@ local function Step(inward)
 		mod.CloseMenu()
 		return
 	end
-	if inward and hovered and hovered:IsVisible() then return Press(hovered) end
+	-- (the icon under the cursor pressed. One marked as having nothing to press (openmapNoPress, and no
+	-- OnClick given it) lets A through: the zone under it is zoomed into, as beside it)
+	if inward and hovered and hovered:IsVisible() and not (hovered.openmapNoPress and not hovered.OnClick) then return Press(hovered) end
 	local cu, cv
 	if lastX then cu, cv = WorldAt(Offset(lastX, lastY)) else cu, cv = u, v end
 	local chain = S.ChainAt(cu, cv)
@@ -483,13 +486,11 @@ function Press(pin)
 	-- your map pin: its card, as a click opens it (its note, colour, Follow, Share ...)
 	local p = pin.data
 	if type(p) == "table" and p.id and p.map and p.x and pin.OnClick and mod.SetupPins then
-		ownWaypointAt = GetTime()
 		pcall(pin.OnClick, pin)
 		return
 	end
 	if type(p) == "table" and p.id and p.map and p.x and mod.TrackPoint then
 		local m, x, y = mod.WaypointPoint()
-		ownWaypointAt = GetTime()
 		if m == p.map and x and math.abs(x - p.x) < 1e-3 and math.abs(y - p.y) < 1e-3 then
 			mod.ClearPin()
 		else
@@ -521,6 +522,18 @@ function Press(pin)
 end
 
 local function OnUpdate(_, elapsed)
+	-- (the mouse dragging the view: it pans with the cursor, past a few px)
+	if drag then
+		local mx, my = GetCursorPosition()
+		local es = view:GetEffectiveScale()
+		local dx, dy = (mx - drag.x) / es, (my - drag.y) / es
+		if drag.moved or dx * dx + dy * dy > 16 then
+			drag.moved = true
+			local W, H = S.Size()
+			local px = FitPx() * zoom
+			u, v, dirty = drag.u - dx / (W * px), drag.v + dy / (H * px), true
+		end
+	end
 	local x, y = Cursor()
 	local dungeon = mod.DungeonViewShown and mod.DungeonViewShown()
 	local stick = x and mod.PadStickTilt and mod.PadStickTilt() or 0
@@ -682,6 +695,12 @@ local function Build()
 		local okS, errS = pcall(function() mod:SetupSketch(map) mod:BuildSketch() end)
 		if not okS then diag.panel = "quill: " .. tostring(errS) end
 	end
+	-- the quests in your log (Quests.lua): OpenMap's own icons here, Blizzard's pins on its map under this
+	-- view being unseen
+	if mod.SetupQuests then
+		local okQ, errQ = pcall(mod.SetupQuests, mod, map)
+		if not okQ then diag.panel = "quests: " .. tostring(errQ) end
+	end
 	-- Report a problem (Report.lua): drawn with the quill here, its code in the view
 	if mod.SetupReport then
 		local okR, errR = pcall(mod.SetupReport, mod, map)
@@ -696,6 +715,11 @@ local function Build()
 	if not ok then diag.why = "the look (carried on): " .. tostring(err) end
 	built = true
 	if ok then diag.why = "built" end
+	-- (the quest icons once the view counts as on: Quests.lua asks mod.PadViewOn)
+	if mod.RefreshQuests then
+		local okQ, errQ = pcall(mod.RefreshQuests, mod)
+		if not okQ then diag.panel = "quests: " .. tostring(errQ) end
+	end
 	return true
 end
 
@@ -755,6 +779,15 @@ end
 function mod.PadViewBuilt() return built end
 -- for Dungeons.lua: this view is the map now (Blizzard's left as it is)
 function mod.PadViewOn() return built and On() end
+-- for the files whose pins are handed out again as they're redrawn (Stitch.lua's sets reuse their frames):
+-- the pin under the controller's cursor, if it's one of `pins`, is left first, as the mouse would leave it,
+-- and entered again if it's back, its tooltip as it is then
+function mod.PadViewForget(pins)
+	if not hovered or type(pins) ~= "table" then return end
+	for _, pin in ipairs(pins) do
+		if pin == hovered then Enter(nil) return end
+	end
+end
 
 -- /openmap padview: how the controller view is getting on
 function mod.PadViewDiag()
@@ -764,26 +797,69 @@ function mod.PadViewDiag()
 		diag.panel or tostring(mod.PanelBuilt and mod.PanelBuilt() or false))
 end
 
--- The waypoint changed. Blizzard's own, the left stick pressed (GamepadTryPlaceWaypoint), goes where its
--- cursor is on its map underneath, not on this view: put again where the cursor is here, on the zone
--- there (as WorldMap.lua does on the usual map). Then the waypoint's icon here
-local function OnWaypoint()
-	if not built then return end
-	if view:IsShown() and GetTime() - ownWaypointAt > 0.5 and lastX and C_Map.HasUserWaypoint
-		and C_Map.GetUserWaypoint and C_Map.HasUserWaypoint() then
-		local point = C_Map.GetUserWaypoint()
-		if point and point.uiMapID == map:GetMapID() then           -- (put on Blizzard's map underneath)
-			local cu, cv = WorldAt(Offset(lastX, lastY))
-			local chain = S.ChainAt(cu, cv)
-			local zone = chain[#chain]
-			if zone and zone ~= WORLD and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(zone)) then
-				local l, r, t, b = S.Rect(zone)
-				ownWaypointAt = GetTime()
-				pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, (cu - l) / (r - l), (cv - t) / (b - t)))
-			end
-		end
+-- The waypoint. Blizzard's own, the left stick pressed (GamepadTryPlaceWaypoint), goes where its cursor is
+-- on its map underneath, not on this view: it's put again where the cursor is here, on the zone there (as
+-- WorldMap.lua does on the usual map).
+-- Which waypoint is the stick's is read as Blizzard's call ends (PadPressed), not awaited: the game has the
+-- waypoint as soon as it's set (Blizzard's own code reads it back at once, OpenMapToUserWaypoint after
+-- SetUserWaypoint), so the stick's is there then, on Blizzard's map underneath at Blizzard's own cursor.
+-- Another addon's waypoint, set while the map is open, stays where that addon put it, whenever it's set once
+-- Blizzard's call has ended (the view used to take every new waypoint on the map underneath for the stick's,
+-- and move it to the cursor). A waypoint's event only draws its icon again.
+-- (Not told apart: an addon that, told of the stick's waypoint or of its taking off, sets its own inside
+-- Blizzard's call, at Blizzard's cursor to within STICK_NEAR; and a cursor moved inside that call.)
+local STICK_NEAR = 0.005        -- a waypoint this near Blizzard's cursor on its map (0..1) is the one it just set
+
+-- whether the waypoint is on `mapID` at (x, y)
+local function WaypointAt(mapID, x, y)
+	if not (C_Map.HasUserWaypoint and C_Map.GetUserWaypoint and C_Map.HasUserWaypoint()) then return false end
+	local point = C_Map.GetUserWaypoint()
+	local pos = point and point.uiMapID == mapID and point.position
+	if not pos then return false end
+	local wx, wy = ns.Safe.XY(pos)
+	if type(wx) ~= "number" or type(wy) ~= "number" or ns.Safe.IsSecret(wx) or ns.Safe.IsSecret(wy) then return false end
+	return math.abs(wx - x) <= STICK_NEAR and math.abs(wy - y) <= STICK_NEAR
+end
+
+-- the stick's waypoint put again where this view's cursor is
+local function PutAgain()
+	if not (view:IsShown() and lastX) then return end
+	local cu, cv = WorldAt(Offset(lastX, lastY))
+	local chain = S.ChainAt(cu, cv)
+	local zone = chain[#chain]
+	if zone and zone ~= WORLD and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(zone)) then
+		local l, r, t, b = S.Rect(zone)
+		pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, (cu - l) / (r - l), (cv - t) / (b - t)))
 	end
-	if mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
+end
+
+-- the waypoint changed (whoever set it or took it off): its icon here
+local function OnWaypoint()
+	if built and mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
+end
+
+-- whether a game rule has map pins off: Blizzard's GamepadTryPlaceWaypoint does nothing then
+local function PinsOff()
+	local rule = Enum and Enum.GameRule and Enum.GameRule.WorldMapTrackingPinDisabled
+	return rule ~= nil and C_GameRules ~= nil and C_GameRules.IsGameRuleActive ~= nil and C_GameRules.IsGameRuleActive(rule) and true or false
+end
+
+-- the left stick pressed, after Blizzard's own GamepadTryPlaceWaypoint. That one did one of three things:
+-- nothing (a game rule: whatever waypoint is there is someone else's), took the waypoint off (its cursor was
+-- on it: none there now), or set one where its cursor is on its map: only that one is put again here
+local function PadPressed()
+	if not (built and view:IsShown() and map.GetNormalizedGamepadCursorPosition) then return end
+	local ok, mapID, x, y = pcall(function()
+		if PinsOff() then return end
+		return map:GetMapID(), map:GetNormalizedGamepadCursorPosition()
+	end)
+	if not ok or type(mapID) ~= "number" or type(x) ~= "number" or type(y) ~= "number"
+		or ns.Safe.IsSecret(x) or ns.Safe.IsSecret(y) then return end
+	local ok2, stick = pcall(WaypointAt, mapID, x, y)
+	if ok2 and stick then
+		PutAgain()
+		if mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
+	end
 end
 
 local function Setup()
@@ -796,6 +872,12 @@ local function Setup()
 	end
 	diag.setup = "done"
 	if mod.PadDungeonHost then mod.PadDungeonHost(map) end
+	-- friends and guild on the map (Friends.lua: who's where heard and asked for from now on, drawn on this
+	-- view while it's up; your own place sent only if Share where you are is on, which isn't asked here)
+	if mod.SetupFriends then
+		local okF, errF = pcall(mod.SetupFriends, mod, map)
+		if not okF then diag.panel = "friends: " .. tostring(errF) end   -- (/openmap padview says so)
+	end
 
 	view = CreateFrame("Frame", nil, map)
 	view:SetAllPoints(sc)
@@ -805,6 +887,30 @@ local function Setup()
 	canvas:SetSize(1, 1)
 	view:SetScript("OnUpdate", OnUpdate)
 	view:SetScript("OnSizeChanged", function() dirty = true end)
+	-- the mouse too, for those who play with both (#234): the wheel zooms about the cursor, a drag pans,
+	-- a click is A (left) or X (right) there. On the view itself: Blizzard's map underneath is left alone
+	view:EnableMouse(true)
+	view:EnableMouseWheel(true)
+	view:SetScript("OnMouseWheel", function(_, delta)
+		local sx, sy = Offset(GetCursorPosition())
+		glide, stickZoomAt = nil, GetTime()
+		ZoomAbout(sx, sy, zoom * (delta > 0 and 1.25 or 0.8))
+	end)
+	view:SetScript("OnMouseDown", function(_, button)
+		if button ~= "LeftButton" then return end
+		local mx, my = GetCursorPosition()
+		drag, glide = { x = mx, y = my, u = u, v = v }, nil
+	end)
+	view:SetScript("OnMouseUp", function(_, button)
+		local d = drag
+		drag = nil
+		if (d and d.moved) or (button ~= "LeftButton" and button ~= "RightButton") then return end
+		lastX, lastY = GetCursorPosition()
+		local h = hovered
+		hovered = nil          -- (the pad's icon isn't the mouse's; OpenMap's icons take their own clicks)
+		Step(button == "LeftButton")
+		hovered = h
+	end)
 	map:HookScript("OnShow", Show)
 	map:HookScript("OnHide", Hide)
 	-- A and X: after Blizzard's own (GamepadMapClick, GamepadMapUp) on its map underneath
@@ -813,6 +919,10 @@ local function Setup()
 	end
 	if map.NavigateToParentMap then
 		hooksecurefunc(map, "NavigateToParentMap", function() if view:IsShown() then Step(false) end end)
+	end
+	-- the left stick pressed: its waypoint put again where this view's cursor is (PadPressed)
+	if map.GamepadTryPlaceWaypoint then
+		hooksecurefunc(map, "GamepadTryPlaceWaypoint", PadPressed)
 	end
 	-- a setting changed (the menu's checklist, Options): the view's look again
 	hooksecurefunc(mod, "Refresh", function()

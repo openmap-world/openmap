@@ -4,8 +4,9 @@
 # square (--locales shows which languages have them). OpenMap ships them instead and draws them
 # from its own folder (Data/Forever/Tiles.lua), for every client.
 #   OpenMap/Media/Textures/Forever/MapTile/<file ID>.blp   each tile, as the game has it
-# The tiles are the ones Data/Forever/Caves.lua and DungeonMaps.lua name: rerun this after
-# tools/map-caves/build.py or tools/map-dungeons/build.py. RADD95's OpenMap TextureFix found the
+# The tiles are the ones Data/Forever/Caves.lua and DungeonMaps.lua name, and Gilneas's map in
+# Gaps.lua (the same gap, #152): rerun this after tools/map-caves/build.py, tools/map-dungeons/build.py
+# or tools/map-preview/gapfill.py. RADD95's OpenMap TextureFix found the
 # cause and fixed it first (credited in Credits.lua).
 #
 # usage: python -P tools/map-tiles/build.py <World of Warcraft folder> [--locales]
@@ -20,13 +21,25 @@ import clients
 OUT = os.path.join(clients.tex("forever"), "MapTile")
 
 
+def gap_art():
+    """the Gaps.lua maps Tiles.lua draws from OpenMap's copies (its GAP_ART line)"""
+    text = open(os.path.join(clients.data("forever"), "Tiles.lua"), encoding="utf-8").read()
+    return set(re.findall(r"(\w+) = true", re.search(r"local GAP_ART = \{([^}]*)\}", text).group(1)))
+
+
 def tile_ids():
-    """every file ID in the Forever cave and dungeon tables' tile lists"""
+    """every file ID in the Forever cave and dungeon tables' tile lists, and in the tile lists of
+    Gaps.lua's maps of land no zone covers that Tiles.lua names (Gilneas: its tiles aren't listed for
+    esMX and ruRU either, #152; the others are for every language Forever ships but itIT)"""
     ids = set()
     for name in ("Caves.lua", "DungeonMaps.lua"):
         text = open(os.path.join(clients.data("forever"), name), encoding="utf-8").read()
         for group in re.findall(r"\{((?:\s*\d+\s*,){11}\s*\d+\s*)\}", text):
             ids.update(int(x) for x in re.findall(r"\d+", group))
+    text = open(os.path.join(clients.data("forever"), "Gaps.lua"), encoding="utf-8").read()
+    for name in gap_art():
+        group = re.search(r'\{ "%s", \d+, \{[^}]*\}, \{([^}]*)\} \}' % name, text).group(1)
+        ids.update(int(x) for x in re.findall(r"\d+", group) if int(x))
     return sorted(ids)
 
 

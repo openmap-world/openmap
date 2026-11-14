@@ -1,5 +1,61 @@
 # OpenMap changelog
 
+## v0.8.9 (2026-11-14)
+
+### New
+
+- **Hide world markers in instances** (the menu's On the map tab, and Options; off unless turned on):
+  in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers
+  step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's),
+  the world under it stops answering the mouse, and a right-click brings the world map back, at the
+  dungeon's outdoor entrance (#232). By HonzoNebro.
+
+- **Pin options** (OpenMap's options, Moving about and Sharing):
+  - **Follow new pins**: on by default, as before. Off, a pin you drop doesn't become the waypoint,
+    so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it.
+  - **Send new pins to group**: a pin you drop goes to your party or raid once its card is closed.
+  - **Auto-add group's pins**: pins your party or raid shares are added without asking.
+    By diegodiaz1256.
+
+### Improved
+
+- **The controller view's switch in the map's menu too**: "OpenMap's map with the Gamepad UI (test)"
+  is under The map in OpenMap's menu as well as in Options (it was only in Esc > Options > AddOns,
+  and a player took it for gone).
+
+### Fixed
+
+- **One arrow for you, not two**: where OpenMap draws your arrow itself (the map underneath can't
+  place you), Blizzard's arrow now steps aside, so the two no longer show a little apart (#229).
+
+- **Quests from the tracker open on their details**: the first click on a tracked quest opened the
+  map on the quest list; it shows the quest's text now (#224).
+
+- **The map cooler on your graphics card**: OpenMap's "Map frame rate cap" is now 60 by default (and
+  set to 60 once for everyone): a still map was drawn as fast as the card could go (#233). Turn it off
+  in Options if you'd rather.
+
+- **Fade while moving fades while you steer with the mouse**: the hidden cursor's last place over the
+  map held it solid, so it hardly ever faded (#69).
+
+- **Resizing the window keeps it where it is**: it could jump to the screen's bottom left (#241).
+
+- **City names in your language**: Thunder Bluff's and Darnassus' name banners showed in English on
+  other languages' clients; the zone map's own banner, in the client's language, is shown there now (#47).
+
+## v0.8.8 (2026-11-13)
+
+### Fixed
+
+- **Party and raid markers stay steady**: one marker per member, moving smoothly. OpenMap's ring now
+  follows Blizzard's own dot where the game places a member, instead of a second dot of its own that
+  lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is
+  now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.
+
+- **Friends on the map: your own faction only.** Your place is only shared with, and shown from,
+  players of your own faction: Battle.net friends on the other faction no longer see where you are, nor
+  you them (a player's report: it let Horde and Alliance find each other for PvP).
+
 ## v0.8.7 (2026-11-12)
 
 Nothing new for retail: v0.8.7 fixes Questie's icons on WoW Forever.

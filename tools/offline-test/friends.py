@@ -3,6 +3,7 @@
 What's heard (from whom, on which channel) and what's sent (when, to whom), against a stubbed client:
 the guild roster, a friends list, the map's pins, the addon-message channel.
 """
+import os
 from pathlib import Path
 import unittest
 
@@ -10,6 +11,7 @@ from lupa.lua51 import LuaRuntime
 
 
 ROOT = Path(__file__).resolve().parents[2] / "OpenMap"
+FRIENDS = Path(os.environ.get("OPENMAP_FRIENDS") or ROOT / "Map" / "Friends.lua")   # (another Friends.lua to run these against)
 
 STUB = r"""
 NOW, sent, events, frames, pins, badges = 1000, {}, {}, {}, {}, {}
@@ -62,6 +64,7 @@ GetNormalizedRealmName = function() return "Forever" end
 UnitName = function() return "Me" end
 UnitGUID = function() return "Player-1-0001" end
 UnitClass = function() return "Warrior", "WARRIOR" end
+UnitFactionGroup = function() return myFaction or "Alliance" end
 UnitLevel = function() return 25 end
 IsInGroup = function() return false end
 IsInInstance = function() return inInstance, inInstance and "party" or "none" end
@@ -93,11 +96,14 @@ issecretvalue = function(v) return v == secretText and v ~= nil end
 S = { WORLD = 947 }
 function S.Rect(id) if id == 1429 or id == 1436 or id == 1431 then return 0.1, 0.2, 0.1, 0.2 end end
 function S.IsBuilt() return true end
-function S.PinSet(key) return { key = key } end
-function S.ClearPinSet(set) if set.key == "friends" then wipe(pins) else wipe(badges) end end
+function S.PinSet(key) return { key = key, pins = {} } end
+function S.ClearPinSet(set) wipe(set.pins) if set.key == "friends" then wipe(pins) else wipe(badges) end end
+made = {}                           -- every pin handed out, dots and badges
 function S.AddPin(set, u, v, look, data)
 	local pin = Frame()
 	pin.data = data
+	made[#made + 1] = pin
+	set.pins[#set.pins + 1] = pin
 	if set.key == "friends" then pins[#pins + 1] = data else badges[#badges + 1] = data end
 	return pin
 end
@@ -129,7 +135,7 @@ class FriendsTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(STUB)
-        src = (ROOT / "Map" / "Friends.lua").read_text(encoding="utf-8")
+        src = FRIENDS.read_text(encoding="utf-8")
         self.lua.execute("local f = assert(loadstring(...)) f('OpenMap', ns)", src)
         self.lua.execute("""
             for k, v in pairs(mod.defaults) do mod.db[k] = v end
@@ -186,6 +192,51 @@ class FriendsTests(unittest.TestCase):
         self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1431\\t0.5\\t0.5\\tMAGE\\t30', 'WHISPER', 'Far-OtherRealm')")
         self.run_(12)
         self.assertEqual(self.lua.eval("#pins"), 0)
+
+    def test_battle_net_friends_of_the_other_faction_are_never_on_the_map(self):
+        # Horde and Alliance never see where the other is: Battle.net reaches across factions
+        self.lua.execute("""
+            local accounts = {
+                { characterName = "Ally", realmName = "Forever", playerGuid = "Player-1-0010", isOnline = true, clientProgram = "WoW",
+                  characterLevel = 30, areaName = "Elwynn Forest", className = "Mage", gameAccountID = 21, factionName = "Alliance" },
+                { characterName = "Hordie", realmName = "Forever", playerGuid = "Player-1-0011", isOnline = true, clientProgram = "WoW",
+                  characterLevel = 30, areaName = "Durotar", className = "Mage", gameAccountID = 22, factionName = "Horde" },
+                { characterName = "Unknown", realmName = "Forever", playerGuid = "Player-1-0012", isOnline = true, clientProgram = "WoW",
+                  characterLevel = 30, areaName = "Durotar", className = "Mage", gameAccountID = 23 },
+            }
+            BNGetNumFriends = function() return #accounts end
+            C_BattleNet = { GetFriendAccountInfo = function(i) return { gameAccountInfo = accounts[i] } end,
+                GetGameAccountInfoByID = function(id) for _, a in ipairs(accounts) do if a.gameAccountID == id then return a end end end }
+            bnSent = {}
+            BNSendGameData = function(id, prefix, text) bnSent[#bnSent + 1] = id .. ":" .. text end
+            mod.db.friendsShare = true mod.RefreshFriends()
+        """)
+        self.run_(8)
+        for id_ in (21, 22, 23):
+            self.lua.execute("Fire('BN_CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1429\\t0.3\\t0.4\\tMAGE\\t30', 'WHISPER', %d)" % id_)
+        self.lua.execute("here = { 1429, 0.5, 0.5 }")
+        self.run_(12)
+        dots = self.lua.eval("(function() local t = {} for _, d in ipairs(pins) do t[#t + 1] = d.full end table.sort(t) return table.concat(t, ',') end)()")
+        self.assertEqual(dots, "Ally-Forever")
+        sent_to = self.lua.eval("(function() local t = {} for _, m in ipairs(bnSent) do t[m:match('^(%d+):')] = true end local o = {} for k in pairs(t) do o[#o + 1] = k end table.sort(o) return table.concat(o, ',') end)()")
+        self.assertIn("21", sent_to)                    # (your own faction: sent to)
+        self.assertNotIn("22", sent_to)
+        self.assertNotIn("23", sent_to)
+
+    def test_a_friend_in_another_realm_group_is_on_the_map(self):
+        # Forever: CAMWOWUS2Realm8PvP and CAMWOWUS1Realm4PvP are one pool (#164, #167); EU and US aren't
+        self.lua.execute("""
+            ns.Client = 'Forever'
+            GetNormalizedRealmName = function() return 'CAMWOWUS2Realm8PvP' end
+            friendList = { { name = 'Pal-CAMWOWUS1Realm4PvP', connected = true, level = 30, area = 'Duskwood', className = 'Mage' },
+                { name = 'Far-CAMWOWEU5Realm4PvP', connected = true, level = 30, area = 'Duskwood', className = 'Mage' } }
+        """)
+        self.run_(8)
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1431\\t0.5\\t0.5\\tMAGE\\t30', 'WHISPER', 'Pal-CAMWOWUS1Realm4PvP')")
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1431\\t0.6\\t0.5\\tMAGE\\t30', 'WHISPER', 'Far-CAMWOWEU5Realm4PvP')")
+        self.run_(12)
+        dots = self.lua.eval("(function() local t = {} for _, d in ipairs(pins) do t[#t + 1] = d.full end return table.concat(t, ',') end)()")
+        self.assertEqual(dots, "Pal-CAMWOWUS1Realm4PvP")
 
     def test_heard_places_and_badges(self):
         self.run_(8)
@@ -286,7 +337,7 @@ class FriendsTests(unittest.TestCase):
             C_BattleNet = { GetGameAccountInfoByID = function()
                 return {
                     characterName = 'Mara Stonefist', realmName = 'CAMWOWUS1Realm4PvP',
-                    playerGuid = 'Player-2-0003', isInCurrentRegion = false,
+                    playerGuid = 'Player-2-0003', isInCurrentRegion = false, factionName = 'Alliance',
                 }
             end }
             Fire('GUILD_ROSTER_UPDATE')
@@ -349,6 +400,97 @@ class FriendsTests(unittest.TestCase):
         self.run_(1)
         self.assertFalse(self.lua.eval("askFrame.shown"))   # (asked once)
 
+    # --- with the game's Gamepad UI: OpenMap's controller view (PadView.lua), its usual map not set up
+
+    def heard_and_opened(self):
+        self.run_(8)
+        self.lua.execute("""
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1429\\t0.3\\t0.4\\tMAGE\\t30', 'GUILD', 'Guildie-Forever')
+            worldMap:Show()
+        """)
+        self.run_(2)
+        return self.lua.eval("#pins"), self.lua.eval("#badges")
+
+    def test_on_the_controller_view_as_on_the_usual_map(self):
+        self.lua.execute("mod.IsStitched = function() return false end mod.PadViewOn = function() return true end")
+        self.assertEqual(self.heard_and_opened(), (1, 1))   # (the guildie's dot, the friend's zone badge)
+
+    def test_on_neither_of_openmap_s_maps_nothing_is_drawn(self):
+        # (Blizzard's own map on screen: the usual map not stitched, the controller view not up or not built yet)
+        for pad in ("mod.PadViewOn = nil", "mod.PadViewOn = function() return false end"):
+            with self.subTest(pad=pad):
+                self.setUp()
+                self.lua.execute("mod.IsStitched = function() return false end " + pad)
+                self.assertEqual(self.heard_and_opened(), (0, 0))
+
+    def test_the_map_changing_hands_is_drawn_at_once(self):
+        # (not only at the next ten seconds' redraw)
+        self.lua.execute("mod.IsStitched = function() return false end mod.PadViewOn = function() return false end")
+        self.assertEqual(self.heard_and_opened(), (0, 0))
+        self.lua.execute("mod.PadViewOn = function() return true end")
+        self.run_(2)
+        self.assertEqual((self.lua.eval("#pins"), self.lua.eval("#badges")), (1, 1))
+
+    def test_the_controller_s_a_goes_through_a_dot_and_a_badge(self):
+        # (PadView.lua: neither has anything to press, and a badge sits in the middle of its zone)
+        self.assertEqual(self.heard_and_opened(), (1, 1))
+        # (every dot and badge handed out, at each redraw: the mark its own, and no click given it)
+        self.assertGreaterEqual(self.lua.eval("#made"), 2)
+        marked = self.lua.eval("""(function()
+            local n = 0
+            for _, pin in ipairs(made) do
+                if rawget(pin, "openmapNoPress") == true and rawget(pin, "OnClick") == nil then n = n + 1 end
+            end
+            return n
+        end)()""")
+        self.assertEqual(marked, self.lua.eval("#made"))
+
+    def test_not_asked_whether_to_share_on_the_controller_view_and_nothing_sent(self):
+        self.lua.execute("""
+            mod.enabled, mod.db.presetAsked = false, true
+            mod.IsStitched = function() return false end
+            mod.PadViewOn = function() return true end
+            worldMap.scripts.OnShow()
+        """)
+        self.run_(1)
+        self.assertFalse(self.lua.eval("askFrame and askFrame.shown"))
+        self.assertFalse(self.lua.eval("mod.db.friendsShare or mod.db.shareAsked"))
+        # (sharing off: nothing of yours goes out, whatever is opened, changed or refreshed, however long)
+        self.lua.execute("here = { 1429, 0.6, 0.5 } mod.RefreshFriends()")
+        self.run_(90)
+        self.lua.execute("here = { 1436, 0.2, 0.2 } worldMap.scripts.OnShow() mod.RefreshFriends()")
+        self.run_(90)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 0)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L0')"), 0)
+        self.assertEqual(self.lua.eval("Sent('WHISPER', 'L1')"), 0)
+
+    def test_sharing_turned_on_in_the_menu_sends_on_the_controller_view_too(self):
+        self.lua.execute("""
+            mod.enabled = false
+            mod.IsStitched = function() return false end
+            mod.PadViewOn = function() return true end
+            mod.db.friendsShare = true
+            mod.RefreshFriends()
+        """)
+        self.run_(1)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 1)
+
+    def test_the_cursor_on_a_dot_or_a_badge_is_told_before_they_re_handed_out_again(self):
+        # (PadView.lua's: the pin under the controller's cursor left, then entered again, its tooltip made anew)
+        self.assertEqual(self.heard_and_opened(), (1, 1))
+        self.lua.execute("forgot = {} function mod.PadViewForget(list) forgot[#forgot + 1] = #list end")
+        self.run_(11)                                       # (the ten seconds' redraw)
+        self.assertEqual(list(self.lua.eval("forgot").values())[:2], [1, 1])   # (each set's pins, still there)
+
+    def test_set_up_once_whoever_asks(self):
+        # (the usual map's setup and the controller view's: one tick, one hearing, not two)
+        self.lua.execute("other = CreateFrame() mod:SetupFriends(other) mod:SetupFriends(worldMap)")
+        tickers = self.lua.eval("(function() local n = 0 for _, t in ipairs(timers) do if t.every then n = n + 1 end end return n end)()")
+        self.assertEqual(tickers, 1)
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(1)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 1)
+
     def test_turned_off_nothing_on_the_map(self):
         self.run_(8)
         self.lua.execute("mod.db.friends, mod.db.guild = false, false worldMap:Show() mod.RefreshFriends()")
@@ -393,7 +535,7 @@ class FriendsTests(unittest.TestCase):
                 connected = true, level = 30, area = "Elwynn Forest", className = "Mage" } }
             local account = { characterName = "Guildie Oak", realmName = "CAMWOWEU5Realm12PvP", playerGuid = memberGuid,
                 isOnline = true, clientProgram = "WoW", characterLevel = 30, areaName = "Elwynn Forest",
-                className = "Mage", gameAccountID = 17 }
+                className = "Mage", gameAccountID = 17, factionName = "Alliance" }
             BNGetNumFriends = function() return 1 end
             C_BattleNet = { GetFriendAccountInfo = function() return { gameAccountInfo = account } end,
                 GetGameAccountInfoByID = function(id) if id == 17 then return account end end }

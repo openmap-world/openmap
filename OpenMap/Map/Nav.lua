@@ -22,14 +22,20 @@ d.group = true
 local map, sc
 
 
+local function UnitMapPosition(unit, mapID)
+	local pos = Safe.Call(C_Map.GetPlayerMapPosition, mapID, unit)
+	if not pos then return end
+	local x, y = Safe.XY(pos)
+	if Safe.IsSecret(x) or Safe.IsSecret(y) or not x or not y or (x == 0 and y == 0) then return end
+	return x, y
+end
+
 -- a unit's place on the world (normalized), or nil (secret, in an instance, unknown)
 local function UnitWorld(unit)
 	local best = Safe.Call(C_Map.GetBestMapForUnit, unit)
 	if not best or not S.Rect(best) then return end
-	local pos = Safe.Call(C_Map.GetPlayerMapPosition, best, unit)
-	if not pos then return end
-	local x, y = Safe.XY(pos)
-	if Safe.IsSecret(x) or Safe.IsSecret(y) or not x or not y or (x == 0 and y == 0) then return end
+	local x, y = UnitMapPosition(unit, best)
+	if not x then return end
 	local u, v = mod.ToWorld(best, x, y)
 	return u, v, best
 end
@@ -37,6 +43,12 @@ end
 --------------------------------------------------------------------------------
 -- Find me, and reopening where you left off
 --------------------------------------------------------------------------------
+
+function mod.RememberOutsideInstance()
+	local u, v, best = UnitWorld("player")
+	-- No viewport needed: this also runs before the map's first opening.
+	if u then mod.outsideInstanceView = { u, v, best } end
+end
 
 function mod:FindMe(keepZoom)
 	if not mod.IsStitched() and not (mod.PadViewOn and mod.PadViewOn()) then return end
@@ -121,6 +133,8 @@ function mod:OnMapShown()
 	-- again would have the map underneath follow it, away from a quest's zone the quest log put up)
 	if not mod.SavedView(nil, true) then return end
 	C_Timer.After(0, function()
+		local d = QuestMapFrame and QuestMapFrame.DetailsFrame   -- (a quest's details up: they stay on its map, #224)
+		if d and d:IsShown() then return end
 		local u, v, zoom = mod.SavedView(mod.HostMap(), true)
 		if not u or not mod.IsStitched() then return end
 		local nu, nv, nz = mod.ViewNow()
@@ -394,26 +408,88 @@ end
 -- Group members
 --------------------------------------------------------------------------------
 
-local groupSet, groupLooks = nil, {}
+local groupSet, groupLooks, groupPins = nil, {}, {}
+local rosterWait = 0
 local DOT = { atlas = "WhiteCircle-RaidBlips", texture = "Interface\\Minimap\\PartyRaidBlips" }
--- the border that says "your group" (a guild member's or friend's dot, Friends.lua, has none): the
--- dot's own circle, larger and behind it, gold around a dark gap so it reads on every class's colour
-local RING = { atlas = DOT.atlas, texture = DOT.texture, color = { 1, 0.82, 0, 1 } }
-local RING_GAP = { atlas = DOT.atlas, texture = DOT.texture, color = { 0, 0, 0, 1 } }
-local RING_SIZE, RING_GAP_SIZE = 19, 15
+-- The gold edge distinguishes group dots from guild and friend dots (Friends.lua): thin, right round the
+-- dot (a wide one round a dark gap read as a target: #158, #170)
+local RING_TEXTURE = (ns.Media and ns.Media.path or "") .. "Textures\\GroupRing.tga"   -- (tools/icon/group_ring.py)
+local RING_SIZE = 16
 local ROUGH_ALPHA = 0.55            -- the dot of someone known only by zone
 local ROUGH_SPREAD = 0.006          -- world (normalized): between those known only by zone, in the same zone
+
+local RING_RETRY_WINDOW = 0.1
+local nativeRings, nativeRingsUnavailable, ringHandoff
+
+local function HideNativeRings()
+	if nativeRings and nativeRings.frame:IsShown() then nativeRings.frame:Hide() end
+end
+
+local function NativeGroupPin(host)
+	if nativeRingsUnavailable or not host or host == S.WORLD or not map or not map.EnumeratePinsByTemplate then return end
+	for pin in map:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+		if pin:IsVisible() and Safe.Call(pin.GetUiMapID, pin) == host then return pin end
+	end
+end
+
+local function DrawNativeRings(stockPin, host, units, roster, size)
+	local asset = RING_TEXTURE
+	if not nativeRings then
+		local canvas = map:GetCanvas()
+		local frame = CreateFrame("UnitPositionFrame", nil, canvas)
+		if frame:IsProtected() then error("ring frame is protected") end
+		frame:Hide()
+		local texture = frame:CreateTexture()
+		texture:Hide()
+		if texture:SetTexture(asset) == false then error("addon group ring texture unavailable") end
+		frame:SetAllPoints(canvas)
+		frame:EnableMouse(false)
+		nativeRings = { frame = frame }
+	end
+	local state = nativeRings
+	local frame = state.frame
+	local strata = stockPin:GetFrameStrata()
+	if frame:GetFrameStrata() ~= strata then frame:SetFrameStrata(strata) end
+	-- The hollow rim sits under the native dot and player arrow.
+	local level = math.max(0, stockPin:GetFrameLevel() - 1)
+	if frame:GetFrameLevel() ~= level then frame:SetFrameLevel(level) end
+	if state.host ~= host then
+		frame:SetUiMapID(host)
+		if frame:GetUiMapID() ~= host then error("ring frame did not accept the map ID") end
+		state.host = host
+	end
+	if state.roster ~= roster or state.size ~= size then
+		frame:ClearUnits()
+		for _, unit in ipairs(units) do
+			frame:AddUnit(unit, asset, size, size, 1, 1, 1, 1, 7, false)
+		end
+		frame:FinalizeUnits()
+		state.roster, state.size = roster, size
+	end
+	state.stockPin, state.units = stockPin, units
+	if not frame:IsShown() then frame:Show() end
+end
+
+local function TryNativeRings(stockPin, host, units, roster)
+	if stockPin and not nativeRingsUnavailable and #units > 0 then
+		local scale = map:GetCanvasScale()
+		if scale and scale > 0 then
+			local factor = mod.NativeGroupIconScale and mod.NativeGroupIconScale(stockPin) or 1
+			local ok = pcall(DrawNativeRings, stockPin, host, units, roster, RING_SIZE * factor / scale)
+			if ok then return true end
+			nativeRingsUnavailable = true
+		end
+	end
+	HideNativeRings()
+	return false
+end
 
 local function Ring(pin)
 	if pin.Ring then return end
 	pin.Ring = pin:CreateTexture(nil, "BACKGROUND")
 	pin.Ring:SetSize(RING_SIZE, RING_SIZE)
 	pin.Ring:SetPoint("CENTER")
-	S.Look(pin.Ring, RING)
-	pin.RingGap = pin:CreateTexture(nil, "BORDER")
-	pin.RingGap:SetSize(RING_GAP_SIZE, RING_GAP_SIZE)
-	pin.RingGap:SetPoint("CENTER")
-	S.Look(pin.RingGap, RING_GAP)
+	pin.Ring:SetTexture(RING_TEXTURE)
 end
 
 local function GroupLook(unit)
@@ -428,19 +504,28 @@ local function GroupLook(unit)
 	return look
 end
 
-local function GroupEnter(pin)
-	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
-	local name = Safe.Call(UnitName, pin.unit)
-	GameTooltip:AddLine(name or "?", 1, 1, 1)
+local function ShowGroupTooltip(pin, name)
+	pin.tooltipName = name
+	GameTooltip:ClearLines()
+	GameTooltip:AddLine(name, 1, 1, 1)
 	GameTooltip:AddLine(L["Group"], 1, 0.82, 0)
 	local info = pin.zone and C_Map.GetMapInfo(pin.zone)
 	if info and info.name then GameTooltip:AddLine(L["Somewhere in %s"]:format(info.name), 0.6, 0.6, 0.6) end
 	GameTooltip:Show()
 end
 
+local function GroupEnter(pin)
+	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
+	ShowGroupTooltip(pin, Safe.Call(UnitName, pin.unit) or "?")
+end
+
+local function GroupLeave(pin)
+	if GameTooltip:IsOwned(pin) then GameTooltip:Hide() end
+end
+
 -- where a group member is: u, v on the world when that's known (the game's, or the place they
 -- share with OpenMap: on this client the game can keep a group member's place secret), else
--- nil, nil and the zone they're in (the game's, or as the guild roster and friends lists give it)
+-- nil, nil and the zone they're in (the game's, or as the guild roster and friends lists give it).
 local function GroupPlace(unit)
 	local u, v = UnitWorld(unit)
 	if u then return u, v end
@@ -472,38 +557,137 @@ local function ZoneSpot(zone, n)
 	return (l + r) / 2 + col * ROUGH_SPREAD, (t + b) / 2 + (row + 1) * ROUGH_SPREAD
 end
 
-local function RefreshGroup()
+local function UpdateGroupPin(pin, unit, u, v, zone)
+	local look = GroupLook(unit)
+	local zoneChanged = not pin or pin.zone ~= zone
+	if not pin then
+		pin = S.AddPin(groupSet, u, v, look)
+		Ring(pin)
+		pin:SetScript("OnEnter", GroupEnter)
+		pin:SetScript("OnLeave", GroupLeave)
+		pin:SetScript("OnHide", GroupLeave)
+	else
+		S.MovePin(groupSet, pin, u, v)
+		if pin.look ~= look then
+			pin.look = look
+			S.Look(pin.Icon, look)
+			S.Look(pin.Highlight, look)
+		end
+	end
+	pin.unit, pin.zone = unit, zone
+	if zoneChanged then pin.Icon:SetAlpha(zone and ROUGH_ALPHA or 1) end
+	if GameTooltip:IsShown() and GameTooltip:IsOwned(pin) then
+		local name = Safe.Call(UnitName, unit) or "?"
+		if zoneChanged or name ~= pin.tooltipName then ShowGroupTooltip(pin, name) end
+	end
+	return pin
+end
+
+local function RingRetryDeadline(unit, host, id, previous, now, handoffDeadline)
+	if not previous or previous.id ~= id then return end
+	-- Keep the deadline through repeated misses. An exact position clears it.
+	local expires = previous.expires or now + RING_RETRY_WINDOW
+	if handoffDeadline then expires = math.min(expires, handoffDeadline) end
+	if expires <= now then return end
+	local u, v = UnitWorld(unit)
+	if u then
+		local l, r, t, b = S.Rect(host)
+		if not l or u < l or u > r or v < t or v > b then return end
+	end
+	rosterWait = math.min(rosterWait, 0.02, expires - now)
+	return expires
+end
+
+local function RefreshGroup(afterMapChange)
 	if not groupSet then return end
-	S.ClearPinSet(groupSet)
 	-- (the controller view, PadView.lua: Blizzard's map underneath unseen, so every one of them here)
 	local padView = mod.PadViewOn and mod.PadViewOn()
-	if not mod.db.group or not (mod.IsStitched() or padView) or not IsInGroup() then return end
+	if not mod.db.group or not (mod.IsStitched() or padView) or not IsInGroup() then
+		ringHandoff = nil
+		if nativeRings then nativeRings.members = nil end
+		HideNativeRings()
+		S.ClearPinSet(groupSet)
+		wipe(groupPins)
+		return
+	end
 	local host = not padView and mod.HostMap() or nil
+	local now = GetTime()
+	if ringHandoff and (ringHandoff.host ~= host or now >= ringHandoff.expires) then ringHandoff = nil end
 	local raid = IsInRaid()
-	local inZone = {}
+	local stockPin = NativeGroupPin(host)
+	if afterMapChange and ringHandoff and not stockPin then
+		HideNativeRings()
+		return
+	end
+	local previous = nativeRings and nativeRings.host == host and nativeRings.members
+	local handoffDeadline
+	if not previous and ringHandoff then
+		previous, handoffDeadline = ringHandoff.members, ringHandoff.expires
+	end
+	local members, eligible, units, roster = {}, {}, {}, {}
 	for i = 1, raid and 40 or 4 do
 		local unit = (raid and "raid" or "party") .. i
 		if UnitExists(unit) and not UnitIsUnit(unit, "player") then
-			-- every one known gets the bordered dot (over Blizzard's, on the map underneath: its plain
-			-- blip can't be told from a guild member's); by zone only if Blizzard's isn't there to place them
+			members[#members + 1] = unit
+			if stockPin then
+				local x, y = UnitMapPosition(unit, host)
+				local onMap = x and x >= 0 and x <= 1 and y >= 0 and y <= 1
+				local prior = not x and previous and previous[unit]
+				if onMap or prior then
+					local guid = Safe.Call(UnitGUID, unit)
+					local id = guid or unit
+					local expires = prior and RingRetryDeadline(unit, host, id, prior, now, handoffDeadline)
+					if onMap or expires then
+						eligible[unit] = { id = id, expires = expires or nil }
+						units[#units + 1] = unit
+						roster[#roster + 1] = unit .. "=" .. (guid or "")
+					end
+				end
+			end
+		end
+	end
+	local hasNativeRings = TryNativeRings(stockPin, host, units, table.concat(roster, " "))
+	if nativeRings then nativeRings.members = hasNativeRings and eligible or nil end
+	local inZone, seen = {}, {}
+	for _, unit in ipairs(members) do
+		if not (hasNativeRings and eligible[unit]) then
+			-- Keep the stitched pins where the native map cannot place the member.
 			local u, v, zone = GroupPlace(unit)
 			if zone and not u and not BlizzardShows(zone, host) then
 				inZone[zone] = (inZone[zone] or 0) + 1
 				u, v = ZoneSpot(zone, inZone[zone])
 			end
 			if u then
-				local pin = S.AddPin(groupSet, u, v, GroupLook(unit))
-				pin.unit, pin.zone = unit, zone
-				Ring(pin)
-				if zone then pin.Icon:SetAlpha(ROUGH_ALPHA) end
-				pin:SetScript("OnEnter", GroupEnter)
-				pin:SetScript("OnLeave", GameTooltip_Hide)
+				local id = Safe.Call(UnitGUID, unit) or unit
+				groupPins[id] = UpdateGroupPin(groupPins[id], unit, u, v, zone)
+				groupPins[id].openmapNoPress = true   -- (PadView.lua: nothing to press, the controller's A zooms in under it)
+				seen[id] = true
 			end
+		end
+	end
+	for id, pin in pairs(groupPins) do
+		if not seen[id] then
+			S.RemovePin(groupSet, pin)
+			groupPins[id] = nil
 		end
 	end
 end
 
 --------------------------------------------------------------------------------
+
+-- Match Blizzard's icon size and draw level as its map zooms.
+function mod.RefreshNativeRingLayout()
+	local state = nativeRings
+	if not state or not state.frame:IsShown() then return end
+	local stockPin = state.stockPin
+	if not mod.db.group or not IsInGroup() or mod.HostMap() ~= state.host or not stockPin:IsVisible()
+		or Safe.Call(stockPin.GetUiMapID, stockPin) ~= state.host then
+		HideNativeRings()
+		rosterWait = 0
+	elseif not TryNativeRings(stockPin, state.host, state.units, state.roster) then
+		RefreshGroup()
+	end
+end
 
 function mod.RefreshWaypoint() RefreshWaypoint() end   -- (PadView.lua: it has no SetupNav)
 function mod.RefreshGroup() RefreshGroup() end         -- (PadView.lua: its own ticker)
@@ -515,8 +699,34 @@ function mod:BuildNav()
 	RefreshWaypoint()
 end
 
+local function RefreshNav()
+	RefreshWaypoint()
+	local host = mod.HostMap()
+	if host and host ~= S.WORLD and nativeRings and nativeRings.host ~= host and nativeRings.members then
+		-- A native dot can already be on the new map while the Lua position catches up.
+		ringHandoff = { host = host, members = nativeRings.members, expires = GetTime() + RING_RETRY_WINDOW }
+	end
+	if map:IsShown() then RefreshGroup(true) end
+	rosterWait = 0
+end
+
 function mod:SetupNav(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
+	map:HookScript("OnHide", function()
+		ringHandoff = nil
+		if nativeRings then nativeRings.members = nil end
+		HideNativeRings()
+	end)
+	if type(map.OnMapChanged) == "function" then
+		-- Blizzard's providers have switched their pins by the time this hook runs.
+		hooksecurefunc(map, "OnMapChanged", function()
+			local ok, err = pcall(RefreshNav)
+			if not ok then geterrorhandler()(err) end
+		end)
+	end
+	if type(map.OnCanvasScaleChanged) == "function" then
+		hooksecurefunc(map, "OnCanvasScaleChanged", mod.RefreshNativeRingLayout)
+	end
 	ns.RegisterEvent(mod, "USER_WAYPOINT_UPDATED", RefreshWaypoint)
 	ns.RegisterEvent(mod, "SUPER_TRACKING_CHANGED", RefreshWaypoint)
 	-- Blizzard's pin comes back each time its provider redraws (the waypoint set, the map changed)
@@ -529,20 +739,18 @@ function mod:SetupNav(worldMap)
 			hooksecurefunc(provider, "RefreshAllData", HideBlizzardPin)
 		end
 	end
-	local wait = 0
+	rosterWait = 0
+	map:HookScript("OnShow", function()
+		RefreshGroup()
+		rosterWait = 0 -- check again on the first update in case the host map changes while opening
+	end)
 	local ticker = CreateFrame("Frame", nil, map)
 	ticker:SetScript("OnUpdate", function(_, elapsed)
-		wait = wait - elapsed
-		if wait > 0 then return end
-		wait = 0.5
+		rosterWait = rosterWait - elapsed
+		if rosterWait > 0 then return end
+		rosterWait = 0.5
 		RefreshGroup()
 	end)
-end
-
--- the map underneath changed: stitched or not, and the group's places on it
-function mod:RefreshNav()
-	RefreshWaypoint()
-	RefreshGroup()
 end
 
 function mod:NavOptions(opts, get, set, off)

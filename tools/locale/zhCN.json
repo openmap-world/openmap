@@ -590,5 +590,14 @@
  "Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Center on your zone: open on the whole zone you're in, wherever you are in it. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.": "选择一种方式。以玩家为中心：总是以你为中心打开。以玩家为中心并保留缩放：以你为中心打开，并使用你关闭地图时的缩放。以你所在区域为中心：显示你所在的整个区域，无论你在区域中的哪里。总是记住：恢复上次的位置和缩放，即使你换了区域。在视野内时记住：仅当你当前的位置在上次的视野内时才恢复，即使跨越了区域边界；否则以你为中心打开。为任务打开的地图仍会显示任务区域。",
  "one marker per friend or guildmate, none left over when they join your group, and the newest dungeons' entrances": "每位好友或公会成员只有一个标记，加入你的队伍后不再残留，以及最新地下城的入口",
  "Learned flight paths forgotten for this character: talk to a flight master to learn the ones you have again.": "已为此角色忘记已学会的飞行路线：与飞行管理员交谈即可重新学会你已有的路线。",
- "Questie 12.8's icons found on the map": "在地图上找到 Questie 12.8 的图标"
+ "Questie 12.8's icons found on the map": "在地图上找到 Questie 12.8 的图标",
+ "Follow new pins": "追踪新放置的标记",
+ "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.": "放置的标记会成为路径点，其他插件会为它规划路线（Shortest Path Forever）。关闭时路径点保持不变：在标记上点“追踪”即可设置。",
+ "Send new pins to group": "新标记发送给队伍",
+ "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).": "放置的标记会在关闭其卡片时发送给你的小队或团队（装有OpenMap的玩家会被询问是否添加）。",
+ "Auto-add group's pins": "自动添加队伍的标记",
+ "Map pins your party or raid shares with you are added at once, without asking.": "你的小队或团队与你分享的地图标记会立即添加，不再询问。",
+ "MapUtils also changes the world map's zoom and scale: with it and OpenMap both on, the map and Blizzard's quest areas can jump while zooming. Turn one of them off if you see that.": "MapUtils 也会改变世界地图的缩放与比例：与 OpenMap 同时启用时，缩放地图时地图和暴雪的任务区域可能会跳动。如果出现这种情况，请关闭其中一个。",
+ "Hide world markers in instances": "在副本中隐藏世界地图标记",
+ "In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept.": "在地下城、团队副本和战场中，暂时隐藏 OpenMap 的好友、公会、交通和世界地图任务标记。小队和团队成员以及其他插件的地图和标记仍然可见。保留原有的标记设置。"
 }

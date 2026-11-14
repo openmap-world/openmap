@@ -8,13 +8,16 @@ Santiago Reyes's site: https://sreyesmaps.com/post/proyecto-atlas-de-azeroth-for
 
 | File | Dungeon | Drawn by |
 | --- | --- | --- |
-| `dungeons/city-of-dalaran.png` | City of Dalaran | Santiago Reyes |
+| `dungeons/city-of-dalaran.jpg` | City of Dalaran | Santiago Reyes |
+| `dungeons/dalaran-the-underbelly.jpg` | City of Dalaran: The Underbelly | Santiago Reyes |
 | `dungeons/excavation-site-wetlands.png` | Excavation Site: Wetlands | Santiago Reyes |
 | `dungeons/ruins-of-lordaeron.png` | Ruins of Lordaeron | Santiago Reyes |
 | `dungeons/hall-of-thanes.png` | The Hall of Thanes | Santiago Reyes |
 | `dungeons/the-drowned-city.jpg` | The Drowned City | Santiago Reyes |
 | `dungeons/kroldok-stronghold.webp` | Krol'dok Stronghold | Santiago Reyes |
-| `dungeons/shapers-terrace.webp` | Shaper's Terrace | Santiago Reyes |
+| `dungeons/shapers-terrace.jpg` | Shaper's Terrace | Santiago Reyes |
+| `dungeons/prismatic-talus.jpg` | Shaper's Terrace: Prismatic Talus | Santiago Reyes |
+| `dungeons/blackmaw-hold*.jpg` | Blackmaw Hold (6 floors: Blackmaw Grove, Festering Grotto and four Depths) | Santiago Reyes |
 
 `chart/` holds the sea chart round the world map (Options' Responsive ocean & border: the sea, compass roses, sea
 creatures, ships and frame), painted by Santiago Reyes and used with his permission; not covered by the
@@ -40,4 +43,5 @@ dungeon maps, they're used with the artist's permission and aren't covered by th
 `python -P tools/map-dungeons/drawn.py` turns them into `OpenMap/Media/Textures/MapDungeonDrawn/`
 and `OpenMap/Data/DungeonDrawn.lua`. A new one: add the drawing here (a 3:2 picture, the dungeon
 map's 1002 x 668 shape) and a line to the script's `DRAWN` (by the dungeon's mapID in
-`OpenMap/Data/Places.lua`, or by its name there where that mapID is 0).
+`OpenMap/Data/Places.lua`, or by its name there where that mapID is 0; a dungeon of more than one
+floor lists each floor's drawing with the floor's name).

@@ -38,15 +38,19 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python tools/offline-test/run.py pad      # the game's Gamepad UI on, padView off: the map left alone
    python tools/offline-test/run.py padmap   # ... and with Options' padMap: OpenMap's map then
    python -P tools/offline-test/player.py   # the player arrow and location ping hidden together
+   python -P tools/offline-test/instances.py # temporary world-marker filtering and instance events
    python -P tools/offline-test/press.py    # a press that wandered off isn't a click
    python tools/offline-test/run.py padview  # ... and with padView: OpenMap's map over Blizzard's (PadView.lua)
+   python -P tools/offline-test/padwaypoint.py  # the controller view's waypoint: the stick's put where its cursor is, another addon's left alone
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data), Ironforge's own minimap
    python -P tools/offline-test/explored.py # unexplored land hidden up close (Stitch.lua)
    python -P tools/offline-test/chart.py    # the sea chart's layout: Chart.lua as tools/map-chart/layout.py
    python -P tools/offline-test/friends.py  # friends and guild on the map: what Friends.lua hears and sends
+   python -P tools/offline-test/padfriends.py  # the controller view: friends and guild set up with it, A on an icon with nothing to press
    python -P tools/offline-test/bosses.py   # boss pins' data: each on one of its dungeon's floors, on the picture
    python -P tools/offline-test/questie.py  # Questie's icons found as a LibStub library (to 12.7) and a module (12.8)
+   python -P tools/offline-test/quests.py   # your quests' icons: on the usual map and in the controller view (PadView.lua)
    ```
    `lint.py` catches single backslashes in texture paths, decimal escapes (`"Map\947"` is
    a load error that takes the whole file down), calls to functions that don't exist, and
@@ -119,7 +123,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | 17d | `tools/map-dungeons/minimap.py <cache> <WoW folder> [--preview <dir>]` (`--survey <mapID>`: a dungeon's rooms and their heights) | `MapDungeonMinimap/`, `Data/DungeonMinimap.lua` | `tools/map-dungeons/minimap.json` (the floors) |
 | 17e | `tools/map-dungeons/bosses.py <cache> [--import <OpenMap.lua SavedVariables>]` | `Data/DungeonBosses.lua` | 17, 17a, 17d, `tools/map-dungeons/bosses.json` |
 | 17b | `tools/map-chart/build.py <db2> <tex>` (his layers from his file first: `tools/map-chart/export.py <psd>`) | `MapChart/`, `Data/Chart.lua` | `art/drawn/chart/` |
-| 17c | `tools/map-tiles/build.py <WoW folder>` (Forever) | `MapTile/` (the cave and dungeon tiles, drawn from OpenMap's copies: `Data/Forever/Tiles.lua`) | 4, 17 |
+| 17c | `tools/map-tiles/build.py <WoW folder>` (Forever) | `MapTile/` (the cave and dungeon tiles and Gilneas's map in the gaps, drawn from OpenMap's copies: `Data/Forever/Tiles.lua`) | 4, 17 |
 | 18 | `tools/locale/translate.py build` (after any change to the translations or to the English in `L[...]`) | `Locales/`, the toc's `## Notes-<locale>` lines | `tools/locale/*.json` |
 
 Text the player reads goes through `ns.L["English"]` (or `L[...]`), never a bare string: the

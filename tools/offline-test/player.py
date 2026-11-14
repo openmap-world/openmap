@@ -13,7 +13,7 @@ class PlayerTests(unittest.TestCase):
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute("""
-            combat, active, PLAYER_ABOVE = false, true, 8500
+            combat, active, PLAYER_ABOVE, canvasScale = false, true, 8500, 2
             mod = { db = { playerArrow = false } }
             S = setmetatable({}, { __index = function() return function() end end })
             sc = { GetFrameLevel = function() return 10 end }
@@ -21,6 +21,7 @@ class PlayerTests(unittest.TestCase):
             function ApplyChart() end
             function ApplyZoom() end
             function mod:UpdateBrightness() end
+            function mod:RefreshInstancePins() end
             function mod.Unexplored() return 'show' end
             function InCombatLockdown() return combat end
             function hooksecurefunc(pin, key, callback)
@@ -33,7 +34,7 @@ class PlayerTests(unittest.TestCase):
                 end
             end
             function NewPin()
-                local pin = { hooks = {}, sizes = { player = 27, party = 11, raid = 8.25 }, level = 0 }
+                local pin = { hooks = {}, sizes = { player = 27, party = 11, raid = 8.25 }, writes = {}, level = 0 }
                 function pin:IsProtected() return self.protected or false end
                 function pin:GetFrameLevel() return self.level end
                 function pin:SetFrameLevel(level)
@@ -43,6 +44,7 @@ class PlayerTests(unittest.TestCase):
                 function pin:SetPinSize(unit, size)
                     assert(not (self.protected and combat), 'protected pin size')
                     self.sizes[unit] = size
+                    self.writes[unit] = (self.writes[unit] or 0) + 1
                 end
                 function pin:StartPlayerPing(duration, scale)
                     self.pinging = true
@@ -56,12 +58,16 @@ class PlayerTests(unittest.TestCase):
                 pin.dataProvider = { GetUnitPinSizesTable = function()
                     return { player = 27, party = 11, raid = 8.25 }
                 end }
-                function pin:SynchronizePinSizes() self:SetPinSize('player', 13.5) end
+                function pin:SynchronizePinSizes()
+                    for unit, size in pairs(self.dataProvider:GetUnitPinSizesTable()) do
+                        self.sizes[unit] = size / canvasScale
+                    end
+                end
                 return pin
             end
             pin = NewPin()
             pins = { pin }
-            map = { GetCanvasScale = function() return 2 end, IsShown = function() return true end }
+            map = { GetCanvasScale = function() return canvasScale end, IsShown = function() return true end }
             function map:EnumeratePinsByTemplate(template)
                 assert(template == 'GroupMembersPinTemplate')
                 local i = 0
@@ -129,6 +135,22 @@ class PlayerTests(unittest.TestCase):
             assert(pin.sizes.player < 1)
         """)
 
+    def test_player_arrow_draws_above_group_blips(self):
+        self.lua.execute("""
+            local sublevels = { player = 7, party = 7, raid = 7 }
+            local writes, fallbackArrowLevel = 0, nil
+            function pin:SetPinSubLevel(unit, sublevel)
+                sublevels[unit], writes = sublevel, writes + 1
+            end
+            function S.RaiseArrow(level) fallbackArrowLevel = level end
+
+            Tick()
+            assert(sublevels.player == 7 and sublevels.party == 6 and sublevels.raid == 6)
+            assert(fallbackArrowLevel == pin:GetFrameLevel() + 1)
+            Tick()
+            assert(writes == 2, 'the ticker keeps rebuilding native blips')
+        """)
+
     def test_group_off_hides_party_and_raid_blips(self):
         self.lua.execute("""
             mod.db.playerArrow, mod.db.group = true, false
@@ -140,6 +162,92 @@ class PlayerTests(unittest.TestCase):
             mod.db.group = true
             Tick()
             assert(pin.sizes.party == 5.5 and pin.sizes.raid == 4.125, 'group blips not restored at the canvas scale')
+        """)
+
+    def test_group_icon_size_follows_zoom_and_restores_defaults(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group, mod.db.iconScale = true, true, 1.5
+            local ringRefreshes = 0
+            function mod.RefreshNativeRingLayout()
+                assert(pin.level == 8510 and mod.NativeGroupIconScale(pin) == 1.5)
+                ringRefreshes = ringRefreshes + 1
+            end
+            mod:Refresh()
+            assert(ringRefreshes == 1 and pin.sizes.party == 8.25 and pin.sizes.raid == 6.1875)
+            assert(pin.sizes.player == 27)
+            local writes = pin.writes.party
+            pin.level = 73
+            Tick()
+            assert(ringRefreshes == 2 and pin.writes.party == writes)
+            mod.RefreshNativeRingLayout = nil
+
+            canvasScale = 4
+            pin:SynchronizePinSizes()
+            assert(pin.sizes.party == 4.125 and pin.sizes.raid == 3.09375)
+            assert(pin.sizes.player == 6.75)
+
+            mod.db.group = false
+            Tick()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            mod.db.group = true
+            Tick()
+            assert(pin.sizes.party == 4.125 and pin.sizes.raid == 3.09375)
+
+            mod.db.iconScale = 1
+            Tick()
+            assert(pin.sizes.party == 2.75 and pin.sizes.raid == 2.0625)
+            assert(mod.NativeGroupIconScale(pin) == 1)
+        """)
+
+    def test_protected_group_icon_size_tracks_the_stock_size(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group, mod.db.iconScale = true, true, 2
+            pin.protected = true
+            Tick()
+            assert(mod.NativeGroupIconScale(pin) == 2)
+
+            combat, mod.db.iconScale = true, .6
+            Tick()
+            assert(mod.NativeGroupIconScale(pin) == 2 and pin.sizes.party == 11)
+            pin:SynchronizePinSizes()
+            assert(mod.NativeGroupIconScale(pin) == 1 and pin.sizes.party == 5.5)
+
+            combat = false
+            Tick()
+            assert(mod.NativeGroupIconScale(pin) == .6 and math.abs(pin.sizes.party - 3.3) < 1e-6)
+        """)
+
+    def test_instance_overlay_hides_world_blips_without_changing_preferences(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group = true, true
+            mod.instanceWorldHidden = true
+            Tick()
+            assert(pin.sizes.player < 1 and pin.sizes.party < 1 and pin.sizes.raid < 1)
+            pin:StartPlayerPing(2, .25)
+            assert(not pin.pinging)
+            pin:SynchronizePinSizes()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            mod.instanceWorldHidden = false
+            Tick()
+            assert(pin.sizes.player == 13.5 and pin.sizes.party == 5.5 and pin.sizes.raid == 4.125)
+            assert(mod.db.group and mod.db.playerArrow)
+        """)
+
+    def test_instance_overlay_retries_protected_blips_after_combat(self):
+        self.lua.execute("""
+            mod.db.playerArrow, mod.db.group = true, true
+            mod.instanceWorldHidden, pin.protected, combat = true, true, true
+            Tick()
+            assert(pin.sizes.party == 11, 'protected group pin changed in combat')
+            combat = false
+            Tick()
+            assert(pin.sizes.party < 1 and pin.sizes.raid < 1)
+            mod.instanceWorldHidden, combat = false, true
+            Tick()
+            assert(pin.sizes.party < 1, 'protected group pin restored in combat')
+            combat = false
+            Tick()
+            assert(pin.sizes.party == 5.5 and pin.sizes.raid == 4.125)
         """)
 
     def test_ping_without_size_method(self):

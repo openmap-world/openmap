@@ -18,7 +18,8 @@ local d = mod.defaults
 d.coords = true
 d.zoneLevels = true
 d.moveFade = 0                  -- how much the map fades while you move (0 to 0.9)
-d.mapFpsCap = 0                 -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off)
+d.mapFpsCap = 60                -- the frame rate at most while the map shows (the game's maxFPS, held then; 0: off).
+                                --  60 from v0.8.9: a still map drawn uncapped heated GPUs (#233)
 d.zoomHidePins = false          -- other addons' icons (Questie's ...) hidden while the map zooms (off from v0.8.6)
 
 local map, sc, bar
@@ -126,6 +127,11 @@ local function UpdateCoords(_, elapsed)
 	throttle = throttle + elapsed
 	if throttle < 0.05 then return end
 	throttle = 0
+	if mod.InstanceWorldHidden() then
+		bar.player.at:SetText("")
+		bar.cursor:GetParent():Hide()
+		return
+	end
 
 	local best = C_Map.GetBestMapForUnit("player")
 	local pos = best and C_Map.GetPlayerMapPosition(best, "player")
@@ -303,6 +309,7 @@ end
 -- area in it, its own name (Blizzard's label showed none there: its title went missing, #25)
 local function AreaLabelOnUpdate(self)
 	self:ClearLabel(MAP_AREA_LABEL_TYPE.AREA_NAME)
+	if mod.InstanceWorldHidden() then self:EvaluateLabels() return end
 	local m = self.dataProvider:GetMap()
 	if m:IsCanvasMouseFocus() or mod.PadCursor() then
 		local mapID = m:GetMapID()
@@ -354,10 +361,13 @@ local QUESTIE_BASE = 2015               -- the fixed frame level Questie's map i
 
 -- Questie fixes its icons' frame levels from QUESTIE_BASE up (it expects Blizzard's map canvas
 -- near 2000), which is under the stitched map's upper art layers: lift them above the art,
--- keeping their order among themselves (quest finishers in front ...)
+-- keeping their order among themselves (quest finishers in front ...). Its quest icons go over
+-- OpenMap's own icons too (a "?" was hidden under a flight master or a dungeon: #92); its townsfolk
+-- (manual icons) stay under them, just over the art.
 -- (questie: Questie's own order kept, from QUESTIE_BASE; another copy's icon just over the art)
 local function Lift(icon, questie)
 	local top = S.artTop
+	if questie and not icon.isManualIcon and S.iconLevel then top = S.iconLevel end
 	if not top or not icon.GetFrameLevel or not icon.SetFixedFrameLevel then return end
 	local level = icon:GetFrameLevel()
 	if level > top then return end
@@ -758,7 +768,14 @@ fader:SetScript("OnUpdate", function(_, elapsed)
 		local speed = GetUnitSpeed("player")
 		moving = not ns.Safe.IsSecret(speed) and (speed or 0) > 0
 	end
-	local want = (moving and not (map:IsMouseOver() or mod.PadCursor())) and 1 - (mod.db.moveFade or 0) or 1
+	if not moving and IsPlayerMoving then
+		local m = IsPlayerMoving()
+		moving = not ns.Safe.IsSecret(m) and m and true or false
+	end
+	-- (the mouse over the map holds it solid, but not while steering with it: the cursor's hidden then,
+	-- its last place left over a big map, so the map hardly ever faded: #69)
+	local over = map:IsMouseOver() and not (IsMouselooking and IsMouselooking())
+	local want = (moving and not (over or mod.PadCursor())) and 1 - (mod.db.moveFade or 0) or 1
 	if math.abs(faded - want) < 0.005 then
 		faded = want
 	else
@@ -800,6 +817,12 @@ local function ApplyExtras()
 	if mod.db.noFade ~= nil then
 		if mod.db.noFade == false and (mod.db.moveFade or 0) == 0 then mod.db.moveFade = 0.5 end
 		mod.db.noFade = nil
+	end
+	-- (the frame rate cap 60 from v0.8.9, once for every save: each has the old default, off, written in;
+	-- set to off again after this, it stays off)
+	if not mod.db.fpsCap60 then
+		mod.db.fpsCap60 = true
+		if (mod.db.mapFpsCap or 0) == 0 then mod.db.mapFpsCap = 60 end
 	end
 	-- the game's own fade off while ours runs (the player's setting kept, and put back at logout)
 	HoldCVar("mapFade", "0")
@@ -1075,6 +1098,31 @@ function mod.PadQuestiePaths(on)
 	end
 end
 
+-- Zygor's map lines, ant dots and waypoint icons (#218): Zygor sizes them by Pointer.iconScale, which it
+-- works out for Blizzard's zoom range; at the stitched map's zoom it comes out a grey hairline zoomed in
+-- and far too wide zoomed out. Set there so they're the same size on screen at every zoom: a line as
+-- thick as Zygor's "map line thickness", its dots and icons their own size. Off the stitched map
+-- Zygor's own value stands.
+local zygorHooked
+local function HookZygor()
+	if zygorHooked then return end
+	local zgv = _G.ZygorGuidesViewer
+	local pointer = type(zgv) == "table" and rawget(zgv, "Pointer")
+	if type(pointer) ~= "table" or type(pointer.RescaleMarkers) ~= "function" then return end
+	zygorHooked = true
+	-- (Zygor's zoom step: RescaleMarkers, then its lines drawn from iconScale)
+	hooksecurefunc(pointer, "RescaleMarkers", function()
+		if not mod.IsStitched() then return end
+		local canvasScale = map:GetCanvas():GetEffectiveScale()
+		if not canvasScale or canvasScale <= 0 then return end
+		local want = UIParent:GetEffectiveScale() / canvasScale   -- (the canvas' units to the UI's)
+		if pointer.iconScale == want then return end
+		pointer.iconScale = want
+		for _, way in ipairs(pointer.waypoints or {}) do way:SetIcon() end
+		for _, way in ipairs(pointer.waypoints_ants or {}) do way:SetIcon() end
+	end)
+end
+
 function mod:SetupExtras(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) ApplyFpsCap() end)
@@ -1086,7 +1134,8 @@ function mod:SetupExtras(worldMap)
 	map:HookScript("OnShow", function() mod.TimeAfter("pin libraries", SetUpAllPinsAndWait) end)
 	-- (Questie's icons placed before the map's art was built, or while it was closed: lifted once it's laid out)
 	map:HookScript("OnShow", function() C_Timer.After(0, LiftQuestie) C_Timer.After(0.5, LiftQuestie) end)     -- (a copy an addon loaded since brought)
-	ns.RegisterEvent(PinRetry, "ADDON_LOADED", function() SetUpAllPins() end)
+	HookZygor()
+	ns.RegisterEvent(PinRetry, "ADDON_LOADED", function() SetUpAllPins() HookZygor() end)
 	HookQuestiePaths()                               -- (now: an older Questie's path stretches are kept as they're made)
 	map:HookScript("OnShow", function() HookQuestiePaths() if QPATH.hooked then QPATH.dirty = true QPATH.tick:Show() end end)
 	map:HookScript("OnHide", function() QPATH.tick:Hide() end)

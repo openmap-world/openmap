@@ -13,6 +13,106 @@
   available. Season of Discovery-only encounters and duplicate combined encounters were removed
   from Gnomeregan and Sunken Temple; Blackfathom Deeps keeps its Vanilla Baron Aquanis and Lorgus
   Jett entries.
+## v0.8.9 (2026-11-14)
+
+### New
+
+- **Hide world markers in instances** (the menu's On the map tab, and Options; off unless turned on):
+  in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers
+  step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's),
+  the world under it stops answering the mouse, and a right-click brings the world map back, at the
+  dungeon's outdoor entrance (#232). By HonzoNebro.
+
+- **Pin options** (OpenMap's options, Moving about and Sharing):
+  - **Follow new pins**: on by default, as before. Off, a pin you drop doesn't become the waypoint,
+    so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it.
+  - **Send new pins to group**: a pin you drop goes to your party or raid once its card is closed.
+  - **Auto-add group's pins**: pins your party or raid shares are added without asking.
+    By diegodiaz1256.
+
+- **A map of Blackmaw Hold**, drawn by Santiago Reyes: all six of its floors, from Blackmaw Grove
+  and the Festering Grotto down to the Depths of Forbidden Magic (the floor list at the top of the
+  dungeon's map, or its arrows). (New textures: restart the game.)
+
+### Improved
+
+- **City of Dalaran's map is Santiago Reyes's updated version, with the Underbelly**, where the
+  dungeon starts, as a second floor (#220). Opened inside the dungeon, the map shows the floor
+  you're on.
+
+- **Shaper's Terrace's map is Santiago Reyes's final version, with the Prismatic Talus** as a
+  second floor.
+
+- **The controller view's switch in the map's menu too**: "OpenMap's map with the Gamepad UI (test)"
+  is under The map in OpenMap's menu as well as in Options (it was only in Esc > Options > AddOns,
+  and a player took it for gone).
+
+- **Questie's quest icons in front**: a "!" or "?" is no longer hidden under a flight master or a
+  dungeon's icon; Questie's townsfolk stay under OpenMap's icons (#92).
+
+- **A word about MapUtils**: with MapUtils on, OpenMap says once in chat that the two both change the
+  map's zoom, which made the map and Blizzard's quest areas jump while zooming (#160).
+
+### Fixed
+
+- **One arrow for you, not two**: where OpenMap draws your arrow itself (the map underneath can't
+  place you), Blizzard's arrow now steps aside, so the two no longer show a little apart (#229).
+
+- **Quests from the tracker open on their details**: the first click on a tracked quest opened the
+  map on the quest list; it shows the quest's text now (#224).
+
+- **The map cooler on your graphics card**: OpenMap's "Map frame rate cap" is now 60 by default (and
+  set to 60 once for everyone): a still map was drawn as fast as the card could go (#233). Turn it off
+  in Options if you'd rather.
+
+- **Fade while moving fades while you steer with the mouse**: the hidden cursor's last place over the
+  map held it solid, so it hardly ever faded (#69).
+
+- **Resizing the window keeps it where it is**: it could jump to the screen's bottom left (#241).
+
+- **Nighthaven's flight master shows for druids only**, as only druids can fly from it (#222).
+
+- **The controller view takes the mouse too** (OpenMap's map with the Gamepad UI): the wheel zooms,
+  a drag pans, and a click works as A (left) or X (right) (#234).
+
+- **City names in your language**: Thunder Bluff's and Darnassus' name banners showed in English on
+  other languages' clients; the zone map's own banner, in the client's language, is shown there now (#47).
+
+- **Your quests' icons show in the controller view** (Options' "OpenMap's map with the Gamepad UI"):
+  there were none, and no tooltips. Every quest in your log is now OpenMap's icon there, at any zoom,
+  in every zone (with "Quests from every zone" off: the zone Blizzard's map is on); A tracks the quest
+  and zooms to it. The "!" of quests you can start in that zone are there too, with the quest's name
+  on the tooltip. The shaded quest areas aren't on it yet (#225). By k4m1.
+
+- **Zygor's map line stays thick on the stitched map**: Zygor's route line (and its dots and waypoint
+  icons) shrank to a thin grey line zoomed in and grew far too wide zoomed out, as Zygor sizes them for
+  Blizzard's zoom range; they now stay the same size on screen at every zoom (#218). By rogeriocamorim.
+
+- **Gilneas shows on every language's client**: on the Russian and Latin American Spanish clients
+  Gilneas was a solid green square, as the game doesn't have its map's art in those languages (as
+  with the dungeon and cave maps before v0.8.5). OpenMap now brings those tiles itself (#152).
+  Found and tested by XaksFlaX. (New textures: restart the game.)
+
+- **Dungeon level ranges**: the dungeons' levels on the map are now the ones the game's Group Finder
+  gives (each Scarlet Monastery and Dire Maul wing its own); they were an old level each, five levels
+  wide, and some were far off: Razorfen Kraul showed 24-29 for a dungeon of 29-38 (#201). By ConfusionOrb221.
+
+## v0.8.8 (2026-11-13)
+
+### Fixed
+
+- **Party and raid markers stay steady**: one marker per member, moving smoothly. OpenMap's ring now
+  follows Blizzard's own dot where the game places a member, instead of a second dot of its own that
+  lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is
+  now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.
+
+- **Friends on the map: your own faction only.** Your place is only shared with, and shown from,
+  players of your own faction: Battle.net friends on the other faction no longer see where you are, nor
+  you them (a player's report: it let Horde and Alliance find each other for PvP).
+
+- **Friends in another realm group show on the map**: a friend on CAMWOW US1 and one on US2 (or EU4 and
+  EU5) never saw each other with "Share where you are" on (#164, #167).
+
 ## v0.8.7 (2026-11-12)
 
 ### Fixed

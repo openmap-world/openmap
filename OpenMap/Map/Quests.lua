@@ -5,6 +5,13 @@
 -- underneath became theirs. Here every stitched map's quests (C_QuestLog.GetQuestsOnMap) are
 -- OpenMap's own icons, in the look of Blizzard's (its map legend's); the map underneath keeps
 -- Blizzard's own pins for its quests (and a continent its super-tracked quest's).
+--
+-- In the controller view (PadView.lua) Blizzard's map is under the view, unseen, and so are its pins:
+-- every quest is OpenMap's icon there, the zone Blizzard's map is on too (with "all quests" off, only
+-- that zone's). A click there tracks the quest and zooms to it, but doesn't open Blizzard's quest
+-- log: nothing of Blizzard's map or quest log is changed from OpenMap's code while that view is on.
+-- The "!" of the quests you can start there are OpenMap's icons too: the zone Blizzard's map is on, its
+-- quest lines' starts (C_QuestLine.GetAvailableQuestLines), as its own pins for them show.
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -19,11 +26,15 @@ mod.defaults.allQuests = true   -- the quests in your log from every zone (off: 
 local BADGE = { atlas = "UI-QuestPoi-QuestNumber", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 22 }
 local IN_PROGRESS = { atlas = "Quest-In-Progress-Icon-yellow", texture = "Interface\\GossipFrame\\IncompleteQuestIcon" }
 local TURN_IN = { atlas = "UI-QuestPoi-QuestBangTurnIn", texture = "Interface\\GossipFrame\\ActiveQuestIcon" }
+local OFFER = { atlas = "QuestNormal", texture = "Interface\\GossipFrame\\AvailableQuestIcon", size = 22 }
 local SAME = 0.002              -- world (normalized): one quest's icons this close are one
 local EVERY = 0.5               -- seconds: the quest log changes in bursts
 local NONE = {}
-local set, map, maps
+local set, offerSet, map, maps, events
 local dirty = false
+
+-- the controller view is the map now (Blizzard's under it, unseen)
+local function PadView() return mod.PadViewOn and mod.PadViewOn() end
 
 -- the maps the quests are read from: the stitched zones and cities (a city's quests are its zone's
 -- too, at the same place: one icon, SAME)
@@ -51,8 +62,18 @@ local function Enter(pin)
 			if text and not finished then GameTooltip:AddLine((_G.QUEST_DASH or "- ") .. text, 1, 1, 1, true) end
 		end
 	end
-	GameTooltip:AddLine((map and map.IsMaximized and map:IsMaximized()) and L["Click: track this quest and zoom to it"]
+	GameTooltip:AddLine((PadView() or (map and map.IsMaximized and map:IsMaximized())) and L["Click: track this quest and zoom to it"]
 		or L["Click: track this quest, zoom to it and show it in the quest log"], 0.6, 0.6, 0.6)
+	GameTooltip:Show()
+end
+
+-- a quest you can start: its name, and the quest line it begins (the game's own words)
+local function EnterOffer(pin)
+	local q = pin.data
+	if not q then return end
+	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
+	GameTooltip:SetText(q.name or "?", 1, 0.82, 0)
+	if q.line and q.line ~= "" and q.line ~= q.name then GameTooltip:AddLine(q.line, 0.6, 0.6, 0.6) end
 	GameTooltip:Show()
 end
 
@@ -71,6 +92,9 @@ local function Click(pin)
 		C_SuperTrack.SetSuperTrackedQuestID(q.id)
 	end
 	if S.GlideToWorld then S.GlideToWorld(pin.u, pin.v, ZOOM_TO) end
+	-- (the controller view: Blizzard's quest log is left as it is, as a dungeon's map is: its details
+	-- would set the pad's buttons from OpenMap's code)
+	if PadView() then return end
 	-- (in combat with the gamepad's UI, Blizzard's quest details would set the pad's buttons from
 	-- OpenMap's code, which combat blocks: they wait, as a dungeon's map does)
 	if mod.PadWaits and mod.PadWaits() then return end
@@ -96,16 +120,52 @@ local function Mark(pin, complete)
 	m:Show()
 end
 
+-- the controller view's "!": the quests you can start in the zone Blizzard's map is on (its quest
+-- lines' pins, unseen under the view, show the same); not those in your log (drawn above), nor
+-- another floor's, nor a hidden one
+local function Offers(ids)
+	local zone = map and map.GetMapID and map:GetMapID()
+	if not (offerSet and zone and S.Rect(zone) and C_QuestLine and C_QuestLine.GetAvailableQuestLines) then return end
+	S.SetPinSetOn(offerSet, true)
+	local same = Enum.QuestLineFloorLocation and Enum.QuestLineFloorLocation.Same or 2
+	local seen = {}
+	for _, q in ipairs(C_QuestLine.GetAvailableQuestLines(zone) or NONE) do
+		local id = q.questID
+		if id and q.x and q.y and not q.isHidden and not q.inProgress and not ids[id] and not seen[id]
+			and (q.floorLocation == nil or q.floorLocation == same) then
+			seen[id] = true
+			local u, v = mod.ToWorld(zone, q.x, q.y)
+			local pin = S.AddPin(offerSet, u, v, OFFER, { id = id, name = q.questName, line = q.questLineName })
+			pin:SetScript("OnEnter", EnterOffer)
+			pin:SetScript("OnLeave", GameTooltip_Hide)
+		end
+	end
+end
+
 function mod:RefreshQuests()
 	dirty = false
 	if not set and S.IsBuilt() then set = S.PinSet("quests", 1, 5) end   -- (built as the map first opens)
 	if not set then return end
+	if not offerSet and S.IsBuilt() then offerSet = S.PinSet("questoffers", 1, 4) end   -- (under the quests' icons)
+	if offerSet then
+		S.ClearPinSet(offerSet)
+		S.SetPinSetOn(offerSet, false)
+	end
 	S.ClearPinSet(set)
 	-- (and as Blizzard's own quests: not with the map's Quest Objectives off, its questPOI)
-	local on = mod.db.allQuests ~= false and mod.IsStitched() and C_QuestLog.GetQuestsOnMap ~= nil
+	local pad = PadView()
+	local all = mod.db.allQuests ~= false
+	local on = (all or pad) and (mod.IsStitched() or pad) and C_QuestLog.GetQuestsOnMap ~= nil
 		and not (GetCVarBool and not GetCVarBool("questPOI"))
 	S.SetPinSetOn(set, on)
 	if not on then return end
+	-- the controller view with "all quests" off: the zone (or city) Blizzard's map is on, whose quests
+	-- no pin of Blizzard's shows there
+	local list = Maps()
+	if pad and not all then
+		local zone = map and map.GetMapID and map:GetMapID()
+		list = zone and S.Rect(zone) and { zone } or NONE
+	end
 	-- the map underneath: Blizzard draws its quests (a continent, only the super-tracked one)
 	local host = mod.HostMap()
 	local hostInfo = host and C_Map.GetMapInfo(host)
@@ -117,8 +177,8 @@ function mod:RefreshQuests()
 	end
 	local hl, hr, ht, hb
 	if host then hl, hr, ht, hb = S.Rect(host) end
-	local seen = {}
-	for _, mapID in ipairs(Maps()) do
+	local seen, ids = {}, {}
+	for _, mapID in ipairs(list) do
 		if mapID ~= host then
 			for _, q in ipairs(C_QuestLog.GetQuestsOnMap(mapID) or NONE) do
 				local id = q.questID
@@ -130,6 +190,7 @@ function mod:RefreshQuests()
 					if key and not seen[key] and not onHost then
 						seen[key] = true
 						local complete = C_QuestLog.IsComplete and C_QuestLog.IsComplete(id) or false
+						ids[id] = true
 						local pin = S.AddPin(set, u, v, BADGE, { id = id, complete = complete })
 						Mark(pin, complete)
 						pin:SetScript("OnEnter", Enter)
@@ -140,6 +201,7 @@ function mod:RefreshQuests()
 			end
 		end
 	end
+	if pad then Offers(ids) end
 end
 
 -- (a burst of quest log updates: one refresh)
@@ -151,8 +213,9 @@ end
 
 function mod:SetupQuests(worldMap)
 	map = worldMap
-	local events = CreateFrame("Frame")
-	for _, e in ipairs({ "QUEST_LOG_UPDATE", "QUEST_POI_UPDATE", "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "CVAR_UPDATE" }) do
+	if events then return end                   -- (once: its events and hooks)
+	events = CreateFrame("Frame")
+	for _, e in ipairs({ "QUEST_LOG_UPDATE", "QUEST_POI_UPDATE", "QUEST_WATCH_LIST_CHANGED", "SUPER_TRACKING_CHANGED", "CVAR_UPDATE", "QUESTLINE_UPDATE" }) do
 		pcall(events.RegisterEvent, events, e)
 	end
 	events:SetScript("OnEvent", function(_, event, cvar)

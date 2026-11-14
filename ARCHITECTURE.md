@@ -104,6 +104,29 @@ Every zone map is drawn onto one canvas in Azeroth's (947) art pixels, placed by
   screen and a zoom only moves them. A set with `build` makes its pins the first
   time it shows.
 
+The optional `hideWorldPinsInInstances` setting adds a temporary filter in `Stitch.lua`'s
+`ShowSets`: friends and guild dots/zone badges, boat and zeppelin icons/routes, flight
+masters/selected flight routes and OpenMap's all-zone quest pins are hidden in player
+instances (`party`, `raid`, `pvp`, `arena`). `WorldMap.lua` refreshes it at enable, instance
+events, map attachment and option changes. It leaves `set.on`, saved marker preferences,
+group pins and other addons' frames alone. Sets created while filtered start hidden too;
+later refreshes and view changes go through the same filter.
+
+With Dungeon maps off and a stitched world map hosting the instance overlay, the filter
+also detaches OpenMap's world canvas and pins (`instanceWorldHidden`). World navigation,
+hover labels and coordinate readouts stop. Native world-map player/party/raid blips are
+temporarily sized away through the existing combat-aware blip path, retried by the ticker.
+Actual dungeon-map blips and other addons' player pins are not affected. Changes to the
+instance, host map or settings attach/detach the world again without changing its map ID.
+
+A right-click over the map explicitly enters `instanceWorldBrowsing` for that opening.
+The deferred global mouse-up handler lets NeedRoll dismiss its overlay first, then restores
+world layers, marker preferences and zoom levels. Dungeons.lua locates the current instance's
+recorded entrance and uses its containing city/zone's fit zoom; Nav.lua remembers the last
+outdoor player point as a fallback, independently of the user's panned/reopen view. Further
+clicks use normal world navigation. Closing/reopening clears this temporary browsing state;
+a generation check discards callbacks from a previous opening. No map ID is forced.
+
 **Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
 layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
 maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the
@@ -307,7 +330,10 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   Blizzard's and secure. The view's own `u, v, zoom` place the canvas (its scale, its offset) and feed
   `S.SetZoom` and `S.SetView` as `WorldMap.lua` does; it answers what the other files ask of the map
   (`mod.Glide`, `ViewNow`, `CursorWorld` ...) and sets up the parts that need no map of their own
-  (flights, pins, the waypoint, the quill, the report, the menu). The controller is read, not bound:
+  (flights, pins, the waypoint, the quill, the report, the menu), and the quests in your log
+  (`Quests.lua`: with the view on, Blizzard's pins for them are on its map under it, unseen, so every quest is
+  OpenMap's icon, the zone that map is on too, and a click doesn't open Blizzard's quest log; the quests to
+  start there, a "!" each, are `C_QuestLine.GetAvailableQuestLines` for the zone that map is on). The controller is read, not bound:
   the right stick from `C_GamePad` (`mod.PadStickTilt`), Blizzard's cursor where it is, A and X after
   Blizzard's own (on its map underneath, unseen). OpenMap's controls under the cursor are entered and
   pressed through `Gamepad.lua` (`PadControlAt`, `PadPress`, `PadWheelAt`: the right stick as their
@@ -360,9 +386,9 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   file) and `Fishing.lua` (the zones' fishing levels, from cMaNGOS's classic-db, see the file),
   `Labels.lua` and `Banners.lua` (measured or traced on the art), and the placement of
   Gilneas' map in `Gaps.lua`'s `art` (from Mists of Pandaria Classic's tables, which still place
-  it; the others are the same drawings as Forever's own zone maps, and go where those do). Dungeon levels come from the game's group finder (`tools/map-data/build.py`): one level
-  each, shown as a range five past it, the span WoW Forever's own list gives its new dungeons, whose
-  ranges are Forever's (cited in the script). Bosses are the game's `DungeonEncounter` table.
+  it; the others are the same drawings as Forever's own zone maps, and go where those do). Dungeon level ranges come from the game's Group Finder
+  (`GroupFinderActivity`, by map and wing; `tools/map-data/build.py`), so a rebuild for a new build keeps
+  them current; a dungeon it doesn't list takes the dungeon finder's one level. Bosses are the game's `DungeonEncounter` table.
   Dungeon maps (`DungeonMaps.lua`): each instance's floors, their names and wings from Mists of
   Pandaria Classic's map tables (its dungeon art is the same files as Forever's), every tile checked
   in the install (`tools/map-dungeons/build.py`); Forever's own new dungeons have no map art, so

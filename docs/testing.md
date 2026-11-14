@@ -55,6 +55,34 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] The close-up minimap shows at Menethil Harbor, Darnassus, Feathermoon and Southshore; over Quel'Thalas there's no green retail terrain.
 
 ## 5. Getting around (3 min)
+
+- [ ] OpenMap's Dungeon maps off, NeedRoll's Map in dungeons set to NeedRoll: turn on
+  "Hide world markers in instances" in OpenMap's On the map tab (off by default).
+  Enter a dungeon, raid and battleground with the map closed, then open it: OpenMap's
+  friend/guild dots and zone badges, boats, zeppelins, transport routes, flight masters,
+  selected flight route and all-zone quest pins are hidden. NeedRoll's map, bosses and
+  players and the party/raid markers remain visible according to their own settings.
+- [ ] Repeat entering/leaving with the map open and in combat; zoom, change floors,
+  refresh quests and friends, close/reopen, and reload inside: hidden markers stay hidden.
+  Turn the filter off inside: markers return according to their existing options and zoom.
+  Turn it on again, leave: the same markers return; an individually disabled marker type
+  stays disabled. Saved marker settings are unchanged except for the new filter choice.
+- [ ] With Dungeon maps off and NeedRoll visible, move the pointer across the instance:
+  no outdoor zone names or world coordinates appear. Click empty map space: no outdoor
+  zone opens. OpenMap's approximate world-position group dots and the native world-host
+  blips are absent; NeedRoll's actual players and bosses stay. On a real dungeon map,
+  native group blips remain. Leave the instance or turn the filter off: world interaction
+  and group markers return. Repeat entering in combat; protected blips wait until it ends.
+- [ ] In Ragefire Chasm with NeedRoll visible, right-click: the normal interactive world
+  opens around its entrance in Orgrimmar at the city's zoom. Hover names/coordinates and
+  world markers work again. Left-click/wheel zoom in and further right-clicks zoom out
+  normally, without recentering. Close/reopen: NeedRoll and the filter return. Repeat in
+  another dungeon and in combat, and check that right-clicking the quest log/menu does
+  not dismiss the instance view or recenter the world. Reopen immediately after a click:
+  the old deferred click must not affect the new instance view.
+- [ ] With the filter off, enter an instance: existing behavior is unchanged. Outside,
+  browse a dungeon map: the filter follows the player's location, not the map being viewed.
+
 - [ ] Search box: type "gadg", click Gadgetzan → glides there with a marker. Type "deadm" → the Deadmines entrance.
 - [ ] Find me button: glides to you.
 - [ ] The menu's More tab, "Reopen map (choose one)": Center on player / Always remember / Remember while visible, only one ticked at a time (Options' "When reopening the map" is the same choice). A fresh install starts on Center on player; an existing "Reopen where you left off" on / off becomes Always remember / Center on player.
@@ -90,6 +118,7 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] Turn that option on in combat (Gamepad UI on, at login it was off): the map stays Blizzard's until combat ends, then it is OpenMap's.
 - [ ] With the Gamepad UI on (Forever's controller mode) at login, the controller view (PadView.lua, Options' "OpenMap's map with the Gamepad UI (test)", off by default: turn it on): the map is OpenMap's, drawn over Blizzard's. The cursor (gold diamond, lines to the edges) follows the left stick and pans at the edge; the right stick zooms about it; A zooms into the zone under it, X out a level. Close it with B, in a window and full screen: no "OpenMap has been blocked" message, then or later (open chat, swap focus with the menu button). `/console taintLog 1` and a `/reload` after: no `OpenMap` in `Logs/taint.log`.
 - [ ] Controller view, the icons: dungeons, boats, flight masters (A on two: the route and its time), your pins (A: its card), the waypoint (the left stick pressed puts it under the cursor), your party, Questie's icons from zone zooms in (tooltips under the cursor and the mouse, several quests at one spot listed), townsfolk, TomTom's waypoint, Questie's mob paths. X with Questie on doesn't stall.
+- [ ] Controller view, quests (#225): a quest in your log that you can turn in, in the zone you are in, and one in another zone. Both have their icon on the view at any zoom, a "?" for the one that's done, and the cursor over one brings up its tooltip (the quest, what's left to do, "Click: track this quest and zoom to it"). A tracks it and zooms to it; Blizzard's quest log stays shut, and B still closes the map with no "OpenMap has been blocked" message, then or later. Turn Options' "Quests from every zone" off: only the quests of the zone Blizzard's map is on stay (A into another zone, then they're that zone's). Turn the map's Quest Objectives filter off: none. The "!" of a quest you can start in the zone you are in (one Blizzard's own map shows on its zone map, a campaign's or a quest line's start): it is on the view too, its tooltip the quest's name and its quest line's, and it is gone once you take the quest (its "?" or number takes its place). A "!" doesn't appear for the zones Blizzard's map isn't on: A into another zone and it does. Not there yet: the shaded quest areas.
 - [ ] Controller view, the windows: A on a dungeon: its map in OpenMap's view, floors with A, the side panel's tabs, the right stick scrolls its lists, X closes it. The OpenMap button (bottom left): the menu inside the map, A on its toggles and tabs, the right stick scrolls it, X closes it; it doesn't open again with the map. Drop a pin; the Pins list; the quill (A, move, A: a line, a ring, a mark; Undo, Done; X puts it down); Report a problem (its code, no note step). The quest log button says the D-pad's right opens it.
 - [ ] Options' "Enable OpenMap with Gamepad UI" off, `/reload`, with the Gamepad UI on: chat says once that OpenMap leaves the world map to Blizzard, and the map is Blizzard's own; `/openmap` says why the map is off; the options window says it at the top. Swap to mouse and keyboard with the map closed: chat says OpenMap's map is back, and it is, without a reload. Swap back to the Gamepad UI: chat asks for a `/reload`.
 

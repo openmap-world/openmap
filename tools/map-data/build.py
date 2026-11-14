@@ -1,12 +1,12 @@
 # Builds OpenMap's map data from the game's own tables (the client's build: tools/clients.py):
 #   OpenMap/Data/<client>/Reveal.lua   explored-area pieces per zone art   (WorldMapOverlay, WorldMapOverlayTile)
 #   OpenMap/Data/<client>/Places.lua   instance entrances, levels and bosses, boat, zeppelin and airship docks and
-#                             routes (Map, LFGDungeons, ContentTuning, DungeonEncounter, TaxiNodes, TaxiPath,
+#                             routes (Map, GroupFinderActivity, LFGDungeons, ContentTuning, DungeonEncounter, TaxiNodes, TaxiPath,
 #                             TaxiPathNode; retail's entrances: JournalInstanceEntrance, JournalInstance)
 # The tables are fetched as CSV from wago.tools into a cache folder. A client with a world of its own
 # (Data/<client>/World.lua, tools/map-data/world.py: run that first) keeps only the places on it.
 # usage: python -P tools/map-data/build.py <cache dir> [build]
-import csv, math, os, sys, time, urllib.request
+import csv, math, os, re, sys, time, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
@@ -54,20 +54,21 @@ with open(os.path.join(DATA, "Reveal.lua"), "w", encoding="utf-8", newline="\n")
 print("reveal:", len(reveal), "zone arts,", sum(len(v) for v in reveal.values()), "pieces")
 
 # ------------------------------------------------------------------ instances
-# Each dungeon's level, from the game's group finder: LFGDungeons points at a ContentTuning
-# row whose level (MinLevelSquish) is where the dungeon starts. The tables give that one level;
-# the range shown runs SPAN levels past it (to 60 at most), the span WoW Forever's own dungeon
-# list gives its new dungeons (FOREVER, below). Raids: their level alone. The group finder names
-# some dungeons differently from the Map table, and lists Blackrock Spire and Dire Maul by wing:
-# a wing each, at the dungeon's one entrance. Ahn'Qiraj and Naxxramas aren't in it: no level.
+# Each dungeon's level range, from the game's Group Finder (GroupFinderActivity: MinLevel to
+# MaxLevelSuggestion, by map; category 2 its dungeons, 114 its raids). A map with several of
+# OpenMap's instances (Scarlet Monastery's wings, Dire Maul's, Blackrock Spire's) takes each by its
+# name there; otherwise the span of the map's activities (Stratholme's two gates). Without one:
+# the dungeon finder's one level (LFGDungeons -> ContentTuning's MinLevelSquish), SPAN levels past
+# it (to 60 at most); raids their level alone. The finders name some dungeons differently from the
+# Map table, and list Blackrock Spire and Dire Maul by wing: a wing each, at the dungeon's one entrance.
 SPAN = 5
 tuning = {r["ID"]: int(r["MinLevelSquish"]) for r in table("ContentTuning")}
 FINDER_NAMES = {"Stormwind Stockades": "Stormwind Stockade", "Zul'Farak": "Zul'Farrak", "Onyxia": "Onyxia's Lair",
                 "Hall of Thanes": "The Hall of Thanes"}
 WINGS = {"Blackrock Spire": ["Lower Blackrock Spire", "Upper Blackrock Spire"],
          "Dire Maul": ["Dire Maul - East", "Dire Maul - West", "Dire Maul - North"],
-         # (Scarlet Monastery's four doors, named as its map's floors are; the finder lists it whole,
-         # so each wing has the dungeon's level)
+         # (Scarlet Monastery's four doors, named as its map's floors are, and as the Group Finder
+         # names its wings; the dungeon finder lists it whole)
          "Scarlet Monastery": ["Scarlet Monastery - Graveyard", "Scarlet Monastery - Library",
                                "Scarlet Monastery - Armory", "Scarlet Monastery - Cathedral"]}
 WING_OF = {w: name for name, ws in WINGS.items() for w in ws}
@@ -76,15 +77,26 @@ for r in table("LFGDungeons"):
     lv = tuning.get(r["ContentTuningID"], 0)
     if r["TypeID"] != "0" or lv <= 0: continue
     LEVELS[FINDER_NAMES.get(r["Name_lang"], r["Name_lang"])] = lv
-# WoW Forever's own dungeons: their level ranges as Forever lists them (the WoW Forever team's
-# dungeon list, October 2026). Some aren't in this build's tables yet; none has an entrance in
-# them (the Map table gives no ghost's return point): they show on the map once ENTRANCES has one.
-FOREVER = [("The Hall of Thanes", 13, 18), ("Ruins of Lordaeron", 15, 20), ("Excavation Site: Wetlands", 24, 29),
-           ("City of Dalaran", 28, 33), ("The Drowned City", 35, 40), ("Krol'dok Stronghold", 40, 45),
-           ("Alcaz Prison", 48, 53), ("Blackmaw Hold", 55, 60), ("Shaper's Terrace", 58, 60)]
-
-# The newer build supplies the IDs and encounters missing from the pinned map data.
+# The newer build supplies the IDs, encounters and Group Finder activities missing from the pinned map data.
 FOREVER_INSTANCE_BUILD = "1.60.1.70888"
+ACTIVITIES = {}
+def add_activities(build):
+    new = {}
+    for r in table("GroupFinderActivity", build):
+        if r["GroupFinderCategoryID"] in ("2", "114") and int(r["MinLevel"]) > 0:
+            new.setdefault((int(r["MapID"]), r["GroupFinderCategoryID"] == "114"), []).append(r)
+    for k, rows in new.items(): ACTIVITIES.setdefault(k, rows)
+if clients.NAME == "forever":      # (retail: the journal's, below)
+    add_activities(BUILD)
+    add_activities(FOREVER_INSTANCE_BUILD)
+def activity_name(name):     # "Dire Maul (East)" -> "Dire Maul - East", as the Map table's wings are named
+    name = re.sub(r" \((.+)\)$", r" - \1", name)
+    name = FINDER_NAMES.get(name, name)
+    return "Shaper's Terrace" if name == "The Shaper's Terrace" else name
+# WoW Forever's own dungeons. Some aren't in this build's Map table yet; none has an entrance in
+# it (the Map table gives no ghost's return point): they show on the map once ENTRANCES has one.
+FOREVER = ["The Hall of Thanes", "Ruins of Lordaeron", "Excavation Site: Wetlands", "City of Dalaran",
+           "The Drowned City", "Krol'dok Stronghold", "Alcaz Prison", "Blackmaw Hold", "Shaper's Terrace"]
 
 def forever_map_name(row):
     name = row["MapName_lang"]
@@ -116,14 +128,18 @@ ENTRANCES = {
     "Shaper's Terrace": [("map", 1449, 48.1, 6.1)],             # Un'Goro Crater
 }
 
-def levels(name, raid):
+def levels(mapID, name, raid):
+    rows = ACTIVITIES.get((mapID, raid), [])
+    rows = [r for r in rows if activity_name(r["FullName_lang"]) == name] or rows
+    if rows:
+        return min(int(r["MinLevel"]) for r in rows), max(int(r["MaxLevelSuggestion"]) for r in rows)
     lv = LEVELS.get(name) or LEVELS.get(WING_OF.get(name))   # (a wing the finder doesn't list: its dungeon's)
+    if lv: print("levels: not in the Group Finder, from the dungeon finder:", name)
     if not lv: return None, None
     return lv, lv if raid else min(lv + SPAN, 60)
 
 FOREVER_CLIENT = clients.NAME == "forever"
 # a client's own world (World.lua): which positions are on it
-import re
 _world = os.path.join(DATA, "World.lua")
 WORLD = uimap.read_world(_world)
 YARDS = WORLD["yards"] if WORLD else {}
@@ -140,7 +156,7 @@ def place(e, at):
     return e["name"] in ENTRANCES or at is not None
 forever_ids = set()
 if FOREVER_CLIENT:
-    forever_names = {name for name, _, _ in FOREVER}
+    forever_names = set(FOREVER)
     maps = {forever_map_name(r): r for r in map_rows if r["InstanceType"] in ("1", "2")}
     missing = forever_names - maps.keys()
     if missing:
@@ -154,11 +170,12 @@ if FOREVER_CLIENT:
         if (x == 0 and y == 0) or name.startswith("<") or "Test" in name: continue
         raid = kind == "2"
         for wing in WINGS.get(name, [name]):
-            place(entry(int(r["ID"]), wing, raid, *levels(wing, raid)), (int(r["CorpseMapID"]), x, y))
-    for name, lo, hi in FOREVER:
+            place(entry(int(r["ID"]), wing, raid, *levels(int(r["ID"]), wing, raid)), (int(r["CorpseMapID"]), x, y))
+    for name in FOREVER:
         if any(i["name"] == name for i in inst): continue      # (the Map table placed it already)
         r = maps.get(name)
-        e = entry(int(r["ID"]) if r else 0, name, False, lo, hi)
+        mapID = int(r["ID"]) if r else 0
+        e = entry(mapID, name, False, *levels(mapID, name, False))
         if not place(e, None): unplaced.append(e)
     forever_ids = {e["id"] for e in inst + unplaced if e["id"] > 0 and e["name"] in forever_names}
 else:
@@ -342,7 +359,7 @@ with open(os.path.join(DATA, "Places.lua"), "w", encoding="utf-8", newline="\n")
     f.write("--   unplaced[i] = { mapID (0: not in the tables), name, raid, minLevel, maxLevel }: no entrance yet\n")
     f.write("--   bosses[mapID] = { name, ... } in the game's order\n")
     if forever_ids:
-        f.write("--   Missing Forever instance IDs and encounters come from build %s\n" % FOREVER_INSTANCE_BUILD)
+        f.write("--   Missing Forever instance IDs, encounters and Group Finder levels come from build %s\n" % FOREVER_INSTANCE_BUILD)
     f.write("--   transports[i] = { \"boat\" | \"zeppelin\" | \"airship\", route, continent, x, y, toContinent, toX, toY }\n")
     f.write("--     (an airship's continent can be 2991, Zephras Isle: not on the stitched map yet); faction =: one faction's only\n")
     f.write("--   sailings[i] = { kind, route, { { continent, { x1, y1, x2, y2, ... } }, ... } }: the way it sails,\n")

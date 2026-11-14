@@ -389,9 +389,12 @@ end
 -- tiles are the next power of two. `mask2`: a second mask on the tiles;
 -- `band`: also draw a colour-matched copy through this mask.
 -- a zone's overlay art is drawn without its banner for a city (ns.MapBannerHoles): Stitch's
--- copy of the banner shows instead, and goes once you're close (S.SetZoom)
+-- copy of the banner shows instead, and goes once you're close (S.SetZoom). The copies are cut from the
+-- English client's art, lettered in English: another language keeps the zone's own banner, in its
+-- language (Thunder Bluff's on esMX, Darnassus' on zhCN: #47)
 local holeMasks = {}
 local function BannerHole(parent, p)
+	if not Baked.english then return end
 	if not (p.mapID and ns.MapBannerHoles and ns.MapBannerHoles[p.mapID]) then return end
 	local key = tostring(parent) .. p.mapID
 	holeMasks[key] = holeMasks[key] or Feather(parent, p, TEX .. "MapBannerHole\\" .. p.mapID)
@@ -739,6 +742,7 @@ function S.PinSet(key, minZoom, level)
 			pins = {}, lines = {}, anchors = {}, pinPool = {}, linePool = {} }
 		set.frame:SetAllPoints(pinRoot)
 		sets[key] = set
+		if S.WorldPinsHidden(key) then set.shownNow = false set.frame:Hide() end
 	end
 	if level then set.frame:SetFrameLevel(pinRoot:GetFrameLevel() + level) end
 	return set
@@ -822,6 +826,21 @@ function S.AddPin(set, u, v, look, data)
 	return pin
 end
 
+-- Move the existing anchor so the button keeps its mouseover state.
+function S.MovePin(set, pin, u, v)
+	if pin.u == u and pin.v == v then return end
+	local rec = dynamic[pin.anchor]
+	rec[2], rec[3] = u * W, v * H
+	PlaceRecord(rec)
+	pin.u, pin.v = u, v
+
+	local cell = PinCell(set, u, v)
+	if cell ~= pin:GetParent() then
+		pin:SetParent(cell)
+		pin:SetFrameLevel(set.frame:GetFrameLevel())
+	end
+end
+
 -- a line between two world points (normalized), `thickness` px on screen
 function S.AddLine(set, u1, v1, u2, v2, thickness, r, g, b, a, texture)
 	local line = tremove(set.linePool) or set.frame:CreateLine(nil, "ARTWORK")
@@ -876,19 +895,33 @@ function S.AddDot(set, u, v, size, look, r, g, b, a, parent)
 	return dot
 end
 
-function S.ClearPinSet(set)
-	for _, pin in ipairs(set.pins) do
+do
+	local function RecyclePin(set, pin)
 		pin:Hide()
 		pin:ClearAllPoints()
 		DropAnchor(pin.anchor)
 		set.pinPool[#set.pinPool + 1] = pin
 	end
-	for _, line in ipairs(set.lines) do
-		line:Hide()
-		set.linePool[#set.linePool + 1] = line
+
+	function S.RemovePin(set, pin)
+		for i, active in ipairs(set.pins) do
+			if active == pin then
+				RecyclePin(set, pin)
+				tremove(set.pins, i)
+				return
+			end
+		end
 	end
-	for _, a in ipairs(set.anchors) do DropAnchor(a) end
-	wipe(set.pins) wipe(set.lines) wipe(set.anchors)
+
+	function S.ClearPinSet(set)
+		for _, pin in ipairs(set.pins) do RecyclePin(set, pin) end
+		for _, line in ipairs(set.lines) do
+			line:Hide()
+			set.linePool[#set.linePool + 1] = line
+		end
+		for _, a in ipairs(set.anchors) do DropAnchor(a) end
+		wipe(set.pins) wipe(set.lines) wipe(set.anchors)
+	end
 end
 
 -- a set with `build` makes its pins the first time it shows
@@ -897,7 +930,13 @@ end
 -- (one local: this file is near Lua's 200 a chunk)
 -- from: nil, each from its own zoom (Auto); else that zoom, further out or further in than its own.
 -- (Townsfolk are never shown further out than their own: there are thousands of them)
-local places = { from = nil, sets = { dungeons = true, boats = true, zeppelins = true, flight = true } }
+local places = { from = nil, sets = { dungeons = true, boats = true, zeppelins = true, flight = true },
+	world = { friends = true, friendzones = true, boats = true, zeppelins = true,
+		routes = true, flight = true, route = true, quests = true } }
+
+function S.WorldPinsHidden(key)
+	return places.hidden and places.world[key] or false
+end
 
 local function ShowSets()
 	for key, set in pairs(sets) do
@@ -905,7 +944,8 @@ local function ShowSets()
 		local folk = key:sub(1, 3) == "tf_"
 		if places.from and (places.sets[key] or folk) then from = folk and math.max(from, places.from) or places.from end
 		-- (further out than the whole world, on the sea chart: as at the whole world)
-		local shown = set.on and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
+		local shown = set.on and not S.WorldPinsHidden(key)
+			and math.max(zoomNow, 1) >= from and (not set.maxZoom or zoomNow < set.maxZoom)
 		if shown and set.build then
 			local build = set.build
 			set.build = nil
@@ -916,6 +956,12 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+
+-- A temporary visibility filter, independent of each set's saved choice and refreshes.
+function S.SetWorldPinsHidden(hidden)
+	places.hidden = hidden and true or false
+	ShowSets()
+end
 
 -- the menu's Icon size: every icon of OpenMap's at this times its own size (each about its own
 -- middle: it's anchored there)
@@ -1202,6 +1248,7 @@ end
 function S.Build(parent, artLevel, range, iconLevel)
 	if root then return end
 	S.artTop = artLevel + range             -- (the top of the art: Extras.lua lifts Questie's icons above it)
+	S.iconLevel = iconLevel                 -- (OpenMap's icons: Questie's quest icons go over them, Extras.lua)
 	W, H = ArtSize(WORLD)
 	if not W then return end
 	local function Layer(level)
@@ -1471,7 +1518,7 @@ function S.Build(parent, artLevel, range, iconLevel)
 	-- the zone's art: the city's title at every zoom (its own map is cut down to its plan, without
 	-- its banner), over the city and the close-up layers (the minimap, the caves), with the labels
 	for _, c in ipairs(cities) do
-		local b = ns.MapBanners and ns.MapBanners[c.mapID]
+		local b = Baked.english and ns.MapBanners and ns.MapBanners[c.mapID]
 		local p = b and Place(b[1])
 		if p then
 			local f = CreateFrame("Frame", nil, citiesRoot)
@@ -2122,6 +2169,8 @@ function S.PlacePlayer()
 	if player.facing then arrow:SetRotation(player.facing) end
 	arrow:Show()
 end
+-- (our arrow up: WorldMap.lua sizes Blizzard's away, so there's one, not two: #229)
+function S.PlayerShown() return arrow ~= nil and arrow:IsShown() end
 
 -- our arrow over every icon on the map, at frame level `level` (WorldMap.lua: with Blizzard's own)
 function S.RaiseArrow(level)

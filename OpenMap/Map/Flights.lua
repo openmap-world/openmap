@@ -137,9 +137,11 @@ end
 -- Routes
 --------------------------------------------------------------------------------
 
+-- your faction's, and a class's own only for that class (Nighthaven's, druids': #222)
 local function Usable(id)
 	local n = F.nodes[id]
-	return n and bit.band(n[5], factionBit) ~= 0
+	if not (n and bit.band(n[5], factionBit) ~= 0) then return false end
+	return not n[6] or n[6] == select(2, UnitClass("player"))
 end
 
 -- cheapest route by flight length; `knownOnly` keeps to learned flight masters
@@ -339,6 +341,21 @@ function mod:ForgetFlights()
 	ns:Print(ns.L["Learned flight paths forgotten for this character: talk to a flight master to learn the ones you have again."])
 end
 function mod.RefreshFlightsFound() if set then RefreshLook() end end
+
+-- /openmap status: why flight masters might not show (#216)
+function mod.FlightStatus()
+	local data, placed, known, shown = 0, 0, 0, 0
+	for _ in pairs(F and F.nodes or {}) do data = data + 1 end
+	for id, pin in pairs(pins) do
+		placed = placed + 1
+		if Known(id) then known = known + 1 end
+		if pin:IsShown() then shown = shown + 1 end
+	end
+	return ("Flight masters: %s; %d in the data, %d placed for %s, %d learned, %d of them shown (Only places you've found %s)."):format(
+		mod.db.flight == false and "turned off" or "on", data, placed,
+		factionBit == 2 and "the Horde" or factionBit == 1 and "the Alliance" or "nobody yet (the map isn't built)",
+		known, shown, mod.db.foundOnly and "on" or "off")
+end
 
 function mod:SetupFlights()
 	-- (those remembered by 0.7.5 and before had DISTANT's unlearned ones in: forgotten once, and counted again at

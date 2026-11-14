@@ -4,6 +4,21 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "v0.8.9", date = "2026-11-14", heads = { [1] = "New", [3] = "Improved", [4] = "Fixed", }, items = {
+		"|cff6e2c0aHide world markers in instances|r (the menu's On the map tab, and Options; off unless turned on): in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's), the world under it stops answering the mouse, and a right-click brings the world map back, at the dungeon's outdoor entrance (#232). By HonzoNebro.",
+		"|cff6e2c0aPin options|r (OpenMap's options, Moving about and Sharing): - |cff6e2c0aFollow new pins|r: on by default, as before. Off, a pin you drop doesn't become the waypoint, so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it. - |cff6e2c0aSend new pins to group|r: a pin you drop goes to your party or raid once its card is closed. - |cff6e2c0aAuto-add group's pins|r: pins your party or raid shares are added without asking. By diegodiaz1256.",
+		"|cff6e2c0aThe controller view's switch in the map's menu too|r: \"OpenMap's map with the Gamepad UI (test)\" is under The map in OpenMap's menu as well as in Options (it was only in Esc > Options > AddOns, and a player took it for gone).",
+		"|cff6e2c0aOne arrow for you, not two|r: where OpenMap draws your arrow itself (the map underneath can't place you), Blizzard's arrow now steps aside, so the two no longer show a little apart (#229).",
+		"|cff6e2c0aQuests from the tracker open on their details|r: the first click on a tracked quest opened the map on the quest list; it shows the quest's text now (#224).",
+		"|cff6e2c0aThe map cooler on your graphics card|r: OpenMap's \"Map frame rate cap\" is now 60 by default (and set to 60 once for everyone): a still map was drawn as fast as the card could go (#233). Turn it off in Options if you'd rather.",
+		"|cff6e2c0aFade while moving fades while you steer with the mouse|r: the hidden cursor's last place over the map held it solid, so it hardly ever faded (#69).",
+		"|cff6e2c0aResizing the window keeps it where it is|r: it could jump to the screen's bottom left (#241).",
+		"|cff6e2c0aCity names in your language|r: Thunder Bluff's and Darnassus' name banners showed in English on other languages' clients; the zone map's own banner, in the client's language, is shown there now (#47).",
+	} },
+	{ version = "v0.8.8", date = "2026-11-13", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aParty and raid markers stay steady|r: one marker per member, moving smoothly. OpenMap's ring now follows Blizzard's own dot where the game places a member, instead of a second dot of its own that lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.",
+		"|cff6e2c0aFriends on the map: your own faction only.|r Your place is only shared with, and shown from, players of your own faction: Battle.net friends on the other faction no longer see where you are, nor you them (a player's report: it let Horde and Alliance find each other for PvP).",
+	} },
 	{ version = "v0.8.6", date = "2026-11-12", heads = { [1] = "Improved", }, items = {
 		"|cff6e2c0aIcons stay shown while zooming|r: \"Fade icons while zooming\" is now off for everyone, as zooming is smooth enough with them shown; turn it on again in the menu's On the map tab if you prefer it.",
 	} },
@@ -29,23 +44,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aClicking a quest's icon on the windowed map shows it in the quest log|r: the quest log beside the map opens if it was closed, with the quest's details, as well as tracking the quest and zooming in on it. (On the full-screen map a click still tracks and zooms only.)",
 		"|cff6e2c0aA dungeon map remembers its tab|r: picking Quests beside the quest log keeps it picked the next time a dungeon's map opens.",
 		"|cff6e2c0aNo more dot in the bottom-left corner of the screen|r after closing the map, or inside a dungeon: the map art OpenMap keeps loaded while the map is closed was drawn there, hundreds of faint copies on one pixel. Found by ryanull24.",
-	} },
-	{ version = "v0.8.2", date = "2026-11-08", heads = { [1] = "Improved", [2] = "Fixed", }, items = {
-		"|cff6e2c0aPanning no longer hitches|r: the map set up to 300 textures' files in a single frame where a pan brought new ground into view, and each set is a load and an upload, so that frame showed as a hitch of about 35 ms. It sets 60 a frame now; the art still fades in, a few frames later.",
-		"|cff6e2c0aThe map no longer stalls a moment after it opens|r: since 0.8.0 OpenMap keeps the map's art loaded while it's closed, then let go of it all in one frame a second into the opening, which the game unloaded at once (about a second's freeze). It now lets go of it a little at a time.",
-		"|cff6e2c0aZooming in notch by notch is smooth again|r: since 0.8.1 the blur came back all at once each time the map stopped, one long frame the next wheel notch landed on. It now waits out a pause between notches and comes back a few zones a frame. Questie's mob paths are worked out once the map stops, not on every frame of a zoom.",
-	} },
-	{ version = "v0.8.1", date = "2026-11-08", heads = { [1] = "New", [3] = "Improved", [6] = "Fixed", }, items = {
-		"|cff6e2c0aQuestie's mob paths on the stitched map|r, drawn over the art for the zones near the view as you zoom in (Questie's own were under the art, and only on the zone's own map).",
-		"|cff6e2c0aDarkening colour|r (Options, under Darkening): the colour unexplored areas are darkened with, picked with the game's colour picker; |cff6e2c0aDefault colour|r brings back the dark one.",
-		"|cff6e2c0aZooming is about four times smoother|r: OpenMap no longer lays out its hidden icons and its blur on every frame of a zoom (the blur comes back a moment after you stop). Found and measured by Peendars.",
-		"|cff6e2c0aFlight masters are easier to see on the map|r: bigger, with a dark outline, and the ones you haven't learned are no longer half see-through (they were lost on the parchment).",
-		"|cff6e2c0aCtrl-click drops a pin can be turned off|r (Options, and the menu's More tab): with Map Pin Enhanced a Ctrl-click dropped two pins, its own and OpenMap's. Off, the menu's Drop a pin still works.",
-		"|cff6e2c0aQuestie's icons show the first time you open the map|r: after a login they could be missing until the map was closed and opened again (Questie was still setting up when OpenMap looked).",
-		"|cff6e2c0aZygor's waypoint shows on the stitched map|r, in the right place and over the art (Zygor uses its own renamed copy of HereBeDragons, which OpenMap didn't know). Traced by robnoord.",
-		"|cff6e2c0aYour class's trainers are found on every language's client|r: on a French client (and the other non-English ones) every class trainer showed as a profession trainer.",
-		"|cff6e2c0aAn NPC who walks about shows once on the map|r: Girl with Puppies in Orgrimmar had a vendor icon at every point of her walk, dozens over the city. An NPC with many spawns in one zone (with Vendors and the other townsfolk on) now has one icon, in the middle of where it walks. Fixed by diegodiaz1256.",
-		"|cff6e2c0aNo friends dot or badge for yourself|r: with Share where you are on, you could show on your own map as a guild member (the guild's roster can spell your realm differently).",
-		"|cff6e2c0aThe map opens at once inside a dungeon|r: each opening loaded the dungeon's map art again, a second or two (longer in dungeons with many floors, whose Floors tab shows every floor). OpenMap now keeps the art of the dungeon you're in loaded, as it does the world map's.",
 	} },
 }

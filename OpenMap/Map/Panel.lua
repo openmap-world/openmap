@@ -223,6 +223,7 @@ local function Rows()
 		optRow(L["Party and raid members"], "group", Icon("Spell_Holy_PrayerOfFortitude")),
 		optRow(L["Friends on the map"], "friends", Icon("INV_Misc_GroupNeedMore")),
 		optRow(L["Guild members on the map"], "guild", Icon("INV_Shirt_GuildTabard_01")),
+		optRow(L["Hide world markers in instances"], "hideWorldPinsInInstances", Icon("INV_Misc_Map_01")),
 		optRow(L["Your drawings"], "sketchShown", Icon("INV_Feather_04")),
 	}
 	if mod.defaults.allQuests ~= nil then        -- (Quests.lua: WoW Forever's toc loads it, retail's doesn't)
@@ -322,6 +323,8 @@ local function Rows()
 	end
 	fromOptions(L["Full-screen map fills the width"], "fullWidth", Icon("INV_Misc_Map_01"))
 	fromOptions(L["Chat over the full-screen map"], "chatOverMap", Icon("INV_Letter_15"))
+	-- (here too, not only in Options: a player thought it gone)
+	fromOptions(L["OpenMap's map with the Gamepad UI (test)"], "padView", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = { L["Up close"] }
 	rows[#rows + 1] = optRow(L["Minimap detail"], "minimap", Icon("Spell_Nature_FarSight"))
 	rows[#rows + 1] = optRow(L["Minimap detail in major cities"], "cityMinimap", Icon("Spell_Arcane_TeleportStormWind"))
@@ -334,6 +337,7 @@ local function Rows()
 	rows[#rows + 1] = { L["Moving about"], tab = "more" }
 	rows[#rows + 1] = optRow(L["Load the zone in view"], "autoSwitch", Icon("Ability_Hunter_Pathfinding"))
 	fromOptions(L["Ctrl-click drops a pin"], "ctrlClickPin", Icon("INV_Misc_Map_01"))
+	fromOptions(L["Follow new pins"], "pinsFollowNew", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = { L["Reopen map (choose one)"] }
 	for _, choice in ipairs({ { "player", L["Center on player"] }, { "zoom", L["Center on player, keep zoom"] }, { "inzone", L["Center on your zone"] }, { "always", L["Always remember"] },
 		{ "visible", L["Remember while visible"] } }) do
@@ -344,6 +348,8 @@ local function Rows()
 	end
 	rows[#rows + 1] = { L["Sharing"] }
 	fromOptions(L["Pins others share with you"], "pinsShared", Icon("INV_Misc_Map_01"))
+	fromOptions(L["Send new pins to group"], "pinsShareGroup", Icon("INV_Misc_Map_01"))
+	fromOptions(L["Auto-add group's pins"], "pinsGroupAdd", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = optRow(L["Share where you are"], "friendsShare", Icon("Ability_Hunter_EagleEye"))
 	rows[#rows].note = L["Your guild and friends see you"]   -- (a second line: what turning it on means)
 	rows[#rows + 1] = { L["Tools"] }

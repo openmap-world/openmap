@@ -145,6 +145,7 @@ class QuestieLiftedOnOpen(unittest.TestCase):
             end
                         map = { IsShown = function() return shown end,
                 EnumeratePinsByTemplate = function(_, t) local i = 0 return function() i = i + 1 return pins[i] end end }
+            pins[3].icon.isManualIcon = true                 -- (a townsfolk icon)
             questie = { pins = {}, template = "HereBeDragonsPins-Questie-WorldMapPin" }
         """ + code + "\nLiftAll = LiftQuestie\n")
 
@@ -152,10 +153,10 @@ class QuestieLiftedOnOpen(unittest.TestCase):
         self.lua.execute("LiftAll()")                       # (no art yet: left as they are)
         self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017)
         self.lua.execute("S.artTop, S.iconLevel = 2083, 2091 LiftAll()")
-        self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017 - 2015 + 2083 + 1)   # (over the art, in Questie's order)
-        self.assertEqual(self.lua.eval("pins[3].icon.level"), 2019 - 2015 + 2083 + 1)
+        self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017 - 2015 + 2091 + 1)   # (a quest icon: over OpenMap's icons, #92)
+        self.assertEqual(self.lua.eval("pins[3].icon.level"), 2019 - 2015 + 2083 + 1)   # (a townsfolk icon: over the art)
         self.lua.execute("LiftAll()")                       # (again: already over, unchanged)
-        self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017 - 2015 + 2083 + 1)
+        self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017 - 2015 + 2091 + 1)
 
     def test_not_while_the_map_isnt_stitched_or_shown(self):
         self.lua.execute("S.artTop, S.iconLevel = 2083, 2091 stitched = false LiftAll()")
