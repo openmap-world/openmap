@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Zygor's map line stays thick on the stitched map**: Zygor's route line (and its dots and waypoint
+  icons) shrank to a thin grey line zoomed in and grew far too wide zoomed out, as Zygor sizes them for
+  Blizzard's zoom range; they now stay the same size on screen at every zoom (#218).
+
 ## v0.8.8 (2026-11-13)
 
 ### Fixed

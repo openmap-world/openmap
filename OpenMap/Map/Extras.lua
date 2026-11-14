@@ -1075,6 +1075,31 @@ function mod.PadQuestiePaths(on)
 	end
 end
 
+-- Zygor's map lines, ant dots and waypoint icons (#218): Zygor sizes them by Pointer.iconScale, which it
+-- works out for Blizzard's zoom range; at the stitched map's zoom it comes out a grey hairline zoomed in
+-- and far too wide zoomed out. Set there so they're the same size on screen at every zoom: a line as
+-- thick as Zygor's "map line thickness", its dots and icons their own size. Off the stitched map
+-- Zygor's own value stands.
+local zygorHooked
+local function HookZygor()
+	if zygorHooked then return end
+	local zgv = _G.ZygorGuidesViewer
+	local pointer = type(zgv) == "table" and rawget(zgv, "Pointer")
+	if type(pointer) ~= "table" or type(pointer.RescaleMarkers) ~= "function" then return end
+	zygorHooked = true
+	-- (Zygor's zoom step: RescaleMarkers, then its lines drawn from iconScale)
+	hooksecurefunc(pointer, "RescaleMarkers", function()
+		if not mod.IsStitched() then return end
+		local canvasScale = map:GetCanvas():GetEffectiveScale()
+		if not canvasScale or canvasScale <= 0 then return end
+		local want = UIParent:GetEffectiveScale() / canvasScale   -- (the canvas' units to the UI's)
+		if pointer.iconScale == want then return end
+		pointer.iconScale = want
+		for _, way in ipairs(pointer.waypoints or {}) do way:SetIcon() end
+		for _, way in ipairs(pointer.waypoints_ants or {}) do way:SetIcon() end
+	end)
+end
+
 function mod:SetupExtras(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	map:HookScript("OnShow", function() fader:SetShown((mod.db.moveFade or 0) > 0) ApplyFpsCap() end)
@@ -1086,7 +1111,8 @@ function mod:SetupExtras(worldMap)
 	map:HookScript("OnShow", function() mod.TimeAfter("pin libraries", SetUpAllPinsAndWait) end)
 	-- (Questie's icons placed before the map's art was built, or while it was closed: lifted once it's laid out)
 	map:HookScript("OnShow", function() C_Timer.After(0, LiftQuestie) C_Timer.After(0.5, LiftQuestie) end)     -- (a copy an addon loaded since brought)
-	ns.RegisterEvent(PinRetry, "ADDON_LOADED", function() SetUpAllPins() end)
+	HookZygor()
+	ns.RegisterEvent(PinRetry, "ADDON_LOADED", function() SetUpAllPins() HookZygor() end)
 	HookQuestiePaths()                               -- (now: an older Questie's path stretches are kept as they're made)
 	map:HookScript("OnShow", function() HookQuestiePaths() if QPATH.hooked then QPATH.dirty = true QPATH.tick:Show() end end)
 	map:HookScript("OnHide", function() QPATH.tick:Hide() end)
