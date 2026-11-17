@@ -151,7 +151,8 @@ end
 -- The zones' art baked into world tiles (ns.MapZoneArt, render.py --bake-zones): at the settings it
 -- was baked at, drawn in place of the live zone layers (tilesRoot, overlayRoot, coreRoot: hundreds of
 -- masked textures in view) until the view is past the tiles' own pixels, then handing over to them
--- (FADE: screen px per tile px). `live`: the live layers' share now (0: the tiles alone, 1: live alone).
+-- (FADE: screen px per tile px, of the finest set baked: handPx, below). `live`: the live layers' share now
+-- (0: the tiles alone, 1: live alone).
 -- (One table: the file is near Lua's limit of 200 locals)
 -- The handover is the same art over the same art: the live layers come on (at full) under the tiles a
 -- little before it (WARM, of FADE's start: their files load meanwhile) and the tiles fade off them; and
@@ -169,6 +170,15 @@ Baked.lettered = Baked.english
 if not Baked.english and ns.MapZoneArt and ns.MapZoneArt.locales and ns.MapZoneArt.locales[GetLocale()] then
 	Baked.path, Baked.lettered = TEX .. "MapZones\\" .. GetLocale() .. "\\", true
 end
+-- The finer set (ns.MapZoneArt.fine: MapZones\Fine\, render.py's FINE_PX), over the zones whose own art is finer
+-- than the tiles (nine small ones on Forever: Redridge's is 21 px a world unit, most zones' 7 to 13): drawn over the
+-- tiles there, the same art, coming in over FINE_IN (screen px per tile px of the tiles under it) before those are
+-- magnified. With it the tiles carry every zone about as sharp as its own art (render.py bakes their colour with a
+-- cubic spline), so the live layers take over against the finer set's px (handPx), not the tiles': twice as far
+-- in, a few dozen tiles drawn till then instead of every zone's hundreds of masked textures. English only (another
+-- language's set has none: its tiles hand over as before)
+Baked.FINE_IN, Baked.fine, Baked.fineA = { 0.7, 1.0 }, {}, 0
+Baked.handPx = ns.MapZoneArt and (Baked.english and ns.MapZoneArt.fine and ns.MapZoneArt.fine.px or ns.MapZoneArt.px)
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
@@ -2003,7 +2013,11 @@ function S.SetZoom(zoom, scale)
 	if S.greyRoot and S.greyRoot:IsShown() ~= (detailNow < 0.98) then S.greyRoot:SetShown(detailNow < 0.98) end
 	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
 		local _, ph = GetPhysicalScreenSize()
-		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
+		local r16 = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
+		local r = r16 * ns.MapZoneArt.px / Baked.handPx       -- (against the finer set, where there's one: Baked.handPx)
+		local fin = math.max(0, math.min(1, (r16 - Baked.FINE_IN[1]) / (Baked.FINE_IN[2] - Baked.FINE_IN[1])))
+		Baked.fineA = #Baked.fine > 0 and math.floor(fin * fin * (3 - 2 * fin) * 20 + 0.5) / 20 or 0
+		if Baked.fineA ~= Baked.fineWas then Baked.fineWas = Baked.fineA Baked.Cull() end   -- (ApplyDetail may not)
 		local t = math.max(0, math.min(1, (r - Baked.FADE[1]) / (Baked.FADE[2] - Baked.FADE[1])))
 		Baked.live = math.floor(t * t * (3 - 2 * t) * 50 + 0.5) / 50
 		Baked.warm = r >= Baked.FADE[1] * Baked.WARM
@@ -3013,6 +3027,7 @@ function S.ApplyGrade(strength, desat, unexplored)
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd
 		for _, t in ipairs(Baked.tiles) do if t.tex then t.tex:SetDesaturation(bd) end end
+		for _, t in ipairs(Baked.fine) do if t.tex then t.tex:SetDesaturation(bd) end end
 	end
 	if root then
 		appliedDetail = nil
@@ -3132,16 +3147,31 @@ function Baked.Build()
 		Baked.tiles[#Baked.tiles + 1] = { name = i .. "_" .. j, x = x, y = y, size = size,
 			u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
 	end
+	local fine = Baked.english and art.fine
+	if fine then
+		size = art.step / fine.px
+		for _, key in ipairs(fine.tiles) do
+			local i, j = math.floor(key / 256), key % 256
+			local x, y = i * size, j * size
+			Baked.fine[#Baked.fine + 1] = { name = i .. "_" .. j, dir = "Fine\\", x = x, y = y, size = size, fine = true,
+				u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
+		end
+	end
 end
 
 function Baked.Cull()
 	local f, box = Baked.frame, cullBox
 	if not f or not f:IsShown() then return end
-	for _, t in ipairs(Baked.tiles) do
-		local near = not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4])
+	Baked.CullSet(Baked.tiles, f, box, 1)
+	-- (the finer set: only while it's coming in or in, its files not loaded before; over the tiles, a sublevel up)
+	if #Baked.fine > 0 then Baked.CullSet(Baked.fine, f, box, Baked.fineA) end
+end
+function Baked.CullSet(list, f, box, a)
+	for _, t in ipairs(list) do
+		local near = a > 0 and (not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4]))
 		if near and not t.tex then
-			t.tex = f:CreateTexture(nil, "ARTWORK")
-			t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
+			t.tex = f:CreateTexture(nil, "ARTWORK", nil, t.fine and 1 or 0)
+			t.tex:SetTexture(Baked.path .. (t.dir or "") .. t.name, nil, nil, "TRILINEAR")
 			t.tex:SetTexCoord(Baked.inset, 1 - Baked.inset, Baked.inset, 1 - Baked.inset)
 			t.tex:SetDesaturation(Baked.desat)
 			Record(t.tex, t.x, t.y, t.size, t.size)
@@ -3149,7 +3179,18 @@ function Baked.Cull()
 		end
 		if t.tex and t.shown ~= near then
 			t.shown = near
+			if t.fine then                          -- (the finer set's anchor too, while it's off: hidden, it'd still
+				if near then                        --  be laid out on every frame of a pan or zoom)
+					if not t.tex:GetPoint() then PlaceRecord(t.tex.omRec) end
+				else
+					t.tex:ClearAllPoints()
+				end
+			end
 			t.tex:SetShown(near)
+		end
+		if t.fine and near and t.a ~= a then
+			t.a = a
+			t.tex:SetAlpha(a)
 		end
 	end
 end

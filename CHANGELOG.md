@@ -1,5 +1,17 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **Sharper zones from mid zoom in**: the zones' art drawn from tiles (from a
+  continent in to a zone filling the view) was softer than the zones' own maps: it was resized twice on the
+  way to the screen. It's baked sharper now, and the nine small zones whose maps are finer than the tiles
+  (Redridge, Duskwood, Searing Gorge, Swamp of Sorrows, Badlands, Loch Modan, Deadwind Pass, Moonglade,
+  Shen'dralas) have a finer set of their own. So the tiles stay on twice as far in before every zone's own
+  layers take over, and the map draws far fewer textures as you zoom there (English clients; other languages'
+  tiles are as they were).
+
 ## v0.8.10 (2026-11-16)
 
 ### Fixed

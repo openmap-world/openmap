@@ -1558,20 +1558,30 @@ def bake_territory():
     print("baked", n, "territories", flush=True)
 
 ZONE_PX = 16                    # baked zone art: px per world unit (a zone map's own: 4 in the Barrens, 11 most, 22 the smallest; 16 carries zone-fit zooms)
+FINE_PX = 32                    # ... and a finer set over the zones whose own art is finer than ZONE_PX (nine small
+                                #  ones on Forever: Redridge's 21, Shen'dralas's 22), MapZones/Fine/, so the tiles
+                                #  carry every zone about as sharp as its own art
 ZONE_TILE, ZONE_STEP = 512, 510 # ... its tiles, and the world each covers (the other 2 px: its neighbours' edge, for filtering)
+# the art's colour sampled with a cubic spline (its alpha and the masks bilinear, so piece edges don't ring):
+# resampled bilinearly, then magnified bilinearly again by the client, the tiles kept about 80% of the zones'
+# own sharpness past the hand-over to the live layers; the spline keeps about 100%
+ZONE_RGB_ORDER = 3
+_spline = {}
+def _coeffs(img, c):
+    k = (id(img), c)
+    if k not in _spline: _spline[k] = (img, ndimage.spline_filter(img[..., c], order=ZONE_RGB_ORDER, output=np.float32, mode="nearest"))
+    return _spline[k][1]
 ZONE_DESAT, ZONE_MATCH = 0.1, 1 # Stitch.lua's defaults (desaturate, colorMatch): the preview's
 BAKE_DESAT = 0                  # ... and the desaturation the zones are baked at: none, so the tiles serve any
                                 #  setting (Stitch.lua desaturates them the rest of the way, Baked.desat)
 
-def bake_zones():
-    """MapZones/<i>_<j>.blp and Data/ZoneArt.lua: every zone's art as the stitched map draws it at
-    full detail, on the world, in tiles (Stitch.lua's zone layers, in its order and with its masks:
-    the gaps' finer maps, each zone's base art and its colour-match copy, the overlays, theirs, and
-    the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds"""
+def bake_tiles(px, out_dir, keep=None):
+    """the zones' layers composited onto the world at `px` per world unit, into out_dir/<i>_<j>.blp (only
+    those `keep` lists, (i, j), when given): the tiles made, as i * 256 + j (bake_zones, below)"""
     sys.path.insert(0, os.path.join(REPO, "tools", "map-textures"))
     import blp
     W, H = 1002.0, 668.0
-    T = ZONE_STEP / ZONE_PX                              # world units a tile covers
+    T = ZONE_STEP / px                                   # world units a tile covers
     has_over = {m["id"]: bool(reveal.get(m["art"])) for m in zones}
     live = [m for m in zones if has_over[m["id"]]]
     # the layers, bottom to top, as Stitch.lua builds them: (rect, image(), mask(), tint, desaturation)
@@ -1595,7 +1605,6 @@ def bake_zones():
     for m in live:                                       # (coreRoot: the interiors, graded zones only)
         if grade.get(m["id"]) and os.path.exists(os.path.join(TEXDIR, "MapCore", "%d.tga" % m["id"])):
             layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, BAKE_DESAT))
-    out_dir = ZONES_DIR
     os.makedirs(out_dir, exist_ok=True)
     for f in os.listdir(out_dir):
         if f.endswith(".blp"): os.remove(os.path.join(out_dir, f))
@@ -1603,10 +1612,11 @@ def bake_zones():
     made = []
     for j in range(rows):
         for i in range(cols):
+            if keep is not None and (i, j) not in keep: continue
             # the tile's pixels' centres, in world units (its first and last px are its neighbours' edge)
-            x0, y0 = i * T - 1 / ZONE_PX, j * T - 1 / ZONE_PX
-            wx = x0 + (np.arange(ZONE_TILE) + 0.5) / ZONE_PX
-            wy = y0 + (np.arange(ZONE_TILE) + 0.5) / ZONE_PX
+            x0, y0 = i * T - 1 / px, j * T - 1 / px
+            wx = x0 + (np.arange(ZONE_TILE) + 0.5) / px
+            wy = y0 + (np.arange(ZONE_TILE) + 0.5) / px
             acc = np.zeros((ZONE_TILE, ZONE_TILE, 3), np.float32)       # (premultiplied)
             acc_a = np.zeros((ZONE_TILE, ZONE_TILE), np.float32)
             for (l, r, t, b), img_, mask_, tint, dsat in layers:
@@ -1622,7 +1632,8 @@ def bake_zones():
                 a = sample(img[..., 3])
                 if msk is not None: a = a * sample(msk)
                 if a.max() <= 0: continue
-                rgb = np.dstack([sample(img[..., c]) for c in range(3)])
+                rgb = np.dstack([np.clip(ndimage.map_coordinates(_coeffs(img, c), [SY, SX], order=ZONE_RGB_ORDER,
+                                                                 mode="nearest", prefilter=False), 0, 1) for c in range(3)])
                 rgb = desat(rgb, dsat)
                 if tint is not None: rgb = rgb * np.array(tint, np.float32)
                 ys_, xs_ = slice(cy[0], cy[-1] + 1), slice(cx[0], cx[-1] + 1)
@@ -1638,7 +1649,33 @@ def bake_zones():
             rgba = np.dstack([np.clip(rgb, 0, 1), np.clip(acc_a, 0, 1)])
             blp.write(os.path.join(out_dir, "%d_%d.blp" % (i, j)), np.round(rgba * 255).astype(np.uint8))
             made.append(i * 256 + j)
-            print("zone tile", i, j, flush=True)
+            print("zone tile", px, i, j, flush=True)
+    return made
+
+
+def fine_keep():
+    """the FINE_PX tiles over the zones whose own art is finer than ZONE_PX (those the tiles carry: with
+    overlays, not the cities), as (i, j)"""
+    W, H = 1002.0, 668.0
+    T = ZONE_STEP / FINE_PX
+    keep = set()
+    for m in zones:
+        if not reveal.get(m["art"]): continue
+        l, r, t, b = m["rect"]
+        if 1002 / ((r - l) * W) <= ZONE_PX: continue     # (its art px per world unit)
+        for i in range(int(l * W // T), int(math.ceil(r * W / T))):
+            for j in range(int(t * H // T), int(math.ceil(b * H / T))):
+                keep.add((i, j))
+    return keep
+
+
+def bake_zones():
+    """MapZones/<i>_<j>.blp and Data/ZoneArt.lua: every zone's art as the stitched map draws it at
+    full detail, on the world, in tiles (Stitch.lua's zone layers, in its order and with its masks:
+    the gaps' finer maps, each zone's base art and its colour-match copy, the overlays, theirs, and
+    the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds"""
+    made = bake_tiles(ZONE_PX, ZONES_DIR)
+    fine = bake_tiles(FINE_PX, os.path.join(ZONES_DIR, "Fine"), fine_keep())
     with open(os.path.join(WM, "ZoneArt.lua"), "w", encoding="utf-8", newline="\n") as f:
         f.write("-- The zones' art baked into world tiles (Media/Textures/MapZones/<i>_<j>.blp): every zone's layers as\n"
                 "-- Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws these in their place.\n"
@@ -1651,15 +1688,19 @@ def bake_zones():
         for k in range(0, len(made), 16):
             f.write("\t\t" + ", ".join(str(v_) for v_ in made[k:k + 16]) + ",\n")
         f.write("\t},\n")
+        f.write("\tfine = { px = %d, tiles = {   -- MapZones\\Fine\\<i>_<j>: over the zones whose own art is finer than px\n" % FINE_PX)
+        for k in range(0, len(fine), 16):
+            f.write("\t\t" + ", ".join(str(v_) for v_ in fine[k:k + 16]) + ",\n")
+        f.write("\t} },\n")
         # the other languages baked from their own clients' art (MapZones/<locale>/: OPENMAP_LOCALE)
         root_ = os.path.join(TEXDIR, "MapZones")
-        locales = sorted(d_ for d_ in os.listdir(root_) if os.path.isdir(os.path.join(root_, d_))
+        locales = sorted(d_ for d_ in os.listdir(root_) if os.path.isdir(os.path.join(root_, d_)) and d_ != "Fine"
                          and any(x_.endswith(".blp") for x_ in os.listdir(os.path.join(root_, d_))))
         if locales:
             f.write("\tlocales = { %s },   -- MapZones\\<locale>\\: those clients' own art, in their language\n"
                     % ", ".join("%s = true" % l_ for l_ in locales))
         f.write("}\n")
-    print("baked", len(made), "zone tiles", flush=True)
+    print("baked", len(made), "zone tiles,", len(fine), "fine", flush=True)
 
 views = sys.argv[4:] or ["world=0.5,0.5,1"]
 if views and views[0] == "--bake-zones":
