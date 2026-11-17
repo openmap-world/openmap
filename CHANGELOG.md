@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## v0.8.11
+
+### New
+
+- **Terrain view** (the map's menu and Options' Up close): show the game's real terrain imagery up close,
+  instead of the painted map. Off by default. "Toggle terrain view" (the menu's The map) shows it from
+  the whole-world view too, and can be starred onto the map's buttons like any other setting. While
+  terrain view is on, the painted zones, baked tiles and colour-matched copies aren't drawn under the
+  imagery, so the map doesn't pay for both.
+
 ## v0.8.10 (2026-11-16)
 
 ### Fixed

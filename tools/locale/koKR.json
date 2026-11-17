@@ -38,7 +38,7 @@
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "아직 탐험하지 않은 지역의 표시 방식입니다: 그대로 표시, 어둡고 차가운 색으로 표시(아예 발견하지 못한 지역은 대륙 지도를 포함한 모든 확대 배율에서 어둡게 표시), 또는 블리자드 지도처럼 숨기기(도착하기 전까지 빈 양피지).",
  "Arrow": "화살표",
  "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads.": "최대로 확대했을 때 세부 묘사를 위해 게임의 미니맵을 얼마나 섞을지 정합니다. 항상 그려진 지도가 우선입니다.",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "최대로 확대했을 때 게임의 미니맵을 섞어 세부 묘사(숲, 바위, 건물)를 더합니다. 끄면 아무리 확대해도 그려진 지도만 보입니다.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "가장 가까운 확대 단계에서 게임의 미니맵을 섞어 세부 묘사(수목, 바위, 건물)를 더합니다. 꺼짐: 지형 보기가 켜져 있지 않으면 그려진 지도만 보입니다.",
  "Auctioneers": "경매인",
  "Auto": "자동",
  "Back": "돌아가기",
@@ -547,5 +547,9 @@
  "Dungeon maps inside dungeons": "던전 안에서 던전 지도",
  "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.": "던전이나 공격대 안에서 지도를 열면 그 던전의 지도를 보여줍니다. 끄면: 그곳에서 지도가 게임 기본 지도처럼 열리며, 던전 지도는 세계 지도의 입구에서 여전히 열 수 있습니다. Dungeon Journal이 설치되어 있으면, 해당 페이지가 있는 던전 안에서는 그 애드온의 지도에 맡깁니다.",
  "Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp.": "가까이 확대하면 그려진 지도의 화소가 부족해집니다. 이 옵션은 지도를 부드럽게 하고 종이 질감을 입힙니다. 지도가 움직이는 동안에는 부드럽게 하기가 멈추므로, 확대하거나 이동할 때는 선명하고 멈춘 잠시 뒤에 부드러워집니다. 끄기(기본값): 항상 선명합니다.",
- "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "던전에서 지도를 열면 OpenMap의 던전 지도가 표시됩니다. 끄려면: OpenMap 메뉴 > 던전 > 던전 안에서 던전 지도."
+ "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "던전에서 지도를 열면 OpenMap의 던전 지도가 표시됩니다. 끄려면: OpenMap 메뉴 > 던전 > 던전 안에서 던전 지도.",
+ "Terrain view": "지형 보기",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "가까이 확대했을 때 게임의 실제 지형을 그려진 지도 대신 표시합니다. 꾸짐: 그려진 지도가 우선하며, 확대하면 미니맵 세부 묘사가 섞입니다.",
+ "Toggle terrain view": "지형 보기 전환",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "가까이 확대했을 때뿐 아니라 전체 세계 보기에서도 지형을 표시합니다. 지형 보기가 켜져 있어야 합니다."
 }

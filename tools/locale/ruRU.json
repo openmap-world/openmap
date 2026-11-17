@@ -38,7 +38,7 @@
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "Области, которые вы еще не исследовали: показаны как есть, затемнены в холодных тонах (а зона, которую вы еще вовсе не открыли, затемнена при любом масштабе, и на картах континентов тоже) или скрыты, как на карте Blizzard (чистый пергамент, пока вы туда не доберетесь).",
  "Arrow": "Стрелка",
  "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads.": "Сколько мини-карты игры подмешивается для детализации при самом крупном масштабе. Рисованная карта всегда остается основной.",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "При самом крупном масштабе подмешивать мини-карту игры для детализации (деревья, скалы, здания). Если выключено, видна только рисованная карта, как бы сильно вы ни приближали.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "На самом близком масштабе подмешивает миникарту игры для деталей (деревья, камни, здания). Выкл.: вы видите только нарисованную карту, если не включён вид местности.",
  "Auctioneers": "Аукционеры",
  "Auto": "Авто",
  "Back": "Назад",
@@ -547,5 +547,9 @@
  "Dungeon maps inside dungeons": "Карты подземелий внутри подземелий",
  "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.": "При открытии карты в подземелье или рейде показывается карта этого подземелья. Выкл.: карта открывается там как карта самой игры, а карту подземелья по-прежнему можно открыть с его входа на карте мира. Если установлен Dungeon Journal, внутри подземелий, для которых у него есть страница, карта остаётся за ним.",
  "Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp.": "При сильном приближении у нарисованной карты не хватает пикселей: эта настройка смягчает её и накладывает зернистость бумаги. Пока карта движется, смягчение приостанавливается, поэтому при масштабировании или перемещении карта чёткая, а через мгновение после остановки становится мягче. Выкл. (по умолчанию): всегда чёткая.",
- "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "При открытии карты в подземелье показывается карта OpenMap этого подземелья. Чтобы отключить: меню OpenMap > Подземелья > Карты подземелий внутри подземелий."
+ "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.": "При открытии карты в подземелье показывается карта OpenMap этого подземелья. Чтобы отключить: меню OpenMap > Подземелья > Карты подземелий внутри подземелий.",
+ "Terrain view": "Вид местности",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "Показывает настоящий рельеф игры вблизи вместо нарисованной карты. Выкл.: нарисованная карта ведёт, а при приближении подмешиваются детали миникарты.",
+ "Toggle terrain view": "Переключить вид местности",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "Показывает рельеф и в масштабе всего мира, а не только вблизи. При включённом виде местности."
 }

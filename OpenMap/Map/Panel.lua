@@ -27,7 +27,7 @@ d.tabRail = true                -- the OpenMap button and the favourites as tabs
 d.mapButtons = true             -- the OpenMap button and the favourites on the map at all (off: none; /openmap opens the menu)
 local TRAY_START = { "find", "pin", "quill" }
 
-local map, sc, menu, toggle, trayArrow, checks, favBar, tiles, zoomRow, miniRow, opacityRow, bodyScroll, scrollBody, bodyBar
+local map, sc, menu, toggle, trayArrow, checks, favBar, tiles, zoomRow, miniRow, opacityRow, bodyScroll, scrollBody, bodyBar, rail
 local W, PAD, COL = 700, 16, 316  -- reserve room for scrolling beside the two columns
 local SCROLL_GAP = 20
 local MIN_W, MAX_W = 500, 1100
@@ -57,6 +57,10 @@ local function SetIcon(tex, look)
 end
 -- OpenMap's own icon (tools/icon/build.py), framed and trimmed as a spell icon is
 local OPENMAP_ICON = { texture = "Interface\\AddOns\\OpenMap\\Media\\Textures\\OpenMapIcon", icon = true }
+-- the map's terrain view (Blizzard's own icon, as the Minimap detail setting uses)
+local TERRAIN_ICON = Icon("Spell_Nature_FarSight")
+-- ... offered where the imagery has its smaller copies to reach the whole-world view (WoW Forever's)
+local TERRAIN = ns.MapMinimapLOD and true or false
 
 -- Blizzard's action-button frame round `tex` (`size` square): this client's, with its rounded
 -- mask on the icon, else the classic slot's
@@ -293,7 +297,7 @@ local function Rows()
 	-- (this character's own choice of the two, or every character's)
 	rows[#rows + 1] = row(L["Only for this character"], "unexploredOwn", Icon("INV_Misc_Head_Human_01"),
 		function() return mod.char and mod.char.unexploredOwn or false end, function(v) mod.SetUnexploredOwn(v) end)
-	rows[#rows + 1] = { L["The map"] }
+	rows[#rows + 1] = { L["The map"], right = true }
 	if ns.MapChart then                          -- (the sea chart is WoW Forever's: Data\Forever\Chart.lua)
 		rows[#rows + 1] = optRow(L["Responsive ocean & border"], "chart", Icon("INV_Misc_Map02"))
 	end
@@ -308,6 +312,16 @@ local function Rows()
 			mod:Refresh()
 			if ns.NotifyOptions then ns.NotifyOptions() end
 		end)
+	if TERRAIN then
+		rows[#rows + 1] = row(L["Toggle terrain view"], "terrainAll", TERRAIN_ICON,
+			function() return db.terrainAll end,
+			function(v)
+				db.terrainAll = v
+				if v then db.terrainView = true end
+				mod:Refresh()
+				if ns.NotifyOptions then ns.NotifyOptions() end
+			end)
+	end
 	rows[#rows + 1] = row(L["Minimap button"], "minimapButton", OPENMAP_ICON, function() return db.minimapButton end,
 		function(v)
 			db.minimapButton = v
@@ -327,6 +341,16 @@ local function Rows()
 	-- (here too, not only in Options: a player thought it gone)
 	fromOptions(L["OpenMap's map with the Gamepad UI (test)"], "padView", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = { L["Up close"] }
+	if TERRAIN then
+		rows[#rows + 1] = row(L["Terrain view"], nil, TERRAIN_ICON,
+			function() return db.terrainView end,
+			function(v)
+				db.terrainView = v
+				if not v then db.terrainAll = false end
+				mod:Refresh()
+				if ns.NotifyOptions then ns.NotifyOptions() end
+			end)
+	end
 	rows[#rows + 1] = optRow(L["Minimap detail"], "minimap", Icon("Spell_Nature_FarSight"))
 	rows[#rows + 1] = optRow(L["Minimap detail in major cities"], "cityMinimap", Icon("Spell_Arcane_TeleportStormWind"))
 	if ns.MapGaps then                           -- (a client with gaps between its zones)
@@ -593,7 +617,6 @@ end
 
 d.railPos = false               -- { edge = "right" | "left" | "top" | "bottom", at = 0..1 along it } once dragged
 
-local rail
 local RAIL_MAIN = { 40, 42 }    -- the OpenMap tab: out from the edge, along it (WoW Forever's tab art, a little smaller)
 local RAIL_FAV = { 32, 34 }     -- a favourite's
 local RAIL_GAP, RAIL_ARROW = 3, 16
@@ -821,6 +844,8 @@ RefreshFavorites = function()
 	if rail then rail:Hide() end
 	if mod.PlaceDungeonTabs then mod.PlaceDungeonTabs() end
 	PlaceToggle()
+	trayArrow:ClearAllPoints()
+	trayArrow:SetPoint("BOTTOMLEFT", toggle, "BOTTOMRIGHT", 8, 3)
 	local byId = Entries()
 	favBar.buttons = favBar.buttons or {}
 	for _, b in ipairs(favBar.buttons) do b:Hide() end
@@ -848,7 +873,7 @@ RefreshFavorites = function()
 		end
 	end
 	favBar:SetWidth(math.max(1, x))
-	-- the arrow: there with any favourites; folds the row away (into the button) and back out rightward
+	-- the arrow: there with any buttons; folds the row away (into the button) and back out rightward
 	local open = mod.db.trayOpen or n == 0
 	trayArrow:SetShown(n > 0)
 	trayArrow.icon:SetTexture(open and "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up" or "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up")
@@ -909,7 +934,10 @@ Fill = function()
 	-- two columns of whole sections, as even as they'll go (each column keeps the sections' order)
 	local sections = {}
 	for _, row in ipairs(rows) do
-		if not row[2] or #sections == 0 then sections[#sections + 1] = {} end
+		if not row[2] or #sections == 0 then
+			-- (a section may ask for the right column: its header row says so)
+			sections[#sections + 1] = { right = not row[2] and row.right or nil }
+		end
 		local s = sections[#sections]
 		s[#s + 1] = row
 	end
@@ -943,14 +971,18 @@ Fill = function()
 	end
 	local pick, best = 0, math.huge
 	for mask = 0, 2 ^ #sections - 1 do
-		local a, b, m = 0, 0, mask
+		local a, b, m, fits = 0, 0, mask, true
 		for _, s in ipairs(sections) do
-			if m % 2 == 1 then b = b + Height(s) else a = a + Height(s) end
+			local right = m % 2 == 1
+			if s.right and not right then fits = false break end
+			if right then b = b + Height(s) else a = a + Height(s) end
 			m = math.floor(m / 2)
 		end
-		-- (the taller column as short as can be; then the left one the taller)
-		local score = math.max(a, b) * 1000 + (a < b and 1 or 0)
-		if score < best then pick, best = mask, score end
+		if fits then
+			-- (the taller column as short as can be; then the left one the taller)
+			local score = math.max(a, b) * 1000 + (a < b and 1 or 0)
+			if score < best then pick, best = mask, score end
+		end
 	end
 	local columns = { {}, {} }
 	for _, s in ipairs(sections) do
@@ -1323,7 +1355,8 @@ function mod:SetupPanel(worldMap)
 	-- the floating menu
 	menu = CreateFrame("Frame", "OpenMapMenu", map, "BackdropTemplate")
 	local pad = mod.padRoots      -- (the gamepad's cursor presses their buttons: Gamepad.lua)
-	pad[#pad + 1], pad[#pad + 2], pad[#pad + 3], pad[#pad + 4] = toggle, trayArrow, favBar, menu
+	pad[#pad + 1] = toggle
+	pad[#pad + 1], pad[#pad + 2], pad[#pad + 3] = trayArrow, favBar, menu
 	W = math.max(MIN_W, math.min(MAX_W, tonumber(mod.db.menuWidth) or 700))
 	-- (the controller view: no wider than the map's view, where the pad's cursor reaches)
 	if PadView() and sc:GetWidth() and sc:GetWidth() > 0 then W = math.max(MIN_W, math.min(W, sc:GetWidth() - 8)) end
@@ -1500,12 +1533,12 @@ function mod:SetupPanel(worldMap)
 	miniRow = SliderRow(sliders, COL, { label = L["Minimap detail from"], icon = Icon("Spell_Nature_FarSight"), range = mod.MINI_FROM,
 		get = function() return mod.db.minimapFrom end,
 		set = function(v) mod.db.minimapFrom = v if mod.RefreshView then mod.RefreshView() end end,
-		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 end,
+		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 and not mod.db.terrainView end,
 		tip = L["How far in the minimap's detail starts to mix in: lower comes in sooner, higher later."] })
 	opacityRow = SliderRow(sliders, COL, { label = L["Minimap opacity"], icon = Icon("Spell_Nature_FarSight"), range = { 0, 1, 0.05 },
 		get = function() return mod.db.minimapDeep end,
 		set = function(v) mod.db.minimapDeep = v if mod.RefreshView then mod.RefreshView() end end,
-		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 end,
+		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 and not mod.db.terrainView end,
 		fmt = "%d%%", show = function(v) return math.floor(v * 100 + 0.5) end,
 		tip = L["The most the minimap's detail ever shows, at any zoom."] })
 	-- (Options' other sliders, through its own setters)

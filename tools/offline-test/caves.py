@@ -61,6 +61,7 @@ class CaveTests(unittest.TestCase):
 
             mod = { defaults = {}, db = { underground = true } }
             ns = { MapStitch = S, Media = { path = "Interface\\\\AddOns\\\\OpenMap\\\\Media\\\\", tex = "Interface\\\\AddOns\\\\OpenMap\\\\Media\\\\Textures\\\\Forever\\\\" }, Client = "Forever",
+                MapMinimapLOD = { [0] = {}, [1] = {} },
                 L = setmetatable({}, { __index = function(_, k) return k end }) }
             function ns:GetModule() return mod end
         """)
@@ -326,6 +327,31 @@ class CaveTests(unittest.TestCase):
             mod.db.minimap = false               -- the minimap's detail off: the city's too
             Look(u, v, 0.002, 60)
             assert(Alpha(t) == 0)
+        """)
+
+    def test_terrain_view_is_up_close_and_can_be_at_every_zoom(self):
+        self.lua.execute("""
+            mod.db.minimap, mod.db.minimapMix, mod.db.minimapDeep, mod.db.minimapFrom = true, 0.45, 0.85, 1
+            mod.db.terrainView, mod.db.terrainAll = false, false
+            local u, v = S.FromYards(0, 1000, 1000)
+            Look(u, v, 1.0, 1)                    -- the whole world
+            assert(math.abs(S.closeView.mix - 0.45) < 1e-9, 'the painted mix at 1x: ' .. S.closeView.mix)
+            mod.db.terrainView = true             -- up close only
+            Look(u, v, 1.0, 1)
+            assert(math.abs(S.closeView.mix) < 1e-9, 'terrain view up close, not at 1x: ' .. S.closeView.mix)
+            Look(u, v, 0.2, 8)
+            assert(math.abs(S.closeView.mix) < 1e-9, 'terrain view up close, not at 8x: ' .. S.closeView.mix)
+            Look(u, v, 0.02, 40)
+            assert(math.abs(S.closeView.mix - 1) < 1e-9, 'terrain view up close: ' .. S.closeView.mix)
+            mod.db.terrainAll = true              -- and from the whole-world view too
+            Look(u, v, 1.0, 1)
+            assert(math.abs(S.closeView.mix - 1) < 1e-9, 'terrain view at all zoom levels, at 1x: ' .. S.closeView.mix)
+            Look(u, v, 0.2, 8)
+            assert(math.abs(S.closeView.mix - 1) < 1e-9, 'terrain view at all zoom levels, at 8x: ' .. S.closeView.mix)
+            -- (a client without the smaller copies has no terrain view: only the painted map)
+            ns.MapMinimapLOD = nil
+            Look(u, v, 1.0, 1)
+            assert(math.abs(S.closeView.mix - 0.45) < 1e-9, 'no terrain view without smaller copies: ' .. S.closeView.mix)
         """)
 
     def tearDown(self):

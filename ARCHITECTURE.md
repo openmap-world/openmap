@@ -207,6 +207,14 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   surface over them: there the game's minimap of the city inside (its WMO's pictures,
   `Data/CaveMinimap.lua`'s `MapCityMinimap`, `tools/map-caves/minimap.py`) goes over the city's map
   instead, as strong, on the city's own frame.
+- **terrain view**: the same imagery at full strength up close, in place of the painted map
+  (`terrainView`; the menu's Up close row and Options; where the smaller copies exist, WoW Forever's).
+  `terrainAll` shows it from the whole-world view too, not only up close: "Toggle terrain view" in the
+  menu's The map and Options turns it on, and can be starred onto the map's buttons (the tray's row or
+  the edge rail) like any other setting. The painted map stays only where the
+  imagery has no land: the open sea. While it's on, the zones' art, the baked tiles and their
+  colour-matched copies aren't drawn, so the map pays for the imagery alone. Cities follow Minimap
+  detail in major cities; underground cities still show the game's minimap of the city inside.
 - **soften + grain**: a five-tap blur of the zones in view (four offset copies, built
   lazily), and `MapGrain` + `MapTooth` over the art in two crossfaded octaves so the grain
   keeps its size on screen.
