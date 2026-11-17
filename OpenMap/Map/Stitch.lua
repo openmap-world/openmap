@@ -163,8 +163,9 @@ end
 -- lettered: tiles in the client's own language: English's, or another language's own set where one is
 -- baked (MapZones\<locale>\, from that client's art: ns.MapZoneArt.locales); any other language draws
 -- the zones live, from the client's own art in its language
--- (FADE ends at 1.2, not 1.6: the tiles are 16 px a world unit, under half most zones' own art, so past a
--- screen px a tile px they were magnified, soft, over sharper live art, and the middle zooms went blurry.
+-- (FADE ends at 1.2, not 1.6: past a screen px a tile px the tiles were magnified, softer than the live art
+-- (resampled once baking and again on screen; most zones' own art is 7 to 13 px a world unit, under the tiles'
+-- 16, nine small zones' finer), and the middle zooms went blurry.
 -- Any sooner went over perf.py's budget for a zoom out: the live layers coming in that much earlier)
 local Baked = { FADE = { 0.95, 1.2 }, WARM = 0.85, tiles = {}, use = false, live = 1, warm = false, busy = false, holding = false,
 	path = TEX .. "MapZones\\", desat = 0, english = not GetLocale or GetLocale():sub(1, 2) == "en" }
