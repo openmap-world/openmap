@@ -2407,19 +2407,27 @@ S.gate.frame:SetScript("OnUpdate", function(self)
 	end
 	local t = (now - g.fadeAt) / g.FADE
 	if t >= 1 then
-		root:SetAlpha(1)
+		g.Alpha(1)
 		self:Hide()
 	else
-		root:SetAlpha(t * t * (3 - 2 * t))
+		g.Alpha(t * t * (3 - 2 * t))
 	end
 end)
+-- the art, OpenMap's icons (pinRoot: on the map's view, not the art) and the sea chart (beside the art), in as
+-- one: the icons and your arrow over a blank map for a moment, then the art fading in under them, read as two
+function S.gate.Alpha(a)
+	root:SetAlpha(a)
+	if pinRoot then pinRoot:SetAlpha(a) end
+	local chart = S.Chart and S.Chart.Frame and S.Chart.Frame()
+	if chart then chart:SetAlpha(a) end
+end
 function S.Gate()
 	if not root then return end
 	local wm = ns:GetModule("worldmap")
-	if wm and wm.benching then root:SetAlpha(1) S.gate.frame:Hide() return end
+	if wm and wm.benching then S.gate.Alpha(1) S.gate.frame:Hide() return end
 	local g = S.gate
 	g.at, g.setAt, g.fadeAt = GetTime(), nil, nil
-	root:SetAlpha(0)
+	g.Alpha(0)
 	g.frame:Show()
 end
 
