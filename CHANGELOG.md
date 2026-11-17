@@ -1,5 +1,16 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Maximized dungeon map size**: switching from the windowed quest log (`L`) to the maximized map
+  (`M`) inside a dungeon now refits the map canvas even when the window width already matches full
+  screen (#297). By gOOvER.
+- **Stockade entrance & Dungeon Journal lookup**: clicking the Stormwind Stockade entrance now
+  resolves `"The Stockade"` in both Blizzard's dungeon maps and the Dungeon Journal (#289). By
+  gOOvER.
+
 ## v0.8.10 (2026-11-16)
 
 ### Fixed

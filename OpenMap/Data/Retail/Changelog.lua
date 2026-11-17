@@ -4,6 +4,10 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aMaximized dungeon map size|r: switching from the windowed quest log (L) to the maximized map (M) inside a dungeon now refits the map canvas even when the window width already matches full screen (#297). By gOOvER.",
+		"|cff6e2c0aStockade entrance & Dungeon Journal lookup|r: clicking the Stormwind Stockade entrance now resolves \"The Stockade\" in both Blizzard's dungeon maps and the Dungeon Journal (#289). By gOOvER.",
+	} },
 	{ version = "v0.8.10", date = "2026-11-16", heads = { [1] = "Fixed", [12] = "Improved", }, items = {
 		"|cff6e2c0aThe map loads again for everyone|r: for some players since v0.8.9 the map opened blank, with an error about GetMapInfoAtPosition. A view worked out while the map was still 0 px across (a divide by zero) was put into the map, and every view after it was worked out from it, so the map stayed blank. A view that isn't one is never put up now, the map's last view and its saved window place and size are checked as they're read back, and a bad one is forgotten (#260, #261, #263). The cause, found by OlehPetrykUA: v0.8.9 put the map together during its very first build, before it had a size.",
 		"|cff6e2c0aFewer hitches zooming out|r: the first zoom out of a session made the lettering of every continent and sea name (hundreds of font strings) in one frame; one name is made a frame now. And the tiles fading in as you zoom out set their opacity in 8 steps instead of on every frame, a third to a half fewer calls to the client for a zoom out. By k4m1.",
@@ -46,12 +50,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aOpenMap's map with a controller|r (the game's Gamepad UI; a test, off until you turn it on in Options: \"OpenMap's map with the Gamepad UI (test)\"): the seamless map with the Gamepad UI on, where OpenMap leaves the world map to Blizzard. OpenMap draws its map over Blizzard's, so the controller's buttons keep working and B closes the map. The left stick moves the cursor (at the edge it pans), the right stick zooms about it, A zooms in or presses what's under the cursor, X zooms out or closes what's open, and pressing the left stick puts the waypoint there. Off (the default): Blizzard's map with the Gamepad UI, as before. If you play with a controller, try it and tell us how it goes (#57). By FlyingPenguin98.",
 		"|cff6e2c0aReopen the map on your zone|r (the menu's More tab, Reopen map: \"Center on your zone\"): the map opens on the whole zone you're in, in the middle, wherever you stand in it (#143).",
 		"|cff6e2c0a\"Darken unexplored areas\" keeps its soft edges up close|r: once the minimap's detail shows, the shade was hard-edged rectangles; it now has each unexplored area's own shape, as further out (#101, #129).",
-	} },
-	{ version = "v0.8.4", date = "2026-11-11", heads = { [1] = "Improved", [2] = "Fixed", }, items = {
-		"|cff6e2c0aYour party and raid get a gold-bordered dot|r on the stitched map, everywhere, so they can't be mistaken for a guild member's dot. Someone the game won't place is shown faintly in the middle of their zone, with \"Somewhere in\" on the tooltip. By KonigTX.",
-		"|cff6e2c0a\"Your arrow\" off also hides the yellow location ping|r when the world map opens or changes zones. Turning it on again restores the normal arrow and ping; party markers stay visible (#78). By Luquatic.",
-		"|cff6e2c0a\"Party and raid members\" off means off|r: Blizzard's own blips for your group are hidden too, not only OpenMap's dots (#77, found by Luquatic).",
-		"|cff6e2c0aDragging the map no longer zooms into a zone or city|r: a drag that came back near where it started counted as a click and zoomed into what was under the cursor, Ironforge from parts of Dun Morogh most of all (#37, #64).",
-		"|cff6e2c0aGuild markers clear when a guildmate joins your group|r: their shared-location dot or zone badge entry could stay when the guild roster and the party spelled the character's name differently. By puschie286.",
 	} },
 }

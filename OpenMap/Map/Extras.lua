@@ -586,6 +586,7 @@ local function SetUpPins(name, pins)
 	local count = spec.questie and questie or { placed = 0, ours = 0, moved = 0 }
 	if spec.questie then questie.pins, questie.template = pins, template HookQuestieOrder() end
 	local HandlePin = provider.HandlePin
+	local mapTypes = {}
 	provider.HandlePin = function(self, icon, data, ...)
 		-- (an older Questie's path stretch: not put on the stitched map at all, OpenMap draws the paths
 		-- there, as Questie's would be out of place and size; DrawQuestiePaths)
@@ -625,12 +626,17 @@ local function SetUpPins(name, pins)
 		end
 		if mapID == S.WORLD then return end                -- (on the whole world, only what the library itself shows)
 		if uiMapID and (data.worldMapShowFlag or SHOW_CURRENT) == SHOW_CURRENT and uiMapID ~= mapID then return end
-		local info = C_Map.GetMapInfo(mapID)
-		if not info then return end
+		local mtype = mapTypes[mapID]
+		if mtype == nil then
+			local info = C_Map.GetMapInfo(mapID)
+			mtype = info and info.mapType or false
+			mapTypes[mapID] = mtype
+		end
+		if not mtype then return end
 		-- (one placed by world position on a continent only as the library would: shown on continents)
-		if not uiMapID and info.mapType == Enum.UIMapType.Continent and (data.worldMapShowFlag or SHOW_CURRENT) < SHOW_CONTINENT then return end
+		if not uiMapID and mtype == Enum.UIMapType.Continent and (data.worldMapShowFlag or SHOW_CURRENT) < SHOW_CONTINENT then return end
 		local profile = spec.questie and _G.Questie and Questie.db and Questie.db.profile
-		if profile and profile.hideIconsOnContinents and info.mapType == Enum.UIMapType.Continent then return end
+		if profile and profile.hideIconsOnContinents and mtype == Enum.UIMapType.Continent then return end
 		if (x < -NEAR or x > 1 + NEAR or y < -NEAR or y > 1 + NEAR) and not InView(wu, wv) then return end
 		self:GetMap():AcquirePin(template, icon, x, y, data.frameLevelType)
 		if spec.questie or spec.lift then Lift(icon, spec.questie) end

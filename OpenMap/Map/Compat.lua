@@ -50,30 +50,28 @@ local function Hold(f, reshow)
 	if f:IsShown() then held[f] = reshow f:Hide() end
 end
 
--- Leatrix Maps' icons: plain frames on the canvas, marked by it, made at frame level 100 (under the
--- stitched art's): lifted above the art, as Questie's are (Extras.lua). Leatrix finds the one under
--- the cursor itself, from where it placed it, so its tooltips go with them
-local function LeatrixPins()
+-- Leatrix Maps', Azeroth Tripview's and RareScanner's canvas pins/layers, lifted above the stitched
+-- art in a single pass over the canvas children (#285).
+local function LiftCanvasAddons(wantLeatrix, wantTripview, wantRareScanner)
 	local top = S.artTop
-	if not top or InCombatLockdown() then return end   -- (a frame level: restricted in combat, lifted when it ends)
-	local kids = { map:GetCanvas():GetChildren() }     -- (once a map change: every pin is a child)
-	for _, f in ipairs(kids) do
-		if f.isLeaMapsPin and f:GetFrameLevel() <= top then f:SetFrameLevel(top + 2) end
-	end
-end
-
--- Azeroth Tripview's live ships and docks: unnamed frames on the canvas at fixed levels (2400, 2500),
--- each holding its icon buttons (a .face, and an .arrow or a .label): kept above the stitched art,
--- wherever that ends. (Its route dots, under the map's own pins, stay under the art: OpenMap's routes
--- are there.) Where its ships show is its own doing: the map underneath only (docs/api.md)
-local function TripviewLayers()
-	local top = S.artTop
-	if not top or InCombatLockdown() then return end
-	for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
-		local lvl = f:GetFrameLevel()
-		if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
-			local first = f:GetNumChildren() > 0 and (f:GetChildren())
-			if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
+	if not top or InCombatLockdown() then return end   -- (frame levels: restricted in combat, lifted when it ends)
+	local canvas = map:GetCanvas()
+	local made = wantRareScanner and (canvas:GetFrameLevel() + 10)
+	for _, f in ipairs({ canvas:GetChildren() }) do
+		if wantLeatrix and f.isLeaMapsPin and f:GetFrameLevel() <= top then
+			f:SetFrameLevel(top + 2)
+		elseif wantTripview then
+			local lvl = f:GetFrameLevel()
+			if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
+				local first = f:GetNumChildren() > 0 and (f:GetChildren())
+				if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
+			end
+		end
+		if wantRareScanner and not f:GetName() and not f.isLeaMapsPin and f:GetFrameLevel() == made then
+			f:SetFrameLevel(top + 3)
+			for _, p in ipairs({ f:GetChildren() }) do
+				if p:GetFrameLevel() <= top then p:SetFrameLevel(top + 4) end
+			end
 		end
 	end
 end
@@ -109,35 +107,19 @@ local function QueueBooks(scan)
 	if scan or not booksQueued then booksQueued = scan and "scan" or "lift" end
 end
 
--- RareScanner's rare icons: its map frame is a plain unnamed frame on the canvas, made at the canvas's
--- level + 10 (its icons above that), so under the stitched art: lifted above it while stitched, as
--- Leatrix's are; icons made later hang off the lifted frame and come out above it themselves. (Found
--- by its place: any other addon's unnamed frame at exactly that level would be lifted too.)
-local function RareScannerPins()
-	local top = S.artTop
-	if not top or InCombatLockdown() then return end
-	local canvas = map:GetCanvas()
-	local made = canvas:GetFrameLevel() + 10
-	for _, f in ipairs({ canvas:GetChildren() }) do
-		if not f:GetName() and not f.isLeaMapsPin and f:GetFrameLevel() == made then
-			f:SetFrameLevel(top + 3)
-			for _, p in ipairs({ f:GetChildren() }) do
-				if p:GetFrameLevel() <= top then p:SetFrameLevel(top + 4) end
-			end
-		end
-	end
-end
-
 local function HoldAll()
 	if not Stitched() then return end
 	for name, reshow in pairs(FRAMES) do
 		local f = _G[name]
 		if type(f) == "table" and f.HookScript then Hold(f, reshow) end
 	end
-	if _G.LeaMapsDB then LeatrixPins() end
-	if _G.AzerothTripview then TripviewLayers() end
 	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-	if loaded and loaded("RareScanner") then RareScannerPins() end
+	local wantLeatrix = _G.LeaMapsDB ~= nil
+	local wantTripview = _G.AzerothTripview ~= nil
+	local wantRareScanner = loaded and loaded("RareScanner") and true or false
+	if wantLeatrix or wantTripview or wantRareScanner then
+		LiftCanvasAddons(wantLeatrix, wantTripview, wantRareScanner)
+	end
 end
 
 local function Release()

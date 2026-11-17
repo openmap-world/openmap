@@ -39,6 +39,10 @@ local WING_FLOORS = {
 	["Scarlet Monastery - Graveyard"] = "Graveyard", ["Scarlet Monastery - Library"] = "Library",
 	["Scarlet Monastery - Armory"] = "Armory", ["Scarlet Monastery - Cathedral"] = "Cathedral",
 }
+-- client/journal names that differ from Places.lua's instance names (#289)
+local NAME_ALIASES = {
+	["Stormwind Stockade"] = { "The Stockade", "The Stockades", "Stockade" },
+}
 local CARD_W = 270
 
 local map, sc, chooser, card
@@ -88,7 +92,12 @@ end
 -- a dungeon's map in this client (Blizzard's, found by its name), every floor of it
 local function BaseMap(inst)
 	local real = GetRealZoneText and inst[1] > 0 and Safe.Call(GetRealZoneText, inst[1])
-	return (real and real ~= "" and S.InstanceMap(real)) or S.InstanceMap(inst[2])
+	local id = (real and real ~= "" and S.InstanceMap(real)) or S.InstanceMap(inst[2])
+	if id then return id end
+	for _, alt in ipairs(NAME_ALIASES[inst[2]] or {}) do
+		id = S.InstanceMap(alt)
+		if id then return id end
+	end
 end
 
 local function Floors(id)
@@ -1200,9 +1209,12 @@ end
 local function JournalName(inst)
 	local dj = Journal()
 	if not dj then return end
-	local want = Plain(inst[2])
-	for key, entry in pairs(dj.DB) do
-		if type(entry) == "table" and not entry.previewOnly and Plain(key) == want then return key end
+	local wants = { Plain(inst[2]) }
+	for _, alt in ipairs(NAME_ALIASES[inst[2]] or {}) do wants[#wants + 1] = Plain(alt) end
+	for _, want in ipairs(wants) do
+		for key, entry in pairs(dj.DB) do
+			if type(entry) == "table" and not entry.previewOnly and Plain(key) == want then return key end
+		end
 	end
 end
 -- its window at the dungeon's page (bosses, or `quests`); false where it has none
