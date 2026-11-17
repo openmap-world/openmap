@@ -2399,6 +2399,7 @@ function S.SetDarkening(k, color)
 	S.greyD = Shade.DIMK[4]
 	S.GreyMute()
 	for _, tex in ipairs(Shade.tinted) do tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * k) end
+	for _, tex in ipairs(Shade.Fog.tinted) do tex:SetVertexColor(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], k) end
 	for _, z in pairs(Shade.zones) do
 		if z then
 			z.coloured = nil
@@ -2642,6 +2643,7 @@ function Shade.Show(mapID)
 	local z = Shade.zones[mapID]
 	local state = Shade.on and Shade.Unexplored(mapID)
 	if not state then
+		Shade.Fog.Show(mapID, false)
 		if z then
 			z.frame:Hide()
 			Shade.Anchor(z.recs, false)
@@ -2669,6 +2671,9 @@ function Shade.Show(mapID)
 		if not grey then Shade.Anchor(z.grey.recs, false) end
 	end
 	local some = here and state == "some"
+	local fog = Shade.Fog.Has(mapID)
+	Shade.Fog.Show(mapID, some and fog)
+	if fog then some = false end                    -- (the fog in their place: no copies)
 	if some and not z.pieces then Shade.Pieces(mapID, z) end
 	if z.dim then
 		local copies = some and not Shade.Hide.minimap      -- (the minimap drawn: Shade.Hide darkens over it)
@@ -2676,6 +2681,61 @@ function Shade.Show(mapID)
 		z.dim:SetShown(copies)
 		if copies then Shade.Colour(mapID, z) end
 	end
+end
+
+-- The fog: a zone you've been to, darkened by its unexplored pieces' shares of the shade (ns.MapFog, render.py
+-- --bake-fog), one texture a piece, in the shade's colour. Blizzard's pieces overlap (their soft edges: under two
+-- or more over a third of the land they cover); each piece's share is baked so that shades of one colour over
+-- one another, which multiply what shows through them, come to the shade at the pieces' coverage times the
+-- unexplored ones' share, whichever they are: never stacking darker. Over the art and the minimap alike (Shade.Hide's
+-- layer), so it's the same from every zoom: in place of the darkened copies (Shade.Pieces) and of the shade in
+-- the pieces' shapes over the minimap. Baked at UNDISCOVERED's alpha; Darkening scales it (vertex alpha).
+-- zones: mapID -> { frame, recs, tex = { key -> texture } }
+Shade.Fog = { zones = {}, tinted = {} }
+function Shade.Fog.Has(mapID)
+	return Shade.on and ns.MapFog and ns.MapFog[mapID] and true or false
+end
+function Shade.Fog.Show(mapID, on)
+	local z = Shade.Fog.zones[mapID]
+	if not on then
+		if z then z.frame:Hide() Shade.Anchor(z.recs, false) end
+		return
+	end
+	if not z then
+		local p, data = Place(mapID), ns.MapFog[mapID]
+		if not p or not root then return end
+		if not Shade.Fog.root then
+			Shade.Fog.root = CreateFrame("Frame", nil, root)
+			Shade.Fog.root:SetAllPoints(root)
+			Shade.Fog.root:SetFrameLevel(S.artTop - 6)   -- (Shade.Hide's: over the minimap)
+		end
+		local f = CreateFrame("Frame", nil, Shade.Fog.root)
+		f:SetAllPoints(root)
+		local recs, prev = Shade.Collect()
+		z = { frame = f, recs = recs, tex = {} }
+		for key, e in pairs(data) do
+			local w, h, x, y = strsplit(":", key)
+			w, h, x, y = tonumber(w), tonumber(h), tonumber(x), tonumber(y)
+			local tex = f:CreateTexture(nil, "ARTWORK")
+			tex:SetTexture(TEX .. "MapFog\\" .. mapID .. "_" .. e[1], nil, nil, "TRILINEAR")
+			tex:SetTexCoord(0, e[2] / e[4], 0, e[3] / e[5])
+			tex:SetVertexColor(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], Shade.k)
+			Shade.Fog.tinted[#Shade.Fog.tinted + 1] = tex
+			Record(tex, p.left + x * p.sx, p.top + y * p.sy, w * p.sx, h * p.sy)
+			tex:Hide()
+			z.tex[key] = tex
+		end
+		S.recCollect = prev
+		Shade.Fog.zones[mapID] = z
+	end
+	-- (each piece's share while it's unexplored: as one is explored, its share goes and the rest stay right)
+	local list = pieces[mapID] or NONE
+	for key, tex in pairs(z.tex) do
+		local piece = list[key]
+		tex:SetShown(piece and piece.unexplored and true or false)
+	end
+	Shade.Anchor(z.recs, true)
+	z.frame:Show()
 end
 
 --------------------------------------------------------------------------------
@@ -2842,7 +2902,7 @@ end
 function Shade.Hide.Show(mapID)
 	local z = Shade.Hide.zones[mapID]
 	local mode = Shade.Hide.mode
-	local want = (mode == "hide" or (mode == "dim" and Shade.Unexplored(mapID) == "some"))
+	local want = (mode == "hide" or (mode == "dim" and Shade.Unexplored(mapID) == "some" and not Shade.Fog.Has(mapID)))
 		and Shade.Hide.minimap and root and Shade.Near(mapID)
 	if want then
 		if not Shade.Hide.root then

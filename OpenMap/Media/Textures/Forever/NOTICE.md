@@ -27,6 +27,7 @@ original pin's tinted layers and clears the center for Blizzard's dot.
 | `MapLand/` | smooth colour fields of the continent maps' land | `tools/map-preview/render.py --bake-land` |
 | `MapBand/`, `MapCore/`, `MapTerritory/`, `MapEdge/` | masks traced from each zone map's shape and frame | `tools/map-grade`, `tools/map-preview` |
 | `MapZoneLand/` | each zone map's land without the sea it paints (its territory less that sea, found by colour; shared out where neighbours overlap), for darkening unexplored land | `tools/map-preview/render.py --bake-zone-land` |
+| `MapFog/` | for each zone map's explored-area pieces, its share of the zone's darkening (worked out from the pieces' own shapes, the zone's land, frame and city banners), BLP with DXT5 compression | `tools/map-preview/render.py --bake-fog` |
 | `MapZoneBorder/` | each zone's share of the land round it that's no zone's (border mountains, land between zones), from the continent map's land and the zones' land masks | `tools/map-preview/render.py --bake-zone-land` |
 | `MapMiniLand/` | where the close-up minimap shows: each continent map's land and its zone maps' own land (`MapLand` and `MapZoneLand` put together, finer) | `tools/map-preview/render.py --bake-mini-land` |
 | `MapCave/` | masks traced from the cave maps, and from where the caves' own rooms lie (the game's WMOs) | `tools/map-caves/build.py` (`wmo.py`) |

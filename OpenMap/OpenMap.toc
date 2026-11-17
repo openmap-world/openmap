@@ -71,6 +71,7 @@ Data\Forever\ArtEdits.lua
 Data\Forever\Labels.lua
 Data\Forever\Banners.lua
 Data\Forever\ZoneArt.lua
+Data\Forever\Fog.lua
 Data\Forever\Chart.lua
 Data\Forever\Changelog.lua
 

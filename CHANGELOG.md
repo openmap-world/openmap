@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **Unexplored land darkens as one, the same at every zoom** (Unexplored areas: Darken): in a zone you've been
+  to, the unexplored parts were darker where the game's map pieces overlap, a different shade once the
+  minimap's detail came in, and could jump between the two as you zoomed. Each piece's share of the darkening
+  is now worked out ahead of time so that, whichever pieces you've explored, the rest come to one even shade,
+  drawn over the map and the minimap alike.
+
 ## v0.8.10 (2026-11-16)
 
 ### Fixed

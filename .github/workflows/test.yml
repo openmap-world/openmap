@@ -50,6 +50,7 @@ jobs:
           python -P tools/offline-test/combat.py
           python -P tools/offline-test/caves.py
           python -P tools/offline-test/explored.py
+          python -P tools/offline-test/fog.py
           python -P tools/offline-test/chart.py
       - name: The tools at least compile
         run: python -m compileall -q tools
