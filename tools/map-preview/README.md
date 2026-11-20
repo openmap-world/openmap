@@ -36,9 +36,10 @@ the places a painted gap shows that no zone map draws (`gapplaces.py`).
 
 `--bake-zones` rewrites `Media/Textures/MapZones` and `Data/ZoneArt.lua`: every zone's art as
 `Stitch.lua` draws it at full detail (its layers, in its order, through its masks, at the default
-colour settings), on the world in 512-px tiles (BLP, DXT5, mipmapped: `tools/map-textures/blp.py`),
+colour settings), on the world in 512-px tiles (BLP, DXT5, or DXT1 for a tile with no clear pixel, mipmapped: `tools/map-textures/blp.py`),
 which the map draws instead of the zones' hundreds of textures until the view passes the tiles'
-own pixels. The tiles carry the art's lettering, so they're drawn only on a client of their language: with
+own pixels; and `MapZones/Fine/`, the same at 32 px per world unit over the zones whose own art is finer than
+the tiles (`FINE_PX`). The art's colour is sampled with a cubic spline, its alpha and the masks bilinearly. The tiles carry the art's lettering, so they're drawn only on a client of their language: with
 `OPENMAP_LOCALE=ptBR` (or another client language), `OPENMAP_WOW` on an install of that language and a
 texture cache of its own, `--bake-zones` reads that client's art (`tools/casc`; wago.tools's files are
 enUS, and it says when one comes from there) and writes `MapZones/<locale>/`, without the city banner

@@ -129,11 +129,16 @@ a generation check discards callbacks from a previous opening. No map ID is forc
 
 **Baked zones** (`Data/ZoneArt.lua`, `MapZones/`, from `render.py --bake-zones`): the zone
 layers above (base art, overlays, their colour-match copies, the interiors, the gaps' finer
-maps) composited offline onto the world in 512-px tiles at 16 px per world unit. At the
+maps) composited offline onto the world in 512-px tiles at 16 px per world unit (the art's colour sampled with a
+cubic spline: bilinear there and again on screen, they kept about 80% of the zones' own sharpness), and a finer
+set at 32 (`MapZones/Fine/`, `ns.MapZoneArt.fine`) over the zones whose own art is finer than 16 (nine small
+ones; most zones' is 7 to 13 px per world unit), drawn over the tiles there as they near their own pixels
+(`Baked.FINE_IN`; English only). At the
 settings they're baked at (colour match and desaturation at their defaults, unexplored areas
 not hidden) they're drawn instead of the live zone layers, a few dozen tiles where the live
 layers are hundreds of masked textures, until the view passes the tiles' own pixels; then
-the live layers take over (`Baked.FADE`, in screen px per tile px), tile by tile near the view.
+the live layers take over (`Baked.FADE`, in screen px per px of the finest set baked: `Baked.handPx`), tile by
+tile near the view.
 The tiles carry the art's lettering: they're drawn on an English client, or on one whose language has
 its own set baked from its own art (`MapZones/<locale>/`, `ns.MapZoneArt.locales`: `Baked.lettered`);
 any other client draws the live layers at every zoom.
