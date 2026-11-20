@@ -1,6 +1,8 @@
-# BLP2 textures with DXT5 compression and mipmaps, the format the client's own map tiles
+# BLP2 textures with DXT compression and mipmaps, the format the client's own map tiles
 # come in: a quarter of a 32-bit TGA's size, on disk and in video memory, and mipmapped, so a
-# texture drawn smaller than its pixels doesn't shimmer. numpy only.
+# texture drawn smaller than its pixels doesn't shimmer. DXT5; DXT1 (half that again, the client's
+# own map tiles' format) for an image with no pixel less than opaque: the same colour blocks, so
+# the same pixels, without the alpha half. numpy only.
 #
 # usage (a check): python -P tools/map-textures/blp.py <image> [out.blp]
 #   encodes the image, decodes it again with Pillow and prints how close it came (PSNR)
@@ -123,10 +125,18 @@ def mips(rgba):
     return out
 
 
+def dxt1(rgba):
+    """(h, w, 4) uint8, fully opaque -> DXT1 bytes (four-colour blocks: _color orders each block's ends so)"""
+    b = _blocks(rgba)
+    return _color(b[..., :3], b[..., 3]).tobytes()
+
+
 def write(path, rgba):
-    """a BLP2, DXT5, with every mip level: rgba (h, w, 4) uint8, sides powers of two"""
+    """a BLP2 with every mip level: rgba (h, w, 4) uint8, sides powers of two. DXT1 when every pixel is opaque
+    (its mips are too), else DXT5"""
     h, w = rgba.shape[:2]
-    levels = [dxt5(m) for m in mips(rgba)][:16]
+    opaque = bool((rgba[..., 3] == 255).all())
+    levels = [(dxt1 if opaque else dxt5)(m) for m in mips(rgba)][:16]
     offsets, sizes, at = [], [], HEADER
     for data in levels:
         offsets.append(at)
@@ -134,7 +144,8 @@ def write(path, rgba):
         at += len(data)
     offsets += [0] * (16 - len(offsets))
     sizes += [0] * (16 - len(sizes))
-    head = b"BLP2" + struct.pack("<I4B2I", 1, 2, 8, 7, 1, w, h) + struct.pack("<16I", *offsets) + struct.pack("<16I", *sizes)
+    alpha_bits, alpha_type = (0, 0) if opaque else (8, 7)        # (DXT1, no alpha; else DXT5)
+    head = b"BLP2" + struct.pack("<I4B2I", 1, 2, alpha_bits, alpha_type, 1, w, h) + struct.pack("<16I", *offsets) + struct.pack("<16I", *sizes)
     with open(path, "wb") as f:
         f.write(head + bytes(1024) + b"".join(levels))
 
