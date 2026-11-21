@@ -550,6 +550,7 @@ L["the quest level on OpenMap's quest icons"] = "die Queststufe auf OpenMaps Que
 L["the resizable settings menu, resizing the map with Move Any, and the Titan Panel launcher"] = "das größenverstellbare Einstellungsmenü, die Größenänderung der Karte mit Move Any und der Starter für Titan Panel"
 L["the switch for dungeon maps, and separate switches for friends and guild"] = "der Schalter für Dungeonkarten und getrennte Schalter für Freunde und Gilde"
 L["the yellow ping hidden with your arrow"] = "der gelbe Ping verschwindet mit deinem Pfeil"
+L["the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens"] = "die vorgerenderten Zonenkacheln auf brasilianischem Portugiesisch, weniger Arbeit bei geschlossener oder bewegter Karte und ihre Grafik bereit, bevor sie sich öffnet"
 L["what's wrong?"] = "Was ist falsch?"
 L["your group"] = "Eurer Gruppe"
 L["your guild"] = "Eurer Gilde"

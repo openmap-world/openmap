@@ -35,6 +35,7 @@ ns.Credits = {
 		{ "bv101rj", L["Questie 12.8's icons found on the map"] },
 		{ "Rambomst", L["the quest level on OpenMap's quest icons"] },
 		{ "kr0ozin", L["place names and quest areas on the controller map, and it reopening as you set"] },
+		{ "cscoder69", L["the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens"] },
 	} },
 	{ L["Map art"], {
 		{ "Blizzard Entertainment", L["the map art is the game's own"] },

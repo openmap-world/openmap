@@ -919,7 +919,8 @@ local function Prebuild()
 		end
 		return
 	end
-	if not BuildExtra() then C_Timer.After(0, Prebuild) end
+	if not BuildExtra() then C_Timer.After(0, Prebuild) return end
+	if mod.WarmAround then mod.WarmAround() end   -- (built: the art round you warmed before the first opening)
 end
 local function PrebuildSoon()
 	ns.UnregisterEvent(prebuildOwner, "LOADING_SCREEN_DISABLED")

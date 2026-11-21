@@ -870,10 +870,33 @@ end
 
 local WARM_MOST = 1200          -- files kept at the most (the view's: a few hundred)
 local warmFrame, warmTex, warmN = nil, {}, 0
+-- a texture on the warm frame (made the first time a slot is wanted)
+local function WarmSlot(list, i)
+	local t = list[i]
+	if not t then
+		if not warmFrame then
+			warmFrame = CreateFrame("Frame")
+			warmFrame:SetFrameStrata("BACKGROUND")
+			warmFrame:SetSize(1, 1)
+			warmFrame:SetPoint("BOTTOMLEFT", 0, 0)
+		end
+		t = warmFrame:CreateTexture(nil, "BACKGROUND")
+		t:SetAllPoints(warmFrame)
+		t:SetAlpha(0.01)
+		-- (drawn, so the file stays loaded, but added as black: hundreds stacked on one pixel
+		-- showed as a white dot in the screen's corner, #45)
+		t:SetBlendMode("ADD")
+		t:SetVertexColor(0, 0, 0)
+		list[i] = t
+	end
+	return t
+end
 local function WarmCollect(f, files, seen)
 	for _, r in ipairs({ f:GetRegions() }) do
 		if #files >= WARM_MOST then return end
-		if r:IsObjectType("Texture") and r:IsShown() and (r:GetAlpha() or 0) > 0 then
+		-- (a zone texture still fading in as the map closed is at alpha 0 but has its file: kept too,
+		-- or that part of the view came in late again at the next opening. omStep: Stitch's loader fade)
+		if r:IsObjectType("Texture") and r:IsShown() and ((r:GetAlpha() or 0) > 0 or r.omStep) then
 			local file = r:GetTexture()
 			if file and not seen[file] then seen[file] = true files[#files + 1] = file end
 		end
@@ -890,30 +913,61 @@ local function WarmHold()
 	local files = {}
 	local ok, err = pcall(WarmCollect, root, files, {})
 	if not ok then geterrorhandler()(err) return end
-	if not warmFrame then
-		warmFrame = CreateFrame("Frame")
-		warmFrame:SetFrameStrata("BACKGROUND")
-		warmFrame:SetSize(1, 1)
-		warmFrame:SetPoint("BOTTOMLEFT", 0, 0)
-	end
 	for i, file in ipairs(files) do
-		local t = warmTex[i]
-		if not t then
-			t = warmFrame:CreateTexture(nil, "BACKGROUND")
-			t:SetAllPoints(warmFrame)
-			t:SetAlpha(0.01)
-			-- (drawn, so the file stays loaded, but added as black: hundreds stacked on one pixel
-			-- showed as a white dot in the screen's corner, #45)
-			t:SetBlendMode("ADD")
-			t:SetVertexColor(0, 0, 0)
-			warmTex[i] = t
-		end
+		local t = WarmSlot(warmTex, i)
 		t:SetTexture(file)
 		t:Show()
 	end
 	for i = #files + 1, warmN do warmTex[i]:SetTexture(nil) warmTex[i]:Hide() end
 	warmN = #files
-	warmFrame:Show()
+	if warmFrame then warmFrame:Show() end
+end
+
+-- ...and, while the map is closed, the files round you (S.WarmFiles): the map opens centred on you, so
+-- after travelling the held view was another place's, and at a session's first opening (a login, a
+-- /reload) nothing was held, and the art came in over a moment. Set a few a frame (`step`), out of
+-- combat and only while the map is closed, once the map is built and again on reaching a new zone;
+-- let go with the held view as the map opens (warmRelease). One table: the file has many locals
+local Around = { MOST = 400, step = 10, tex = {}, n = 0, files = nil, at = 1, mapID = nil }
+Around.feed = CreateFrame("Frame")
+Around.feed:Hide()
+Around.feed:SetScript("OnUpdate", function(self)
+	-- (a fight began: paused till it ends, PLAYER_REGEN_ENABLED; the map opened: dropped, WarmLetGo)
+	if map:IsShown() or InCombatLockdown() or not Around.files then self:Hide() return end
+	mod.TimeAfter("art round you warmed (a frame's worth)", function()
+		local files = Around.files
+		for _ = 1, Around.step do
+			local i = Around.at
+			if i > #files then break end
+			local t = WarmSlot(Around.tex, i)
+			t:SetTexture(files[i])
+			t:Show()
+			Around.at = i + 1
+			-- (the slots in use so far, an earlier set's beyond them included: what the opening lets go)
+			if i > Around.n then Around.n = i end
+		end
+		if Around.at > #files then
+			for i = #files + 1, Around.n do Around.tex[i]:SetTexture(nil) Around.tex[i]:Hide() end
+			Around.n = #files
+			Around.files = nil
+		end
+	end)
+	if warmFrame then warmFrame:Show() end
+	if not Around.files then self:Hide() end
+end)
+function mod.WarmAround()
+	if mod.db.keepWarm == false or not ns.MapStitch.IsBuilt() or not ns.MapStitch.WarmFiles then return end
+	if map:IsShown() then return end              -- (open: its own textures hold the files)
+	if InCombatLockdown() then                    -- (after the fight: a few ms a frame aren't wanted in it)
+		C_Timer.After(3, mod.WarmAround)
+		return
+	end
+	local mapID = ns.Safe.Value(C_Map.GetBestMapForUnit("player"))
+	if not mapID or (mapID == Around.mapID and Around.n > 0) then return end
+	local files = ns.MapStitch.WarmFiles(mapID, Around.MOST)
+	if #files == 0 then return end
+	Around.mapID, Around.files, Around.at = mapID, files, 1
+	Around.feed:Show()
 end
 -- Let go a few files a frame (WARM_STEP), from a moment into the opening (the map's own textures
 -- drawn by then, holding the files themselves): all in one frame, the game unloaded the rest at once,
@@ -925,15 +979,29 @@ warmRelease:SetScript("OnUpdate", function(self)
 	if not map:IsShown() or not warmFrame then self:Hide() return end
 	mod.TimeAfter("warm art let go (a frame's worth)", function()
 		for _ = 1, WARM_STEP do
-			if warmN == 0 then break end
-			warmTex[warmN]:SetTexture(nil)
-			warmTex[warmN]:Hide()
-			warmN = warmN - 1
+			if warmN > 0 then
+				warmTex[warmN]:SetTexture(nil)
+				warmTex[warmN]:Hide()
+				warmN = warmN - 1
+			elseif Around.n > 0 then          -- (the files round you after the held view's)
+				Around.tex[Around.n]:SetTexture(nil)
+				Around.tex[Around.n]:Hide()
+				Around.n = Around.n - 1
+			else
+				break
+			end
 		end
 	end)
-	if warmN == 0 then warmFrame:Hide() self:Hide() end
+	if warmN == 0 and Around.n == 0 then
+		Around.mapID = nil                        -- (let go: the next closing warms round you again)
+		warmFrame:Hide()
+		self:Hide()
+	end
 end)
 local function WarmLetGo()
+	-- (the map open reads its own files: a warming still under way is dropped, its slots let go below)
+	Around.feed:Hide()
+	Around.files = nil
 	if not warmFrame then return end
 	warmRelease:Hide()
 	C_Timer.After(1, function()
@@ -945,9 +1013,13 @@ function mod:ToggleWarm()
 	mod.db.keepWarm = mod.db.keepWarm == false
 	if not mod.db.keepWarm and warmFrame then
 		warmRelease:Hide()
+		Around.feed:Hide()
 		for i = 1, warmN do warmTex[i]:SetTexture(nil) warmTex[i]:Hide() end
-		warmN = 0
+		for i = 1, Around.n do Around.tex[i]:SetTexture(nil) Around.tex[i]:Hide() end
+		warmN, Around.n, Around.files, Around.mapID = 0, 0, nil, nil
 		warmFrame:Hide()
+	elseif mod.db.keepWarm then
+		mod.WarmAround()
 	end
 	if mod.HoldDungeonHere then mod.HoldDungeonHere() end   -- (the dungeon you're in: Dungeons.lua)
 	ns:Print(("Keep the map's art warm: %s"):format(mod.db.keepWarm and "on" or "off"))
@@ -1160,6 +1232,12 @@ function mod:SetupExtras(worldMap)
 	map:HookScript("OnHide", function() fader:Hide() faded = 1 SetFade(1) ApplyFpsCap() end)
 	map:HookScript("OnHide", function() WarmStop() mod.TimeClose("warm art held", WarmHold) end)
 	map:HookScript("OnShow", WarmLetGo)
+	-- (a new zone: its art warmed while the map is closed, a moment after arriving; a warming a fight
+	-- paused goes on once it's over)
+	ns.RegisterEvent(Around, "ZONE_CHANGED_NEW_AREA", function() C_Timer.After(2, mod.WarmAround) end)
+	ns.RegisterEvent(Around, "PLAYER_REGEN_ENABLED", function()
+		if Around.files and not map:IsShown() then Around.feed:Show() end
+	end)
 	hooksecurefunc(map, "SetAlpha", KeepFade)
 	SetUpAllPins()
 	map:HookScript("OnShow", function() mod.TimeAfter("pin libraries", SetUpAllPinsAndWait) end)

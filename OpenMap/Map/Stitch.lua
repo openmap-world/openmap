@@ -2990,6 +2990,39 @@ function S.ArtStats()
 	return loaded, total, live, #loadQueue - loadAt + 1
 end
 
+-- the files an opening on a zone reads first, at the most `most`: the baked tiles round it (half a zone
+-- past each side: the view opens centred on you, wider than the zone) and the zone's own art, tiles
+-- first. For keep-warm (Extras.lua), which holds them while the map is closed: after travelling, or at
+-- the first opening of a session, the files it held were another view's, or none, and the art came in
+-- over a moment. A zone with no rectangle on the world (a dungeon, a world of its own): none
+function S.WarmFiles(mapID, most)
+	local files = {}
+	if not S.built or not mapID then return files end
+	local l, r, t, b = S.Rect(mapID)
+	if not l then return files end
+	local mw, mh = (r - l) / 2, (b - t) / 2
+	local u0, v0, u1, v1 = l - mw, t - mh, r + mw, b + mh
+	local seen = {}
+	local function Add(file)
+		if file and not seen[file] and #files < most then
+			seen[file] = true
+			files[#files + 1] = file
+		end
+	end
+	if Baked.frame and Baked.use then
+		for _, tile in ipairs(Baked.tiles) do
+			if not tile.missing and tile.u1 > u0 and tile.u0 < u1 and tile.v1 > v0 and tile.v0 < v1 then
+				Add(Baked.path .. tile.name)
+			end
+		end
+	end
+	for _, e in ipairs(zoneTex[mapID] or NONE) do
+		local tex = e[1]
+		Add(tex.omFile or tex:GetTexture())
+	end
+	return files
+end
+
 -- a zone texture's colour: some colour taken out. (The texture's own alpha is its load fade-in;
 -- unexplored areas are darkened by the shades over them, Shade.Show)
 GradeEntry = function(g, desat)

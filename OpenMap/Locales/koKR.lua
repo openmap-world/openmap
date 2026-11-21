@@ -550,6 +550,7 @@ L["the quest level on OpenMap's quest icons"] = "OpenMap 퀘스트 아이콘의 
 L["the resizable settings menu, resizing the map with Move Any, and the Titan Panel launcher"] = "크기 조절이 가능한 설정 메뉴, Move Any로 지도 크기 조절, Titan Panel 실행기"
 L["the switch for dungeon maps, and separate switches for friends and guild"] = "던전 지도 스위치, 친구와 길드 각각의 스위치"
 L["the yellow ping hidden with your arrow"] = "내 화살표와 함께 숨겨지는 노란색 알림"
+L["the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens"] = "브라질 포르투갈어로 미리 렌더링한 지역 타일, 지도를 닫았거나 움직일 때 줄어든 작업, 그리고 열기 전에 준비되는 지도 그림"
 L["what's wrong?"] = "무엇이 문제입니까?"
 L["your group"] = "파티원"
 L["your guild"] = "길드원"

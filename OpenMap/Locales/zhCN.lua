@@ -550,6 +550,7 @@ L["the quest level on OpenMap's quest icons"] = "OpenMap 任务图标上的任�
 L["the resizable settings menu, resizing the map with Move Any, and the Titan Panel launcher"] = "可调整大小的设置菜单、配合Move Any调整地图大小，以及Titan Panel启动器"
 L["the switch for dungeon maps, and separate switches for friends and guild"] = "地下城地图开关，以及好友和公会各自的开关"
 L["the yellow ping hidden with your arrow"] = "黄色提示随你的箭头一起隐藏"
+L["the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens"] = "以巴西葡萄牙语预渲染的区域图块、地图关闭或移动时更少的运算，以及打开前就已准备好的地图图像"
 L["what's wrong?"] = "哪里有问题？"
 L["your group"] = "你的队伍"
 L["your guild"] = "你的公会"
