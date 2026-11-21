@@ -555,5 +555,9 @@
  "place names and quest areas on the controller map, and it reopening as you set": "nombres de lugares y zonas de misión en el mapa con control, y que se vuelva a abrir según lo configurado",
  "OpenMap %s is out (you have %s). Update through CurseForge.": "Ya salió OpenMap %s (tienes la %s). Actualízalo desde CurseForge.",
  "Say when OpenMap has an update": "Avisar si hay actualización de OpenMap",
- "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "Cuando un amigo, un miembro de la hermandad o del grupo tiene un OpenMap más nuevo, una línea en el chat lo indica, una vez por sesión. Tu versión solo va en mensajes que OpenMap ya les envía. Desactivado, no se avisa nada y tu versión no se envía."
+ "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "Cuando un amigo, un miembro de la hermandad o del grupo tiene un OpenMap más nuevo, una línea en el chat lo indica, una vez por sesión. Tu versión solo va en mensajes que OpenMap ya les envía. Desactivado, no se avisa nada y tu versión no se envía.",
+  "Arrow size": "Tamaño de la flecha",
+  "Your own arrow on the world map at this size.": "Tu propia flecha en el mapa del mundo a este tamaño.",
+  "Your arrow over everything": "Tu flecha por encima de todo",
+  "Draw your own arrow above every other addon's icons and pins on the map.": "Dibuja tu propia flecha por encima de los íconos y marcadores de cualquier otro addon en el mapa."
 }

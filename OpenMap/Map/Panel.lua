@@ -220,6 +220,7 @@ local function Rows()
 		optRow(L["Only places you've found"], "foundOnly", Icon("INV_Misc_Spyglass_03")),
 		optRow(L["Boat and zeppelin routes"], "routes", { atlas = "Ships_CargoShip-Map", texture = "Interface\\Icons\\INV_Misc_Spyglass_02", icon = true }),
 		optRow(L["Your arrow"], "playerArrow", { texture = "Interface\\Minimap\\MinimapArrow" }),
+		optRow(L["Your arrow over everything"], "playerArrowOnTop", { texture = "Interface\\Minimap\\MinimapArrow" }),
 		optRow(L["Party and raid members"], "group", Icon("Spell_Holy_PrayerOfFortitude")),
 		optRow(L["Friends on the map"], "friends", Icon("INV_Misc_GroupNeedMore")),
 		optRow(L["Guild members on the map"], "guild", Icon("INV_Shirt_GuildTabard_01")),
@@ -1524,6 +1525,12 @@ function mod:SetupPanel(worldMap)
 		fmt = "%d%%", show = function(v) return math.floor(v * 100 + 0.5) end,
 		tip = L["OpenMap's icons on the map at this size: dungeons, flight masters, boats, townsfolk, your pins. Questie's icons have their own size, in Questie's options."] })
 	menu.extraRows[#menu.extraRows + 1] = made.iconSize
+	made.arrowSize = SliderRow(sliders, COL, { label = L["Arrow size"], icon = { texture = "Interface\\Minimap\\MinimapArrow" }, range = mod.ARROW_SCALE,
+		get = function() return mod.db.playerArrowScale or 1 end,
+		set = function(v) mod.db.playerArrowScale = v mod:Refresh() if ns.NotifyOptions then ns.NotifyOptions() end end,
+		fmt = "%d%%", show = function(v) return math.floor(v * 100 + 0.5) end,
+		tip = L["Your own arrow on the world map at this size."] })
+	menu.extraRows[#menu.extraRows + 1] = made.arrowSize
 	for _, s in ipairs({
 		{ "windowScale", L["Map size"], Icon("INV_Misc_Spyglass_02") },
 		{ "brightness", L["Map brightness"], Icon("Spell_Shadow_DarkRitual") },
@@ -1554,7 +1561,7 @@ function mod:SetupPanel(worldMap)
 	end
 	-- each column's sliders need to move when the panel grows wider.
 	local sliderColumns = {
-		{ "zoom", "icons", "iconSize", "windowScale", "brightness", "colorMatch", "desaturate" },
+		{ "zoom", "icons", "iconSize", "arrowSize", "windowScale", "brightness", "colorMatch", "desaturate" },
 		{ "from", "minimapMix", "opacity", "darkening", "moveFade", "mapFpsCap" },
 	}
 	local function LayoutSliders()

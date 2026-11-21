@@ -555,5 +555,9 @@
  "place names and quest areas on the controller map, and it reopening as you set": "手把地圖上的地名與任務區域，以及依設定重新開啟地圖",
  "OpenMap %s is out (you have %s). Update through CurseForge.": "OpenMap %s 已推出（你的版本是 %s）。請透過 CurseForge 更新。",
  "Say when OpenMap has an update": "OpenMap 有更新時提示",
- "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "當好友、公會成員或隊伍成員使用較新版本的 OpenMap 時，聊天視窗會提示一行，每次登入一次。你的版本只隨 OpenMap 本來就會傳給他們的訊息送出。關閉後不會提示，也不會送出你的版本。"
+ "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "當好友、公會成員或隊伍成員使用較新版本的 OpenMap 時，聊天視窗會提示一行，每次登入一次。你的版本只隨 OpenMap 本來就會傳給他們的訊息送出。關閉後不會提示，也不會送出你的版本。",
+  "Arrow size": "箭頭大小",
+  "Your own arrow on the world map at this size.": "世界地圖上你自己的箭頭依此大小顯示。",
+  "Your arrow over everything": "箭頭置於最上層",
+  "Draw your own arrow above every other addon's icons and pins on the map.": "將你自己的箭頭繪製在地圖上所有其他插件的圖示和標記之上。"
 }

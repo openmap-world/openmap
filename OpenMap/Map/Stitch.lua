@@ -1354,7 +1354,8 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	-- (on a frame of its own, so it can be lifted over every icon: S.RaiseArrow)
 	arrow = CreateFrame("Frame", nil, pinRoot):CreateTexture(nil, "OVERLAY", nil, 7)
 	arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
-	arrow:SetSize(28, 28)
+	local ps = S.playerScale or 1
+	arrow:SetSize(28 * ps, 28 * ps)
 	arrow:Hide()
 
 	-- the sea runs on well past the world art, so a wide (or tall) view shows more ocean,
@@ -2284,9 +2285,19 @@ end
 function S.PlayerShown() return arrow ~= nil and arrow:IsShown() end
 
 -- our arrow over every icon on the map, at frame level `level` (WorldMap.lua: with Blizzard's own)
-function S.RaiseArrow(level)
+function S.RaiseArrow(level, strata)
 	local f = arrow and arrow:GetParent()
-	if f and f:GetFrameLevel() ~= level then f:SetFrameLevel(level) end
+	if not f then return end
+	if strata and f.SetFrameStrata and f:GetFrameStrata() ~= strata then f:SetFrameStrata(strata) end
+	if f:GetFrameLevel() ~= level then f:SetFrameLevel(level) end
+end
+
+function S.SetPlayerScale(k)
+	k = tonumber(k) or 1
+	if k <= 0 then k = 1 end
+	if k == (S.playerScale or 1) then return end
+	S.playerScale = k
+	if arrow then arrow:SetSize(28 * k, 28 * k) end
 end
 
 -- colour matching: the border copies move `strength` of the way to the shared

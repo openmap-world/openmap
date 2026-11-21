@@ -555,5 +555,9 @@
  "place names and quest areas on the controller map, and it reopening as you set": "Ortsnamen und Questgebiete auf der Controller-Karte, und dass sie sich wie eingestellt wieder öffnet",
  "OpenMap %s is out (you have %s). Update through CurseForge.": "OpenMap %s ist erschienen (du hast %s). Aktualisiere über CurseForge.",
  "Say when OpenMap has an update": "Bei OpenMap-Update Bescheid geben",
- "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "Hat ein Freund, Gildenmitglied oder Gruppenmitglied ein neueres OpenMap, sagt es eine Zeile im Chat, einmal pro Sitzung. Deine Version steht nur in Nachrichten, die OpenMap ihnen ohnehin schickt. Aus: Es wird nichts gesagt und deine Version wird nicht gesendet."
+ "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.": "Hat ein Freund, Gildenmitglied oder Gruppenmitglied ein neueres OpenMap, sagt es eine Zeile im Chat, einmal pro Sitzung. Deine Version steht nur in Nachrichten, die OpenMap ihnen ohnehin schickt. Aus: Es wird nichts gesagt und deine Version wird nicht gesendet.",
+  "Arrow size": "Pfeilgröße",
+  "Your own arrow on the world map at this size.": "Euer eigener Pfeil auf der Weltkarte in dieser Größe.",
+  "Your arrow over everything": "Euer Pfeil über allem",
+  "Draw your own arrow above every other addon's icons and pins on the map.": "Zeichnet Euren eigenen Pfeil über allen Symbolen und Markierungen anderer Addons auf der Karte."
 }

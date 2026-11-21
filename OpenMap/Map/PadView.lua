@@ -735,6 +735,7 @@ end
 local function Look()
 	local db = mod.db
 	S.SetPlayerHidden(db.playerArrow == false)
+	if S.SetPlayerScale then S.SetPlayerScale(db.playerArrowScale or 1) end
 	S.SetPlacesFrom(db.iconsFrom)
 	S.SetFoundOnly(db.foundOnly)
 	S.SetIconScale(db.iconScale or 1)
