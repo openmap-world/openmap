@@ -165,5 +165,112 @@ class QuestieLiftedOnOpen(unittest.TestCase):
         self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017)
 
 
+class StandaloneQuestieDBProvider(unittest.TestCase):
+    """Standalone QuestieDB (LibQuestieDB) registers through OpenMapAPI.RegisterTownsfolkProvider
+    using a single DecodeTable helper, offers the Quests tab only when quests are present, and
+    never scans all QuestieDB.Object entries for mailboxes."""
+
+    def setUp(self):
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.qdb_src = (ROOT / "OpenMap" / "Map" / "QuestieDB.lua").read_text(encoding="utf-8")
+        self.dungeons_src = (ROOT / "OpenMap" / "Map" / "Dungeons.lua").read_text(encoding="utf-8")
+        self.townsfolk_src = (ROOT / "OpenMap" / "Map" / "Townsfolk.lua").read_text(encoding="utf-8")
+
+        m_q = re.search(r"\nlocal function Questie\(\).*?\nend\n", self.dungeons_src, re.S)
+        m_qs = re.search(r"\nlocal function QuestSource\(\).*?\nend\n", self.dungeons_src, re.S)
+        assert m_q and m_qs
+
+        self.lua.execute("""
+            local provider
+            mod = { db = {} }
+            function mod.TownsfolkProvider() return provider end
+            function mod.SetTownsfolkProvider(p) provider = p end
+            function Journal() return nil end
+            function NeedRoll() return nil end
+            OpenMapAPI = {
+                registered = {},
+                RegisterTownsfolkProvider = function(owner, p)
+                    OpenMapAPI.registered[owner] = p
+                    mod.SetTownsfolkProvider(p)
+                end
+            }
+            C_Map = { GetAreaInfo = function(id) return id == 209 and "Shadowfang Keep" or nil end }
+        """)
+        self.lua.execute(
+            self.qdb_src.replace('local _, ns = ...\nlocal mod = ns.GetModule and ns:GetModule("worldmap") or ns.mod', "")
+            + "\n" + m_q.group(0) + "\n" + m_qs.group(0)
+            + "\nDungeonQuestSource = QuestSource\n"
+        )
+
+    def test_registers_provider_when_libquestiedb_present_and_questie_absent(self):
+        self.lua.execute("""
+            LibQuestieDB = {
+                Npc = {
+                    GetAllIds = function() return { [100] = true } end,
+                    Get = function(id, field) return field == "name" and "Innkeeper" or nil end,
+                },
+                Object = {
+                    Get = function() return nil end,
+                },
+                Quest = {
+                    GetAllIds = function() return { [42] = true } end,
+                    Get = function() return nil end,
+                },
+                Enum = { npcFlags = { INNKEEPER = 65536 } },
+                Support = {
+                    Get = function(name)
+                        if name == "ZoneDB" then
+                            return {
+                                private = {
+                                    areaIdToUiMapId = "return { [12] = 1429 }",
+                                    areaIdToUiMapIdOverride = { [99] = 1430 },
+                                    uiMapIdToAreaId = "return { [1429] = 12 }",
+                                    dungeons = { [209] = { "Shadowfang Keep", {} } },
+                                }
+                            }
+                        end
+                    end
+                },
+            }
+            mod.RegisterStandaloneQuestieDB()
+        """)
+        self.assertIsNotNone(self.lua.eval("OpenMapAPI.registered['QuestieDB']"))
+        self.assertEqual(self.lua.eval("mod.TownsfolkProvider().zones:GetUiMapIdByAreaId(12)"), 1429)
+        self.assertEqual(self.lua.eval("mod.TownsfolkProvider().zones:GetUiMapIdByAreaId(99)"), 1430)
+        self.assertEqual(self.lua.eval("mod.TownsfolkProvider().zones:GetAreaIdByUiMapId(1429)"), 12)
+        self.assertEqual(self.lua.eval("mod.TownsfolkProvider().zones:GetAreaIdByName('Shadowfang Keep')"), 209)
+        self.assertEqual(self.lua.eval("DungeonQuestSource()"), "questie")
+
+    def test_quests_tab_not_offered_when_provider_has_no_quests(self):
+        self.lua.execute("""
+            OpenMapAPI.RegisterTownsfolkProvider("OnlyNPCs", {
+                db = {
+                    NPCPointers = { [1] = true },
+                    npcFlags = {},
+                    QueryNPCSingle = function() end,
+                },
+                zones = { GetUiMapIdByAreaId = function() return 1429 end },
+            })
+        """)
+        self.assertIsNone(self.lua.eval("DungeonQuestSource()"))
+
+    def test_skips_when_questie_loader_or_existing_provider_present(self):
+        self.lua.execute("""
+            QuestieLoader = {}
+            LibQuestieDB = {
+                Npc = { GetAllIds = function() return {} end, Get = function() end },
+                Enum = { npcFlags = {} },
+                Support = { Get = function() return { private = { areaIdToUiMapId = {} } } end },
+            }
+            mod.RegisterStandaloneQuestieDB()
+        """)
+        self.assertIsNone(self.lua.eval("OpenMapAPI.registered['QuestieDB']"))
+
+    def test_no_object_scan_for_mailboxes_and_single_decode_helper(self):
+        self.assertNotIn("obj.GetAllIds", self.townsfolk_src)
+        self.assertNotIn("DecodeTable", self.townsfolk_src)
+        self.assertNotIn("DecodeZoneTable", self.dungeons_src)
+
+
 if __name__ == "__main__":
     unittest.main()

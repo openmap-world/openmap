@@ -70,6 +70,10 @@ function mod.SetTownsfolkProvider(p)
 	mod:RefreshTownsfolk()
 end
 
+function mod.TownsfolkProvider()
+	return provider
+end
+
 -- whether there's a database to read: Questie's, or one given (a player's own: Questie's database
 -- without Questie)
 function mod.HasTownsfolk()

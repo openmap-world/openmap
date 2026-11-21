@@ -1506,6 +1506,10 @@ local scanning
 local dungeonOf                 -- Questie's area for part of a dungeon -> the dungeon's
 
 local function Questie()
+	local p = mod.TownsfolkProvider and mod.TownsfolkProvider()
+	if p and p.db and p.db.QuestPointers and p.db.QueryQuestSingle and p.zones and p.zones.GetDungeons then
+		return p.db, p.zones
+	end
 	local loader = _G.QuestieLoader
 	if not loader then return end
 	local ok, db = pcall(loader.ImportModule, loader, "QuestieDB")
@@ -1516,7 +1520,13 @@ end
 -- where a dungeon's quests come from: the one chosen, else the first there of Questie (listed here),
 -- Dungeon Journal and NeedRoll (opened at them); nil with none
 local function QuestSource()
-	local have = { questie = _G.QuestieLoader ~= nil, journal = Journal() ~= nil, needroll = NeedRoll() ~= nil }
+	local db, zones = Questie()
+	local hasProviderQuests = db ~= nil and zones ~= nil and zones:GetDungeons() ~= nil and next(db.QuestPointers) ~= nil
+	local have = {
+		questie = _G.QuestieLoader ~= nil or hasProviderQuests,
+		journal = Journal() ~= nil,
+		needroll = NeedRoll() ~= nil,
+	}
 	local want = mod.db.questSource
 	if have[want] then return want end
 	return have.questie and "questie" or have.journal and "journal" or have.needroll and "needroll" or nil

@@ -19,7 +19,7 @@
 ## Version: @project-version@
 ## SavedVariables: OpenMapDB
 ## SavedVariablesPerCharacter: OpenMapCharDB
-## OptionalDeps: Questie, Leatrix_Maps, BetterMaps, HighFidelityWorldMap, HiddenMaps, Mapster, Magnify
+## OptionalDeps: Questie, QuestieDB, Leatrix_Maps, BetterMaps, HighFidelityWorldMap, HiddenMaps, Mapster, Magnify
 ## Category: Map
 ## X-Category: Map
 ## X-License: MIT (code); map art is Blizzard's
@@ -105,5 +105,6 @@ Map\Welcome.lua
 
 # For other addons (docs/api.md)
 API.lua
+Map\QuestieDB.lua
 
 Init.lua
