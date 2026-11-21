@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Secret-safe player position reads**: player position lookups in the map views, dungeon
+  entrances, flight path overlays, and controller view now route through `Safe.PlayerPos` and guard
+  vector reads against secret values, preventing Lua errors in combat or restricted instances. By
+  gOOvER.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved

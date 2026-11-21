@@ -2292,10 +2292,11 @@ function mod:Entrance(name)
 		ns:Print(L["Stand in the portal and say which: /openmap entrance Dire Maul - East (the name as OpenMap lists it)."])
 		return
 	end
-	local mapID = C_Map.GetBestMapForUnit and Safe.Call(C_Map.GetBestMapForUnit, "player")
-	local pos = mapID and C_Map.GetPlayerMapPosition(mapID, "player")
-	local x, y = Safe.XY(pos)
-	local ok, cont, world = pcall(C_Map.GetWorldPosFromMapPos, mapID, pos)
+	local mapID, x, y, pos = Safe.PlayerPos()
+	local ok, cont, world
+	if pos then
+		ok, cont, world = pcall(C_Map.GetWorldPosFromMapPos, mapID, pos)
+	end
 	local wx, wy = Safe.XY(world)
 	if not (x and ok and wx and S.Rect(mapID)) then
 		ns:Print(L["Where you are isn't on the world map here."])

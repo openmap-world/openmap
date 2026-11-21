@@ -251,11 +251,8 @@ local function Step(inward)
 end
 
 local function UpdatePlayer()
-	local best = C_Map.GetBestMapForUnit("player")
-	local pos = best and S.Rect(best) and C_Map.GetPlayerMapPosition(best, "player")
-	local x, y
-	if pos then x, y = ns.Safe.XY(pos) end
-	if ns.Safe.IsSecret(x) or ns.Safe.IsSecret(y) or not (x and y) then S.SetPlayer(nil) return end
+	local best, x, y = ns.Safe.PlayerPos()
+	if not (best and S.Rect(best) and x and y) then S.SetPlayer(nil) return end
 	local l, r, t, b = S.Rect(best)
 	S.SetPlayer(l + x * (r - l), t + y * (b - t), ns.Safe.Call(GetPlayerFacing))
 end
@@ -863,13 +860,10 @@ end
 -- the view to open on: where it was, else around you, your zone filling it
 local function FirstView()
 	UpdatePlayer()
-	local best = C_Map.GetBestMapForUnit("player")
+	local best, x, y = ns.Safe.PlayerPos()
 	local l, r, t, b
 	if best then l, r, t, b = S.Rect(best) end
-	local pos = best and C_Map.GetPlayerMapPosition(best, "player")
-	local x, y
-	if pos then x, y = ns.Safe.XY(pos) end
-	if l and x and y and not ns.Safe.IsSecret(x) and not ns.Safe.IsSecret(y) then
+	if l and x and y then
 		u, v = l + x * (r - l), t + y * (b - t)
 		local zone = best
 		while zone and not Stitchable(zone) do

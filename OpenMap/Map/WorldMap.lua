@@ -666,15 +666,12 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 	local mapID = map:GetMapID()
 
 	-- the player, when the map underneath can't show them
-	local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-	if pos then
+	local _, mx, my = ns.Safe.PlayerPos(mapID)
+	if mx and my then
 		S.SetPlayer(nil)
 	else
-		local best = C_Map.GetBestMapForUnit("player")
-		local p = best and S.Rect(best) and C_Map.GetPlayerMapPosition(best, "player")
-		local x, y
-		if p then x, y = ns.Safe.XY(p) end
-		if not ns.Safe.IsSecret(x) and not ns.Safe.IsSecret(y) and x and y then
+		local best, x, y = ns.Safe.PlayerPos()
+		if best and S.Rect(best) and x and y then
 			local u, v = ToWorld(best, x, y)
 			S.SetPlayer(u, v, ns.Safe.Call(GetPlayerFacing))
 		else

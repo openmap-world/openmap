@@ -3237,7 +3237,7 @@ cities.Build = function()
 end
 
 cities.Visited = function(mapID)
-	if C_Map.GetBestMapForUnit("player") == mapID then return true end
+	if ns.Safe.Call(C_Map.GetBestMapForUnit, "player") == mapID then return true end
 	local at = C_MapExplorationInfo.GetExploredAreaIDsAtPosition
 	local ok, areas = pcall(at, mapID, CreateVector2D(0.5, 0.5))
 	return ok and type(areas) == "table" and #areas > 0

@@ -35,6 +35,7 @@ ns.Credits = {
 		{ "bv101rj", L["Questie 12.8's icons found on the map"] },
 		{ "Rambomst", L["the quest level on OpenMap's quest icons"] },
 		{ "kr0ozin", L["place names and quest areas on the controller map, and it reopening as you set"] },
+		{ "gOOvER", L["secret-safe player position reads in combat and restricted instances"] },
 	} },
 	{ L["Map art"], {
 		{ "Blizzard Entertainment", L["the map art is the game's own"] },

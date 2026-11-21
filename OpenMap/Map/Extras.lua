@@ -133,11 +133,7 @@ local function UpdateCoords(_, elapsed)
 		return
 	end
 
-	local best = C_Map.GetBestMapForUnit("player")
-	local pos = best and C_Map.GetPlayerMapPosition(best, "player")
-	local px, py
-	if pos then px, py = ns.Safe.XY(pos) end
-	if ns.Safe.IsSecret(px) or ns.Safe.IsSecret(py) then px, py = nil, nil end
+	local _, px, py = ns.Safe.PlayerPos()
 	bar.player.at:SetText(Coord(px, py))
 
 	if sc:IsMouseOver() or mod.PadCursor() then
