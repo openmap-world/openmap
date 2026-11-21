@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"|cff6e2c0aGerman (deDE) translations|r: added the missing strings (562/562), replaced awkward phrasing (e.g. Quill -> Zeichenstift, Floors -> Ebenen), and unified the form of address (Ihr/Euch). By gOOvER.",
+	} },
 	{ version = "v0.8.11", date = "2026-11-20", heads = { [1] = "Improved", [4] = "Fixed", [15] = "Also", }, items = {
 		"|cff6e2c0aTold when a newer OpenMap is out|r: when a friend, guild member or group member has a newer release, a line in chat says so, once a session (\"OpenMap X is out (you have Y). Update through CurseForge.\"). Your version rides only on messages OpenMap already sends them (the hello to friends who use it, your first shared place to your guild, a pin share to your group); older copies pass over it. Options' \"Say when OpenMap has an update\" turns it off, and then your version isn't sent either.",
 		"|cff6e2c0a\"The game's map\" on a dungeon's map|r: inside a dungeon, a button at the top of OpenMap's dungeon map switches to the game's own map there, and says how to turn OpenMap's back on (menu > Dungeons) (#371).",
@@ -75,9 +78,5 @@ ns.MapChangelog = {
 	} },
 	{ version = "v0.8.7", date = "2026-11-12", heads = { [1] = "Fixed", }, items = {
 		"|cff6e2c0aQuestie's icons show on the first map you open|r: with Questie 12.8, a map opened on a zone showed none of Questie's icons (their tooltips still came up) until you'd zoomed out to the continent once: icons Questie placed before the map was first opened stayed under its art (#194, #193, #195).",
-	} },
-	{ version = "v0.8.6", date = "2026-11-12", heads = { [1] = "Improved", [2] = "Fixed", }, items = {
-		"|cff6e2c0aIcons stay shown while zooming|r: \"Fade icons while zooming\" is now off for everyone, as zooming is smooth enough with them shown; turn it on again in the menu's On the map tab if you prefer it.",
-		"|cff6e2c0aQuestie's icons show again with Questie 12.8|r: Questie 12.8 brings its map icons a new way (its own module, with a new name), which OpenMap didn't know, so they were left off the map; and each icon Questie drew again sank under the map's art, so they faded away one by one. Older Questie versions work as before (#18). With bv101rj. Questie 12.8 hides its objective icons (mobs to kill, items to loot) until you turn them on: /questie, Icon Options, Objectives.",
 	} },
 }

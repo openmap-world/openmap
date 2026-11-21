@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **German (`deDE`) translations**: added the missing strings (562/562), replaced awkward phrasing
+  (e.g. `Quill` -> `Zeichenstift`, `Floors` -> `Ebenen`), and unified the form of address
+  (`Ihr`/`Euch`). By gOOvER.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved
