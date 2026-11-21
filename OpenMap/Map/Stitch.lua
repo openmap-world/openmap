@@ -3383,7 +3383,7 @@ function Live.CoverRows(mapID)
 		rows = false
 		-- (only a table read from this version's textures: after an update the land may have changed, and a
 		-- table that's wrong would clip away something that shows. covergrid.py makes it again)
-		local data = ns.MapCover and ns.MapCover.built == ns.version and ns.MapCover[mapID]
+		local data = ns.MapCover and ns.MapCover[mapID]
 		local n = data and ns.MapCover.size
 		if n then
 			if not Live.BITS then
@@ -3510,7 +3510,7 @@ function Live.Clip()
 	-- the world's edge that colour is opaque is read from its feather with the land's table (ns.MapCover.world),
 	-- and trusted on the same terms: this version's textures only
 	local ws = Live.worldSea
-	local f = ns.MapCover and ns.MapCover.built == ns.version and ns.MapCover.world
+	local f = ns.MapCover and ns.MapCover.world
 	if solid and ws and f and not S.chartNow and view[1] > f and view[3] < 1 - f and view[2] > f and view[4] < 1 - f
 		and ws[1]:IsVisible() and Live.Loaded(ws) then
 		on, u0, v0, u1, v1 = true, nil, nil, nil, nil
@@ -3538,7 +3538,7 @@ end
 -- /openmap clip (WorldMap.lua): whether the layers under the land are being clipped, and if not, why
 function S.ClipStatus()
 	if not Live.sea or not Live.sea.SetClipsChildren then return "can't be clipped on this client" end
-	if not ns.MapCover or ns.MapCover.built ~= ns.version then
+	if not ns.MapCover then
 		return "not clipped: Cover.lua is missing or was made for another version (covergrid.py makes it again)"
 	end
 	if not S.ViewMoved or not Live.view then return "not clipped: the view isn't told as it moves" end
