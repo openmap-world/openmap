@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- Dungeon maps use the regular breadcrumb for location and floor selection. Use World Map or Dungeon Map to switch views.
+  The World Map choice is saved per character across reloads and dungeon visits until you choose Dungeon Map.
+  The switch sits beside the corner controls, with a small inset when the corner is clear.
+
+- The quest log toggle sits beside the player coordinates in both map modes, clear of the resize grip.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved

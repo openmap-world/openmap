@@ -23,6 +23,7 @@ d.mapFpsCap = 0                 -- the frame rate at most while the map shows (t
 d.zoomHidePins = false          -- other addons' icons (Questie's ...) hidden while the map zooms (off from v0.8.6)
 
 local map, sc, bar
+local dungeonCoordsHidden = false
 local labelProvider                     -- Blizzard's area label
 
 local function SetCVarSafe(name, value)
@@ -122,6 +123,13 @@ local function Coord(x, y)
 	return ("%.1f, %.1f"):format(x * 100, y * 100)
 end
 
+-- Only the label affects the pill's width. The numbers have their own box.
+local function FitPill(fs)
+	local width = math.floor(fs:GetStringWidth() + NUMBERS + 30.5)
+	local pill = fs:GetParent()
+	if pill.omWidth ~= width then pill.omWidth = width pill:SetWidth(width) end
+end
+
 local throttle = 0
 local function UpdateCoords(_, elapsed)
 	throttle = throttle + elapsed
@@ -149,13 +157,8 @@ local function UpdateCoords(_, elapsed)
 	else
 		bar.cursor:GetParent():Hide()
 	end
-	-- a pill's width changes with its name only, never with the numbers (they sit in a box of their own)
-	bar.omPills = bar.omPills or { bar.player, bar.cursor }   -- (not a new table each tick)
-	for _, fs in ipairs(bar.omPills) do
-		local w = math.floor(fs:GetStringWidth() + NUMBERS + 30.5)
-		local pill = fs:GetParent()
-		if pill.omWidth ~= w then pill.omWidth = w pill:SetWidth(w) end
-	end
+	FitPill(bar.player)
+	FitPill(bar.cursor)
 end
 
 -- a label: black, a thin bronze edge; its name in gold, then its numbers in a box of their own
@@ -176,18 +179,23 @@ local function Pill(parent, label)
 	fs.at:SetWidth(NUMBERS)
 	fs.at:SetJustifyH("RIGHT")
 	ns.Look:Font(fs.at, 12)
+	FitPill(fs)
 	return pill, fs
 end
 
--- the labels' place: the bottom-right corner, left of whatever Blizzard keeps there (the quest log's
--- button; Window.lua's, full screen)
+local function QuestToggleLeft()
+	if not map then return end
+	local toggle = map.IsMaximized and map:IsMaximized() and mod.maxLogToggle or map.SidePanelToggle
+	return toggle and toggle:IsShown() and toggle:GetLeft()
+end
+
+-- The labels sit left of the quest toggle and any other small overlays in the corner.
 local function PlaceCoords()
 	if not bar then return end
 	local right, bottom = sc:GetRight(), sc:GetBottom()
-	local x = 8
-	local frames = { mod.maxLogToggle }
-	for _, f in ipairs(map.overlayFrames or {}) do frames[#frames + 1] = f end
-	for _, f in ipairs(frames) do
+	local questLeft = QuestToggleLeft()
+	local x = right and questLeft and math.max(8, right - questLeft + 6) or 8
+	for _, f in ipairs(map.overlayFrames or {}) do
 		local fl, fb, fr = f:IsShown() and f:GetLeft(), f:GetBottom(), f:GetRight()
 		if fl and right and fb and fr and bottom and right - fr < 40 and fb - bottom < 40 and fr - fl < 220 then
 			x = math.max(x, right - fl + 6)
@@ -198,14 +206,42 @@ local function PlaceCoords()
 end
 mod.PlaceCoords = PlaceCoords
 
--- the labels' left edge (Panel.lua's favourites stop short of it), nil while they're hidden
-function mod.CoordsLeft()
-	if not bar or not bar:IsShown() then return end
-	local left
-	for _, pill in ipairs({ bar:GetChildren() }) do
-		if pill:IsShown() and pill:GetLeft() then left = math.min(left or math.huge, pill:GetLeft()) end
-	end
+-- The draggable tab rail reserves the player label without following the cursor label.
+function mod.BottomControlsLeft(includeCursor)
+	local left = QuestToggleLeft()
+	if not bar or not bar:IsShown() then return left end
+	local cursor = bar.cursor:GetParent()
+	local pillLeft = includeCursor and cursor:IsShown() and cursor:GetLeft() or bar.player:GetParent():GetLeft()
+	if pillLeft then return math.min(left or math.huge, pillLeft) end
 	return left
+end
+
+function mod.HoldsCoordCVars()
+	return mod.db.coords or dungeonCoordsHidden
+end
+
+local function ApplyCoordsVisibility()
+	if not bar or loggingOut then return end
+	local wasShown = bar:IsShown()
+	local shown = mod.db.coords and not dungeonCoordsHidden or false
+	bar:SetShown(shown)
+	if dungeonCoordsHidden then
+		bar.player.at:SetText("")
+		bar.cursor:GetParent():Hide()
+	end
+	-- Keep the game's labels off while we supply our own or hide dungeon coordinates.
+	local hold = mod.HoldsCoordCVars()
+	for _, name in ipairs(COORDS) do
+		if hold then HoldCVar(name, "0") else LetGoCVar(name) end
+	end
+	if wasShown ~= shown and map:IsShown() and mod.RefreshPanel then mod:RefreshPanel() end
+end
+
+function mod.SetDungeonCoordsHidden(onDungeon)
+	local hidden = ns.Client == "Forever" and onDungeon or false
+	if hidden == dungeonCoordsHidden then return end
+	dungeonCoordsHidden = hidden
+	ApplyCoordsVisibility()
 end
 
 local function SetUpCoords()
@@ -225,12 +261,7 @@ local function SetUpCoords()
 		sc:HookScript("OnSizeChanged", PlaceCoords)
 		if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", PlaceCoords) end
 	end
-	bar:SetShown(mod.db.coords)
-	-- Blizzard's own coordinates (another addon may have turned them on) would double ours; ours off,
-	-- the player's own setting for them comes back
-	for _, name in ipairs(COORDS) do
-		if mod.db.coords then HoldCVar(name, "0") else LetGoCVar(name) end
-	end
+	ApplyCoordsVisibility()
 end
 
 --------------------------------------------------------------------------------

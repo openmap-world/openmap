@@ -202,8 +202,10 @@ end
 local function OnCVar(_, _, name, value)
 	if type(name) ~= "string" then return end
 	name = name:lower()
-	if name == "mapfade" and value ~= "0" then Reassert()
-	elseif (name == "worldmapshowplayercoords" or name == "worldmapshowcursorcoords") and value ~= "0" and mod.db.coords then Reassert() end
+	if value == "0" then return end
+	if name == "mapfade" or ((name == "worldmapshowplayercoords" or name == "worldmapshowcursorcoords") and mod.HoldsCoordCVars()) then
+		Reassert()
+	end
 end
 
 -- once, at login: the options of theirs that still fight OpenMap's window or coordinates

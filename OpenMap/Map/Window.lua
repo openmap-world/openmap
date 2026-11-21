@@ -41,7 +41,6 @@ local function MoveAnyOn()
 	local ok, on = pcall(loaded, "MoveAny")
 	return ok and on and true or false
 end
-mod.MoveAnyOn = MoveAnyOn
 
 -- ClassicUI Forever's World map option lays the map window out itself, every frame: a corner or the
 -- title bar dragged was put straight back (the drag did nothing), and in combat it fades parts of the map.
@@ -165,25 +164,53 @@ local function OverIcons()
 	return math.min(map.ScrollContainer:GetFrameLevel() + 9000, 9900)
 end
 
--- a resize grip in one of the window's bottom corners: any width and height, the top edge and
--- the far side staying put. In the window's outer corner (clear of Blizzard's quest log button
--- just inside the right one), over everything there; its catch reaches well past the window's
--- edge, and only a little in over the map
+-- A grip resizes from its corner, with the top edge and the far side staying put.
 local GRIP, GRIP_OUT, GRIP_IN = 20, 10, 4
 -- the right one, while the quest log is beside the map: bigger, and over the quest log (Blizzard's HIGH
 -- strata, over the map's own), whose scroll bar's bottom arrow was in that corner and took the clicks
--- (the arrows are lifted clear: SetupQuestLog). Without it the map's own corner is there, with
--- Blizzard's quest log button: the grip as it was, under that
+-- (the arrows are lifted clear: SetupQuestLog).
 local GRIP_RIGHT, GRIP_RIGHT_IN = 30, 10
+local GRIP_CORNER_HIT = 16
+local QUEST_TOGGLE_X, QUEST_TOGGLE_Y = -2, 1
+
 local function FitRightGrip()
 	local g = grip and grip[1]
 	if not g then return end
+	if InCombatLockdown() then afterCombat = true return end
 	local log = map.QuestLog and map.QuestLog:IsShown()
 	local size, inside = log and GRIP_RIGHT or GRIP, log and GRIP_RIGHT_IN or GRIP_IN
+	local inset = -inside
+	local level = log and 9990 or OverIcons() + 1
+	local toggle = map.SidePanelToggle
+	local canvas = toggle and toggle:IsShown() and map.GetCanvasContainer and map:GetCanvasContainer()
+	if canvas then
+		local edge, right = canvas:GetRight(), map:GetRight()
+		if not edge or not right or edge + QUEST_TOGGLE_X > right + 1 - size - inside then
+			-- Reserve the outer corner for dragging and leave the toggle's center clickable.
+			size, inset = GRIP, GRIP - GRIP_CORNER_HIT
+			local open, close = toggle.OpenButton, toggle.CloseButton
+			local highest = math.max(toggle:GetFrameLevel(), open and open:GetFrameLevel() or 0, close and close:GetFrameLevel() or 0)
+			level = math.min(10000, math.max(level, highest + 1))
+		end
+	end
 	g:SetSize(size, size)
-	g:SetHitRectInsets(-inside, -GRIP_OUT, -inside, -GRIP_OUT)
+	g:SetHitRectInsets(inset, -GRIP_OUT, inset, -GRIP_OUT)
 	g:SetFrameStrata(log and "HIGH" or map:GetFrameStrata())
-	g:SetFrameLevel(log and 9990 or OverIcons() + 1)
+	g:SetFrameLevel(level)
+end
+
+local function PlaceQuestToggle()
+	local toggle = map.SidePanelToggle
+	local canvas = map.GetCanvasContainer and map:GetCanvasContainer()
+	if not toggle or not canvas then return end
+	if InCombatLockdown() then afterCombat = true return end
+	local p, rel, rp, x, y = toggle:GetPoint(1)
+	if toggle:GetNumPoints() == 1 and p == "BOTTOMRIGHT" and rel == canvas
+		and rp == "BOTTOMRIGHT" and x == QUEST_TOGGLE_X and y == QUEST_TOGGLE_Y then return end
+	toggle:ClearAllPoints()
+	toggle:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", QUEST_TOGGLE_X, QUEST_TOGGLE_Y)
+	if mod.PlaceCoords then mod.PlaceCoords() end
+	if mod.RefreshPanel and map:IsShown() then mod:RefreshPanel() end
 end
 
 local function Grip(corner)
@@ -271,7 +298,11 @@ function mod:SetupWindow(worldMap)
 	ns.RegisterEvent(windowOwner, "PLAYER_REGEN_ENABLED", function()
 		if not afterCombat then return end
 		afterCombat = false
-		if map:IsShown() then if Maximized() then FillScreen() else Apply() end end
+		if map:IsShown() then
+			if Maximized() then FillScreen() else Apply() end
+			PlaceQuestToggle()
+			FitRightGrip()
+		end
 		if classicMap then AskClassicMap() end
 	end)
 	-- Enhance QoL's Mover (World Map) sizes and places the map too, and the two fight over its scale (a
@@ -390,7 +421,7 @@ function mod:SetupWindow(worldMap)
 		mod.ChatOverMap()
 		if handle then handle:SetShown(not max) end
 		for _, g in ipairs(grip) do g:SetShown(not max) end
-		if max then FillScreen() else Apply() end
+		if max then FillScreen() else Apply() FitRightGrip() end
 	end
 	if map.Maximize then hooksecurefunc(map, "Maximize", Mode) end
 	if map.Minimize then hooksecurefunc(map, "Minimize", Mode) end
@@ -428,49 +459,29 @@ function mod:SetupWindow(worldMap)
 	if map.UpdateMaximizedSize then hooksecurefunc(map, "UpdateMaximizedSize", function() if Maximized() then FillScreen() end end) end
 	map:HookScript("OnShow", Mode)
 	for _, g in ipairs(grip) do g:SetFrameLevel(OverIcons() + 1) end
-	FitRightGrip()
+	if map.UpdateSpacerFrameAnchoring then
+		hooksecurefunc(map, "UpdateSpacerFrameAnchoring", FitRightGrip)
+	end
 	SetupQuestLog()
-	if moveAny then
-		-- Keep the resize grip in the bottom-right corner: put the quest toggle at
-		-- the bottom of the right-hand tab rail, above the coordinate labels.
-		local function PlaceQuestToggle()
-			local toggle = map.SidePanelToggle
-			local canvas = map.GetCanvasContainer and map:GetCanvasContainer()
-			if not toggle or not canvas or InCombatLockdown() then return end
-			local windowed = not Maximized()
-			local x, y = -2, windowed and 46 or 1
-			local p, rel, rp, ox, oy = toggle:GetPoint(1)
-			if toggle:GetNumPoints() == 1 and p == "BOTTOMRIGHT" and rel == canvas
-				and rp == "BOTTOMRIGHT" and ox == x and oy == y then return end
-			toggle:ClearAllPoints()
-			toggle:SetPoint("BOTTOMRIGHT", canvas, "BOTTOMRIGHT", x, y)
-			if mod.PlaceCoords then mod.PlaceCoords() end
-		end
-		map:HookScript("OnShow", PlaceQuestToggle)
-		if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", PlaceQuestToggle) end
-		if map.SetDisplayState then hooksecurefunc(map, "SetDisplayState", PlaceQuestToggle) end
-		if map.Maximize then hooksecurefunc(map, "Maximize", PlaceQuestToggle) end
-		if map.Minimize then hooksecurefunc(map, "Minimize", PlaceQuestToggle) end
-		if map.QuestLog then
-			map.QuestLog:HookScript("OnShow", PlaceQuestToggle)
-			map.QuestLog:HookScript("OnHide", PlaceQuestToggle)
-		end
-		PlaceQuestToggle()
+	for _, method in ipairs({ "SetDisplayState", "Maximize", "Minimize" }) do
+		if map[method] then hooksecurefunc(map, method, PlaceQuestToggle) end
 	end
 	-- Blizzard's buttons on the map over its icons and the dungeon view (the quest log's button among
 	-- them); and that button's arrows turned (Blizzard's point the other way): the log comes in from
 	-- the right, so in is ◀ and away is ▶
-	local function Buttons()
+	local function RefreshOverlayButtons()
+		PlaceQuestToggle()
 		local over = OverIcons() + 2
 		for _, f in ipairs(map.overlayFrames or {}) do
 			if f.GetFrameLevel and f:GetFrameLevel() < over then f:SetFrameLevel(over) end
 		end
+		FitRightGrip()
 		TurnArrows(map.SidePanelToggle)
 		TurnArrows(mod.maxLogToggle)
 	end
-	Buttons()
-	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", Buttons) end
-	map:HookScript("OnShow", Buttons)
+	RefreshOverlayButtons()
+	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", RefreshOverlayButtons) end
+	map:HookScript("OnShow", RefreshOverlayButtons)
 end
 
 --------------------------------------------------------------------------------
@@ -573,13 +584,14 @@ SetupQuestLog = function()
 	LiftBar(_G.QuestMapDetailsScrollFrame and _G.QuestMapDetailsScrollFrame.ScrollBar)
 	local bg = scroll and scroll.Background
 	if bg and bg.SetPoint then bg:SetPoint("BOTTOMLEFT", scroll, "BOTTOMLEFT", 0, 0) end
-	if not Log() then return end
+	local log = Log()
+	if not log then return end
 	StretchDetails()
 	-- Blizzard's collapse / expand button for it, in the view's bottom-right corner, hidden while
 	-- full screen: a copy of it (its own template, so it looks and turns the same) there instead
 	local toggle
 	if map.GetCanvasContainer and pcall(function() toggle = CreateFrame("Frame", nil, map, "WorldMapSidePanelToggleTemplate") end) and toggle and toggle.Refresh then
-		toggle:SetPoint("BOTTOMRIGHT", map:GetCanvasContainer(), "BOTTOMRIGHT", -2, 1)
+		toggle:SetPoint("BOTTOMRIGHT", map:GetCanvasContainer(), "BOTTOMRIGHT", QUEST_TOGGLE_X, QUEST_TOGGLE_Y)
 		toggle:SetFrameLevel(math.min(map.ScrollContainer:GetFrameLevel() + 9300, 9950))
 		toggle.OnClick = function(self) mod.ToggleMaxQuestLog() self:Refresh() end   -- (its buttons call this)
 		-- (open or not: the log OpenMap shows over the map, not Blizzard's side panel, which is never open here)
@@ -595,6 +607,7 @@ SetupQuestLog = function()
 		if not toggle then return end
 		toggle:SetShown(Maximized() and true or false)
 		if toggle:IsShown() then toggle:Refresh() end
+		if mod.PlaceCoords then mod.PlaceCoords() end
 	end
 	-- after Blizzard settles the map's state (opening, maximizing): put it back if it's wanted
 	if map.SetDisplayState then
@@ -605,13 +618,19 @@ SetupQuestLog = function()
 	end
 	if map.Maximize then hooksecurefunc(map, "Maximize", ShowToggle) end
 	if map.Minimize then hooksecurefunc(map, "Minimize", ShowToggle) end
-	Log():HookScript("OnShow", function() if toggle and toggle:IsShown() then toggle:Refresh() end FitRightGrip() end)
-	Log():HookScript("OnHide", function() if toggle and toggle:IsShown() then toggle:Refresh() end FitRightGrip() end)
+	local function QuestLogChanged()
+		if toggle and toggle:IsShown() then toggle:Refresh() end
+		FitRightGrip()
+		PlaceQuestToggle()
+	end
+	log:HookScript("OnShow", QuestLogChanged)
+	log:HookScript("OnHide", QuestLogChanged)
 	-- leaving full screen: hidden first (Blizzard only widens the window for a quest log it shows itself)
 	local mm = map.BorderFrame and map.BorderFrame.MaximizeMinimizeFrame
 	local minimize = mm and mm.MinimizeButton
 	if minimize then minimize:HookScript("OnMouseDown", function() ShowMaxLog(false) end) end
 	map:HookScript("OnHide", function() ShowMaxLog(false) end)
+	ShowToggle()
 end
 
 --------------------------------------------------------------------------------

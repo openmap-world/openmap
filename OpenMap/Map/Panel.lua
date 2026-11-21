@@ -546,12 +546,11 @@ local function PlaceToggle()
 	toggle:SetPoint("BOTTOMLEFT", sc, "BOTTOMLEFT", x, BAR_Y)
 end
 
--- the room left for favourites: rightward to the coordinates in the bottom-right corner (Extras.lua),
--- or the map's right edge
+-- Leave the coordinates and quest toggle at the other end of the bottom edge.
 local function Room()
 	local sr, fl = sc:GetRight(), favBar:GetLeft()
 	if not (sr and fl) then return math.huge end   -- (not laid out yet: the next refresh trims it)
-	local limit = (mod.CoordsLeft and mod.CoordsLeft()) or sr
+	local limit = (mod.BottomControlsLeft and mod.BottomControlsLeft(true)) or sr
 	return limit - 8 - fl
 end
 
@@ -598,7 +597,6 @@ local RAIL_MAIN = { 40, 42 }    -- the OpenMap tab: out from the edge, along it 
 local RAIL_FAV = { 32, 34 }     -- a favourite's
 local RAIL_GAP, RAIL_ARROW = 3, 16
 local RAIL_END = 44             -- kept clear at each end of an edge (the quest log button, the coordinates)
-local RAIL_QUEST_ROOM = 40      -- right side: room below the tabs for the windowed quest log toggle
 local RAIL_DEFAULT = { edge = "right", at = 0 }   -- (low on the right, past the end kept clear)
 local DUNGEON_TABS = 2 * 42 + 3 -- a dungeon map's two tabs, along the right edge
 local VERTICAL = { left = true, right = true }
@@ -737,13 +735,16 @@ RefreshRail = function()
 	-- the OpenMap tab where it was put, kept off the edge's ends; the favourites the way along it
 	-- there's more room (on the right edge, less a dungeon map's tabs while they show)
 	local half = RAIL_MAIN[2] / 2
-	-- Move the entire tab stack up when the quest toggle sits beneath it.
-	-- Other edges and the fullscreen layout keep their existing positions.
-	local questRoom = (edge == "right" and map.IsMaximized and not map:IsMaximized() and mod.MoveAnyOn and mod.MoveAnyOn()) and RAIL_QUEST_ROOM or 0
-	local s0 = math.max(RAIL_END + questRoom + half, math.min(len - RAIL_END - half, (pos.at or 0) * len))
-	local dir = (len - s0 >= s0) and 1 or -1
+	local finish = len - RAIL_END
+	if edge == "bottom" and mod.BottomControlsLeft then
+		local left, limit = sc:GetLeft(), mod.BottomControlsLeft()
+		if left and limit then finish = math.min(finish, limit - left - 6) end
+	end
+	local s0 = math.max(RAIL_END + half, math.min(finish - half, (pos.at or 0) * len))
+	local before, after = s0 - RAIL_END, finish - s0
+	local dir = (after >= before) and 1 or -1
 	local reserve = (edge == "right" and mod.DungeonTabsShown and mod.DungeonTabsShown()) and (DUNGEON_TABS + 12) or 0
-	local reach = (dir > 0 and (len - s0) or s0) - RAIL_END - reserve
+	local reach = math.max(before, after) - reserve
 	SizeFor(rail.main, edge, RAIL_MAIN)
 	OnEdge(rail.main, edge, s0)
 	local at = half                             -- (from the OpenMap tab's middle to the stack's far end)
@@ -751,8 +752,9 @@ RefreshRail = function()
 		OnEdge(f, edge, s0 + dir * (at + RAIL_GAP + along / 2))
 		at = at + RAIL_GAP + along
 	end
-	rail.arrow:SetShown(#list > 0)
-	if #list > 0 then
+	local arrowFits = edge ~= "bottom" or at + RAIL_GAP + RAIL_ARROW <= reach
+	rail.arrow:SetShown(#list > 0 and arrowFits)
+	if #list > 0 and arrowFits then
 		SizeFor(rail.arrow, edge, { RAIL_FAV[1], RAIL_ARROW })
 		Next(rail.arrow, RAIL_ARROW)
 	end
