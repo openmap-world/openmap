@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Windowed resize & quest log spacer anchoring**: resizing the windowed map from a small size no
+  longer jumps to the top-left corner (`Clamp` now updates before `SetSize`), and `Apply`,
+  corner resize, and quest log toggles now refresh `UpdateSpacerFrameAnchoring` before refitting
+  the canvas. By gOOvER.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved
