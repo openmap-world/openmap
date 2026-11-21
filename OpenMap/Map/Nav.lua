@@ -276,6 +276,7 @@ local pinArmed = false
 function mod.PinMode() return pinArmed end
 function mod.SetPinMode(on)
 	pinArmed = on and true or false
+	if mod.SyncBlizzardPin then mod.SyncBlizzardPin(pinArmed) end
 	if mod.OnPinMode then mod.OnPinMode(pinArmed) end
 end
 function mod.ClearPin() ClearPin() end         -- (the waypoint: no longer followed)

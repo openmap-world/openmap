@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **Blizzard map-pin button**: clicking Blizzard's native map-pin ("place marker") button in the
+  top-left corner of the world map now arms OpenMap's pin mode and drops a waypoint on click
+  across the stitched map (#324). By gOOvER.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved
