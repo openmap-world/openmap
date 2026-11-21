@@ -134,22 +134,40 @@ class InstanceTests(unittest.TestCase):
         """)
 
     def test_events_apply_with_map_closed_and_on_login(self):
-        block = re.search(r'\tfor _, event in ipairs\(\{ "PLAYER_ENTERING_WORLD".*?\n\tmod:RefreshInstancePins\(\)', WORLD, re.S).group()
+        block = re.search(r'\tfor _, event in ipairs\(\{ "PLAYER_ENTERING_WORLD".*?\n\tmod.NoteDungeonWing\(\)', WORLD, re.S).group()
         self.lua.execute("""
             events = {}
+            ns.Client = 'Forever'
+            local wingChecks, samples, wingEvent, initialLogin, reloading = 0, 0
+            function mod.SampleDungeonPortal() samples = samples + 1 end
+            function mod.NoteDungeonWing(event, initial, reload)
+                wingChecks = wingChecks + 1
+                wingEvent, initialLogin, reloading = event, initial, reload
+            end
             self = { instancePinsEvents = {} }
             function ns.RegisterEvent(owner, event, fn) events[event] = fn end
+            local function Fire(event, ...) events[event](self.instancePinsEvents, event, ...) end
             inside, kind = true, 'party'
         """ + block + """
             Check(true)
+            assert(wingChecks == 1, 'did not check the wing at login')
             for _, event in ipairs({ 'PLAYER_ENTERING_WORLD', 'ZONE_CHANGED_NEW_AREA', 'ZONE_CHANGED', 'ZONE_CHANGED_INDOORS' }) do
                 inside, kind = false, 'none'
-                events[event]()
+                Fire(event)
+                assert(wingEvent == event, 'wing check did not receive ' .. event)
                 Check(false)
                 inside, kind = true, 'pvp'
-                events[event]()
+                Fire(event)
                 Check(true)
             end
+            assert(wingChecks == 9, 'did not check the wing on each instance and zone event')
+            Fire('LOADING_SCREEN_ENABLED')
+            assert(samples == 1 and wingChecks == 9, 'loading screen did not capture the portal')
+            Fire('PLAYER_ENTERING_WORLD', false, true)
+            assert(wingEvent == 'PLAYER_ENTERING_WORLD' and initialLogin == false and reloading == true,
+                'wing check did not receive the world-entry flags')
+            Fire('LOADING_SCREEN_DISABLED')
+            assert(samples == 1 and wingEvent == 'LOADING_SCREEN_DISABLED', 'loading screen did not check entry')
         """)
 
 
