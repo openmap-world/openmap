@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
+		"With Move Any enabled, dragging a bottom resize grip keeps the top of the map in place.",
+	} },
 	{ version = "v0.8.11", date = "2026-11-20", heads = { [1] = "Improved", [3] = "Fixed", }, items = {
 		"|cff6e2c0aTold when a newer OpenMap is out|r: when a friend, guild member or group member has a newer release, a line in chat says so, once a session (\"OpenMap X is out (you have Y). Update through CurseForge.\"). Your version rides only on messages OpenMap already sends them (the hello to friends who use it, your first shared place to your guild, a pin share to your group); older copies pass over it. Options' \"Say when OpenMap has an update\" turns it off, and then your version isn't sent either.",
 		"|cff6e2c0a\"The game's map\" on a dungeon's map|r: inside a dungeon, a button at the top of OpenMap's dungeon map switches to the game's own map there, and says how to turn OpenMap's back on (menu > Dungeons) (#371).",
@@ -49,10 +52,5 @@ ns.MapChangelog = {
 	} },
 	{ version = "v0.8.6", date = "2026-11-12", heads = { [1] = "Improved", }, items = {
 		"|cff6e2c0aIcons stay shown while zooming|r: \"Fade icons while zooming\" is now off for everyone, as zooming is smooth enough with them shown; turn it on again in the menu's On the map tab if you prefer it.",
-	} },
-	{ version = "v0.8.5", date = "2026-11-12", heads = { [1] = "New", [3] = "Fixed", }, items = {
-		"|cff6e2c0aOpenMap's map with a controller|r (the game's Gamepad UI; a test, off until you turn it on in Options: \"OpenMap's map with the Gamepad UI (test)\"): the seamless map with the Gamepad UI on, where OpenMap leaves the world map to Blizzard. OpenMap draws its map over Blizzard's, so the controller's buttons keep working and B closes the map. The left stick moves the cursor (at the edge it pans), the right stick zooms about it, A zooms in or presses what's under the cursor, X zooms out or closes what's open, and pressing the left stick puts the waypoint there. Off (the default): Blizzard's map with the Gamepad UI, as before. If you play with a controller, try it and tell us how it goes (#57). By FlyingPenguin98.",
-		"|cff6e2c0aReopen the map on your zone|r (the menu's More tab, Reopen map: \"Center on your zone\"): the map opens on the whole zone you're in, in the middle, wherever you stand in it (#143).",
-		"|cff6e2c0a\"Darken unexplored areas\" keeps its soft edges up close|r: once the minimap's detail shows, the shade was hard-edged rectangles; it now has each unexplored area's own shape, as further out (#101, #129).",
 	} },
 }

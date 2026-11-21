@@ -1,5 +1,11 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- With Move Any enabled, dragging a bottom resize grip keeps the top of the map in place.
+
 ## v0.8.11 (2026-11-20)
 
 ### Improved

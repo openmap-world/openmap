@@ -242,13 +242,22 @@ local function Grip(corner)
 		local dx = (x - start.x) / s
 		local w = math.max(MIN_W, start.w + (left and -dx or dx))
 		local h = math.max(MIN_H, start.h - (y - start.y) / s)
+		local oldW, oldH = map:GetSize()
+		if w == oldW and h == oldH then return end
 		ours = true
-		if not moveAny then
+		if moveAny then
+			-- Offset the live anchor as the window grows, without triggering Move Any's SetPoint hook.
+			local point = map:GetPoint(1)
+			if point then
+				local across = point:match("LEFT") and 0 or (point:match("RIGHT") and 1 or 0.5)
+				local down = point:match("TOP") and 0 or (point:match("BOTTOM") and 1 or 0.5)
+				map:AdjustPointsOffset((across - (left and 1 or 0)) * (w - oldW), -down * (h - oldH))
+			end
+		else
 			map:ClearAllPoints()
 			-- (offsets in the map's own units, as GetLeft gives)
 			map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left and start.right - w or start.left, start.top)
 		end
-		-- Move Any owns the frame anchor; change dimensions only to avoid a mover fight.
 		map:SetSize(w, h)
 		ours = false
 		if mod.FollowResize then mod.FollowResize() end
