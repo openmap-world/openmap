@@ -161,14 +161,19 @@ end
 local function ApplyLevels()
 	local _, _, pu = mod.CursorWorld()
 	if not pu or pu <= 0 then return end
+	local set = S.GetPinSet("routes")
 	for _, route in ipairs(routes) do
+		local on = KindOn(route)
 		for level = 1, LEVELS do
 			local px = STEP / 2 ^ (level - 1) / pu
 			local a = level == 1 and 1 or Smooth(px, SHOW_PX)
+			local f = route.levels[level]
+			-- (only when it changes: this runs on every frame of a pan or zoom, for every level of every route)
+			if f.omA ~= a then f.omA = a f:SetAlpha(a) end
 			-- a level faded out is hidden too: at alpha 0 its dots (the finest has
-			-- eight times the sparsest's) were still drawn and laid out on every frame of a zoom
-			route.levels[level]:SetAlpha(a)
-			route.levels[level]:SetShown(a > 0.003)
+			-- eight times the sparsest's) were still drawn and laid out on every frame of a zoom.
+			-- Hidden (and with its kind's switch off), its dots' anchors let go of the map as well: S.SetDotsShown
+			S.SetDotsShown(set, f, a > 0.003 and on)
 		end
 	end
 end
@@ -266,6 +271,7 @@ function S.RefreshRoutes()
 		route.frame:SetShown(on)
 		if not on and route == lit then Light(nil) end
 	end
+	if #routes > 0 then ApplyLevels() end           -- (a kind's levels hidden or shown with it)
 end
 
 tinsert(S.viewHooks, function() if #routes > 0 then ApplyLevels() end end)

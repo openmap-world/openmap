@@ -145,7 +145,15 @@ local function Fade(region, a)
 	if region.omFade == a then return end
 	region.omFade = a
 	region:SetAlpha(a)
-	region:SetShown(a > 0.003)
+	local on = a > 0.003
+	region:SetShown(on)
+	-- (a placed texture gone lets go of its anchor too, as the zones' do: the world's and the continents'
+	-- art, faded out from the zones' zoom on, was still laid out on every frame of a pan or zoom. See Live)
+	local rec = region.omRec
+	if rec and (rec.off or false) == on then
+		rec.off = not on
+		if on then S.PlaceRecord(rec) else region:ClearAllPoints() end
+	end
 end
 
 -- The zones' art baked into world tiles (ns.MapZoneArt, render.py --bake-zones): at the settings it
@@ -178,13 +186,23 @@ end
 -- pan or zoom the game lays out again everything anchored to it, hidden or not: thousands of hidden
 -- textures cost as much as the art on screen. masks: mapID -> its masks' records in those layers;
 -- placed: mapID -> whether they're anchored now; seen: whether the zone detail shows at all
-local Live = { masks = {}, placed = {}, seen = false }
+local Live = { masks = {}, placed = {}, seen = false, shown = {} }
 function Live.Under(f)
 	while f do
 		if f == tilesRoot or f == overlayRoot or f == coreRoot then return true end
 		f = f:GetParent()
 	end
 	return false
+end
+-- each tile of a layer (its textures' records) near the view only, shown and anchored there as the zones' are
+-- (S.Cull): the gaps' finer maps and painted fills were shown whole, every tile, while any of one was near.
+-- Their files are their layer's to ask for (noLoad)
+function Live.CullTiles(recs)
+	for _, rec in ipairs(recs) do
+		if rec[1]:GetObjectType() == "Texture" then
+			culled[#culled + 1] = { rec[1], rec[2] / W, rec[3] / H, (rec[2] + rec[4]) / W, (rec[3] + rec[5]) / H, noLoad = true }
+		end
+	end
 end
 
 -- the zone detail layers' alpha: the zoom fade, less the softening and underground
@@ -229,7 +247,13 @@ local function ApplyDetail()
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
 	tilesRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)   -- (each zone's own, above, where they come in by continent)
-	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
+	-- (each only when it changes: this runs every frame while the baked tiles ease out, d the same throughout)
+	for _, tex in ipairs(gapFill) do
+		if tex.omA ~= d then
+			tex.omA = d
+			tex:SetAlpha(d)
+		end
+	end
 	overlayRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
 	-- under the faint hint from further out they'd hardly show, over both continents at once
@@ -318,11 +342,21 @@ function S.Stitched(mapID, host)
 	return world.kind[mapID] ~= nil or mapID == WORLD, world.kind[mapID]
 end
 
--- the map's art size (its canvas units)
+-- the map's art size (its canvas units), kept while the map keeps the art it has: the view's place is worked
+-- out from it several times a frame while the map is open (the cursor's place, the coordinates, the routes),
+-- and the game makes a table of tables for each asking
+-- (S.artSizes, not a local: the file is at Lua's limit of 200)
+S.artSizes = {}
 local function ArtSize(mapID)
+	local art = mapID and C_Map.GetMapArtID and C_Map.GetMapArtID(mapID)
+	local c = art and S.artSizes[mapID]
+	if c and c.art == art then return c[1], c[2], c[3] end
 	local layers = C_Map.GetMapArtLayers(mapID)
 	local layer = layers and layers[1]
-	if layer then return layer.layerWidth, layer.layerHeight, layer end
+	if layer then
+		if art then S.artSizes[mapID] = { layer.layerWidth, layer.layerHeight, layer, art = art } end
+		return layer.layerWidth, layer.layerHeight, layer
+	end
 end
 S.ArtSize = ArtSize
 
@@ -534,7 +568,8 @@ local function PlaceBackdrop(parent, mapID, drawLayer, feather)
 		for i = n + 1, #backdrop do
 			local tex, rec = backdrop[i], backdrop[i].omRec
 			if ns.ClientMaps.cullBackdrop then
-				culled[#culled + 1] = { tex, rec[2] / W, rec[3] / H, (rec[2] + rec[4]) / W, (rec[3] + rec[5]) / H, layer = parent }
+				culled[#culled + 1] = { tex, rec[2] / W, rec[3] / H, (rec[2] + rec[4]) / W, (rec[3] + rec[5]) / H,
+					layer = parent == Live.low and contRoot or parent }   -- (the continents' layer: it's what fades in)
 			end
 		end
 		return
@@ -566,6 +601,8 @@ local function PlaceLand(mapID)
 	Record(field, p.left, p.top, w, h)
 	field:AddMaskTexture(mask)
 	landFill[#landFill + 1] = field
+	Live.land = Live.land or {}
+	Live.land[mapID] = { field, mask, frame = contRoot }   -- (what hides the sea and the continents' art under it: Live.Clip)
 	-- the grain twice, at sizes and offsets that don't line up, so over a wide stretch
 	-- of plain land it never shows a repeat
 	for _, o in ipairs(GRAIN_OCTAVES) do
@@ -604,19 +641,20 @@ local function PlaceLand(mapID)
 					tex:AddMaskTexture(land)
 					tex:AddMaskTexture(mask)
 					gapFill[#gapFill + 1] = tex
-					culled[#culled + 1] = { tex, x / W, y / H, (x + size) / W, (y + size) / H }
+					-- (its land mask let go with the first of the two off the view: S.Cull)
+					culled[#culled + 1] = { tex, x / W, y / H, (x + size) / W, (y + size) / H, mask = n == 1 and land.omRec or nil }
 				end
 			end
 		end
 	end
 
 	-- its coastal wave strokes: two octaves through the coastal band, between the
-	-- continent art and the land (placed by S.SetSea)
-	local coast = Feather(contRoot, p, COAST .. mapID)
+	-- continent art and the land (placed by S.SetSea); with the continent's art, under its land (Live.low)
+	local coast = Feather(Live.low, p, COAST .. mapID)
 	local l, r, t, b = S.Rect(mapID)
 	local h = { l, r, t, b, k = (r - l) * W / p.layer.layerWidth, mapID = mapID, tex = {} }
 	for i = 1, 2 do
-		local tex = contRoot:CreateTexture(nil, "ARTWORK", nil, 1)
+		local tex = Live.low:CreateTexture(nil, "ARTWORK", nil, 1)
 		tex:SetTexture(HATCH, "REPEAT", "REPEAT")
 		tex:AddMaskTexture(coast)
 		tex:Hide()
@@ -748,19 +786,27 @@ PlaceRecord = function(rec)
 	region:SetPoint("TOPLEFT", rec.rel or root, "TOPLEFT", rec[2], -rec[3])
 	region:SetSize(rec[4], rec[5])
 end
+S.PlaceRecord = PlaceRecord         -- (for Fade, above it in the file)
 
-local function Anchor(u, v)
+-- an anchor at a world point. `cell`: the pin cell it's for (PinCell); it's placed only while that cell's
+-- pins can show (Live.PlaceCell). Every anchor placed on the map is laid out again on each frame of a pan
+-- or zoom, hidden as it is, and whatever hangs from it with it: for the icons of the whole world, off the
+-- view or in a set that isn't showing, that was most of what a pan cost
+local function Anchor(u, v, cell)
 	local a = tremove(anchorPool) or root:CreateTexture(nil, "BACKGROUND")
 	a:SetAlpha(0)
 	a:Hide()        -- (hidden, not only see-through: a shown one is laid out and drawn on every zoom frame)
 	local rec = { a, u, v, 0.01, 0.01 }
 	dynamic[a] = rec
-	PlaceRecord(rec)
+	a.omCell = cell
+	if cell then cell.anchors[a] = true end
+	if not cell or cell.placed ~= false then PlaceRecord(rec) else a:ClearAllPoints() end
 	return a
 end
 
 local function DropAnchor(a)
 	dynamic[a] = nil
+	if a.omCell then a.omCell.anchors[a] = nil a.omCell = nil end
 	a:ClearAllPoints()
 	anchorPool[#anchorPool + 1] = a
 end
@@ -802,21 +848,46 @@ S.Look = Look
 local PIN_CELL = 0.04           -- world (normalized)
 local cullBox                   -- the last view S.Cull saw, with its margin: { u0, v0, u1, v1 }
 local NONE = {}                 -- (an empty list to loop over, kept: not a new one a frame)
-local function PinCell(set, u, v)
+-- a cell's anchors placed while what's in it can show: the cell near the view, its set showing, and (a cell
+-- of dots, S.AddDot) the frame the dots are on showing. Otherwise they let go of the map: see Anchor
+-- (on Live, not a local: the file is at Lua's limit of 200)
+function Live.PlaceCell(set, cell)
+	-- (near the view as S.Cull last had it, cell.near: until its first pass, the map not yet up, none are placed)
+	local on = cell.near == true and set.shownNow ~= false and (not cell.owner or cell.owner.omOn ~= false)
+	if cell.placed == on then return end
+	cell.placed = on
+	for a in pairs(cell.anchors) do
+		if on then PlaceRecord(dynamic[a]) else a:ClearAllPoints() end
+	end
+end
+-- owner: a frame in the set the cell is for (a route's level, S.AddDot): its own cells, shown and faded with it
+local function PinCell(set, u, v, owner)
 	local i, j = math.floor(u / PIN_CELL), math.floor(v / PIN_CELL)
 	set.cells = set.cells or {}
 	local key = i * 4096 + j
+	if owner then                               -- (keyed apart from the set's own cells, and from other owners')
+		if not owner.omBase then
+			set.owners = (set.owners or 0) + 1
+			owner.omBase, owner.omCells = set.owners * 16777216, {}
+		end
+		key = key + owner.omBase
+	end
 	local cell = set.cells[key]
 	if not cell then
-		cell = CreateFrame("Frame", nil, set.frame)
-		cell:SetAllPoints(set.frame)
-		cell:SetFrameLevel(set.frame:GetFrameLevel())
+		local parent = owner or set.frame
+		cell = CreateFrame("Frame", nil, parent)
+		cell:SetAllPoints(parent)
+		cell:SetFrameLevel(parent:GetFrameLevel())
 		cell.u0, cell.v0 = i * PIN_CELL, j * PIN_CELL
+		cell.anchors, cell.owner = {}, owner
 		set.cells[key] = cell
+		if owner then owner.omCells[#owner.omCells + 1] = cell end
 		if cullBox then                         -- (until the next view change: judged against the last)
 			cell.here = cell.u0 + PIN_CELL > cullBox[1] and cell.u0 < cullBox[3] and cell.v0 + PIN_CELL > cullBox[2] and cell.v0 < cullBox[4]
+			cell.near = cell.here
 			cell:SetShown(cell.here)
 		end
+		Live.PlaceCell(set, cell)
 	end
 	return cell
 end
@@ -835,11 +906,12 @@ function S.AddPin(set, u, v, look, data)
 		pin:SetScript("OnMouseUp", function(self, button) if S.OnPinMouseUp then S.OnPinMouseUp(self, button) end end)
 	end
 	local size = look.size or 16
-	pin:SetParent(PinCell(set, u, v))
+	local cell = PinCell(set, u, v)
+	pin:SetParent(cell)
 	pin:SetSize(size, size)
 	pin:SetScale(S.iconScale or 1)           -- (the menu's Icon size: S.SetIconScale)
 	pin:SetFrameLevel(set.frame:GetFrameLevel())
-	pin.anchor = Anchor(u * W, v * H)
+	pin.anchor = Anchor(u * W, v * H, cell)
 	pin:ClearAllPoints()
 	pin:SetPoint("CENTER", pin.anchor, "TOPLEFT")
 	pin.u, pin.v, pin.data, pin.look = u, v, data, look
@@ -859,16 +931,21 @@ end
 -- Move the existing anchor so the button keeps its mouseover state.
 function S.MovePin(set, pin, u, v)
 	if pin.u == u and pin.v == v then return end
-	local rec = dynamic[pin.anchor]
+	local a = pin.anchor
+	local rec = dynamic[a]
 	rec[2], rec[3] = u * W, v * H
-	PlaceRecord(rec)
 	pin.u, pin.v = u, v
 
 	local cell = PinCell(set, u, v)
-	if cell ~= pin:GetParent() then
+	if cell ~= a.omCell then
+		if a.omCell then a.omCell.anchors[a] = nil end
+		a.omCell = cell
+		cell.anchors[a] = true
 		pin:SetParent(cell)
 		pin:SetFrameLevel(set.frame:GetFrameLevel())
 	end
+	-- (placed only while its cell's pins can show: Live.PlaceCell)
+	if cell.placed ~= false then PlaceRecord(rec) else a:ClearAllPoints() end
 end
 
 -- a line between two world points (normalized), `thickness` px on screen
@@ -915,14 +992,27 @@ end
 -- a plain dot (a texture, not a button: routes have hundreds) at a world point (normalized),
 -- on the set's frame or `parent` (a frame in it)
 function S.AddDot(set, u, v, size, look, r, g, b, a, parent)
-	local dot = (parent or set.frame):CreateTexture(nil, "ARTWORK")
+	-- (in a cell of the world, as the pins are: S.Cull hides the cells off the view, and a hidden cell's
+	-- anchors let go of the map. The routes' dots are thousands, along every sea of the world: all of them
+	-- shown, each with its anchor, they were laid out on every frame of a pan or zoom wherever the view was)
+	local cell = PinCell(set, u, v, parent)
+	local dot = cell:CreateTexture(nil, "ARTWORK")
 	S.Look(dot, look)
 	dot:SetVertexColor(r, g, b, a)
 	dot:SetSize(size, size)
-	local anchor = Anchor(u * W, v * H)
+	local anchor = Anchor(u * W, v * H, cell)
 	dot:SetPoint("CENTER", anchor, "TOPLEFT")
 	set.anchors[#set.anchors + 1] = anchor
 	return dot
+end
+
+-- a frame of dots in a set (a route's level, Routes.lua) shown or hidden: hidden, its dots' anchors let go too
+function S.SetDotsShown(set, frame, shown)
+	shown = shown and true or false
+	if frame.omOn == shown then return end
+	frame.omOn = shown
+	frame:SetShown(shown)
+	for _, cell in ipairs(frame.omCells or NONE) do Live.PlaceCell(set, cell) end
 end
 
 do
@@ -981,7 +1071,12 @@ local function ShowSets()
 			set.build = nil
 			build(set)
 		end
-		if set.shownNow ~= shown then set.shownNow = shown set.frame:SetShown(shown) end
+		if set.shownNow ~= shown then
+			set.shownNow = shown
+			set.frame:SetShown(shown)
+			-- (a set that isn't showing lets go of its anchors, and takes them up again as it shows: Live.PlaceCell)
+			for _, cell in pairs(set.cells or NONE) do Live.PlaceCell(set, cell) end
+		end
 	end
 end
 
@@ -1330,8 +1425,18 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	root:SetSize(1, 1)
 	root:SetFrameLevel(artLevel)
 	S.chartHost = { parent, artLevel - 1 }   -- (the sea chart's frame, Chart.lua: under all of the art)
-	contRoot = Layer(artLevel + 1)
-	tilesRoot = Layer(artLevel + 2)
+	-- What lies under the continents' land, on frames of its own that can be clipped (Live.Clip): the sea's
+	-- outer colour and mottling (Live.out, a level down: under the world's sea colour, which hides them all
+	-- over the world's middle), the sea and the world's art (Live.sea), and the continents' art and wave
+	-- strokes (Live.low, in the continents' layer and fading with it, a level under their land). Each keeps
+	-- its place in the order: the levels are theirs alone
+	Live.out = Layer(artLevel - 1)
+	Live.sea = Layer(artLevel)
+	contRoot = Layer(artLevel + 2)
+	Live.low = CreateFrame("Frame", nil, contRoot)
+	Live.low:SetAllPoints(root)
+	Live.low:SetFrameLevel(artLevel + 1)
+	tilesRoot = Layer(artLevel + 3)
 	overlayRoot = Layer(artLevel + range - 16)
 	coreRoot = Layer(artLevel + range - 15)
 	blurRoot = Layer(artLevel + range - 14)   -- (its copies take the next 4 levels)
@@ -1351,6 +1456,11 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	pinRoot:SetAllPoints(view)
 	pinRoot:SetFrameLevel(iconLevel)
 	if pinRoot.SetClipsChildren then pinRoot:SetClipsChildren(true) end
+	-- where a zone texture near the view, but not in it, waits (Live.Park): a spot on the view, far off the
+	-- screen, that doesn't move with the map
+	Live.park = CreateFrame("Frame", nil, view)
+	Live.park:SetPoint("TOPLEFT", view, "TOPRIGHT", 20000, 0)
+	Live.park:SetSize(4, 4)
 	-- (on a frame of its own, so it can be lifted over every icon: S.RaiseArrow)
 	arrow = CreateFrame("Frame", nil, pinRoot):CreateTexture(nil, "OVERLAY", nil, 7)
 	arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
@@ -1364,7 +1474,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	-- (a client whose art paints its own sea, ns.ClientMaps.sea false: none of OpenMap's, only the
 	-- colour of its world art's sea past its edges)
 	local seaOn = not (ns.ClientMaps and ns.ClientMaps.sea == false)
-	local sea = root:CreateTexture(nil, "BACKGROUND", nil, -8)
+	local sea = Live.out:CreateTexture(nil, "BACKGROUND", nil, -8)
 	if seaOn then
 		sea:SetTexture(SEA_FIELD_OUT, nil, nil, "LINEAR")
 	else
@@ -1376,7 +1486,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	-- ns.MapPaperOut, territory.py)
 	local paperOut = not seaOn and ns.MapPaperOut
 	if paperOut then
-		local tex, k = root:CreateTexture(nil, "BACKGROUND", nil, -7), paperOut[1]
+		local tex, k = Live.out:CreateTexture(nil, "BACKGROUND", nil, -7), paperOut[1]
 		tex:SetTexture(PAPER, "REPEAT", "REPEAT")
 		tex:SetVertexColor(paperOut[2], paperOut[3], paperOut[4], 1)
 		Record(tex, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
@@ -1384,7 +1494,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	end
 	local outer = {}
 	for i, file in ipairs(seaOn and { SEA_DARK, SEA_LIGHT } or NONE) do
-		local tex = root:CreateTexture(nil, "BACKGROUND", nil, -7)
+		local tex = Live.out:CreateTexture(nil, "BACKGROUND", nil, -7)
 		tex:SetTexture(file, "REPEAT", "REPEAT")
 		Record(tex, -SEA_REACH * W, -SEA_REACH * H, (1 + 2 * SEA_REACH) * W, (1 + 2 * SEA_REACH) * H)
 		outer[i] = tex
@@ -1396,17 +1506,22 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		local p = Place(mapID)
 		if p then
 			local w, h = p.layer.layerWidth * p.sx, p.layer.layerHeight * p.sy
-			local field = root:CreateTexture(nil, "BACKGROUND", nil, mapID == WORLD and -6 or -5)
+			local field = Live.sea:CreateTexture(nil, "BACKGROUND", nil, mapID == WORLD and -6 or -5)
 			field:SetTexture(SEA_FIELD .. mapID, nil, nil, "LINEAR")
 			Record(field, p.left, p.top, w, h)
-			local fade = Feather(root, p, FEATHER_WIDE)
+			local fade = Feather(Live.sea, p, FEATHER_WIDE)
 			field:AddMaskTexture(fade)
-			if mapID == WORLD then S.chartMasks = { fade } else tinsert(S.chartOff, field) end
+			if mapID == WORLD then
+				S.chartMasks = { fade }
+				Live.worldSea = { field, fade }         -- (what hides the sea's outer colour and mottling: Live.Clip)
+			else
+				tinsert(S.chartOff, field)
+			end
 		end
 	end
 	-- and its mottling over that, dark and light, in two octaves
 	for i = 1, seaOn and 4 or 0 do
-		local tex = root:CreateTexture(nil, "BACKGROUND", nil, -5 + i)
+		local tex = Live.sea:CreateTexture(nil, "BACKGROUND", nil, -5 + i)
 		tex:SetTexture(i % 2 == 1 and SEA_DARK or SEA_LIGHT, "REPEAT", "REPEAT")
 		tex:Hide()
 		seaPaper[i] = tex
@@ -1414,7 +1529,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	local nb, ns_ = #backdrop, #backdropSea
 	S.Pace()
 	-- (to its own torn edge where a client has its outline, MapBackLand: territory.py)
-	local worldMask = PlaceBackdrop(root, WORLD, "BACKGROUND", not (ns.MapBackLands and ns.MapBackLands[WORLD]) and FEATHER_WIDE or nil)
+	local worldMask = PlaceBackdrop(Live.sea, WORLD, "BACKGROUND", not (ns.MapBackLands and ns.MapBackLands[WORLD]) and FEATHER_WIDE or nil)
 	if S.chartMasks and worldMask then S.chartMasks[#S.chartMasks + 1] = worldMask end
 	-- past its edges, the continents' own sea (their compass roses, ship and sea serpent)
 	-- carries it on, as part of the world's sea (not under the sea chart: its sea does)
@@ -1423,8 +1538,8 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		S.Pace()
 		local p, files = Place(info.mapID), ArtFiles(info.mapID)
 		if p and files and #files > 0 and S.Stitched(info.mapID) and seaOn then
-			PlaceTiles(root, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, "BACKGROUND", 0, false,
-				Feather(root, p, SEA_OUT .. info.mapID), backdropSea, false)
+			PlaceTiles(Live.sea, p, files, 0, 0, p.layer.layerWidth, p.layer.layerHeight, "BACKGROUND", 0, false,
+				Feather(Live.sea, p, SEA_OUT .. info.mapID), backdropSea, false)
 		end
 	end
 	S.chartSeaOut = {}
@@ -1434,7 +1549,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	for _, info in ipairs(C_Map.GetMapChildrenInfo(WORLD, Enum.UIMapType.Continent, true) or {}) do
 		S.Pace()
 		if S.Stitched(info.mapID) then
-			PlaceBackdrop(contRoot, info.mapID, "ARTWORK", FEATHER_WIDE)
+			PlaceBackdrop(Live.low, info.mapID, "ARTWORK", FEATHER_WIDE)
 			if seaOn then PlaceLand(info.mapID) end   -- (its land kept as land over OpenMap's sea)
 		end
 	end
@@ -1476,8 +1591,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	end)
 	for _, label in ipairs(ns.MapLabels or {}) do
 		local f = CreateFrame("Frame", nil, namesFrame)
-		f:SetPoint("TOPLEFT")
-		f:SetSize(1, 1)
+		f:SetSize(1, 1)                             -- (placed as it shows: names.Show)
 		f:Hide()
 		-- its box on the world (normalized), for S.Cull: its lines, with room for a name set wider
 		-- than the art's line (another language's) and for its halo
@@ -1505,7 +1619,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		area[info.mapID] = l and (r - l) * (b - t) or 0
 	end
 	table.sort(zones, function(a, b) return area[a.mapID] > area[b.mapID] end)
-	local level = artLevel + 2
+	local level = artLevel + 3
 	for _, info in ipairs(zones) do
 		S.Pace()
 		-- (a zone, or a city: as its client's list has it, else a zone without explored-area pieces is a city)
@@ -1555,8 +1669,12 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		local f = CreateFrame("Frame", nil, tilesRoot)
 		f:SetAllPoints(root)
 		f:SetFrameLevel(tilesRoot:GetFrameLevel())
+		local recs, was = {}, S.recCollect
+		S.recCollect = recs
 		PlaceTiles(f, p, files, 0, 0, 1002, 668, "ARTWORK", 0, false, Feather(f, p, TEX .. "MapCoastArt\\" .. name))
+		S.recCollect = was
 		culled[#culled + 1] = { f, r[1], r[3], r[2], r[4] }
+		Live.CullTiles(recs)
 	end
 
 	-- the gaps painted by hand (ns.MapGapFills, tools/map-preview/gapfills.py: land no zone map covers,
@@ -1574,7 +1692,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		f:SetAllPoints(root)
 		f:SetFrameLevel(tilesRoot:GetFrameLevel())
 		f:Hide()
-		local texs = {}
+		local texs, recs = {}, {}
 		for _, i in ipairs(list) do
 			local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
 			local pw, ph = math.min(256, fw - col * 256), math.min(256, fh - row * 256)
@@ -1583,7 +1701,9 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 			tex:SetTexCoord(0, pw / 256, 0, ph / 256)
 			Record(tex, r[1] * W + col * 256 * sx, r[2] * H + row * 256 * sy, pw * sx, ph * sy)
 			texs[#texs + 1] = tex
+			recs[#recs + 1] = tex.omRec
 		end
+		Live.CullTiles(recs)
 		f:SetScript("OnShow", function(self)
 			if self.omLoaded then return end
 			self.omLoaded = true
@@ -1744,10 +1864,7 @@ end
 -- to see what that part costs. (Textures straight on root: the sea and the world map's art)
 function S.Parts()
 	if not root then return {} end
-	local own, copies = {}, {}
-	for _, r in ipairs({ root:GetRegions() }) do
-		if r:GetObjectType() == "Texture" then own[#own + 1] = r end
-	end
+	local own, copies = { Live.out, Live.sea }, {}
 	for _, e in ipairs(twins) do copies[#copies + 1] = e[1] end
 	local L = S.closeLayers or {}
 	return {
@@ -1942,6 +2059,19 @@ end
 -- tools/offline-test/perf.py): one name a call, the rest a moment later
 -- (a field, not a local: the file is at Lua's limit of 200)
 names.perCall = 1
+-- a name shown while it's faded in and near the view. Hidden, its frame lets go of its place too: its
+-- lettering (hundreds of font strings, once it's been made) hangs from that frame, and all of it was laid
+-- out again on every frame of a pan or zoom, at every zoom, long after the names had faded out
+names.Show = function(n)
+	local f = n[1]
+	local on = n.near ~= false and (f.omFade or 0) > 0.003
+	if n.on ~= on then
+		n.on = on
+		f:ClearAllPoints()
+		if on then f:SetPoint("TOPLEFT") end
+	end
+	if f:IsShown() ~= on then f:SetShown(on) end
+end
 function S.BuildNames()
 	local left = names.perCall
 	local more = false
@@ -2006,7 +2136,7 @@ function S.SetZoom(zoom, scale)
 	for _, n in ipairs(names) do
 		local a = math.floor((fades[n[2].fade] or 0) * 100 + 0.5) / 100
 		Fade(n[1], a)
-		if n.near == false and n[1]:IsShown() then n[1]:Hide() end   -- (off the view: S.Cull)
+		names.Show(n)                               -- (off the view, hidden: S.Cull)
 	end
 	S.BuildNames()
 	Step("names")
@@ -2091,6 +2221,7 @@ function S.SetZoom(zoom, scale)
 	Step("icon sets")
 	S.PlacePlayer()
 	Step("player")
+	if Live.view then Live.Clip() end           -- (the land's fade may have changed: what's under it, clipped or not)
 end
 
 --------------------------------------------------------------------------------
@@ -2231,8 +2362,11 @@ function S.PlaceWorld(region, u0, v0, u1, v1)
 	PlaceRecord(rec)
 end
 
+-- (and it lets go of its anchor: every caller has just hidden it, to keep for later, and a hidden region
+-- still anchored is laid out again on every frame of a pan or zoom)
 function S.UnplaceWorld(region)
 	dynamic[region] = nil
+	region:ClearAllPoints()
 end
 
 -- a world point (normalized) in yards on continent 0 / 1 (the inverse of FromYards)
@@ -2932,7 +3066,7 @@ ShowZone = function(mapID)
 	local here = inView[mapID] ~= false
 	local inside = inView[mapID] == true          -- (in view and drawn: its files are wanted)
 	local hide, strength = gradeNow[3] == "hide", gradeNow[1]
-	local box = cullBox
+	local box, dbox = cullBox, Live.box
 	local z = Live.zones and Live.zones[mapID]       -- (a zone come in by its continent, ApplyDetail: not yet, not drawn)
 	local zoneOn = not z or z.on
 	for _, e in ipairs(zoneTex[mapID] or NONE) do
@@ -2953,10 +3087,13 @@ ShowZone = function(mapID)
 			Baked.busy = true
 		end
 		local show = near and drawn and not (un and hide) and (not e.twin or strength > 0)
-		if e.shown ~= show then
-			e.shown = show
+		-- (shown, it's at its place inside the draw box and parked outside it: Live.Park)
+		local close = show and (not dbox or not e.u0 or (e.u1 > dbox[1] and e.u0 < dbox[3] and e.v1 > dbox[2] and e.v0 < dbox[4]))
+		if e.shown ~= show or e.close ~= close then
+			e.shown, e.close = show, close
+			Live.shown[e] = show or nil             -- (for Live.Draw)
 			if show then
-				if not tex:GetPoint() then PlaceRecord(tex.omRec) end
+				if close then PlaceRecord(tex.omRec) else Live.Park(tex) end
 				tex:Show()
 			else
 				tex:Hide()
@@ -3054,6 +3191,12 @@ end
 local CULL = { margin = ns.ClientMaps and ns.ClientMaps.cullMargin or 0.35, keep = 0.1, zoom = 1.6 }
 function S.Cull(u0, v0, u1, v1)
 	if not root then return end
+	-- (S.ViewMoved keeps the draw box. This view is a frame older than the one it was last told, or the same:
+	-- the box is made to hold both, never moved off the newer one)
+	if Live.box then
+		local now = Live.view
+		Live.DrawBox(math.min(u0, now[1]), math.min(v0, now[2]), math.max(u1, now[3]), math.max(v1, now[4]))
+	end
 	local w, h = u1 - u0, v1 - v0
 	local box = cullBox
 	local keep = CULL.keep
@@ -3085,9 +3228,12 @@ function S.Cull(u0, v0, u1, v1)
 					r:ClearAllPoints()
 				end
 			end
+			if c.mask then                           -- (and the mask it's drawn through, its alone)
+				if here then PlaceRecord(c.mask) else c.mask[1]:ClearAllPoints() end
+			end
 			r:SetShown(here and (not c.city or (r:GetAlpha() or 1) > 0.003))   -- (a city: while it's faded in, SetZoom)
 			-- (a culled backdrop tile: its file once it's near the view and its layer shows)
-			if here and r.omFile and (not c.layer or c.layer:IsShown()) then S.QueueLoad(r) end
+			if here and r.omFile and not c.noLoad and (not c.layer or c.layer:IsShown()) then S.QueueLoad(r) end
 		end
 	end
 	Baked.Cull()
@@ -3096,7 +3242,7 @@ function S.Cull(u0, v0, u1, v1)
 		local near = not n.l or (n.r > u0 and n.l < u1 and n.b > v0 and n.t < v1)
 		if n.near ~= near then
 			n.near = near
-			n[1]:SetShown(near and (n[1].omFade or 0) > 0.003)
+			names.Show(n)
 		end
 	end
 	if Shade.on then
@@ -3110,18 +3256,302 @@ function S.Cull(u0, v0, u1, v1)
 		for _, cell in pairs(set.cells or NONE) do
 			local here = cell.u0 + PIN_CELL > u0 and cell.u0 < u1 and cell.v0 + PIN_CELL > v0 and cell.v0 < v1
 			if cell.here ~= here then
-				cell.here = here
+				cell.here, cell.near = here, here
 				cell:SetShown(here)
+				Live.PlaceCell(set, cell)       -- (off the view, its anchors let go of the map)
 			end
 		end
 	end
 	cullBox.done = true
 end
 
+-- The draw box. The zones' textures are shown, and their files asked for, out to S.Cull's box: a third of the
+-- view past it on every side, so they're in before they come into view. All of them were anchored to the map,
+-- most of them off the view, and the game lays out every anchored texture again on each frame of a pan or
+-- zoom. Now only those in the view (and CULL.draw of it round it) are anchored there. The rest wait as they
+-- were, shown and loaded, but anchored to a spot that doesn't move with the map (Live.park, far off the
+-- screen: to the game still a shown texture out of sight), and take their place as the view comes to them.
+-- S.ViewMoved keeps that right as the view moves, before the frame is drawn, so the margin can be thin.
+-- With no S.ViewMoved (the controller view, PadView.lua) there's no draw box, and every shown texture is at
+-- its place, as before.
+CULL.draw, CULL.drawKeep = 0.12, 0.04
+function Live.Park(tex)
+	tex:ClearAllPoints()
+	tex:SetAllPoints(Live.park)
+end
+function Live.Draw()
+	local box = Live.box
+	for e in pairs(Live.shown) do               -- (the textures shown now: ShowZone keeps the list)
+		if e.shown then
+			local close = not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4])
+			if e.close ~= close then
+				e.close = close
+				if close then PlaceRecord(e[1].omRec) else Live.Park(e[1]) end
+			end
+		end
+	end
+end
+function Live.DrawBox(u0, v0, u1, v1)
+	local w, h = u1 - u0, v1 - v0
+	local b, keep = Live.box, CULL.drawKeep
+	if b and w * CULL.zoom > b.w and u0 - w * keep > b[1] and u1 + w * keep < b[3]
+		and v0 - h * keep > b[2] and v1 + h * keep < b[4] then return end
+	b = b or {}
+	Live.box = b
+	local mu, mv = w * CULL.draw, h * CULL.draw
+	b[1], b[2], b[3], b[4], b.w = u0 - mu, v0 - mv, u1 + mu, v1 + mv, w
+	Live.Draw()
+end
+
+-- The view as it is now, told at once (WorldMap.lua, as Blizzard reports each pan or zoom; S.SetView and
+-- S.Cull follow on the next frame): what's anchored, and what's clipped, is right for the frame about to be
+-- drawn, not the one after
+function S.ViewMoved(u0, v0, u1, v1)
+	if not root then return end
+	local view = Live.view or {}
+	Live.view = view
+	view[1], view[2], view[3], view[4] = u0, v0, u1, v1
+	if not S.noPark then
+		Live.DrawBox(u0, v0, u1, v1)
+	elseif Live.box then                        -- (/openmap park, off: every shown texture back at its place)
+		Live.box = nil
+		for mapID in pairs(zoneTex) do ShowZone(mapID) end
+	end
+	if not Live.clipWatch then
+		-- (again a few times a second while nothing's clipped: its land's file may still be on its way in; and
+		-- every frame while something is, that the map is still drawn solid: a fade begun, a layer hidden)
+		Live.clipWatch = CreateFrame("Frame", nil, root)
+		Live.clipWatch:SetScript("OnUpdate", function(self, elapsed)
+			if Live.sea.omClip or Live.out.omClip then
+				if not Live.Solid() then Live.Clip() end
+			else
+				self.wait = (self.wait or 0) - elapsed
+				if self.wait <= 0 then
+					self.wait = 0.25
+					Live.Clip()
+				end
+			end
+		end)
+	end
+	Live.Clip()
+end
+
+--------------------------------------------------------------------------------
+-- What can't be seen isn't drawn. A continent's land (MapLand through its wide feather: Live.land) is
+-- opaque once the zones' zoom is reached, and everything drawn under it can't be seen through it: the
+-- sea's colours and mottling, the world's and the continent's own art, the wave strokes, a dozen layers
+-- the size of the view, each drawn whole on every frame. ns.MapCover (Data/<client>/Cover.lua, read
+-- from the land's own textures: covergrid.py) says where each continent's land is opaque, and those
+-- layers' frames (Live.sea, Live.low, Live.out) are clipped to the box round the part of the view it
+-- doesn't cover: to nothing, over land. Clipped, not hidden: their textures stay drawn (out of sight),
+-- so the game keeps their files, and they're back the moment the view shows the sea.
+-- The sea's outer colour and mottling (Live.out) lie under the world's sea colour too, opaque all over
+-- the world's middle (from ns.MapCover.world of its size in from each edge: MapFeatherWide's, measured by
+-- covergrid.py): there they're clipped away whatever the view shows.
+-- Only while the map is drawn solid: faded (Fade while moving), every layer shows through those over it.
+-- S.noCover turns it off (to compare: /run OpenMap.MapStitch.noCover = true, then move the map).
+--------------------------------------------------------------------------------
+
+-- a texture and the mask it's drawn through both read by the game (asked each time: the game can let a
+-- file go while the map is closed or the texture hidden, and reads it again as it shows)
+function Live.Loaded(pair)
+	local a, b = pair[1], pair[2]
+	return a.IsObjectLoaded ~= nil and a:IsObjectLoaded() and (b.IsObjectLoaded == nil or b:IsObjectLoaded()) and true or false
+end
+
+-- the map drawn solid, and the land that hides what's clipped still drawn
+function Live.Solid()
+	if S.noCover or not (root:IsVisible() and root:GetEffectiveAlpha() > 0.999) then return false end
+	if Live.sea.omClip then
+		for _, land in pairs(Live.land or NONE) do
+			if land.clips and not (land[1].omFade == 1 and land[1]:IsVisible() and land.frame:GetEffectiveAlpha() > 0.999
+				and Live.Loaded(land)) then return false end
+		end
+	elseif Live.out.omClip then                 -- (clipped by the world's sea colour alone: that still drawn)
+		local ws = Live.worldSea
+		if not (ws and ws[1]:IsVisible() and Live.Loaded(ws)) then return false end
+	end
+	return true
+end
+
+-- a continent's rows of ns.MapCover as text, a "1" each cell its land hides and a "0" each other, and the
+-- same backwards: the first and the last cell not hidden between two columns are a plain find each
+function Live.CoverRows(mapID)
+	Live.rows = Live.rows or {}
+	local rows = Live.rows[mapID]
+	if rows == nil then
+		rows = false
+		-- (only a table read from this version's textures: after an update the land may have changed, and a
+		-- table that's wrong would clip away something that shows. covergrid.py makes it again)
+		local data = ns.MapCover and ns.MapCover.built == ns.version and ns.MapCover[mapID]
+		local n = data and ns.MapCover.size
+		if n then
+			if not Live.BITS then
+				Live.BITS = {}
+				for v = 0, 15 do
+					local bits = ""
+					for b = 3, 0, -1 do bits = bits .. (math.floor(v / 2 ^ b) % 2) end
+					Live.BITS[("%x"):format(v)] = bits
+				end
+			end
+			rows = { n = n, rev = {} }
+			local none = ("0"):rep(n)
+			for j = 1, n do
+				local row = ((data[j] or ""):gsub(".", Live.BITS) .. none):sub(1, n)
+				rows[j], rows.rev[j] = row, row:reverse()
+			end
+		end
+		Live.rows[mapID] = rows
+	end
+	return rows or nil
+end
+
+-- the box (world, normalized) round the part of the view u0..u1, v0..v1 that a continent's land doesn't
+-- hide, the continent's rectangle on the world l..r, t..b; nil: its land hides all of the view.
+-- (Kept until the view touches other cells: this runs on every frame of a pan)
+function Live.Uncovered(rows, l, r, t, b, u0, v0, u1, v1)
+	local n = rows.n
+	local cw, ch = (r - l) / n, (b - t) / n
+	-- the cells the view touches (0-based; a hair generous: one it only just misses counts)
+	local i0, i1 = math.floor((u0 - l) / cw - 0.01), math.floor((u1 - l) / cw + 0.01)
+	local j0, j1 = math.floor((v0 - t) / ch - 0.01), math.floor((v1 - t) / ch + 0.01)
+	if rows.i0 == i0 and rows.i1 == i1 and rows.j0 == j0 and rows.j1 == j1 then
+		return rows.u0, rows.v0, rows.u1, rows.v1
+	end
+	rows.i0, rows.i1, rows.j0, rows.j1 = i0, i1, j0, j1
+	local x0, x1, y0, y1 = math.huge, -math.huge, math.huge, -math.huge   -- the cells not hidden: columns, rows
+	-- past the continent's own rectangle none of its land: not hidden, to the view's edge
+	if i0 < 0 or i1 >= n then
+		y0, y1 = j0, j1
+		if i0 < 0 then x0, x1 = i0, math.max(x1, math.min(i1, -1)) end
+		if i1 >= n then x0, x1 = math.min(x0, math.max(i0, n)), i1 end
+	end
+	if j0 < 0 or j1 >= n then
+		x0, x1 = i0, i1
+		if j0 < 0 then y0, y1 = math.min(y0, j0), math.max(y1, math.min(j1, -1)) end
+		if j1 >= n then y0, y1 = math.min(y0, math.max(j0, n)), j1 end
+	end
+	local a, z = math.max(i0, 0), math.min(i1, n - 1)
+	if a <= z then
+		for j = math.max(j0, 0), math.min(j1, n - 1) do
+			local first = rows[j + 1]:find("0", a + 1, true)
+			if first and first - 1 <= z then
+				local last = n - rows.rev[j + 1]:find("0", n - z, true)
+				if first - 1 < x0 then x0 = first - 1 end
+				if last > x1 then x1 = last end
+				if j < y0 then y0 = j end
+				if j > y1 then y1 = j end
+			end
+		end
+	end
+	if x1 < x0 then
+		rows.u0, rows.v0, rows.u1, rows.v1 = nil, nil, nil, nil
+	else
+		rows.u0, rows.v0, rows.u1, rows.v1 = l + x0 * cw, t + y0 * ch, l + (x1 + 1) * cw, t + (y1 + 1) * ch
+	end
+	return rows.u0, rows.v0, rows.u1, rows.v1
+end
+
+-- a frame's children clipped to a box on the world (normalized), or to nothing (no box); off: drawn whole
+function Live.SetClip(f, on, u0, v0, u1, v1)
+	if not f.SetClipsChildren then return end
+	if on and (f.omClip ~= true or f.omU0 ~= u0 or f.omV0 ~= v0 or f.omU1 ~= u1 or f.omV1 ~= v1) then
+		f.omU0, f.omV0, f.omU1, f.omV1 = u0, v0, u1, v1
+		f:ClearAllPoints()
+		if u0 then
+			f:SetPoint("TOPLEFT", root, "TOPLEFT", u0 * W, -v0 * H)
+			f:SetSize(math.max(0.01, (u1 - u0) * W), math.max(0.01, (v1 - v0) * H))
+		else                                    -- (none of it can be seen: a speck far off the world)
+			f:SetPoint("TOPLEFT", root, "TOPLEFT", -4 * W, 4 * H)
+			f:SetSize(0.01, 0.01)
+		end
+	end
+	if (f.omClip or false) ~= on then
+		f.omClip = on
+		f:SetClipsChildren(on)
+		if not on then                          -- (as it was built)
+			f:ClearAllPoints()
+			f:SetAllPoints(root)
+		end
+	end
+end
+
+function Live.Clip()
+	local view = Live.view
+	if not view or not Live.sea then return end
+	local solid = not S.noCover and root:IsVisible() and root:GetEffectiveAlpha() > 0.999
+	-- (the view a little wider than it is: its edge isn't trusted to the pixel)
+	local mu, mv = (view[3] - view[1]) * 0.02, (view[4] - view[2]) * 0.02
+	-- under the land: clipped (on) to the box round what no continent's land hides (no box: to nothing)
+	local on, u0, v0, u1, v1 = false, nil, nil, nil, nil
+	for mapID, land in pairs(solid and Live.land or NONE) do
+		local l, r, t, b = S.Rect(mapID)
+		local rows = l and Live.CoverRows(mapID)
+		-- (its land fully in, from the zones' zoom on, drawn solid, and its texture and mask read: the
+		-- files take a moment as the map first opens)
+		land.clips = rows and land[1].omFade == 1 and land[1]:IsVisible() and land.frame:GetEffectiveAlpha() > 0.999
+			and Live.Loaded(land) or false
+		if land.clips then
+			local a0, b0, a1, b1 = Live.Uncovered(rows, l, r, t, b, view[1] - mu, view[2] - mv, view[3] + mu, view[4] + mv)
+			if not on then
+				on, u0, v0, u1, v1 = true, a0, b0, a1, b1
+			elseif u0 and a0 then               -- (two continents in view: what neither's land hides)
+				u0, v0, u1, v1 = math.max(u0, a0), math.max(v0, b0), math.min(u1, a1), math.min(v1, b1)
+				if u1 <= u0 or v1 <= v0 then u0, v0, u1, v1 = nil, nil, nil, nil end
+			else
+				u0, v0, u1, v1 = nil, nil, nil, nil
+			end
+		end
+	end
+	Live.SetClip(Live.sea, on, u0, v0, u1, v1)
+	Live.SetClip(Live.low, on, u0, v0, u1, v1)
+	-- the sea's outer colour and mottling: under the land as well, and under the world's sea colour all
+	-- over its middle (not with the sea chart, which has that colour fade into it there). How far in from
+	-- the world's edge that colour is opaque is read from its feather with the land's table (ns.MapCover.world),
+	-- and trusted on the same terms: this version's textures only
+	local ws = Live.worldSea
+	local f = ns.MapCover and ns.MapCover.built == ns.version and ns.MapCover.world
+	if solid and ws and f and not S.chartNow and view[1] > f and view[3] < 1 - f and view[2] > f and view[4] < 1 - f
+		and ws[1]:IsVisible() and Live.Loaded(ws) then
+		on, u0, v0, u1, v1 = true, nil, nil, nil, nil
+	end
+	Live.SetClip(Live.out, on, u0, v0, u1, v1)
+end
+
+-- the map's alpha set (Extras.lua's fade while moving): clipped only while it's drawn solid
+function S.AlphaChanged()
+	if Live.view then Live.Clip() end
+end
+
+-- S.ViewMoved failed (WorldMap.lua): the map goes on as it did before there was one, for the session: every
+-- shown texture at its place, nothing clipped
+function S.ViewMovedOff()
+	S.ViewMoved, S.noCover = nil, true
+	Live.box, Live.view = nil, nil
+	if not root then return end
+	-- (the parked textures back first, then the clips, each on its own: whichever of them failed mustn't
+	-- keep the rest from being put right)
+	for mapID in pairs(zoneTex) do pcall(ShowZone, mapID) end
+	for _, f in ipairs({ Live.sea, Live.low, Live.out }) do pcall(Live.SetClip, f, false) end
+end
+
+-- /openmap clip (WorldMap.lua): whether the layers under the land are being clipped, and if not, why
+function S.ClipStatus()
+	if not Live.sea or not Live.sea.SetClipsChildren then return "can't be clipped on this client" end
+	if not ns.MapCover or ns.MapCover.built ~= ns.version then
+		return "not clipped: Cover.lua is missing or was made for another version (covergrid.py makes it again)"
+	end
+	if not S.ViewMoved or not Live.view then return "not clipped: the view isn't told as it moves" end
+	for _, land in pairs(Live.land or NONE) do
+		if land[1].IsObjectLoaded == nil then return "not clipped: this client can't say when a texture is loaded" end
+	end
+	return Live.sea.omClip and "clipped now" or "clipped where the land hides them (zoomed in past 7x, the map not faded)"
+end
+
 -- the culled backdrop tiles near the view, once their layer shows (the continents' art as it comes in)
 function S.LoadCulled()
 	for _, c in ipairs(culled) do
-		if c.here and c.layer and c[1].omFile and c.layer:IsShown() then S.QueueLoad(c[1]) end
+		if c.here and c.layer and c[1].omFile and not c.noLoad and c.layer:IsShown() then S.QueueLoad(c[1]) end
 	end
 end
 
@@ -3164,9 +3594,13 @@ function S.BakedMissing() return Baked.missing or 0, Baked.path end
 
 function Baked.Cull()
 	local f, box = Baked.frame, cullBox
-	if not f or not f:IsShown() then return end
+	if not f then return end
+	-- (with the live art drawn in their place the tiles are hidden, and let go of their anchors: once, here)
+	local on = f:IsShown()
+	if not on and not Baked.placed then return end
+	Baked.placed = on
 	for _, t in ipairs(Baked.tiles) do
-		local near = not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4])
+		local near = on and (not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4]))
 		if near and not t.tex then
 			t.tex = f:CreateTexture(nil, "ARTWORK")
 			local ok = t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
@@ -3187,6 +3621,7 @@ function Baked.Cull()
 		if t.tex and not t.missing and t.shown ~= near then
 			t.shown = near
 			t.tex:SetShown(near)
+			if near then PlaceRecord(t.tex.omRec) else t.tex:ClearAllPoints() end   -- (anchored while it shows: Live)
 		end
 	end
 end

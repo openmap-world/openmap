@@ -798,8 +798,25 @@ viewFrame:SetScript("OnUpdate", Ours("view update", function(self)
 	Clocked("OpenMap's view update", t0)
 	if mod.OnViewMoved then mod.OnViewMoved() end   -- (API.lua: other addons told, a few times a second at most)
 end))
+-- (and Stitch.lua is told the view at once, S.ViewMoved: what it keeps anchored and clipped round the view is
+-- put right before this frame is drawn, not on the next. Should it fail, the error is shown once and the map
+-- goes on without it, as it did before: S.ViewMovedOff)
 local function ApplyView()
-	if active then viewFrame:Show() end
+	if not active then return end
+	if S.ViewMoved and map:IsShown() then
+		local u, v, zoom = View()
+		local pu, pv = PerPx(zoom)
+		local hu, hv = sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv
+		if ns.Safe.Finite(u, v, hu, hv) then
+			local ok, err = pcall(S.ViewMoved, u - hu, v - hv, u + hu, v + hv)
+			if not ok then
+				pcall(S.ViewMovedOff)
+				S.ViewMoved = nil
+				geterrorhandler()(err)
+			end
+		end
+	end
+	viewFrame:Show()
 end
 
 local function ApplyZoom()
@@ -1570,6 +1587,20 @@ end
 function mod.HostMap() return active and map:GetMapID() or nil end
 -- the close-up layers again, for the view as it is (a setting changed)
 function mod.RefreshView() ApplyView() end
+-- /openmap clip: the layers the land hides clipped away or drawn after all, for this session (to compare the
+-- graphics card's load either way: Stitch.lua's Live.Clip)
+function mod:ToggleClip()
+	S.noCover = not S.noCover or nil
+	ApplyView()
+	ns:Print("Layers under the land: %s.", S.noCover and "all drawn (clipping off)" or S.ClipStatus and S.ClipStatus() or "clipped")
+end
+-- /openmap park: the zone art just off the view parked (not laid out again as the map moves) or left at its
+-- place, for this session (to compare panning either way: Stitch.lua's draw box)
+function mod:TogglePark()
+	S.noPark = not S.noPark or nil
+	ApplyView()
+	ns:Print("Zone art just off the view: %s.", S.noPark and "left at its place (parking off)" or "parked")
+end
 mod.FromWorld = function(mapID, u, v) return FromWorld(mapID, u, v) end
 -- the view now: centre (normalized), zoom; nil when the map isn't stitched
 function mod.ViewNow() if active then return View() end end
@@ -1811,6 +1842,7 @@ function mod:Diag()
 	ns:Print("World map: %d art regions, %d live ones; addon memory %s.", fixed, live, kb and ("%.1f MB"):format(kb / 1024) or "?")
 	if map:IsVisible() then
 		ns:Print("Drawing %d of the art's textures now; %.0f frames a second.", S.DrawnCount(), GetFramerate())
+		if S.ClipStatus then ns:Print("Layers under the land: %s.", S.noCover and "all drawn (/openmap clip)" or S.ClipStatus()) end
 	else
 		ns:Print("The map is closed: open it and run this again for what it's drawing.")
 	end

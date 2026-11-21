@@ -107,9 +107,18 @@ local function PlaceAt()
 	return mapID, x, y, x, y
 end
 
+-- (a map's name, kept: the coordinates ask for the one under the cursor twenty times a second, and the game
+-- makes a table for each asking)
+local mapNames = {}
 local function MapName(mapID)
-	local info = mapID and C_Map.GetMapInfo(mapID)
-	return info and info.name
+	if not mapID then return nil end
+	local name = mapNames[mapID]
+	if name == nil then
+		local info = C_Map.GetMapInfo(mapID)
+		name = info and info.name or false
+		mapNames[mapID] = name
+	end
+	return name or nil
 end
 
 --------------------------------------------------------------------------------
@@ -811,6 +820,8 @@ end)
 -- toward full (the game's fade is held off while ours runs): it faded for a moment, then came back. Ours is
 -- put straight back over it
 local function KeepFade(self, a)
+	-- (Stitch.lua clips what the land hides only while the map is drawn solid: told as its alpha is set)
+	if S.AlphaChanged then S.AlphaChanged() end
 	if ours or not fader:IsShown() or math.abs((a or 1) - faded) <= 0.001 then return end
 	SetFade(faded)
 end

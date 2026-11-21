@@ -1385,6 +1385,9 @@ local function Chooser()
 	chooser:SetScript("OnShow", function(self) self:RegisterEvent("GLOBAL_MOUSE_DOWN") end)
 	chooser:SetScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
 	chooser:SetScript("OnEvent", function(self) if not self:IsMouseOver() then self:Hide() end end)
+	-- (its icon gone from the map, its set hidden or its cell off the view: the list goes with it. The icon lets
+	-- go of its place then, Stitch.lua's Live.PlaceCell, and the list hangs from the icon: it would be up, unseen)
+	chooser:SetScript("OnUpdate", function(self) if self.pin and not self.pin:IsVisible() then self:Hide() end end)
 	mod.padRoots[#mod.padRoots + 1] = chooser    -- (the gamepad's cursor presses its rows: Gamepad.lua)
 	chooser:Hide()
 end

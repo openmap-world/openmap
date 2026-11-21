@@ -343,30 +343,30 @@ local function UpdateGapMinimap(conts, u, v, hu, hv, alpha)
 				for ty = ty0, ty1 do
 					local fid = list[tx * 64 + ty]
 					if fid and n < GAP_MAX and set[tx * 64 + ty] then
-						local u0, v0 = S.FromYards(cont, (32 - ty) * TILE, (32 - tx) * TILE)
-						local u1, v1 = S.FromYards(cont, (31 - ty) * TILE, (31 - tx) * TILE)
-						local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
-						do
-							n = n + 1
-							local key = TileKey(cont, tx, ty)
-							wanted[key] = true
-							local tex = gapTiles[key]
+						n = n + 1
+						local key = TileKey(cont, tx, ty)
+						wanted[key] = true
+						local tex = gapTiles[key]
+						if not tex then
+							-- (its place worked out as it's put up, not again on every frame it's in view)
+							local u0, v0 = S.FromYards(cont, (32 - ty) * TILE, (32 - tx) * TILE)
+							local u1, v1 = S.FromYards(cont, (31 - ty) * TILE, (31 - tx) * TILE)
+							local cu, cv = (u0 + u1) / 2, (v0 + v1) / 2
+							tex = tremove(pool)
 							if not tex then
-								tex = tremove(pool)
-								if not tex then
-									tex = layer:CreateTexture(nil, "ARTWORK", nil, 5)
-									tex:SetDesaturation(MINI_DESAT)
-									tex:AddMaskTexture(landMask)
-									tex.cont = cont
-								end
-								tex:SetTexture(fid, nil, nil, "LINEAR")
-								tex:SetVertexColor(Tint(GapTone(cu, cv)))
-								S.PlaceWorld(tex, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
-								tex:Show()
-								gapTiles[key] = tex
+								tex = layer:CreateTexture(nil, "ARTWORK", nil, 5)
+								tex:SetDesaturation(MINI_DESAT)
+								tex:AddMaskTexture(landMask)
+								tex.cont = cont
 							end
-							tex:SetAlpha(alpha)
+							tex:SetTexture(fid, nil, nil, "LINEAR")
+							tex:SetVertexColor(Tint(GapTone(cu, cv)))
+							S.PlaceWorld(tex, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
+							tex:Show()
+							tex.omA = nil
+							gapTiles[key] = tex
 						end
+						if tex.omA ~= alpha then tex.omA = alpha tex:SetAlpha(alpha) end   -- (only when it changes)
 					end
 				end
 			end
@@ -614,14 +614,24 @@ local function UpdateUnderground(layer, conts, u, v, hu, hv, steps)
 			end
 		end
 	end
+	-- (each only as it changes: this runs on every frame of a pan or zoom, over every cave ever shown)
 	for key, cave in pairs(caves) do
-		if cave and not shown[key] then cave.frame:Hide() end
+		if cave and not shown[key] and cave.on ~= false then
+			cave.on = false
+			cave.frame:Hide()
+		end
 	end
 	for key, t in pairs(shown) do
 		local cave = CaveFrame(layer, key)
 		if cave then
-			cave.frame:Show()
-			cave.frame:SetAlpha(t)
+			if cave.on ~= true then
+				cave.on = true
+				cave.frame:Show()
+			end
+			if cave.alpha ~= t then
+				cave.alpha = t
+				cave.frame:SetAlpha(t)
+			end
 		end
 	end
 	if not dim then
