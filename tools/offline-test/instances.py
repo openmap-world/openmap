@@ -302,20 +302,57 @@ class InstanceHostTests(unittest.TestCase):
             assert(Active() and not S.filtered and not target)
         """)
 
-    def test_the_game_s_map_button_only_inside_that_dungeon(self):
-        # (#371: on a dungeon's map, "The game's map" turns its maps inside dungeons off; shown only inside it)
-        dungeons = (ROOT / 'OpenMap/Map/Dungeons.lua').read_text(encoding='utf-8')
-        fn = re.search(r'function mod.InsideThisDungeon\(.*?\nend\n', dungeons, re.S).group()
+    def test_forever_dungeon_coordinates_are_hidden_until_back_on_the_world_map(self):
+        extras = (ROOT / 'OpenMap/Map/Extras.lua').read_text(encoding='utf-8')
+        visibility = extras[extras.index('function mod.HoldsCoordCVars()'):
+                            extras.index('local function SetUpCoords()')]
+        compat = (ROOT / 'OpenMap/Map/Compat.lua').read_text(encoding='utf-8')
+        on_cvar = compat[compat.index('local function Reassert()'):compat.index('local function Warn()')]
         self.lua.execute("""
-            local inside, here = false, 0
-            function IsInInstance() return inside end
-            function GetInstanceInfo() return nil, nil, nil, nil, nil, nil, nil, here end
-        """ + fn + """
-            assert(mod.InsideThisDungeon({ 47 }) == false, 'outside')
-            inside, here = true, 47
-            assert(mod.InsideThisDungeon({ 47 }) == true, 'inside it')
-            assert(mod.InsideThisDungeon({ 36 }) == false, 'inside another')
-            assert(mod.InsideThisDungeon({ 0, "Hall" }) == false, 'no instance ID')
+            local dungeonCoordsHidden = false
+            local COORDS = { 'worldMapShowPlayerCoords', 'worldMapShowCursorCoords' }
+            local held = {}
+            local function HoldCVar(name, value) held[name] = value end
+            local function LetGoCVar(name) held[name] = nil end
+            local cursor = { Hide = function(self) self.shown = false end }
+            local bar = {
+                shown = false,
+                IsShown = function(self) return self.shown end,
+                SetShown = function(self, shown) self.shown = shown end,
+                player = { at = { SetText = function(self, text) self.text = text end } },
+                cursor = { GetParent = function() return cursor end },
+            }
+            local map = { IsShown = function() return true end }
+            local panelStates = {}
+            function mod:RefreshPanel() table.insert(panelStates, bar:IsShown()) end
+        """ + visibility + on_cvar + """
+            mod.RefreshExtras = ApplyCoordsVisibility
+            ns.Client, mod.db.coords = 'Forever', true
+            ApplyCoordsVisibility()
+            assert(bar.shown and held[COORDS[1]] == '0' and held[COORDS[2]] == '0')
+            cursor.shown = true
+            mod.SetDungeonCoordsHidden(true)
+            assert(not bar.shown and not cursor.shown and bar.player.at.text == '')
+            mod.SetDungeonCoordsHidden(false)
+            assert(bar.shown)
+            assert(#panelStates == 3 and panelStates[1] and not panelStates[2] and panelStates[3],
+                'map controls were not laid out when the player coordinate bar changed visibility')
+
+            mod.db.coords = false
+            mod.SetDungeonCoordsHidden(true)
+            assert(not bar.shown and held[COORDS[1]] == '0' and held[COORDS[2]] == '0')
+            for _, name in ipairs(COORDS) do
+                held[name] = '1'
+                OnCVar(nil, nil, name, '1')
+                assert(held[name] == '0', 'an external setting restored ' .. name .. ' on the dungeon map')
+            end
+            mod.SetDungeonCoordsHidden(false)
+            assert(not bar.shown and not held[COORDS[1]] and not held[COORDS[2]])
+
+            ns.Client, mod.db.coords = 'Retail', true
+            ApplyCoordsVisibility()
+            mod.SetDungeonCoordsHidden(true)
+            assert(bar.shown, 'Retail lost its position readout')
         """)
 
     def test_ragefire_chasm_uses_entrance_and_orgrimmar_zoom(self):

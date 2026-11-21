@@ -40,11 +40,14 @@ local WING_FLOORS = {
 	["Scarlet Monastery - Armory"] = "Armory", ["Scarlet Monastery - Cathedral"] = "Cathedral",
 }
 local CARD_W = 270
+local CARD_X, CARD_Y = -8, ns.Client == "Forever" and -8 or -70
 
 local map, sc, chooser, card
 local entrancePins = {}
 local byMap                     -- a dungeon's map (each floor) -> { insts = { ... }, u, v (its entrance) }
 local returnTo                  -- the world as it was when a dungeon's map was opened: { u, v, zoom, maps = { [mapID] = true } }
+local nativeTrail               -- the entrance picked for the game's current dungeon map and its floors
+local mapSwitch, insideDungeon, worldChoice, worldMapID
 local away = {}                 -- maps off the stitched world a dock has opened (Zephras Isle): [mapID] = true
 local shownMap, lastMap         -- the map the window shows, and the one before it
 local hiddenAt, hiddenWith      -- when the map last closed, and the view that was up then: { inst, its entrance's u, v, the floor }
@@ -85,10 +88,15 @@ local function IsDungeonMap(mapID)
 	return info.mapType == Enum.UIMapType.Dungeon or (Index and Index()[mapID] ~= nil) or false
 end
 
+local function RealInstanceName(inst)
+	local real = GetRealZoneText and inst[1] > 0 and Safe.Call(GetRealZoneText, inst[1])
+	return real and real ~= "" and real or nil
+end
+
 -- a dungeon's map in this client (Blizzard's, found by its name), every floor of it
 local function BaseMap(inst)
-	local real = GetRealZoneText and inst[1] > 0 and Safe.Call(GetRealZoneText, inst[1])
-	return (real and real ~= "" and S.InstanceMap(real)) or S.InstanceMap(inst[2])
+	local real = RealInstanceName(inst)
+	return (real and S.InstanceMap(real)) or S.InstanceMap(inst[2])
 end
 
 local function Floors(id)
@@ -151,12 +159,11 @@ local RefreshCard
 -- The dungeon's own map, drawn here: WoW Forever's client has no dungeon maps for Blizzard's map to
 -- show, but it has their art (Data/DungeonMaps.lua, each floor's 12 tiles). Over the world map in the
 -- same window, fitted, at once; the wheel zooms about the cursor (out past its fit too) and dragging
--- pans; floors with the arrows, the list or the side panel's Floors. Out again (the world as it was,
--- never moved): right-click, Escape, Back.
+-- pans. Select a floor from the breadcrumb or the Floors tab. Right-click, Escape or World Map
+-- returns to the world.
 --------------------------------------------------------------------------------
 
 local PIC_W, PIC_H = 1002, 668  -- the picture in its 4 x 3 tiles of 256 (1024 x 768)
-local HEAD_H = 40               -- the view's bar across its top: back, the floor, close
 local HINTS = 3                 -- dungeon maps opened with the hint
 local ZOOM_OUT = 0.5            -- the furthest out the wheel goes: half its fit
 local SIDE_W = 320              -- the view's side panel: what's in the dungeon (bosses, quests, loot); the quest log's width
@@ -164,7 +171,158 @@ local LOG_TOP, LOG_BAR = 29, 22 -- the quest log's strip along its top, and its 
 local INNER_TABS = 36           -- the panel's bosses / quests / loot tabs, down from its box's top
 local TAB_W, TAB_H = 40, 42     -- a tab by the quest log, out from it by along it (WoW Forever's tab art; a little smaller)
 local NEEDROLL_URL = "https://www.curseforge.com/wow/addons/needroll"
-local view
+local view, ShowFloor
+
+local function FloorName(i)
+	local floor = view.floors[i]
+	return floor.name or (#view.floors > 1 and L["Floor %d"]:format(i)) or S.InstanceName(view.inst)
+end
+
+local function CanUseBreadcrumb()
+	return map.NavBar and map.NavBar.Refresh and _G.NavBar_Reset and _G.NavBar_AddButton and S.OpenMap and not PadView()
+end
+
+local function EntranceFor(inst)
+	for _, group in ipairs(Places().instances or {}) do
+		for _, listed in ipairs(group[4]) do
+			if listed == inst then return S.EntranceAt(group) end
+		end
+	end
+end
+
+local function DungeonTrail(inst, u, v)
+	if not CanUseBreadcrumb() then return end
+	if not u then u, v = EntranceFor(inst) end
+	return { name = RealInstanceName(inst) or inst[2], chain = S.ChainAt(u, v) }
+end
+
+-- A map opened by the game has no selected entrance. Use the ancestry its known entrances share.
+local function IndexedTrail(entry)
+	if not entry or not entry.u then return end
+	if entry.trail then return entry.trail end
+	local trail = DungeonTrail(entry.insts[1], entry.u, entry.v)
+	if not trail then return end
+	for _, inst in ipairs(entry.insts) do
+		local u, v = EntranceFor(inst)
+		if u then
+			local other = S.ChainAt(u, v)
+			for i = 2, #trail.chain do
+				if trail.chain[i] ~= other[i] then
+					for j = #trail.chain, i, -1 do trail.chain[j] = nil end
+					break
+				end
+			end
+		end
+	end
+	entry.trail = trail
+	return trail
+end
+
+local activeTrail, activeFloor, stockOverflowMenu
+local function GoToCrumb(mapID)
+	if mod.PadWaits() then
+		activeFloor = nil    -- the template removed trailing buttons before calling us
+		RefreshCard()
+		return
+	end
+	if view and view:IsShown() then view:Hide() end
+	if mapID == map:GetMapID() then RefreshCard() else S.OpenMap(mapID) end
+end
+
+local function GoToMenuCrumb(_, mapID) GoToCrumb(mapID) end
+
+local function ParentCrumbs(button)
+	local list = WorldMapNavBarButtonMixin.GetDropdownList(button)
+	for _, entry in ipairs(list) do entry.func = GoToMenuCrumb end
+	return list
+end
+
+local function DungeonCrumb(trail, onView, selected)
+	local floors = onView and view.floors or Floors(selected)
+	if #floors < 2 then return { name = trail.name } end
+	local function SelectFloor(_, id)
+		if onView then
+			if view:IsShown() and view.floors == floors then ShowFloor(id) end
+		elseif activeTrail == trail and map:GetMapID() ~= id and not mod.PadWaits() then
+			S.OpenMap(id)
+		end
+	end
+	local list, current = {}, nil
+	for i, floor in ipairs(floors) do
+		local id = onView and i or floor.mapID
+		local info = not onView and C_Map.GetMapInfo(id)
+		local name = onView and FloorName(i) or floor.name or (info and info.name) or L["Floor %d"]:format(i)
+		if id == selected then current = name end
+		list[i] = { text = id == selected and ("|cffffd100%s|r"):format(name) or name, id = id, func = SelectFloor }
+	end
+	local name = current and current ~= trail.name and (trail.name .. " — " .. current) or trail.name
+	return { name = name, listFunc = function() return list end }
+end
+
+local function SetupBreadcrumbOverflow(bar)
+	local overflow = bar.overflowButton
+	if not (overflow and overflow.SetupMenu and overflow.listFunc and overflow.menuGenerator) then return end
+	local stockMenu = overflow.menuGenerator
+	stockOverflowMenu = stockMenu
+	overflow:SetupMenu(function(owner, menu)
+		local last = #bar.navList
+		local selected = bar.navList[last]
+		local floors = selected and not selected:IsShown() and selected.listFunc and selected:listFunc()
+		if not floors then return stockMenu(owner, menu) end
+		menu:SetTag("MENU_MINIMAP_BATTLEFIELD")
+		for _, entry in ipairs(overflow:listFunc()) do
+			if entry.id ~= last then
+				menu:CreateButton(entry.text, function() entry.func(owner, entry.id, bar) end)
+			end
+		end
+		-- A collapsed current crumb cannot be clicked, but its floors still need a way in.
+		menu:CreateDivider()
+		for _, floor in ipairs(floors) do
+			menu:CreateButton(floor.text, function() floor.func(owner, floor.id) end)
+		end
+	end)
+end
+
+local function BreadcrumbLocked(bar)
+	return InCombatLockdown() and (bar:IsProtected() or (mod.PadCombat and mod.PadCombat()))
+end
+
+-- Use the same bar and buttons so Blizzard's controller shortcuts and addon skins see our crumbs.
+local function ShowBreadcrumb(trail, refreshed)
+	local bar = map.NavBar
+	if not (bar and bar.Refresh) then return end
+	if refreshed then activeFloor = nil end
+	if BreadcrumbLocked(bar) then return end
+	if not trail then
+		if not activeTrail then return end
+		activeTrail, activeFloor = nil, nil
+		bar:Refresh()
+		if stockOverflowMenu then
+			bar.overflowButton:SetupMenu(stockOverflowMenu)
+			stockOverflowMenu = nil
+		end
+		return
+	end
+	if not (bar:IsShown() and CanUseBreadcrumb()) then return end
+	local onView = view and view:IsShown()
+	local selected = onView and view.floor or map:GetMapID()
+	if trail == activeTrail and selected == activeFloor then return end
+	local entering = not activeTrail
+	activeTrail, activeFloor = trail, selected
+	_G.NavBar_Reset(bar)
+	for i = 2, #trail.chain do
+		local id = trail.chain[i]
+		local info = C_Map.GetMapInfo(id)
+		if info then
+			local list = WorldMapNavBarButtonMixin and WorldMapNavBarButtonMixin.GetDropdownList
+				and C_Map.IsMapValidForNavBarDropdown and C_Map.IsMapValidForNavBarDropdown(id) and ParentCrumbs
+			_G.NavBar_AddButton(bar, { name = info.name, id = id, listFunc = list or nil,
+				OnClick = function() GoToCrumb(id) end })
+		end
+	end
+	_G.NavBar_AddButton(bar, DungeonCrumb(trail, onView, selected))
+	if entering then SetupBreadcrumbOverflow(bar) end
+end
 local QuestList, EnsureQuests, FillSide, Dock, PlaceTabs, PlaceMarks, PlacePins, EndMarkup   -- (below)
 
 local function Sound(name) if PlaySound and SOUNDKIT and SOUNDKIT[name] then PlaySound(SOUNDKIT[name]) end end
@@ -244,7 +402,7 @@ local function LayoutView()
 	if PlacePins then PlacePins(pw, ph) end
 end
 
-local function ShowFloor(i, quiet)
+ShowFloor = function(i, quiet)
 	local floors = view.floors
 	i = ((i - 1) % #floors) + 1
 	if not quiet and i ~= view.floor then Sound("IG_ABILITY_PAGE_TURN") end
@@ -257,23 +415,15 @@ local function ShowFloor(i, quiet)
 	view.blank:SetShown(f.blank and true or false)
 	view.blankText:SetShown(f.blank and true or false)
 	view.credit:SetText(f.credit and L["Map by %s"]:format(f.credit) or "")
-	view.floorName:SetText(("|cffffd100%s|r%s"):format(view.FloorName(i), #floors > 1 and ("  |cff998866%d / %d|r"):format(i, #floors) or ""))
-	view.wing:SetText(f.wing and (f.wing .. "   ") or "")
-	view.where:SetText(S.InstanceName(view.inst))
-	view.prev:SetShown(#floors > 1)
-	view.next:SetShown(#floors > 1)
-	view.floorButton:SetWidth(math.max(160, (view.floorName:GetStringWidth() or 120) + 24))
-	view.floorButton:EnableMouse(#floors > 1)
-	if view.list then view.list:Hide() end
 	if view.side and view.side.LightThumbs then view.side.LightThumbs() end
 	view.zoom, view.ox, view.oy = 1, 0, 0
 	LayoutView()
+	if view.trail then ShowBreadcrumb(view.trail) end
 end
 
 -- out: back to the world, at once
 local function CloseView()
 	if not view or not view:IsShown() or view.leaving then return end
-	if view.list then view.list:Hide() end
 	Sound("IG_QUEST_LOG_CLOSE")
 	view:Hide()
 	RefreshCard()
@@ -322,10 +472,10 @@ local function BuildView()
 	if not PadView() then tinsert(UISpecialFrames, "OpenMapDungeonView") end   -- (the Gamepad UI reads that list)
 	local bg = view:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
-	bg:SetColorTexture(0.05, 0.04, 0.03, 0.96)
-	-- the picture's own clipped area: under the bar, left of the side panel (zoomed in, it stays in it)
+	bg:SetColorTexture(0.05, 0.04, 0.03, ns.Client == "Forever" and 1 or 0.96)
+	-- Keep the picture clipped to its own area beside the side panel.
 	view.port = CreateFrame("Frame", nil, view)
-	view.port:SetPoint("TOPLEFT", 0, -HEAD_H)
+	view.port:SetPoint("TOPLEFT")
 	view.port:SetPoint("BOTTOMRIGHT", -SIDE_W, 0)
 	view.port:SetClipsChildren(true)
 	view.port:SetScript("OnSizeChanged", function() LayoutView() end)
@@ -354,129 +504,6 @@ local function BuildView()
 	view.credit:SetTextColor(0.8, 0.7, 0.5)
 	view.credit:SetShadowColor(0, 0, 0, 1)
 	view.credit:SetShadowOffset(1, -1)
-	-- the bar across the top: back to the world (the zone it was entered from), the floor (its name
-	-- between two arrows, a list of them all from its name), close
-	local bar = CreateFrame("Frame", nil, view)
-	bar:SetPoint("TOPLEFT")
-	bar:SetPoint("TOPRIGHT")
-	bar:SetHeight(HEAD_H)
-	bar:SetFrameLevel(view:GetFrameLevel() + 20)   -- (over the picture, however far in)
-	bar:EnableMouse(true)
-	local barBg = bar:CreateTexture(nil, "BACKGROUND")
-	barBg:SetAllPoints()
-	barBg:SetColorTexture(0.09, 0.07, 0.05, 0.97)
-	local rule = bar:CreateTexture(nil, "ARTWORK")
-	rule:SetPoint("BOTTOMLEFT")
-	rule:SetPoint("BOTTOMRIGHT")
-	rule:SetHeight(1)
-	rule:SetColorTexture(0.66, 0.49, 0.28, 0.9)
-	local close = CreateFrame("Button", nil, bar, "UIPanelCloseButton")
-	close:SetPoint("RIGHT", -4, 0)
-	close:SetScript("OnClick", function() CloseView() end)
-	-- (back by the close button, top right, where a window's way out is)
-	view.back = CreateFrame("Button", nil, bar, "UIPanelButtonTemplate")
-	view.back:SetHeight(24)
-	view.back:SetPoint("RIGHT", close, "LEFT", -6, 0)
-	view.back:SetScript("OnClick", function() CloseView() end)
-	view.back:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-		GameTooltip:AddLine(L["Back to the world map, where you were"], 1, 1, 1)
-		GameTooltip:AddLine(L["Or right-click the map, or press Escape"], 0.7, 0.7, 0.7)
-		GameTooltip:Show()
-	end)
-	view.back:SetScript("OnLeave", GameTooltip_Hide)
-	-- inside the dungeon itself: the game's own map instead, one click away (Dungeon maps inside dungeons
-	-- off, as the menu's row does; players looked for that switch, #371). Only OpenMap's frames: fine in combat
-	view.gameMap = CreateFrame("Button", nil, bar, "UIPanelButtonTemplate")
-	view.gameMap:SetHeight(24)
-	view.gameMap:SetPoint("RIGHT", view.back, "LEFT", -6, 0)
-	view.gameMap:SetText(L["The game's map"])
-	view.gameMap:SetWidth((view.gameMap:GetFontString():GetStringWidth() or 90) + 28)
-	view.gameMap:SetScript("OnClick", function()
-		mod.db.dungeonInside = false
-		ns:Print(L["OpenMap's dungeon maps are off inside dungeons. To turn them back on: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."])
-		Sound("IG_QUEST_LOG_CLOSE")
-		view:Hide()                                 -- (the game's map of where you are, under it)
-		RefreshCard()
-		if ns.NotifyOptions then ns.NotifyOptions() end
-		if mod.RefreshPanel then mod:RefreshPanel() end
-	end)
-	view.gameMap:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-		GameTooltip:AddLine(L["The game's map"], 1, 1, 1)
-		GameTooltip:AddLine(L["Inside dungeons, open the game's own map instead of OpenMap's dungeon map. Turn it back on any time: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."], 0.8, 0.8, 0.8, true)
-		GameTooltip:Show()
-	end)
-	view.gameMap:SetScript("OnLeave", GameTooltip_Hide)
-	view.gameMap:Hide()
-	view.where = Look:Font(bar:CreateFontString(nil, "OVERLAY"), 12)
-	view.where:SetPoint("LEFT", 12, 0)
-	view.where:SetTextColor(0.8, 0.7, 0.5)
-	view.floorButton = CreateFrame("Button", nil, bar)
-	view.floorButton:SetSize(200, 30)
-	view.floorButton:SetPoint("CENTER")
-	view.floorButton:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-	view.floorName = Look:Font(view.floorButton:CreateFontString(nil, "OVERLAY"), 15)
-	view.floorName:SetPoint("CENTER", 0, 4)
-	view.wing = Look:Font(view.floorButton:CreateFontString(nil, "OVERLAY"), 10)
-	view.wing:SetPoint("TOP", view.floorName, "BOTTOM", 0, -1)
-	view.wing:SetTextColor(0.8, 0.7, 0.5)
-	function view.FloorName(i)
-		local f = view.floors[i]
-		return f.name or (#view.floors > 1 and L["Floor %d"]:format(i)) or S.InstanceName(view.inst)
-	end
-	-- every floor by name, to go straight to one
-	view.floorButton:SetScript("OnClick", function(self)
-		local list = view.list
-		if not list then
-			list = CreateFrame("Frame", nil, view)
-			list:SetFrameLevel(bar:GetFrameLevel() + 10)
-			list:EnableMouse(true)
-			list.pad = { Look:Dropdown(list) }    -- (the game's own dropdowns' look)
-			list.rows = {}
-			view.list = list
-		end
-		if list:IsShown() then list:Hide() return end
-		local w = 180
-		for i = 1, #view.floors do
-			local row = list.rows[i]
-			if not row then
-				row = CreateFrame("Button", nil, list)
-				row:SetHeight(22)
-				row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-				row.text = Look:Font(row:CreateFontString(nil, "OVERLAY"), 13)
-				row.text:SetPoint("LEFT", 6, 0)
-				row:SetScript("OnClick", function(r) list:Hide() ShowFloor(r.floor) end)
-				list.rows[i] = row
-			end
-			row.floor = i
-			row.text:SetText((i == view.floor and "|cffffd100" or "|cffffffff") .. view.FloorName(i) .. "|r")
-			row:ClearAllPoints()
-			row:SetPoint("TOPLEFT", list.pad[1], -list.pad[2] - (i - 1) * 22)
-			row:SetPoint("TOPRIGHT", -list.pad[3], -list.pad[2] - (i - 1) * 22)
-			row:Show()
-			w = math.max(w, (row.text:GetStringWidth() or 100) + 24)
-		end
-		for i = #view.floors + 1, #list.rows do list.rows[i]:Hide() end
-		list:SetSize(w + list.pad[1] + list.pad[3], #view.floors * 22 + list.pad[2] + list.pad[4])
-		list:ClearAllPoints()
-		list:SetPoint("TOP", self, "BOTTOM", 0, -4)
-		list:Show()
-	end)
-	local function Arrow(dir)
-		local b = CreateFrame("Button", nil, bar)
-		b:SetSize(26, 26)
-		b:SetNormalTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. dir .. "Page-Up")
-		b:SetPushedTexture("Interface\\Buttons\\UI-SpellbookIcon-" .. dir .. "Page-Down")
-		b:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
-		return b
-	end
-	view.prev = Arrow("Prev")
-	view.prev:SetPoint("RIGHT", view.floorButton, "LEFT", -4, 0)
-	view.prev:SetScript("OnClick", function() ShowFloor(view.floor - 1) end)
-	view.next = Arrow("Next")
-	view.next:SetPoint("LEFT", view.floorButton, "RIGHT", 4, 0)
-	view.next:SetScript("OnClick", function() ShowFloor(view.floor + 1) end)
 	-- how to leave, for the first few dungeon maps opened
 	view.hint = CreateFrame("Frame", nil, view)
 	view.hint:SetSize(1, 26)
@@ -678,9 +705,8 @@ local function BuildView()
 		view.leaving = nil
 		EndMarkup(false)                            -- (a report being drawn: no report)
 		if view.placer then mod:ToggleBossPlacer() end   -- (placing bosses: done)
-		if view.list then view.list:Hide() end
 		Dock()                                      -- (out of the quest log, if it was in it)
-		if card and card:IsShown() then C_Timer.After(0, RefreshCard) end
+		C_Timer.After(0, RefreshCard)
 	end)
 	-- Escape: back to the world, as a right-click. Escape's own list (UISpecialFrames) closes the game's
 	-- panels in the same go, the map window among them: the whole map shut, and inside a dungeon it then
@@ -1095,7 +1121,7 @@ DockNow = function()
 	else
 		-- (the log put away: the panel with it, the dungeon's map the whole view)
 		side:SetParent(view)
-		side:SetPoint("TOPRIGHT", 0, -HEAD_H)
+		side:SetPoint("TOPRIGHT")
 		side:SetPoint("BOTTOMRIGHT")
 		side:SetWidth(SIDE_W)
 		if PadView() and view:IsShown() then
@@ -1136,15 +1162,10 @@ function mod.PlaceDungeonTabs()
 	end
 end
 
--- whether you're inside that very dungeon (its map's "The game's map" button, #371)
-function mod.InsideThisDungeon(inst)
-	if not inst or not inst[1] or inst[1] == 0 or not (IsInInstance and IsInInstance()) then return false end
-	return select(8, GetInstanceInfo()) == inst[1]
-end
-
 -- a dungeon's map in the view: its wing's first floor, else its first; grown out of `pin` (the entrance)
 local function OpenView(inst, pin)
 	local t0 = debugprofilestop and debugprofilestop()
+	worldChoice = nil
 	-- (none in the client, WoW Forever's own dungeons: a blank page, its side panel as any other's)
 	local floors, source = FloorsOf(inst)
 	if not floors or #floors == 0 then floors = BLANK end
@@ -1168,12 +1189,7 @@ local function OpenView(inst, pin)
 	EndMarkup(false)
 	view.heldMarks = nil
 	view.fromU, view.fromV = pin and pin.u, pin and pin.v   -- (the entrance: where a report from here says it is)
-	local zone = pin and pin.u and S.ChainAt(pin.u, pin.v)
-	local info = zone and zone[#zone] and C_Map.GetMapInfo(zone[#zone])
-	view.back:SetText("|cffffd100<|r  " .. (info and info.name and L["Back to %s"]:format(info.name) or L["Back"]))
-	view.back:SetWidth((view.back:GetFontString():GetStringWidth() or 80) + 28)
-	-- (the game's own map instead: only inside this very dungeon, and not on the controller view)
-	view.gameMap:SetShown(mod.InsideThisDungeon(inst) and not PadView())
+	view.trail = not PadView() and DungeonTrail(inst, view.fromU, view.fromV) or nil
 	view.leaving = nil
 	view:SetAlpha(1)
 	view:Show()
@@ -1248,6 +1264,21 @@ local function OpenJournal(inst, quests)
 	return (pcall(open, key))
 end
 
+local function ShowNativeDungeon(id, trail)
+	worldChoice = nil
+	nativeTrail = trail
+	if map:GetMapID() == id then RefreshCard() else S.OpenMap(id) end
+end
+
+local function ShowDefaultDungeon(inst)
+	local id = DungeonMap(inst)
+	if id then
+		ShowNativeDungeon(id, { maps = MapsOf(id), trail = DungeonTrail(inst) })
+	else
+		OpenView(inst)
+	end
+end
+
 local function Open(inst, pin)
 	if chooser then chooser:Hide() end
 	if mod.db.entranceClick == "journal" and OpenJournal(inst) then return end
@@ -1255,8 +1286,9 @@ local function Open(inst, pin)
 	if id then
 		if PadWaits() then return end
 		local u, v, zoom = mod.ViewNow()
-		returnTo = u and { u, v, zoom, maps = MapsOf(id) } or nil
-		S.OpenMap(id)
+		local maps = MapsOf(id)
+		returnTo = u and { u, v, zoom, maps = maps } or nil
+		ShowNativeDungeon(id, { maps = maps, trail = DungeonTrail(inst, pin.u, pin.v) })
 		return
 	end
 	if MapsOn() and OpenView(inst, pin) then return end
@@ -1271,6 +1303,118 @@ local function Open(inst, pin)
 		local _, _, zoom = mod.ViewNow()
 		S.GlideToWorld(pin.u, pin.v, math.max(zoom or 1, 12))
 	end
+end
+
+-- The switch remembers the particular dungeon and floor while the world is up.
+local function ToggleDungeonMap(self)
+	if PadWaits() then return end
+	if self.toWorld then
+		mod.char.dungeonWorldMap = true
+		if view and view:IsShown() then
+			worldChoice = { inst = view.inst, u = view.fromU, v = view.fromV, floor = view.floor }
+			CloseView()
+			if not mod.IsStitched() then S.OpenMap(S.WORLD) end
+		else
+			local id = map:GetMapID()
+			local trail = (nativeTrail and nativeTrail.trail) or IndexedTrail(Index()[id])
+			worldChoice = { id = id, native = nativeTrail }
+			S.OpenMap(trail and trail.chain[#trail.chain] or S.WORLD)
+		end
+		worldMapID = mod.IsStitched() and map:GetMapID() or nil
+		RefreshCard()
+		return
+	end
+	mod.char.dungeonWorldMap = nil
+	worldMapID = nil
+	local choice = worldChoice
+	worldChoice = nil
+	if choice and choice.id then
+		ShowNativeDungeon(choice.id, choice.native)
+	elseif choice then
+		OpenView(choice.inst, choice.u and { u = choice.u, v = choice.v } or nil)
+		if choice.floor ~= view.floor then ShowFloor(choice.floor, true) end
+	elseif insideDungeon then
+		ShowDefaultDungeon(insideDungeon)
+	end
+end
+
+local function PlaceDungeonCard()
+	if not (card and card:IsShown()) then return end
+	local y = CARD_Y
+	local body = card.scroll:IsShown() and card.child:GetHeight() or nil
+	local limit = math.max(80, sc:GetHeight() - 120)
+	local height = body and math.min(body, limit) + 42 or 32
+	if mapSwitch and mapSwitch:IsShown() then
+		local _, _, _, sx, sy = mapSwitch:GetPoint(1)
+		local sw, sh = mapSwitch:GetSize()
+		if sx and sy and sx - sw < CARD_X and sx > CARD_X - CARD_W
+			and sy - sh - 6 < y and sy > y - height then
+			y = sy - sh - 6
+			if body then height = math.min(body, limit, math.max(1, sc:GetHeight() + y - 48)) + 42 end
+		end
+	end
+	local _, _, _, _, oldY = card:GetPoint(1)
+	if y ~= oldY then
+		card:ClearAllPoints()
+		card:SetPoint("TOPRIGHT", sc, "TOPRIGHT", CARD_X, y)
+	end
+	if height ~= card:GetHeight() then card:SetHeight(height) end
+end
+
+local function PlaceMapSwitch()
+	if not mapSwitch or not mapSwitch:IsShown() then return end
+	-- Leave room beside the corner controls, or below them in a narrow map.
+	local width, height = mapSwitch:GetSize()
+	local inset, lowerRow = 6, 72
+	local right, top = sc:GetRight(), sc:GetTop()
+	local leftControl
+	if right and top then
+		local left = right - sc:GetWidth()
+		for _, frame in ipairs(map.overlayFrames or {}) do
+			if frame:IsShown() then
+				local l, r, b, t = frame:GetLeft(), frame:GetRight(), frame:GetBottom(), frame:GetTop()
+				if l and r and b and t and l < right and r > left
+					and b < top and t > top - 72 and t - b <= 72 then
+					if r > right - 44 and r - l <= 72 then
+						inset = math.max(inset, right - l + 8)
+					elseif b < top - 6 and t > top - 6 - height then
+						leftControl = math.max(leftControl or left, r)
+					end
+					lowerRow = math.max(lowerRow, top - b + 6)
+				end
+			end
+		end
+	end
+	local x, y = -inset, -6
+	local cramped = inset > 6 and sc:GetWidth() < width + inset + 164
+	if cramped or (leftControl and leftControl + 6 > right - inset - width) then
+		x, y = inset > 6 and -8 or -6, -lowerRow
+	end
+	local _, _, _, oldX, oldY = mapSwitch:GetPoint(1)
+	if x ~= oldX or y ~= oldY then
+		mapSwitch:ClearAllPoints()
+		mapSwitch:SetPoint("TOPRIGHT", sc, "TOPRIGHT", x, y)
+	end
+	PlaceDungeonCard()
+end
+
+local function ShowMapSwitch(onDungeon)
+	if not (map:IsShown() and MapsOn() and S.OpenMap and not PadView() and (onDungeon or worldChoice or insideDungeon)) then
+		if mapSwitch then mapSwitch:Hide() end
+		return
+	end
+	if not mapSwitch then
+		mapSwitch = CreateFrame("Button", "OpenMapDungeonMapSwitch", map, "UIPanelButtonTemplate")
+		mapSwitch:SetHeight(24)
+		mapSwitch:SetScript("OnClick", ToggleDungeonMap)
+		mod.padRoots[#mod.padRoots + 1] = mapSwitch
+	end
+	mapSwitch:SetFrameLevel(math.min(sc:GetFrameLevel() + 9300, 9950))
+	mapSwitch.toWorld = onDungeon
+	mapSwitch:SetText(onDungeon and L["World Map"] or L["Dungeon Map"])
+	mapSwitch:SetWidth((mapSwitch:GetFontString():GetStringWidth() or 80) + 28)
+	mapSwitch:Show()
+	PlaceMapSwitch()
 end
 
 -- the stitched map is put up again (WorldMap.lua's view reset): out of a dungeon's map, the world as
@@ -1652,7 +1796,7 @@ local function Card()
 	card = CreateFrame("Frame", nil, map)
 	card:SetWidth(CARD_W)
 	-- (below Blizzard's filter and pin buttons where a client has them in that corner: retail's)
-	card:SetPoint("TOPRIGHT", sc, "TOPRIGHT", -8, ns.Client == "Forever" and -8 or -70)
+	card:SetPoint("TOPRIGHT", sc, "TOPRIGHT", CARD_X, CARD_Y)
 	card:SetFrameLevel(math.min(sc:GetFrameLevel() + 9300, 9950))
 	card:EnableMouse(true)
 	Look:Panel(card, { alpha = 0.92 })
@@ -1724,6 +1868,16 @@ RefreshCard = function()
 	local onView = map:IsShown() and view and view:IsShown() or false
 	local onMap = not onView and map:IsShown() and not mod.IsStitched() and IsDungeonMap(mapID)
 	local onWorld = not onView and not onMap and map:IsShown() and mod.IsStitched() and portalCard ~= nil
+	if mod.SetDungeonCoordsHidden then mod.SetDungeonCoordsHidden(onView or onMap) end
+	local entry = onMap and Index()[mapID]
+	if nativeTrail and not nativeTrail.maps[mapID] then nativeTrail = nil end
+	local trail
+	if MapsOn() and CanUseBreadcrumb() then
+		if onView then trail = view.trail end
+		if onMap then trail = nativeTrail and nativeTrail.trail or IndexedTrail(entry) end
+	end
+	ShowBreadcrumb(trail)
+	ShowMapSwitch(onView or onMap)
 	if not onMap and cardMap then
 		cardMap = nil
 		if mod.OnDungeonMap then mod.OnDungeonMap(nil) end
@@ -1736,10 +1890,9 @@ RefreshCard = function()
 	if not card then Card() end
 	local insts
 	if onMap then
-		local e = Index()[mapID]
-		insts = e and e.insts or {}
+		insts = entry and entry.insts or {}
 	else
-		insts = onView and { view.inst } or portalCard
+		insts = portalCard
 		mapID = nil
 	end
 	local info = Info(mapID, insts)
@@ -1747,10 +1900,9 @@ RefreshCard = function()
 		cardMap = mapID
 		if mod.OnDungeonMap then mod.OnDungeonMap(info) end
 	end
-	local back = onMap or onView
-	card.back:SetShown(back)
+	card.back:SetShown(onMap)
 	card.close:SetShown(onWorld)
-	card.title:SetPoint("LEFT", back and card.back or card, back and "RIGHT" or "LEFT", back and 8 or 10, 0)
+	card.title:SetPoint("LEFT", onMap and card.back or card, onMap and "RIGHT" or "LEFT", onMap and 8 or 10, 0)
 	local head = {}
 	for _, inst in ipairs(insts) do head[#head + 1] = S.InstanceName(inst) .. (Range(inst) and ("  " .. Range(inst)) or "") end
 	local mapInfo = mapID and C_Map.GetMapInfo(mapID)
@@ -1789,11 +1941,10 @@ RefreshCard = function()
 		end
 	end
 	card.text:SetText(table.concat(lines, "\n"))
-	local h = #lines > 0 and math.min((card.text:GetStringHeight() or 0) + 4, math.max(80, sc:GetHeight() - 120)) or 0
 	card.child:SetHeight((card.text:GetStringHeight() or 0) + 4)
 	card.scroll:SetShown(#lines > 0)
-	card:SetHeight(h > 0 and h + 42 or 32)
 	card:Show()
+	PlaceDungeonCard()
 end
 -- the view's side panel: rows of one tab (bosses, quests, loot), each made as needed and kept
 -- NeedRoll's window: at this dungeon's loot (on `boss`), or its map (`what` "map") or a quest (`quest`),
@@ -2028,7 +2179,7 @@ FillSide = function()
 				t:SetTexCoord(0, cw / 256, 0, ch / 256)
 			end
 			w.name:SetWidth(tw)
-			w.name:SetText(view.FloorName(it.floor))
+			w.name:SetText(FloorName(it.floor))
 			if col == 1 or it.floor == #view.floors then y = y + th + 22 end
 		else
 			w:SetPoint("TOPLEFT", 10, -y - 2)
@@ -2379,6 +2530,7 @@ end
 local function NoteDungeonMap()
 	local inst = InstanceHere()
 	if not inst or mod.db.dungeonMapNoted or not MapsOn() or mod.db.dungeonInside == false then return end
+	if mod.char.dungeonWorldMap then return end
 	if JournalName(inst) or NeedRoll() then return end
 	mod.db.dungeonMapNoted = true
 	ns:Print(L["Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."])
@@ -2461,6 +2613,30 @@ end
 
 function mod:SetupDungeons(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
+	local pendingWorldRestore
+	local function OpenMapInstanceHere()
+		local inst = InstanceHere()
+		if not inst or not MapsOn() then return end
+		-- Dungeon Journal and NeedRoll show their own maps inside dungeons they handle (#302, #267).
+		if JournalName(inst) or NeedRoll() then return end
+		return inst
+	end
+	local function ShowSavedWorldMap(inst)
+		pendingWorldRestore = nil
+		if not (map:IsShown() and mod.char.dungeonWorldMap and S.OpenMap) then return end
+		local id = worldMapID
+		if not id and not mod.IsStitched() then
+			local u, v = EntranceFor(inst)
+			local chain = u and S.ChainAt(u, v)
+			id = chain and chain[#chain] or S.WORLD
+		end
+		local changeMap = id and map:GetMapID() ~= id
+		local hideView = view and view:IsShown()
+		if not (changeMap or hideView) then return end
+		if mod.PadCombat and mod.PadCombat() then pendingWorldRestore = inst return end
+		if hideView then view:Hide() end
+		if changeMap then S.OpenMap(id) end
+	end
 	-- (the map before this one: the event comes before Blizzard resets the view, so ReturnView knows it)
 	if EventRegistry and EventRegistry.RegisterCallback then
 		EventRegistry:RegisterCallback("MapCanvas.MapSet", function(_, mapID)
@@ -2494,9 +2670,38 @@ function mod:SetupDungeons(worldMap)
 		if map[method] then hooksecurefunc(map, method, function() C_Timer.After(0, function() Redock(false) end) end) end
 	end
 	map:HookScript("OnShow", RefreshCard)
+	if map.NavBar and map.NavBar.Refresh then
+		local bar = map.NavBar
+		hooksecurefunc(bar, "Refresh", function() if activeTrail then ShowBreadcrumb(activeTrail, true) end end)
+		bar:HookScript("OnSizeChanged", function(self)
+			if not (activeTrail and self:IsVisible() and _G.NavBar_CheckLength) then return end
+			if BreadcrumbLocked(self) then activeFloor = nil return end
+			_G.NavBar_CheckLength(self)
+		end)
+		if bar.GoToMap then
+			hooksecurefunc(bar, "GoToMap", function()
+				-- The stock Home button may select the map already under this overlay.
+				if activeTrail and view and view:IsShown() then GoToCrumb(map:GetMapID()) end
+			end)
+		end
+		if map.OpenAreaDropdownList then
+			hooksecurefunc(map, "OpenAreaDropdownList", function(_, index)
+				if not (activeTrail and stockOverflowMenu and index == #bar.navList) then return end
+				local current, overflow = bar.navList[index], bar.overflowButton
+				-- Blizzard closes menus owned by hidden crumbs. Open at the visible overflow button instead.
+				if current and not current:IsShown() and current.listFunc and overflow:IsVisible() and overflow.OpenMenu
+					and not InCombatLockdown() then overflow:OpenMenu() end
+			end)
+		end
+	end
 	-- the map opened inside a dungeon the client has no map of (WoW Forever: none of them): its own
 	-- map, as its entrance would open it, not the world with no one on it
 	map:HookScript("OnShow", function()
+		if worldMapID and mod.char.dungeonWorldMap and insideDungeon and insideDungeon == OpenMapInstanceHere() then
+			ShowSavedWorldMap(insideDungeon)
+			RefreshCard()
+			return
+		end
 		-- (shown again a moment after it was hidden: another addon laying the window out again with a
 		-- hide and a show (ClassicUI Forever's World map does), not the map opened: it stays as it was,
 		-- the dungeon's view back if it was up, the world if you'd gone back to it, never forced back in)
@@ -2507,7 +2712,7 @@ function mod:SetupDungeons(worldMap)
 				OpenView(was[1], was[2] and { u = was[2], v = was[3] } or nil)
 				if was[4] and was[4] ~= view.floor then ShowFloor(was[4], true) end
 			end
-			return
+			if was or not mod.char.dungeonWorldMap then return end
 		end
 		C_Timer.After(0.1, function()
 			if not map:IsShown() or (view and view:IsShown()) then return end
@@ -2525,18 +2730,28 @@ function mod:SetupDungeons(worldMap)
 				end
 				here = info.parentMapID
 			end
-			local inst = InstanceHere()
-			if not inst or not MapsOn() or mod.db.dungeonInside == false then return end   -- (Dungeon maps inside dungeons)
-			-- (Dungeon Journal shows its own map of the dungeon you're in, its bosses on it: OpenMap's isn't put
-			-- over it as the map opens there, #302. An entrance clicked on the world map still opens OpenMap's)
-			if JournalName(inst) or NeedRoll() then return end   -- (and NeedRoll's, its own map in dungeons: #267)
-			local id = DungeonMap(inst)
-			if not id then OpenView(inst, nil) elseif map:GetMapID() ~= id then S.OpenMap(id) end
+			local inst = OpenMapInstanceHere()
+			insideDungeon = inst
+			if not inst then RefreshCard() return end
+			if mod.char.dungeonWorldMap then
+				ShowSavedWorldMap(inst)
+				RefreshCard()
+				return
+			end
+			if mod.db.dungeonInside == false then RefreshCard() return end
+			ShowDefaultDungeon(inst)
 		end)
 	end)
 	map:HookScript("OnHide", function()
 		hiddenAt, hiddenWith = GetTime(), view and view:IsShown() and { view.inst, view.fromU, view.fromV, view.floor } or nil
+		pendingWorldRestore = nil
+		-- Keep the world host Nav saved its last view on, even if the player browsed away from the entrance.
+		if insideDungeon and mod.char.dungeonWorldMap and mod.IsStitched() and not hiddenWith then
+			worldMapID = map:GetMapID()
+		end
 		returnTo, shownMap, lastMap, portalCard = nil, nil, nil, nil
+		nativeTrail = nil
+		if not insideDungeon then worldChoice = nil end
 		if chooser then chooser:Hide() end
 		if view then view:Hide() end
 		RefreshCard()                               -- (the map's gone: the card too, and other addons told)
@@ -2547,18 +2762,39 @@ function mod:SetupDungeons(worldMap)
 	end)
 	-- (a resize: the card's height once the drag's frame is done, not on every size change in it)
 	local sizing = false
+	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", PlaceMapSwitch) end
 	sc:HookScript("OnSizeChanged", function()
+		PlaceMapSwitch()
 		if sizing or not (card and card:IsShown()) then return end
 		sizing = true
 		C_Timer.After(0, function() sizing = false RefreshCard() end)
 	end)
 	local events = {}
+	ns.RegisterEvent(events, "PLAYER_REGEN_ENABLED", function()
+		local inst = pendingWorldRestore
+		pendingWorldRestore = nil
+		if inst and map:IsShown() and inst == OpenMapInstanceHere() then ShowSavedWorldMap(inst) end
+		if map:IsShown() or activeTrail then RefreshCard() end
+	end)
 	ns.RegisterEvent(events, "PLAYER_LEVEL_UP", function()
 		C_Timer.After(0, function() Recolour() RefreshCard() end)   -- (UnitLevel catches up after the event)
 	end)
 	-- (into a dungeon or out: its floors held, or let go; a moment after the loading screen)
 	local function Rehold() C_Timer.After(2, function() mod.HoldDungeonHere() NoteEntered() NoteDungeonMap() end) end
-	ns.RegisterEvent(events, "PLAYER_ENTERING_WORLD", Rehold)
+	ns.RegisterEvent(events, "PLAYER_ENTERING_WORLD", function()
+		insideDungeon, worldChoice, worldMapID, pendingWorldRestore = nil, nil, nil, nil
+		hiddenAt, hiddenWith = nil, nil
+		RefreshCard()
+		if mod.char.dungeonWorldMap and map:IsShown() then
+			C_Timer.After(0.1, function()
+				if not mod.char.dungeonWorldMap or not map:IsShown() then return end
+				insideDungeon = OpenMapInstanceHere()
+				if insideDungeon then ShowSavedWorldMap(insideDungeon) end
+				RefreshCard()
+			end)
+		end
+		Rehold()
+	end)
 	ns.RegisterEvent(events, "ZONE_CHANGED_NEW_AREA", Rehold)
 	Rehold()                                      -- (set up already inside one)
 	ns.RegisterEvent(events, "QUEST_TURNED_IN", function() if card and card:IsShown() then C_Timer.After(0.5, RefreshCard) end end)
