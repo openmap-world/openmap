@@ -23,5 +23,7 @@ ns.MapZoneArt = {
 		5391, 5647, 5903, 6159, 6415, 6671, 784, 1040, 1296, 1552, 1808, 2064, 2320, 2576, 5392, 5648,
 		5904, 6160, 6416, 785, 1041, 1297, 1553, 1809, 2065, 2321, 5393, 5649, 5905, 1042, 1298,
 	},
+	handPx = 32,   -- the live layers take over against this px (Stitch.lua's Baked.handPx) ...
+	finer = { 1418, 1427, 1430, 1431, 1432, 1433, 1435, 1450, 2652 },   -- ... but for these zones, whose own art is finer than px: against px
 	locales = { ptBR = true, ruRU = true },   -- MapZones\<locale>\: those clients' own art, in their language
 }
