@@ -49,11 +49,27 @@ function Safe.Value(v)
 end
 
 -- a position's x, y: Blizzard's vectors have GetXY, but some APIs on this client hand back
--- a plain { x, y } table
+-- a plain { x, y } table (or secret values in combat/instances)
 function Safe.XY(vec)
-	if type(vec) ~= "table" then return end
-	if vec.GetXY then return vec:GetXY() end
-	return vec.x, vec.y
+	if Safe.IsSecret(vec) or type(vec) ~= "table" then return end
+	local x, y
+	if vec.GetXY then
+		local ok, gx, gy = pcall(vec.GetXY, vec)
+		if ok then x, y = gx, gy end
+	else
+		x, y = vec.x, vec.y
+	end
+	return Safe.Value(x), Safe.Value(y)
+end
+
+-- secret-safe player mapID and coordinates (optionally for a given mapID)
+function Safe.PlayerPos(mapID)
+	local id = mapID or Safe.Call(C_Map.GetBestMapForUnit, "player")
+	if not id then return nil end
+	local pos = Safe.Call(C_Map.GetPlayerMapPosition, id, "player")
+	local x, y = Safe.XY(pos)
+	if x and y then return id, x, y, pos end
+	return id
 end
 
 -- a plain number that's neither NaN nor infinite (a view worked out while the map is 0 px across

@@ -10,7 +10,7 @@ local L = ns.L
 
 ns.Credits = {
 	{ L["Made by"], {
-		{ "Ji" },
+		{ "Ji Unit (RP-PvP Horde)" },
 	} },
 	{ L["Maps painted by hand"], {
 		{ "Santiago Reyes", L["Hand painted custom art for OpenMap including the sea elements, blank land between zones, and his maps of WoW Forever dungeons."] },
@@ -33,6 +33,15 @@ ns.Credits = {
 		{ "k4m1", L["the controller map option turned on in combat, and B by a quest's details"] },
 		{ "FlyingPenguin98", L["OpenMap's map with a controller (the Gamepad UI)"] },
 		{ "bv101rj", L["Questie 12.8's icons found on the map"] },
+		{ "Rambomst", L["the quest level on OpenMap's quest icons"] },
+		{ "kr0ozin", L["place names and quest areas on the controller map, and it reopening as you set"] },
+		{ "Vennomfang", L["the map in combat, ClassicUI Forever's window, and Esc on a dungeon's map"] },
+		{ "cscoder69", L["the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens"] },
+		{ "Merryfett", L["quests from every zone read a few at a time"] },
+		{ "wealdly", L["sharper middle zooms, and unexplored land darkened as one shade"] },
+		{ "Danpiel", L["baked zone tiles for the Russian client"] },
+		{ "marquesm91", L["Forever City Labels' pins on the stitched map"] },
+		{ "gOOvER", L["your position read safely, the maximized dungeon map, the Stockade's map, and German"] },
 	} },
 	{ L["Map art"], {
 		{ "Blizzard Entertainment", L["the map art is the game's own"] },

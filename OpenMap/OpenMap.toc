@@ -25,6 +25,7 @@
 ## X-License: MIT (code); map art is Blizzard's
 ## X-Curse-Project-ID: 1735937
 ## X-Website: https://github.com/openmap-world/openmap
+## X-Donate: https://ko-fi.com/jigrobbulus
 
 # WoW Forever's toc: its data and textures are the Forever folders (Data\Forever\Client.lua)
 Data\Forever\Client.lua
@@ -71,7 +72,9 @@ Data\Forever\ArtEdits.lua
 Data\Forever\Labels.lua
 Data\Forever\Banners.lua
 Data\Forever\ZoneArt.lua
+Data\Forever\Fog.lua
 Data\Forever\Chart.lua
+Data\Forever\Explore.lua
 Data\Forever\Changelog.lua
 
 # The map
@@ -82,8 +85,10 @@ Map\Close.lua
 Map\Extras.lua
 Map\Flights.lua
 Map\Routes.lua
+Map\Explore.lua
 Map\Townsfolk.lua
 Map\Quests.lua
+Map\DungeonJournal.lua
 Map\Dungeons.lua
 Map\Paint.lua
 Map\Sketch.lua
@@ -91,6 +96,7 @@ Map\Debug.lua
 Map\Bench.lua
 Map\Gamepad.lua
 Map\PadView.lua
+Map\OwnView.lua
 Map\Report.lua
 Map\Nav.lua
 Map\Combat.lua

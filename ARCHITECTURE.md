@@ -148,7 +148,14 @@ Unexplored areas: each overlay piece is a shared `{ key, unexplored }` table, so
 `MAP_EXPLORATION_UPDATED`) flips the ones you've just explored. Dimming a zone you haven't found
 any of is a shade over its art and the close-up minimap (`shadeRoot`), through its land without its
 painted sea (`MapZoneLand`), from every zoom, with its share of the border land round it
-(`MapZoneBorder`, so neighbouring undiscovered zones darken as one). In a zone you've been to, each
+(`MapZoneBorder`, so neighbouring undiscovered zones darken as one). In a zone you've been to, on
+Darken, each unexplored piece's share of the shade (`Shade.Fog`, `Data/Forever/Fog.lua`, `MapFog/`,
+`render.py --bake-fog`), over the art and the minimap alike, so it looks the same from every zoom. The
+pieces overlap (their soft edges: over a third of the land they cover is under two or more), so each
+piece's share is baked as `1 - (1 - shade * C) ^ w`, `C` the pieces' coverage on the zone's land and `w`
+the piece's part of it: shades of one colour over one another multiply what shows through them, so
+whichever pieces are unexplored, theirs come to the shade at `C` times their part, never darker
+(`tools/offline-test/fog.py`). Where there's no fog baked (another client), as before: each
 piece's art is drawn again over the zone's (the baked tiles or the live layers), under the cities
 and the minimap: the unexplored pieces darkened (`Shade.DIM`) on its land alone, the explored over
 them as they are. Blizzard's pieces are opaque rectangles and overlap a lot, so a shade per piece

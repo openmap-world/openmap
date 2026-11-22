@@ -8,6 +8,206 @@
   layer popping in as it loads (the zone tiles, the close-up minimap and its smaller copies, caves, the
   unexplored shading). Panning into new ground, each piece fades in as it arrives.
 
+## v0.8.13 (2026-11-22)
+
+### Fixed
+
+- **Places you've explored show on the map**: the map read what you'd explored as it was built at login,
+  maybe before the game had sent it, and then only when the game said something new was explored. It reads
+  it again as the map first opens and after you enter a new subzone (#422, #410).
+- **No lag zooming with Show places to explore on**: every zone you'd looked at kept its outlines, thousands
+  of lines laid out again on every frame of each zoom and pan, nine times the map's own. Only the zones in
+  view and a few recent ones keep them now (#411, #413, #419).
+- **No stack overflow as the map closes** with Show places to explore on and Keep warm (#414).
+- **Places to explore count what you've already explored**: it read the map's own record, which can be from
+  before the game sent your exploring after login; it asks the game now, and again as you explore (#417,
+  #418, the Barrens showed 3 of 25).
+- **The map's art ready before it opens, in more cases** (keep-warm round you, v0.8.12): the art round you
+  is warmed again each time the map closes (closed on another place, the next opening, centred on you,
+  came in cold); in a cave or another small map its zone is warmed (nothing was); and in a big zone its
+  own art comes first, the farther tiles last (they filled the 400 files and left it out). By cscoder69.
+- **The map closed in a fight reopens where you left it**: it reopened on the view from before the fight.
+- **Opening the map after you've moved is lighter with Show places to explore on**: only zones where you've
+  explored something since are drawn again, not all of them.
+
+### Improved
+
+- **Close-up map performance**: with minimap detail on and unexplored areas hidden, the map
+  draws fewer masked fragments and skips the ones outside the view. By benjaminrobinet.
+- **Supporting OpenMap**: the foot of What's new's Credits page has a link to copy, for those who'd like to.
+
+### Known issue
+
+- Opening the map in a fight can print "Interface action failed because of an AddOn" once a session. It's
+  harmless: the map, the quest log and the tracker all work; only the quest log's controller navigation
+  marks are skipped for that one refresh.
+
+## v0.8.12 (2026-11-21)
+
+### New
+
+- **Show places to explore** (the map's menu and Options, off until turned on): for each zone's Explore
+  achievement, the places you haven't explored yet, each with a soft gold outline of the ground that
+  explores it (read from the game's own terrain) and a pin where to go; its tooltip names the place and
+  the achievement's progress. Further out, each zone shows how many places it has left.
+
+### Improved
+
+- **The map works in a fight**: since v0.8.11 the map stood still in combat (the game's map can't be moved
+  by an addon then without breaking the quest tracker, #345). In a fight OpenMap's map now moves onto frames
+  of its own, over the game's, which is left as it is: zoom, drag, click and resize it as usual, with your
+  arrow, your party and raid, your quests and their areas, the name of the place under the cursor, Questie's
+  and other addons' map icons, and Ctrl-click's waypoint. As the fight ends it all goes back on the game's
+  map, where you left it (#386, #389). (New files: restart the game after updating, a /reload isn't enough.)
+
+- **Unexplored land darkens as one, the same at every zoom** (Unexplored areas: Darken): in a zone you've been
+  to, the unexplored parts were darker where the game's map pieces overlap, a different shade once the
+  minimap's detail came in, and could jump between the two as you zoomed. Each piece's share of the darkening
+  is now worked out ahead of time so that, whichever pieces you've explored, the rest come to one even shade,
+  drawn over the map and the minimap alike (#317). By wealdly.
+
+- **German reads better**: missing German texts filled in and others reworded, in the game's own terms.
+  By gOOvER.
+
+- **Right-click can be left to other addons**: Options' "Right-click zooms out" (on, as before) turned off
+  leaves right-click on the map to the map and other addons, such as Questie's objectives (#117).
+
+- **Colour matching says what it costs**: below 100% the ready-made zone tiles aren't used, and its
+  description now says so (#29).
+
+- **The map's art ready before it opens**: the art round you is read in while the map is closed, a few
+  files a frame and out of combat, once the map is built after a login or a /reload and again when you
+  reach a new zone. At a session's first opening, and after travelling, it used to come in over a moment
+  (the files held from the last opening were another place's, or none). The part of the view still
+  fading in as you closed the map is held too. By cscoder69.
+
+- **The game's map-pin button works on the stitched map**: armed, a click on the map drops your pin there,
+  as on the game's own map (#324). By gOOvER.
+
+- **Your arrow, bigger if you like**: Options' "Arrow size" (100% as before) and "Your arrow over
+  everything", which lifts OpenMap's arrow over every icon on the map (#329). By gOOvER.
+
+### Fixed
+
+- **No stutter when the map opens**: since v0.8.11 every set of icons was laid out twice as the map opened,
+  for the whole world and then for your view; once now, as in v0.8.10 (#293, measured by protella: the
+  opening 384 ms to 45).
+
+- **A resized window keeps its view**: since v0.8.11 dragging the window's corner zoomed the map out to the
+  whole continent; the place you were looking at stays put now, at the same scale.
+
+- **Your position read safely everywhere**: the map, dungeon entrances, flight routes and the controller view
+  all read where you are the same careful way, so a hidden position in combat or in a restricted instance
+  can't raise a Lua error. By gOOvER.
+
+- **A dungeon's map fills the screen when maximized**: going from the quest log (L) to the maximized map (M)
+  inside a dungeon left its map small in the middle (#297). By gOOvER.
+
+- **The Stockade's entrance opens its map**: clicking it found neither the game's dungeon map nor its
+  Dungeon Journal page (#289). By gOOvER.
+
+- **A map window saved off the screen comes back**: dragged out of reach, it opens where Blizzard puts it
+  again (`/openmap reset` does the same at any time) (#375).
+
+- **No Lua error from the cursor's coordinates** over a part of the map with no zone of its own, as on
+  retail's maps outside the stitched world (#343).
+
+- **Explored land keeps its detail up close with Hide unexplored areas**: zoomed in where the minimap's
+  detail comes in, land you'd explored near an unexplored part (Redridge, Tarren Mill and others) got the
+  painted map back over it, as if unexplored. Only the unexplored parts' own shapes are hidden now
+  (#166, #156, #163, #247, #279, #370).
+
+- **Appear Offline keeps your place to yourself**: with Battle.net's Appear Offline on, OpenMap sends your
+  friends and guild nothing (not your place, not even a hello), and tells them to stop showing where you
+  were (#395).
+
+- **Questie's quest icons over a town's icons**: a quest under a vendor, trainer or flight master's icon
+  was hidden; Questie's quests now go over every icon of OpenMap's (#393).
+
+- **No "newer OpenMap" notice from test builds**: a test build or a beta no longer tells others it's a newer
+  version; only releases do.
+
+- **The windowed quest log sits beside the map**: it covered part of the map until the window was laid out
+  again; and a window resized by its corner stays on the screen (#327). By gOOvER.
+
+- **The right wing's map in Dire Maul, Scarlet Monastery and Blackrock Spire**: the wing is worked out from
+  the dungeon finder and the area you're in, or the portal you came through, and kept over a /reload; Dungeon
+  Journal is told it too. By puschie286.
+
+- **Ctrl-click left to the game is followed**: with "Ctrl-click drops a pin" off, the game's own waypoint was
+  set on the map underneath (often the continent's), where the game has no route to it, so it was never
+  followed; it's put on the zone under the cursor now, at the cursor, and followed (#19).
+
+- **Coordinates clear of the border full screen**: the labels sat under Blizzard's border at the map's
+  bottom edge when the map was maximized (#399).
+
+## v0.8.11 (2026-11-20)
+
+### Improved
+
+- **Told when a newer OpenMap is out**: when a friend, guild member or group member has a newer release,
+  a line in chat says so, once a session ("OpenMap X is out (you have Y). Update through CurseForge.").
+  Your version rides only on messages OpenMap already sends them (the hello to friends who use it, your
+  first shared place to your guild, a pin share to your group); older copies pass over it. Options' "Say
+  when OpenMap has an update" turns it off, and then your version isn't sent either.
+
+- **"The game's map" on a dungeon's map**: inside a dungeon, a button at the top of OpenMap's dungeon map
+  switches to the game's own map there, and says how to turn OpenMap's back on (menu > Dungeons) (#371).
+
+- **A smoother map on a Russian client**: the zones' art from further out is drawn from tiles baked
+  from the ruRU client's own maps, place names and city banners in Russian, as on an English or a
+  Brazilian Portuguese client (it was every zone's art drawn live). (New textures: restart the game.)
+  By Danpiel.
+
+### Fixed
+
+- **The quest tracker keeps working in combat with OpenMap**: clicking a tracked quest, or opening the map,
+  in a fight gave "Interface action failed because of an AddOn", and the objective tracker then stopped
+  updating until you collapsed and opened it again. OpenMap no longer puts its own code in place of the
+  game's map functions (it runs after them), and changes nothing of the game's map in a fight: the map
+  opened in combat is the game's view of it, and OpenMap's comes back as the fight ends (#345, #347, #368).
+
+- **Forever City Labels' pins show on the stitched map**: its service, profession and class trainer pins
+  were drawn under OpenMap's art. By marquesm91.
+
+- **No more green squares over the map** where the game can't find OpenMap's map tiles (not installed,
+  or the game not restarted since an update): such a tile is left out, and with several missing the map
+  is drawn without them. `/openmap status` says how many (#349, #353).
+
+- **Translations of the ClassicUI Forever question read right again**: in every language they showed as
+  garbled letters (Ð’ ...).
+
+- **Quest icons show the quest's level on every map**: zoomed out, or over the next zone, OpenMap's own
+  quest icons had only the quest's name on their tooltip. They now read as Blizzard's own quest icons do,
+  with the level and its difficulty colour ("[39+] The Crown of Will"). By Rambomst.
+
+- **Sharper at the middle zooms**: between a continent and a zone filling the view, the zones' art was
+  drawn from tiles stretched past their pixels for a while; the zones' own art takes over sooner now.
+  And unexplored land no longer flickers as the zones' art comes in while you pan. By wealdly.
+
+- **Roogug where he is now**: in Razorfen Kraul he stands in the middle of the dungeon past the rope
+  bridge (needed for the warriors' Fire Hardened Mail); his pin was at his old spot (#318).
+
+- **With Soften on, unexplored land stays darkened up close**: from Soften's zoom until the minimap came
+  in, a partly explored zone's unexplored land went nearly bright, and flickered back each time the map
+  moved. By wealdly.
+
+- **The controller map opens where you set it**: with the Gamepad UI, "When reopening the map"
+  (center on you, keep the zoom, your zone, remember) was only used the first time the map opened;
+  after that it opened wherever it was last left. It's used every time now.
+
+- **Place names under the controller's cursor**: the zone (with its levels) or the area under the
+  cursor is named at the top of the map, as it is under the mouse. Blizzard's own label, which named
+  places on its map hidden under OpenMap's, is hidden while OpenMap's map is up.
+
+- **Quest areas on the controller map**: pointing at a quest's icon shades its area, as Blizzard's map
+  does for its own icons, and the area stays in place while zooming. The focused quest's icon is
+  Blizzard's gold one, and its area stays shown when the cursor isn't on another quest. By kr0ozin.
+
+### Also
+
+- I've also made OpenGroup, a group finder that shows groups from every shard. It's in beta and gets more useful the more people use it. Search OpenGroup on CurseForge.
+
 ## v0.8.10 (2026-11-16)
 
 ### Fixed

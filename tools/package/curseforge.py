@@ -56,7 +56,9 @@ if not ids:
 
 release = "alpha" if "-alpha" in version else "beta" if "-beta" in version else "release"
 meta = {
-    "changelog": open(notes_path, encoding="utf-8").read(),
+    # (the notes, then one line on supporting OpenMap: support.md, the GitHub release's foot too)
+    "changelog": open(notes_path, encoding="utf-8").read().rstrip("\n") + "\n\n---\n\n"
+                 + open(os.path.join(ROOT, "tools", "package", "support.md"), encoding="utf-8").read(),
     "changelogType": "markdown",
     "displayName": "OpenMap %s (%s)" % (version, "WoW Forever" if client == "forever" else client.capitalize()),
     "gameVersions": ids,

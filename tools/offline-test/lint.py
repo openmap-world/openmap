@@ -129,7 +129,7 @@ WOW_API = {
     "debugprofilestop", "GetFramerate", "IsAddOnLoaded", "GetUnitSpeed", "IsPlayerMoving", "IsMouselooking", "IsModifiedClick", "GetPhysicalScreenSize", "IsMouseButtonDown",
     "IsInGuild", "UnitIsPlayer", "GetUnitName", "UnitName", "Ambiguate", "ToggleWorldMap",
     "UnitRace", "GetLocale", "PlaySound", "IsInInstance", "GetInstanceInfo",
-    "GetNormalizedRealmName", "GetRealmName", "GetNumGuildMembers", "GetGuildRosterInfo", "BNGetNumFriends",
+    "GetNormalizedRealmName", "GetRealmName", "GetNumGuildMembers", "GetGuildRosterInfo", "BNGetNumFriends", "GetAchievementInfo",
 }
 
 
@@ -204,6 +204,37 @@ for _name in changelog.stale():
 sys.path.insert(0, os.path.join(ROOT, "..", "tools", "locale"))
 import translate
 problems += translate.problems()
+# ... and no translation that's UTF-8 read as Windows-1252 and saved again ("Ð’ ClassicUI", mojibake: a
+# pull request's translations came in so, in every language): it reads back as UTF-8 once mended
+import json as _json
+_CP = {}
+for _b in range(256):
+    try: _CP[bytes([_b]).decode("cp1252")] = _b
+    except UnicodeDecodeError: _CP[chr(_b)] = _b
+for _p in sorted(glob.glob(os.path.join(ROOT, "..", "tools", "locale", "*.json"))):
+    if os.path.basename(_p) == "strings.json":
+        continue
+    for _k, _v in _json.load(open(_p, encoding="utf-8")).items():
+        if not isinstance(_v, str) or all(ord(_c) < 128 for _c in _v):
+            continue
+        try:
+            _m = bytes(_CP[_c] for _c in _v).decode("utf-8")
+        except (KeyError, UnicodeDecodeError):
+            continue
+        if _m != _v:
+            problems.append("%s: %s is mojibake (UTF-8 read as Windows-1252)" % (os.path.basename(_p), ascii(_k[:50])))
+# A method of Blizzard's world map or quest log replaced, not hooked: the game's own code then calls OpenMap's,
+# which taints what it does next, and its protected calls are blocked in combat (the quest tracker: #345).
+# hooksecurefunc after it instead. (OpenMap's map with the controller, padMap, a test that's off: allowed)
+_BLIZZ = re.compile(r"^\s*(sc|map|WorldMapFrame|QuestMapFrame|WorldMapFrame\.ScrollContainer|sc\.Child)\.([A-Z]\w*)\s*=[^=]")
+for _f in sorted(glob.glob(os.path.join(ROOT, "**", "*.lua"), recursive=True)):
+    if os.sep + "Libs" + os.sep in _f:
+        continue
+    for _i, _line in enumerate(open(_f, encoding="utf-8"), 1):
+        _m = _BLIZZ.match(_line)
+        if _m and "padMap only" not in _line:
+            problems.append("%s:%d: %s.%s replaced: hook it after Blizzard's (hooksecurefunc), or the game's own code is tainted (#345)"
+                            % (os.path.relpath(_f, ROOT), _i, _m.group(1), _m.group(2)))
 # WoW Forever's cave and dungeon tiles are drawn from OpenMap's own copies (Data/Forever/Tiles.lua):
 # one not copied is a missing texture in game (green) on every client
 import importlib.util

@@ -11,6 +11,7 @@ local mod = ns:GetModule("worldmap")
 local Look, L = ns.Look, ns.L
 
 mod.defaults.newsSeen = false   -- the newest notes' version the window has shown (false: a fresh install)
+mod.defaults.updateNotice = true   -- a line in chat when a friend, guild or group member has a newer OpenMap
 
 local frame
 local W, H = 900, 620
@@ -24,6 +25,7 @@ local GOLD = { 1, 0.82, 0 }
 local NON_LATIN = { koKR = true, zhCN = true, zhTW = true, ruRU = true }
 local TITLE_FONT = NON_LATIN[GetLocale and GetLocale() or ""] and STANDARD_TEXT_FONT or "Fonts\\MORPHEUS.TTF"
 local URL = "https://github.com/openmap-world/openmap"
+local SUPPORT_URL = "https://ko-fi.com/jigrobbulus"   -- (the credits' foot: where to support it)
 local MONTHS = { "January", "February", "March", "April", "May", "June", "July", "August", "September",
 	"October", "November", "December" }
 
@@ -149,6 +151,43 @@ local function ShowPage(n)
 		p.dot:Show()
 		p.text:Show()
 		y = y + (p.text:GetStringHeight() or 16) + 14
+	end
+	-- (the credits' foot, only there: that it's free, and where to support it, the link to copy)
+	local sup = page.support
+	if credits and not sup then
+		sup = {}
+		sup.text = Font(child:CreateFontString(nil, "OVERLAY"), STANDARD_TEXT_FONT, 15)
+		sup.text:SetJustifyH("LEFT")
+		sup.text:SetTextColor(INK[1], INK[2], INK[3])
+		sup.link = CreateFrame("EditBox", nil, child, "InputBoxTemplate")
+		sup.link:SetSize(240, 22)
+		sup.link:SetAutoFocus(false)
+		sup.link:SetText(SUPPORT_URL)
+		sup.link:SetCursorPosition(0)
+		sup.link:SetScript("OnTextChanged", function(self, user) if user then self:SetText(SUPPORT_URL) self:HighlightText() end end)
+		sup.link:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+		sup.link:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+		sup.copy = Look:Font(child:CreateFontString(nil, "OVERLAY"), 11)
+		sup.copy:SetPoint("LEFT", sup.link, "RIGHT", 10, 0)
+		sup.copy:SetTextColor(0.45, 0.35, 0.2)
+		sup.copy:SetText(L["click, then Ctrl-C"])
+		page.support = sup
+	end
+	if sup then
+		if credits then
+			y = y + 10
+			sup.text:ClearAllPoints()
+			sup.text:SetPoint("TOPLEFT", 6, -y)
+			sup.text:SetWidth(width - 12)
+			sup.text:SetText(L["OpenMap is free and made in spare time. To support it:"])
+			y = y + (sup.text:GetStringHeight() or 16) + 8
+			sup.link:ClearAllPoints()
+			sup.link:SetPoint("TOPLEFT", 12, -y)
+			y = y + 30
+		end
+		sup.text:SetShown(credits)
+		sup.link:SetShown(credits)
+		sup.copy:SetShown(credits)
 	end
 	child:SetHeight(y + 16)
 	page.scroll:SetVerticalScroll(0)
@@ -307,9 +346,10 @@ local function Build()
 	close:SetPoint("BOTTOMRIGHT", -14, FOOT - 34)
 	local credit = Look:Font(frame:CreateFontString(nil, "OVERLAY"), 13)
 	credit:SetPoint("BOTTOMLEFT", 16, 16)
-	credit:SetText(L["OpenMap is made by |cffe6b85cJi|r, and it's open source: join in on GitHub"])
+	credit:SetText(L["OpenMap is made by |cffe6b85cJi Unit (RP-PvP Horde)|r, and it's open source: join in on GitHub"])
 	local link = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-	link:SetSize(300, 22)
+	-- (the address beside it in what's left of the width: a long line in some languages; it scrolls in a narrower box)
+	link:SetSize(math.max(160, math.min(300, W - 46 - (credit:GetStringWidth() or 0))), 22)
 	link:SetPoint("LEFT", credit, "RIGHT", 14, 0)
 	link:SetAutoFocus(false)
 	link:SetText(URL)
@@ -338,6 +378,45 @@ function mod:ToggleNews(on)
 	frame:SetShown(on)
 end
 function mod.NewsShown() return frame and frame:IsShown() or false end
+
+--------------------------------------------------------------------------------
+-- A newer OpenMap out: the version rides on messages OpenMap already sends (Friends.lua's hellos,
+-- Pins.lua's shares, as "V1 version client" or fields after the hello's own), and the first newer
+-- release seen says so in chat, once a session. Releases only (v1.2.3): test builds, betas and
+-- anything else are ignored; each client's against its own (Forever's never told of retail's).
+--------------------------------------------------------------------------------
+
+local told = false
+
+-- a release's numbers, from "v1.2.3" exactly; with mine, a suffix ("-test") is the release it leads to
+local function Release(v, mine)
+	if type(v) ~= "string" then return end
+	local a, b, c = v:match(mine and "^v(%d%d?%d?)%.(%d%d?%d?)%.(%d%d?%d?)" or "^v(%d%d?%d?)%.(%d%d?%d?)%.(%d%d?%d?)$")
+	if a then return tonumber(a), tonumber(b), tonumber(c) end
+end
+mod.Release = Release
+
+-- this copy's version and client, as the messages carry them; nil with the notice off
+function mod.VersionFields()
+	if not mod.db.updateNotice then return end
+	-- (a release's only: a test build, a beta or a checkout says nothing of itself, so no one hears of a
+	-- version before it's out. Others' copies pass over those anyway, Release's exact match)
+	if not Release(ns.version) then return end
+	return ns.version, ns.Client
+end
+
+-- a version heard from someone: told once a session when it's a newer release for this client
+function mod.HeardVersion(version, client)
+	if told or not mod.db.updateNotice or client ~= ns.Client then return end
+	local a, b, c = Release(version)
+	local x, y, z = Release(ns.version, true)
+	if not a or not x then return end
+	if a > x + 1 then return end                 -- (a jump that far: a mistake or made up)
+	if a > x or (a == x and (b > y or (b == y and c > z))) then
+		told = true
+		ns:Print(L["OpenMap %s is out (you have %s). Update through CurseForge."], version, ns.version)
+	end
+end
 
 function mod:SetupNews()
 	local newest = Newest()

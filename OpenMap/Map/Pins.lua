@@ -19,6 +19,7 @@ local Look, Safe, L = ns.Look, ns.Safe, ns.L
 mod.defaults.pins = { list = {}, nextId = 1 }
 mod.defaults.pinsShared = true  -- pins others share reach you (you're asked first)
 mod.defaults.pinsAt = false     -- the Pins list's place once dragged: { point, relPoint, x, y } (UIParent's)
+mod.defaults.rightClickOut = true -- right-click on the map zooms out (off: the map's and other addons', Questie's)
 mod.defaults.ctrlClickPin = true -- Ctrl-click on the map drops a pin (off: another addon's Ctrl-click, Map Pin Enhanced's)
 mod.defaults.pinsHidden = false -- your pins off the map (right-click Pins; the list still has them)
 mod.defaults.pinsFollowNew = true -- a pin you drop is followed (off: Blizzard's waypoint, and the routes other addons draw to
@@ -236,9 +237,19 @@ end
 
 local SHARE_TO = { group = L["your group"], guild = L["your guild"] }
 
+local versionSent = {}          -- channel (and whisper target) -> true: this copy's version sent there this session
+
 local function Share(pins, to)
 	local channel, target = Channel(to)
 	if not channel or not (C_ChatInfo and C_ChatInfo.SendAddonMessage) or #pins == 0 then return end
+	-- ("V1 version client" first, once a session to your group or guild: News.lua; v0.8.10 and before pass over it)
+	local version, client
+	if mod.VersionFields then version, client = mod.VersionFields() end   -- (not `a and f()`: it keeps one)
+	local where = channel .. "\t" .. (target or "")
+	if version and channel ~= "WHISPER" and not versionSent[where] then
+		versionSent[where] = true
+		queue[#queue + 1] = { ("V1\t%s\t%s"):format(version, client), channel, target }
+	end
 	for _, p in ipairs(pins) do queue[#queue + 1] = { Message(p), channel, target } end
 	sender:Show()
 	ns:Print(L["Sharing %d map pin(s) with %s (players with OpenMap are asked whether to add them)."], #pins,
@@ -338,12 +349,16 @@ waiter:SetScript("OnUpdate", function(self)
 end)
 
 local function OnAddonMessage(_, _, prefix, text, channel, from)
-	if prefix ~= PREFIX or not mod.db.pinsShared then return end
+	if prefix ~= PREFIX then return end
 	if Safe.IsSecret(text) or Safe.IsSecret(from) or type(text) ~= "string" or type(from) ~= "string" then return end
 	local name = Ambiguate(from, "none")
 	if name == UnitName("player") then return end   -- (your own, sent to your group or guild)
 	local kind, m, x, y, color, note = strsplit("\t", text, 6)
-	if kind ~= "P1" then return end
+	if kind == "V1" then
+		if channel ~= "WHISPER" and mod.HeardVersion then mod.HeardVersion(m, x) end   -- (a group's or guild's only)
+		return
+	end
+	if kind ~= "P1" or not mod.db.pinsShared then return end
 	local q = Valid(m, x, y, color, note or "")
 	if not q then return end
 	-- (sent to your party or raid, so from someone in it: added without asking, with pinsGroupAdd)
@@ -825,6 +840,8 @@ function mod:PinOptions(opts, get, set_, off)
 		desc = L["A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it)."] }
 	opts.pinsGroupAdd = { type = "toggle", name = L["Auto-add group's pins"], order = 36.2, width = "full", get = get, set = set_, disabled = off,
 		desc = L["Map pins your party or raid shares with you are added at once, without asking."] }
+	opts.rightClickOut = { type = "toggle", name = L["Right-click zooms out"], order = 35.95, width = "full", get = get, set = set_, disabled = off,
+		desc = L["Right-click on the map steps out to the zone or continent around it. Off, right-click is left to the map and other addons (Questie's objectives); the menu's way out still works."] }
 	opts.ctrlClickPin = { type = "toggle", name = L["Ctrl-click drops a pin"], order = 35.9, width = "full", get = get, set = set_, disabled = off,
 		desc = L["Ctrl-click on the map drops a pin. Turn it off if another addon drops its own pin on Ctrl-click (Map Pin Enhanced): the menu's Drop a pin still works."] }
 end

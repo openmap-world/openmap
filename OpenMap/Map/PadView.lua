@@ -72,6 +72,8 @@ local overWindow, wheelFrame    -- the pad's cursor over one of OpenMap's window
 local wheelWait = 0
 local stickZoomAt = -10         -- when the right stick last zoomed the view (GetTime)
 local WHEEL_EVERY = 0.12        -- seconds between the right stick's wheel notches at full tilt
+local area = {}                 -- the quest's area: { frame, quest, map (drawn), hoverQ/M, focusQ/M, failed }
+local DrawArea                  -- (below: Apply redraws the area with it)
 local diag = { started = 0, setup = "not yet", shows = 0, why = "not tried yet" }   -- (/openmap padview)
 
 local function Clamp(x, lo, hi) return math.max(lo, math.min(hi, x)) end
@@ -160,6 +162,8 @@ local function Apply()
 	S.SetView(u, v, hu, hv, zoom * dk, zoom / (ns.ClientMaps and ns.ClientMaps.zoom or 1))
 	S.PlacePlayer()
 	PlaceQuestie()
+	-- (the quest's area drawn again for the new scale, as Blizzard redraws its own: WorldMap.lua's SetView)
+	if area.quest and area.frame then DrawArea(area.frame, area.quest) end
 end
 
 -- to zoom `to`, the world point under the view offset (sx, sy) kept there
@@ -247,11 +251,8 @@ local function Step(inward)
 end
 
 local function UpdatePlayer()
-	local best = C_Map.GetBestMapForUnit("player")
-	local pos = best and S.Rect(best) and C_Map.GetPlayerMapPosition(best, "player")
-	local x, y
-	if pos then x, y = ns.Safe.XY(pos) end
-	if ns.Safe.IsSecret(x) or ns.Safe.IsSecret(y) or not (x and y) then S.SetPlayer(nil) return end
+	local best, x, y = ns.Safe.PlayerPos()
+	if not (best and S.Rect(best) and x and y) then S.SetPlayer(nil) return end
 	local l, r, t, b = S.Rect(best)
 	S.SetPlayer(l + x * (r - l), t + y * (b - t), ns.Safe.Call(GetPlayerFacing))
 end
@@ -299,6 +300,166 @@ local function MakePointer(level)
 		if c then line:SetColorTexture(c.r, c.g, c.b, 0.6) else line:SetColorTexture(1, 0.82, 0, 0.6) end
 		pointer.lines[i] = line
 	end
+end
+
+-- The name of the place under the pad's cursor, at the top of the view, as Blizzard's area label names it
+-- on its map (Extras.lua's for OpenMap's usual map). Blizzard's is on its map under this view, naming that
+-- map's places, not this view's: this is OpenMap's own, on this view (nothing of Blizzard's written)
+local place = {}                -- { frame, name, fish, key (what it says now) }
+
+local function MakePlaceLabel(level)
+	local f = CreateFrame("Frame", nil, map)   -- (on Blizzard's map, as the pointer: the view clips)
+	f:SetAllPoints(view)
+	f:SetFrameLevel(level)
+	f:Hide()
+	local name = f:CreateFontString(nil, "OVERLAY", _G.GameFontNormalHuge and "GameFontNormalHuge" or "GameFontNormalLarge")
+	name:SetPoint("TOP", f, "TOP", 0, -24)
+	name:SetShadowColor(0, 0, 0, 1)
+	name:SetShadowOffset(1, -1)
+	local fish = f:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	fish:SetPoint("TOP", name, "BOTTOM", 0, -4)
+	place.frame, place.name, place.fish = f, name, fish
+end
+
+-- Blizzard's label, over this view: unseen while it's up (as its map is), back as it goes
+function place.Blizzard(alpha)
+	for provider in pairs(map.dataProviders or {}) do
+		if type(provider) == "table" and provider.Label and provider.Label.SetLabel then provider.Label:SetAlpha(alpha) end
+	end
+end
+
+-- (x, y: the pad's cursor, screen px; nil: no label)
+local function PlaceLabel(x, y)
+	local f = place.frame
+	if not f then return end
+	local text, fishText
+	if x and mod.PlaceLabel then
+		local cu, cv = WorldAt(Offset(x, y))
+		local chain = S.ChainAt(cu, cv)
+		local id = chain[#chain]
+		if id and id ~= WORLD then
+			local l, r, t, b = S.Rect(id)
+			if l and r > l and b > t then
+				-- (zoomed out past the zone: its name and levels; on it: the area there, as on the usual map)
+				local whole = Stitchable(id) and FitZoom(id) > zoom * 1.05
+				local ok, a, c = pcall(mod.PlaceLabel, id, (cu - l) / (r - l), (cv - t) / (b - t), whole)
+				if ok then text, fishText = a, c end
+			end
+		end
+	end
+	if not text then
+		place.key = nil
+		f:Hide()
+		return
+	end
+	fishText = fishText or ""
+	if text ~= place.key or fishText ~= place.fishKey then
+		place.key, place.fishKey = text, fishText
+		place.name:SetText(text)
+		place.fish:SetText(fishText)
+	end
+	f:Show()
+end
+
+-- The quest's area (Quests.lua's icons), as Blizzard's map shades it for its own quest icons (its
+-- QuestBlobPin, a QuestPOIFrame on its canvas): the hovered quest's, else the focused (super-tracked)
+-- one's, as Blizzard's shows. Blizzard's is on its map under this view, unseen: this is OpenMap's own
+-- QuestPOIFrame, on this view's canvas over the quest's zone, over the art and under the icons. A client
+-- without the frame type: no area, as before.
+
+-- the area drawn for the frame's place on screen now. The game works that place out only as it next lays
+-- the frames out: drawn from the last one, after a zoom, the area was drawn for the zoom before it and
+-- stayed there (WorldMap.lua's SetView does the same for Blizzard's)
+function DrawArea(f, questID)
+	f:GetParent():GetRect()
+	f:GetRect()
+	pcall(f.DrawNone, f)
+	return pcall(f.DrawBlob, f, questID, true)
+end
+
+-- In a fight the map is OpenMap's own view (OwnView.lua), Blizzard's area under it, see-through: the same
+-- area drawn there, on that view's canvas (area.own), as on this one's
+local function AreaFrame(parent, level)
+	local ok, made = pcall(CreateFrame, "QuestPOIFrame", nil, parent)
+	if not ok or not made or not made.DrawBlob then return end
+	-- (Blizzard's look for them: QuestBlobDataProvider's)
+	pcall(made.SetFillTexture, made, "Interface\\WorldMap\\UI-QuestBlob-Inside")
+	pcall(made.SetBorderTexture, made, "Interface\\WorldMap\\UI-QuestBlob-Outside")
+	pcall(made.SetFillAlpha, made, 128)
+	pcall(made.SetBorderAlpha, made, 192)
+	pcall(made.SetBorderScalar, made, 1.0)
+	made:SetFrameLevel(level)
+	return made
+end
+
+local function HideArea(slot)
+	local f = slot.frame
+	if f then
+		pcall(f.DrawNone, f)
+		f:Hide()
+	end
+	slot.quest, slot.map = nil, nil
+end
+
+-- one area: `slot` (area, or area.own), on `cv` (the canvas it's drawn on) placed from `anchor` (the world's
+-- top left, in the art's units), at `level`
+local function ShowAreaOn(slot, cv, anchor, level, questID, mapID)
+	local f = slot.frame
+	if not f then
+		if area.failed then return end
+		f = AreaFrame(cv, level)
+		if not f then area.failed = true return end
+		slot.frame = f
+	end
+	f:SetFrameLevel(level)
+	if slot.quest == questID and slot.map == mapID and f:IsShown() then return end
+	local W, H = S.Size()
+	local l, r, t, b = S.Rect(mapID)
+	f:ClearAllPoints()
+	f:SetPoint("TOPLEFT", anchor, "TOPLEFT", l * W, -t * H)   -- (canvas units, as the art's)
+	f:SetSize((r - l) * W, (b - t) * H)
+	if f.SetMapID then pcall(f.SetMapID, f, mapID) end
+	f:Show()
+	if not DrawArea(f, questID) then f:Hide() return end
+	slot.quest, slot.map = questID, mapID
+end
+
+local function ShowArea()
+	area.own = area.own or {}
+	local questID, mapID = area.hoverQ, area.hoverM
+	if not questID then questID, mapID = area.focusQ, area.focusM end
+	local known = questID and mapID and S.Rect(mapID)
+	if known and built and On() and view:IsShown() then
+		ShowAreaOn(area, canvas, canvas, (S.artTop or canvas:GetFrameLevel() + ART_RANGE) + 1, questID, mapID)
+	else
+		HideArea(area)
+	end
+	local own, iconLevel
+	if mod.OwnCanvas then own, _, iconLevel = mod.OwnCanvas() end
+	local root = own and S.Roots()
+	if known and own and root then
+		-- (over the art, which is lifted on that view, and under OpenMap's icons there)
+		ShowAreaOn(area.own, own, root, math.max(1, iconLevel - 1), questID, mapID)
+	else
+		HideArea(area.own)
+	end
+end
+
+-- for OwnView.lua: the area drawn again for the view's new place (as Apply does here)
+function mod.OwnQuestAreaMoved()
+	local slot = area.own
+	if slot and slot.quest and slot.frame and slot.frame:IsShown() then DrawArea(slot.frame, slot.quest) end
+end
+
+-- for Quests.lua: the quest under the pad's cursor (nil: none) ...
+function mod.PadQuestArea(questID, mapID)
+	area.hoverQ, area.hoverM = questID, questID and mapID or nil
+	ShowArea()
+end
+-- ... and the focused one, shown while none is hovered (nil: none)
+function mod.PadQuestFocus(questID, mapID)
+	area.focusQ, area.focusM = questID, questID and mapID or nil
+	ShowArea()
 end
 
 --------------------------------------------------------------------------------
@@ -594,6 +755,8 @@ local function OnUpdate(_, elapsed)
 		wheelFrame = overWindow and mod.PadWheelAt and mod.PadWheelAt(x, y) or nil
 		if ctl or blocked or dungeon then Enter(ctl)
 		else Enter(x and (S.PinAt(x, y, REACH) or QuestieAt(x, y)) or nil) end
+		-- (the place's name: not over OpenMap's windows or a dungeon's map, whose own names are there)
+		PlaceLabel(not (ctl or blocked or dungeon) and x or nil, y)
 	end
 end
 
@@ -605,6 +768,7 @@ end
 local function Look()
 	local db = mod.db
 	S.SetPlayerHidden(db.playerArrow == false)
+	if S.SetPlayerScale then S.SetPlayerScale(db.playerArrowScale or 1) end
 	S.SetPlacesFrom(db.iconsFrom)
 	S.SetFoundOnly(db.foundOnly)
 	S.SetIconScale(db.iconScale or 1)
@@ -641,6 +805,7 @@ local function Build()
 	canvas:SetSize(W, H)
 	S.RaiseArrow(math.min(9900, base + ARROW_ABOVE))
 	MakePointer(POINTER_LEVEL)
+	MakePlaceLabel(POINTER_LEVEL - 5)   -- (under the cursor, over the art and icons)
 	questieLayer = CreateFrame("Frame", nil, view)
 	questieLayer:SetAllPoints(view)
 	questieLayer:SetFrameLevel(base + ART_RANGE + 10)
@@ -662,6 +827,12 @@ local function Build()
 	-- zooms ...): this view's, OpenMap's usual map not being set up while it's on
 	mod.Glide = function(tu, tv, tz) GlideTo(tu, tv, tz or zoom) end
 	mod.ViewNow = function() return u, v, zoom end
+	-- (Nav.lua's "Remember while visible": the half extents of this view, not Blizzard's scroll frame's)
+	mod.ViewHalfExtents = function(z)
+		local W, H = S.Size()
+		local px = FitPx() * (z or zoom)
+		return view:GetWidth() / 2 / (W * px), view:GetHeight() / 2 / (H * px)
+	end
 	mod.FitZoom = function(id) return FitZoom(id) end
 	mod.ShowNow = function(tu, tv, tz)
 		glide = nil
@@ -726,13 +897,10 @@ end
 -- the view to open on: where it was, else around you, your zone filling it
 local function FirstView()
 	UpdatePlayer()
-	local best = C_Map.GetBestMapForUnit("player")
+	local best, x, y = ns.Safe.PlayerPos()
 	local l, r, t, b
 	if best then l, r, t, b = S.Rect(best) end
-	local pos = best and C_Map.GetPlayerMapPosition(best, "player")
-	local x, y
-	if pos then x, y = ns.Safe.XY(pos) end
-	if l and x and y and not ns.Safe.IsSecret(x) and not ns.Safe.IsSecret(y) then
+	if l and x and y then
 		u, v = l + x * (r - l), t + y * (b - t)
 		local zone = best
 		while zone and not Stitchable(zone) do
@@ -753,17 +921,31 @@ local function Show()
 		if built then sc.Child:SetAlpha(1) end
 		return
 	end
-	if not u then FirstView() end
+	-- the view to open on, as Options' "When reopening the map" has it (Nav.lua's SavedView, as the usual
+	-- map opens); nothing to go on there (in an instance, nothing saved): where it was, else around you
+	local su, sv, sz
+	if mod.SavedView then
+		local ok, a, b, c = pcall(mod.SavedView)
+		if ok then su, sv, sz = a, b, c end
+	end
+	if su and sv and sz and sz > 0 then
+		u, v, zoom = su, sv, Clamp(sz, 1, MostAt(su, sv))
+	elseif not u then
+		FirstView()
+	end
 	HoldPins()
 	ScanQuestie()
 	if mod.PadQuestiePaths then pcall(mod.PadQuestiePaths, true) end   -- (Questie's mob paths: Extras.lua's)
 	glide = nil
 	sc.Child:SetAlpha(0)      -- (Blizzard's map underneath: there, unseen; nothing of it written)
+	pcall(place.Blizzard, 0)
 	view:Show()
 	dirty = true
 end
 
 local function Hide()
+	-- (the view it closed at, for "When reopening the map": Nav.lua keeps it)
+	if built and view:IsShown() and mod.OnMapHidden then pcall(mod.OnMapHidden, mod) end
 	Enter(nil)
 	if mod.PadQuestiePaths then pcall(mod.PadQuestiePaths, false) end
 	if mod.DungeonViewShown and mod.DungeonViewShown() and mod.CloseDungeonView then pcall(mod.CloseDungeonView) end
@@ -771,6 +953,10 @@ local function Hide()
 	wipe(questieShown)
 	view:Hide()
 	if pointer then pointer:Hide() end
+	PlaceLabel(nil)
+	area.hoverQ, area.hoverM = nil, nil
+	ShowArea()
+	if built then pcall(place.Blizzard, 1) end
 	glide, lastX, lastY = nil, nil, nil
 	if sc and sc.Child then sc.Child:SetAlpha(1) end
 end

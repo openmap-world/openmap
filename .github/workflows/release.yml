@@ -40,6 +40,7 @@ jobs:
           {
             echo "## WoW Forever"; echo; cat "dist/OpenMap-$TAG-forever-changelog.md"; echo
             echo "## Retail"; echo; cat "dist/OpenMap-$TAG-retail-changelog.md"
+            echo; echo "---"; echo; cat tools/package/support.md
           } > dist/notes.md
           pre=""; case "$TAG" in *-alpha*|*-beta*) pre="--prerelease";; esac
           gh release create "$TAG" $pre --title "$TAG" --notes-file dist/notes.md \

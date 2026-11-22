@@ -10,8 +10,9 @@
 -- guild and to your friends who use OpenMap; never from inside a dungeon, raid or battleground.
 -- Friends who use OpenMap are found by a hello to each as they come online (H1, answered H2).
 -- The messages: "L1 map x y class level" (tab-separated; a uiMapID, x and y on it 0..1),
--- "L0" (stopped sharing), "H1", "H2". Nothing here runs per frame while the map is closed: what
--- arrives is noted, and drawn when the map opens.
+-- "L0" (stopped sharing), "H1 version client", "H2 version client", "V1 version client" (the version:
+-- News.lua; v0.8.10 and before send the hellos bare, and pass over the fields after them and V1).
+-- Nothing here runs per frame while the map is closed: what arrives is noted, and drawn when the map opens.
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -54,6 +55,7 @@ local dirty = false
 local zoneByName, classByName, realm
 local last = { at = -math.huge }    -- your place as last sent: map, x, y, at, text
 local sharing = false               -- (a place sent since sharing began: they're told when it stops)
+local guildVersion = false          -- (the guild told this copy's version, with the first place shared)
 
 -- whether one of OpenMap's maps is the one on screen: its usual map, or, with the game's Gamepad UI, its
 -- controller view (PadView.lua: the usual map isn't set up then, and IsStitched says no)
@@ -221,6 +223,29 @@ end
 -- Sending: one message a SEND_GAP, one waiting for each place it goes (a newer one replaces it)
 --------------------------------------------------------------------------------
 
+-- Battle.net's Appear Offline on: your friends are told you're offline, so nothing of OpenMap's tells them
+-- otherwise, your place least of all (#395). Read from your own account's info (C_BattleNet), checked a
+-- few times a minute at most; false where the client can't say
+local appearOffline = { at = -math.huge, on = false }
+local function AppearOffline()
+	local now = GetTime()
+	if now - appearOffline.at < 5 then return appearOffline.on end
+	appearOffline.at = now
+	local on = false
+	if BNGetInfo and C_BattleNet and C_BattleNet.GetAccountInfoByID then
+		local ok, _, _, account = pcall(BNGetInfo)
+		account = ok and Safe.Value(account)
+		local info = account and Safe.Call(C_BattleNet.GetAccountInfoByID, account)
+		if type(info) == "table" then
+			local game = type(info.gameAccountInfo) == "table" and info.gameAccountInfo or nil
+			on = Safe.Value(info.appearOffline) == true or (game and Safe.Value(game.isAppearOffline) == true) or false
+		end
+	end
+	appearOffline.on = on
+	return on
+end
+mod.AppearOffline = AppearOffline
+
 local outbox, order = {}, {}        -- key -> { text, channel, target, bn }; the keys in turn
 local sender = CreateFrame("Frame")
 sender:Hide()
@@ -235,6 +260,8 @@ sender:SetScript("OnUpdate", function(self, elapsed)
 	wait = SEND_GAP
 	-- (your place never leaves with Share where you are off, whatever was queued before it was turned off: #277)
 	if m.text:sub(1, 2) == "L1" and not mod.db.friendsShare then return end
+	-- (appearing offline: only the goodbye goes, so they stop showing where you were)
+	if AppearOffline() and m.text ~= "L0" then return end
 	if m.bn then
 		if BNSendGameData then pcall(BNSendGameData, m.bn, PREFIX, m.text) end
 	elseif C_ChatInfo and C_ChatInfo.SendAddonMessage then
@@ -248,10 +275,19 @@ local function Send(key, text, channel, target, bn)
 	sender:Show()
 end
 
-local function ToFriend(full, text)
+local function ToFriend(full, text, key)
 	local f = friends[full]
 	if not f then return end
-	if f.bn then Send(full, text, nil, nil, f.bn) else Send(full, text, "WHISPER", f.whisper) end
+	key = key or full
+	if f.bn then Send(key, text, nil, nil, f.bn) else Send(key, text, "WHISPER", f.whisper) end
+end
+
+-- a hello or "V1" with this copy's version after it (bare with the update notice off)
+local function WithVersion(kind)
+	local version, client
+	if mod.VersionFields then version, client = mod.VersionFields() end   -- (not `a and f()`: it keeps one)
+	if not version then return kind end
+	return ("%s\t%s\t%s"):format(kind, version, client)
 end
 
 -- to your guild and every friend online who uses OpenMap (a friend in your guild has it from the guild's)
@@ -277,7 +313,7 @@ local function Here()
 end
 
 local function Tick()
-	if not mod.db.friendsShare then
+	if not mod.db.friendsShare or AppearOffline() then
 		if sharing then sharing = false last.at, last.text = -math.huge, nil Broadcast("L0") end
 		return
 	end
@@ -295,6 +331,10 @@ local function Tick()
 		tonumber(Safe.Value(UnitLevel("player"))) or 0)
 	sharing = true
 	Broadcast(last.text)
+	if not guildVersion and IsInGuild() and mod.VersionFields and mod.VersionFields() then
+		guildVersion = true
+		Send("GUILD\tV1", WithVersion("V1"), "GUILD")
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -382,7 +422,7 @@ local function Scan()
 	-- a friend just online: a hello, to learn whether they use OpenMap (they learn you do)
 	if mod.db.friends or mod.db.guild or mod.db.friendsShare then
 		for full in pairs(friends) do
-			if not before[full] then ToFriend(full, "H1") end
+			if not before[full] then ToFriend(full, WithVersion("H1")) end
 		end
 	end
 	dirty = true
@@ -449,9 +489,17 @@ end
 local function Heard(full, text, guild, guid, sender)
 	local kind, m, x, y, class, level = strsplit("\t", text, 6)
 	if friends[full] then known[full] = true end
+	if (kind == "H1" or kind == "H2" or kind == "V1") and (guild or friends[full]) and mod.HeardVersion then
+		mod.HeardVersion(m, x)                       -- (fields 2 and 3: version, client)
+	end
 	if kind == "H1" or kind == "H2" then
-		-- (a hello: answered with your place when you share it, so they know you use OpenMap either way)
-		if kind == "H1" and friends[full] then ToFriend(full, sharing and mod.db.friendsShare and last.text or "H2") end
+		-- (a hello: answered with yours, and your place when you share it, so they know you use OpenMap either way)
+		if kind == "H1" and friends[full] then
+			local place = sharing and mod.db.friendsShare and last.text
+			local hello = WithVersion("H2")
+			if hello ~= "H2" or not place then ToFriend(full, hello, full .. "\tH2") end   -- (a bare one: the place says it)
+			if place then ToFriend(full, place) end
+		end
 		return
 	end
 	if not guild and not friends[full] then return end   -- (a whisper only from a friend)
@@ -737,6 +785,8 @@ function mod:FriendsOptions(opts, get, set, off)
 		desc = L["Your friends who are online: a badge on the zone each is in, with who's there (as the friends list shows it), or a class-coloured dot where they stand for those who use OpenMap and share where they are."] }
 	opts.guild = { type = "toggle", name = L["Guild members on the map"], order = 35.5, get = get, set = set, disabled = off,
 		desc = L["Your guild members who are online: a badge on the zone each is in, with who's there (as the guild roster shows it), or a class-coloured dot where they stand for those who use OpenMap and share where they are."] }
+	opts.updateNotice = { type = "toggle", name = L["Say when OpenMap has an update"], order = 35.65, get = get, set = set, disabled = off,
+		desc = L["When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent."] }
 	opts.friendsShare = { type = "toggle", name = L["Share where you are"], order = 35.6, get = get, set = set, disabled = off,
 		desc = L["Your guild, and your friends who use OpenMap, see you as a dot where you stand on their map, sent every few seconds while you move. Never from inside a dungeon, raid or battleground. Off, they see only your zone, as the friends list and guild roster show it."] }
 end
