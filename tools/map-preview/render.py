@@ -1558,9 +1558,9 @@ def bake_territory():
     print("baked", n, "territories", flush=True)
 
 ZONE_PX = 16                    # baked zone art: px per world unit (a zone map's own: 4 in the Barrens, 11 most, 22 the smallest; 16 carries zone-fit zooms)
-FINE_PX = 32                    # ... and a finer set over the zones whose own art is finer than ZONE_PX (nine small
-                                #  ones on Forever: Redridge's 21, Shen'dralas's 22), MapZones/Fine/, so the tiles
-                                #  carry every zone about as sharp as its own art
+HAND_PX = 32                    # ... and where the live layers take over from them (Stitch.lua's Baked.handPx): against
+                                #  this px, as the tiles carry a zone about as sharp as its own art; the zones whose
+                                #  art is finer than ZONE_PX (nine small ones on Forever: Redridge's 21) against ZONE_PX
 ZONE_TILE, ZONE_STEP = 512, 510 # ... its tiles, and the world each covers (the other 2 px: its neighbours' edge, for filtering)
 # the art's colour sampled with a cubic spline (its alpha and the masks bilinear, so piece edges don't ring):
 # resampled bilinearly, then magnified bilinearly again by the client, the tiles kept about 80% of the zones'
@@ -1653,20 +1653,10 @@ def bake_tiles(px, out_dir, keep=None):
     return made
 
 
-def fine_keep():
-    """the FINE_PX tiles over the zones whose own art is finer than ZONE_PX (those the tiles carry: with
-    overlays, not the cities), as (i, j)"""
-    W, H = 1002.0, 668.0
-    T = ZONE_STEP / FINE_PX
-    keep = set()
-    for m in zones:
-        if not reveal.get(m["art"]): continue
-        l, r, t, b = m["rect"]
-        if 1002 / ((r - l) * W) <= ZONE_PX: continue     # (its art px per world unit)
-        for i in range(int(l * W // T), int(math.ceil(r * W / T))):
-            for j in range(int(t * H // T), int(math.ceil(b * H / T))):
-                keep.add((i, j))
-    return keep
+def finer_zones():
+    """the zones the tiles carry (with overlays, not the cities) whose own art is finer than ZONE_PX, by uiMapID"""
+    W = 1002.0
+    return sorted(m["id"] for m in zones if reveal.get(m["art"]) and 1002 / ((m["rect"][1] - m["rect"][0]) * W) > ZONE_PX)
 
 
 def bake_zones():
@@ -1675,7 +1665,6 @@ def bake_zones():
     the gaps' finer maps, each zone's base art and its colour-match copy, the overlays, theirs, and
     the interiors), so the map can draw a few dozen tiles where it drew every zone's hundreds"""
     made = bake_tiles(ZONE_PX, ZONES_DIR)
-    fine = bake_tiles(FINE_PX, os.path.join(ZONES_DIR, "Fine"), fine_keep())
     with open(os.path.join(WM, "ZoneArt.lua"), "w", encoding="utf-8", newline="\n") as f:
         f.write("-- The zones' art baked into world tiles (Media/Textures/MapZones/<i>_<j>.blp): every zone's layers as\n"
                 "-- Stitch.lua draws them at full detail, at the settings below. Stitch.lua draws these in their place.\n"
@@ -1688,19 +1677,18 @@ def bake_zones():
         for k in range(0, len(made), 16):
             f.write("\t\t" + ", ".join(str(v_) for v_ in made[k:k + 16]) + ",\n")
         f.write("\t},\n")
-        f.write("\tfine = { px = %d, tiles = {   -- MapZones\\Fine\\<i>_<j>: over the zones whose own art is finer than px\n" % FINE_PX)
-        for k in range(0, len(fine), 16):
-            f.write("\t\t" + ", ".join(str(v_) for v_ in fine[k:k + 16]) + ",\n")
-        f.write("\t} },\n")
+        f.write("\thandPx = %d,   -- the live layers take over against this px (Stitch.lua's Baked.handPx) ...\n" % HAND_PX)
+        f.write("\tfiner = { %s },   -- ... but for these zones, whose own art is finer than px: against px\n"
+                % ", ".join(str(v_) for v_ in finer_zones()))
         # the other languages baked from their own clients' art (MapZones/<locale>/: OPENMAP_LOCALE)
         root_ = os.path.join(TEXDIR, "MapZones")
-        locales = sorted(d_ for d_ in os.listdir(root_) if os.path.isdir(os.path.join(root_, d_)) and d_ != "Fine"
+        locales = sorted(d_ for d_ in os.listdir(root_) if os.path.isdir(os.path.join(root_, d_)) 
                          and any(x_.endswith(".blp") for x_ in os.listdir(os.path.join(root_, d_))))
         if locales:
             f.write("\tlocales = { %s },   -- MapZones\\<locale>\\: those clients' own art, in their language\n"
                     % ", ".join("%s = true" % l_ for l_ in locales))
         f.write("}\n")
-    print("baked", len(made), "zone tiles,", len(fine), "fine", flush=True)
+    print("baked", len(made), "zone tiles", flush=True)
 
 FOG_S = 0.62                    # the shade's alpha the fog is baked at (Stitch.lua's UNDISCOVERED[4]; Darkening
                                 #  scales it in game)

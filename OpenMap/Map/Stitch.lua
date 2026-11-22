@@ -174,15 +174,15 @@ Baked.lettered = Baked.english
 if not Baked.english and ns.MapZoneArt and ns.MapZoneArt.locales and ns.MapZoneArt.locales[GetLocale()] then
 	Baked.path, Baked.lettered = TEX .. "MapZones\\" .. GetLocale() .. "\\", true
 end
--- The finer set (ns.MapZoneArt.fine: MapZones\Fine\, render.py's FINE_PX), over the zones whose own art is finer
--- than the tiles (nine small ones on Forever: Redridge's is 21 px a world unit, most zones' 7 to 13): drawn over the
--- tiles there, the same art, coming in over FINE_IN (screen px per tile px of the tiles under it) before those are
--- magnified. With it the tiles carry every zone about as sharp as its own art (render.py bakes their colour with a
--- cubic spline), so the live layers take over against the finer set's px (handPx), not the tiles': twice as far
--- in, a few dozen tiles drawn till then instead of every zone's hundreds of masked textures. English only (another
--- language's set has none: its tiles hand over as before)
-Baked.FINE_IN, Baked.fine, Baked.fineA = { 0.7, 1.0 }, {}, 0
-Baked.handPx = ns.MapZoneArt and (Baked.english and ns.MapZoneArt.fine and ns.MapZoneArt.fine.px or ns.MapZoneArt.px)
+-- Where the live layers take over (Baked.handPx: ns.MapZoneArt.handPx). render.py bakes the tiles' colour with a cubic
+-- spline, so they carry a zone about as sharp as its own art wherever that art is no finer than they are (most zones':
+-- 7 to 13 px a world unit, the tiles' 16): there the live layers take over against handPx (32), twice as far in, a
+-- few dozen tiles drawn till then instead of every zone's hundreds of masked textures. The zones whose art is finer
+-- (ns.MapZoneArt.finer: nine small ones, Redridge's 21) hand over as before, against the tiles' own px, and so do
+-- the tiles over them (Baked.Build: early) and the zones those tiles share (Baked.Early: their live layers under
+-- the tiles as they go). English only: another language's tiles hand over as before
+Baked.handPx = ns.MapZoneArt and (Baked.english and ns.MapZoneArt.handPx or ns.MapZoneArt.px)
+Baked.liveEarly, Baked.warmEarly, Baked.earlyA, Baked.early = 1, false, 1, {}
 
 -- The live zone layers' regions (tilesRoot, overlayRoot, coreRoot: thousands of textures and their
 -- masks) are anchored only while they can show. Every region is placed on root, and each frame of a
@@ -222,17 +222,23 @@ local function ApplyDetail()
 	end
 	local live = Baked.use and Baked.live or 1
 	local warm = Baked.use and Baked.warm or false
+	-- (the zones whose art is finer than the tiles, and those sharing their tiles, hand over first: Baked.handPx)
+	local liveE = Baked.use and Baked.liveEarly or 1
+	local warmE = Baked.use and Baked.warmEarly or false
 	-- (the tiles held while zones' files are still coming in, however they came to be wanted: a quick
 	-- zoom brings more zones into view after the live layers came on, and they'd show as parchment)
-	Baked.holding = d > 0.001 and (live > 0 or warm) and Baked.use and Baked.busy or false
-	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0)
+	Baked.holding = d > 0.001 and (liveE > 0 or warmE) and Baked.use and Baked.busy or false
+	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0) + liveE * 8 + (warmE and 16 or 0)
 	if d == appliedDetail and key == Baked.applied then return end
 	appliedDetail, Baked.applied = d, key
-	-- (the live layers at full under the tiles, from just before the handover: Baked, above)
-	local on, seen = d > 0.001 and (live > 0 or warm), d > 0.001
+	-- (the live layers at full under the tiles, from just before the handover: Baked, above. detailLive: any
+	-- zone's, the early ones first; Live.late: every zone's)
+	local on, seen = d > 0.001 and (liveE > 0 or warmE), d > 0.001
+	local late = d > 0.001 and (live > 0 or warm)
 	local dl = on and d or 0
-	if on ~= detailLive or seen ~= Live.seen then   -- (zones' files load once their detail first shows; the live
-		detailLive, Live.seen = on, seen             --  layers' regions are anchored while they show, ShowZone)
+	if on ~= detailLive or late ~= Live.late or seen ~= Live.seen then   -- (zones' files load once their detail first
+		detailLive, Live.late, Live.seen = on, late, seen                 --  shows; the live layers' regions are anchored
+																		  --  while they show, ShowZone)
 		for mapID in pairs(zoneTex) do
 			if inView[mapID] == true then ShowZone(mapID) end
 		end
@@ -257,6 +263,9 @@ local function ApplyDetail()
 		if Baked.hold ~= Baked.want and Baked.easer then Baked.easer:Show() end
 		local gone = live * (1 - Baked.hold)
 		Fade(Baked.frame, math.floor((1 - (1 - d) ^ 2) * (1 - gone) * 100 + 0.5) / 100)
+		-- (the early tiles further: their share of what's left, Baked.Cull)
+		local goneE = liveE * (1 - Baked.hold)
+		Baked.earlyA = gone < 1 and math.floor((1 - goneE) / (1 - gone) * 50 + 0.5) / 50 or 0
 		Baked.Cull()
 	end
 end
@@ -2080,14 +2089,14 @@ function S.SetZoom(zoom, scale)
 	if S.greyRoot and S.greyRoot:IsShown() ~= (detailNow < 0.98) then S.greyRoot:SetShown(detailNow < 0.98) end
 	if Baked.frame then                         -- (screen px per baked px: the live layers take over past them)
 		local _, ph = GetPhysicalScreenSize()
-		local r16 = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
-		local r = r16 * ns.MapZoneArt.px / Baked.handPx       -- (against the finer set, where there's one: Baked.handPx)
-		local fin = math.max(0, math.min(1, (r16 - Baked.FINE_IN[1]) / (Baked.FINE_IN[2] - Baked.FINE_IN[1])))
-		Baked.fineA = #Baked.fine > 0 and math.floor(fin * fin * (3 - 2 * fin) * 20 + 0.5) / 20 or 0
-		if Baked.fineA ~= Baked.fineWas then Baked.fineWas = Baked.fineA Baked.Cull() end   -- (ApplyDetail may not)
-		local t = math.max(0, math.min(1, (r - Baked.FADE[1]) / (Baked.FADE[2] - Baked.FADE[1])))
-		Baked.live = math.floor(t * t * (3 - 2 * t) * 50 + 0.5) / 50
-		Baked.warm = r >= Baked.FADE[1] * Baked.WARM
+		local r = root:GetEffectiveScale() * (ph or 768) / 768 / ns.MapZoneArt.px
+		local function Share(rr)
+			local t = math.max(0, math.min(1, (rr - Baked.FADE[1]) / (Baked.FADE[2] - Baked.FADE[1])))
+			return math.floor(t * t * (3 - 2 * t) * 50 + 0.5) / 50, rr >= Baked.FADE[1] * Baked.WARM
+		end
+		-- (the zones whose art is finer than the tiles against the tiles' px; the rest against handPx: Baked.handPx)
+		Baked.liveEarly, Baked.warmEarly = Share(r)
+		Baked.live, Baked.warm = Share(r * ns.MapZoneArt.px / Baked.handPx)
 	end
 	ApplyDetail()
 	Step("zone detail")
@@ -3187,10 +3196,12 @@ ShowZone = function(mapID)
 	local box = cullBox
 	local z = Live.zones and Live.zones[mapID]       -- (a zone come in by its continent, ApplyDetail: not yet, not drawn)
 	local zoneOn = not z or z.on
+	-- (its live layers: from the early hand-over if it's one of the zones Baked.Early names, else the late one)
+	local liveOn = detailLive and (Live.late or Baked.Early(mapID)) and true or false
 	for _, e in ipairs(zoneTex[mapID] or NONE) do
 		local tex = e[1]
 		local near = here and (not box or not e.u0 or (e.u1 > box[1] and e.u0 < box[3] and e.v1 > box[2] and e.v0 < box[4]))
-		local drawn = (not e.layer or detailLive) and zoneOn   -- (the live layers: only while they show; the cities: always)
+		local drawn = (not e.layer or liveOn) and zoneOn   -- (the live layers: only while they show; the cities: always)
 		local un = e[3] and e[3].unexplored
 		-- (a base tile under its zone's pieces only when the unexplored ones are hidden: ns.MapUnder)
 		drawn = drawn and not (e.under and not hide)
@@ -3198,7 +3209,7 @@ ShowZone = function(mapID)
 			-- over the darkened ones (Shade.Pieces), covering four fifths, so from Soften's zoom to the minimap's
 			-- the darkening all but went, and came back each time the map moved and the blur rested)
 			and not (e.blur and un and Shade.on)
-		if near and drawn and inside and (detailLive or Live.seen) and tex.omFile and not tex.omQueued then
+		if near and drawn and inside and (liveOn or Live.seen) and tex.omFile and not tex.omQueued then
 			tex.omQueued = true
 			loadQueue[#loadQueue + 1] = tex
 			loader:Show()
@@ -3216,7 +3227,7 @@ ShowZone = function(mapID)
 			end
 		end
 	end
-	local want = (here and detailLive and zoneOn) and true or false
+	local want = (here and liveOn and zoneOn) and true or false
 	if Live.placed[mapID] ~= want then
 		Live.placed[mapID] = want
 		for _, rec in ipairs(Live.masks[mapID] or NONE) do
@@ -3336,7 +3347,6 @@ function S.ApplyGrade(strength, desat, unexplored)
 	if Baked.use and math.abs(bd - Baked.desat) > 0.001 then
 		Baked.desat = bd
 		for _, t in ipairs(Baked.tiles) do if t.tex then t.tex:SetDesaturation(bd) end end
-		for _, t in ipairs(Baked.fine) do if t.tex then t.tex:SetDesaturation(bd) end end
 	end
 	if root then
 		appliedDetail = nil
@@ -3458,16 +3468,29 @@ function Baked.Build()
 		Baked.tiles[#Baked.tiles + 1] = { name = i .. "_" .. j, x = x, y = y, size = size,
 			u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
 	end
-	local fine = Baked.english and art.fine
-	if fine then
-		size = art.step / fine.px
-		for _, key in ipairs(fine.tiles) do
-			local i, j = math.floor(key / 256), key % 256
-			local x, y = i * size, j * size
-			Baked.fine[#Baked.fine + 1] = { name = i .. "_" .. j, dir = "Fine\\", x = x, y = y, size = size, fine = true,
-				u0 = x / W, v0 = y / H, u1 = (x + size) / W, v1 = (y + size) / H }
+	-- (the tiles over a zone whose art is finer than they are: they go at the tiles' own px, Baked.handPx)
+	if Baked.handPx ~= art.px and art.finer then
+		for _, id in ipairs(art.finer) do
+			local l, r, t, b = S.Rect(id)
+			for _, tile in ipairs(l and Baked.tiles or NONE) do
+				if tile.u1 > l and tile.u0 < r and tile.v1 > t and tile.v0 < b then tile.early = true end
+			end
 		end
 	end
+end
+-- whether a zone's live layers come in at the early hand-over: one sharing a tile that goes then (Baked.Build),
+-- or the tile would leave its part of the zone blank as it goes (worked out once a zone)
+function Baked.Early(mapID)
+	local e = Baked.early[mapID]
+	if e == nil then
+		e = false
+		local l, r, t, b = S.Rect(mapID)
+		for _, tile in ipairs(l and Baked.tiles or NONE) do
+			if tile.early and tile.u1 > l and tile.u0 < r and tile.v1 > t and tile.v0 < b then e = true break end
+		end
+		Baked.early[mapID] = e
+	end
+	return e
 end
 
 -- /openmap status: baked tiles the game couldn't find (#349, #353), and where it looked
@@ -3476,16 +3499,12 @@ function S.BakedMissing() return Baked.missing or 0, Baked.path end
 function Baked.Cull()
 	local f, box = Baked.frame, cullBox
 	if not f or not f:IsShown() then return end
-	Baked.CullSet(Baked.tiles, f, box, 1)
-	-- (the finer set: only while it's coming in or in, its files not loaded before; over the tiles, a sublevel up)
-	if #Baked.fine > 0 then Baked.CullSet(Baked.fine, f, box, Baked.fineA) end
-end
-function Baked.CullSet(list, f, box, a)
-	for _, t in ipairs(list) do
-		local near = a > 0 and (not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4]))
+	local ea = Baked.earlyA or 1                    -- (the early tiles' share of the frame's alpha: ApplyDetail)
+	for _, t in ipairs(Baked.tiles) do
+		local near = (not t.early or ea > 0) and (not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4]))
 		if near and not t.tex then
-			t.tex = f:CreateTexture(nil, "ARTWORK", nil, t.fine and 1 or 0)
-			local ok = t.tex:SetTexture(Baked.path .. (t.dir or "") .. t.name, nil, nil, "TRILINEAR")
+			t.tex = f:CreateTexture(nil, "ARTWORK")
+			local ok = t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
 			t.tex:SetTexCoord(Baked.inset, 1 - Baked.inset, Baked.inset, 1 - Baked.inset)
 			t.tex:SetDesaturation(Baked.desat)
 			Record(t.tex, t.x, t.y, t.size, t.size)
@@ -3496,27 +3515,24 @@ function Baked.CullSet(list, f, box, a)
 			if ok == false then
 				t.missing, t.shown = true, false
 				t.tex:Hide()
-				-- (a finer tile missing: only it's left out, the tile under it drawn as before)
-				if not t.fine then
-					Baked.missing = (Baked.missing or 0) + 1
-					if Baked.missing == 3 and lastGrade then C_Timer.After(0, function() S.ApplyGrade(unpack(lastGrade)) end) end
-				end
+				Baked.missing = (Baked.missing or 0) + 1
+				if Baked.missing == 3 and lastGrade then C_Timer.After(0, function() S.ApplyGrade(unpack(lastGrade)) end) end
 			end
 		end
 		if t.tex and not t.missing and t.shown ~= near then
 			t.shown = near
-			if t.fine then                          -- (the finer set's anchor too, while it's off: hidden, it'd still
-				if near then                        --  be laid out on every frame of a pan or zoom)
-					if not t.tex:GetPoint() then PlaceRecord(t.tex.omRec) end
-				else
-					t.tex:ClearAllPoints()
-				end
+			-- (its anchor too, while it's off: hidden, it'd still be laid out on every frame of a pan or zoom, and
+			-- with the live layers taking over later, more of the tiles are made in a zoom out)
+			if near then
+				if not t.tex:GetPoint() then PlaceRecord(t.tex.omRec) end
+			else
+				t.tex:ClearAllPoints()
 			end
 			t.tex:SetShown(near)
 		end
-		if t.fine and near and t.a ~= a then
-			t.a = a
-			t.tex:SetAlpha(a)
+		if t.early and t.tex and t.a ~= ea then
+			t.a = ea
+			t.tex:SetAlpha(ea)
 		end
 	end
 end
