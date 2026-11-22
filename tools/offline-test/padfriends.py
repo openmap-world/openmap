@@ -102,7 +102,15 @@ function ns:Print() end
 function ns.RegisterEvent(_, event, fn) events[event] = fn end
 ns.Safe = { IsSecret = function() return false end,
 	XY = function(p) if type(p) ~= "table" then return end if p.GetXY then return p:GetXY() end return p.x, p.y end,
-	Call = function(fn, ...) local ok, v = pcall(fn, ...) if ok then return v end end }
+	Call = function(fn, ...) local ok, v = pcall(fn, ...) if ok then return v end end,
+	PlayerPos = function(mapID)
+		local id = mapID or ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+		if not id then return nil end
+		local pos = ns.Safe.Call(C_Map.GetPlayerMapPosition, id, "player")
+		local x, y = ns.Safe.XY(pos)
+		if x and y then return id, x, y, pos end
+		return id
+	end }
 
 function Tick() for _, f in ipairs(frames) do if f.shown and f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.1) end end end
 -- the map opened and a frame drawn: the view built, its cursor seen

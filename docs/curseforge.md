@@ -38,6 +38,10 @@ I'd love help making this the best map addon for Forever. Bug reports, ideas, co
 
 I'm using Claude (Anthropic's AI) as a coding partner: it helps write and review code and helps me run the open-source side (reviewing pull requests and so on). It doesn't make any of the art or content. Everything you see on the map comes from Blizzard's game files.
 
+## Also by the same author
+
+[OpenGroup](https://www.curseforge.com/wow/addons/opengroup), a group finder for WoW Forever that shows groups from every shard, not just yours. It's in beta and gets more useful the more people use it.
+
 ## Early days
 
 This is a first release, so expect rough edges. If something looks wrong, let me know in the comments here, with the "Report a problem" button's code.

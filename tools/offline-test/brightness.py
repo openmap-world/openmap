@@ -43,6 +43,7 @@ class BrightnessTests(unittest.TestCase):
         end
         function GetLocale() return "ruRU" end
         function IsInInstance() return false, "none" end
+        function InCombatLockdown() return false end
         ns.Safe = { Value = function(v) return v end }
         Enum = { UIMapType = {Continent = 2, Zone = 3} }
         C_Map = {GetMapInfo = function(id) return {mapType = id == 1 and 3 or 4} end}

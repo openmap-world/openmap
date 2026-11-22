@@ -8,7 +8,8 @@
 --   * Leatrix Maps' icons (its points of interest: dungeons, flight points, boats, portals ...) are
 --     lifted above the stitched art (they're made at a fixed low frame level on the canvas, under it);
 --     so are Azeroth Tripview's live ships and docks, should the art reach their levels, Books on
---     Map Forever's book icons (made under it each time it draws them) and RareScanner's rare icons;
+--     Map Forever's book icons (made under it each time it draws them), Forever City Labels' service
+--     pins (fixed low levels) and RareScanner's rare icons;
 --     in combat they wait (a frame level change on the map is restricted then: PR #22, Ironship's)
 --     and are lifted as it ends
 --   * their view changes (zoom remembered per map, keep centred, a jump into a cave) and their
@@ -50,30 +51,28 @@ local function Hold(f, reshow)
 	if f:IsShown() then held[f] = reshow f:Hide() end
 end
 
--- Leatrix Maps' icons: plain frames on the canvas, marked by it, made at frame level 100 (under the
--- stitched art's): lifted above the art, as Questie's are (Extras.lua). Leatrix finds the one under
--- the cursor itself, from where it placed it, so its tooltips go with them
-local function LeatrixPins()
+-- Leatrix Maps', Azeroth Tripview's and RareScanner's canvas pins/layers, lifted above the stitched
+-- art in a single pass over the canvas children (#285).
+local function LiftCanvasAddons(wantLeatrix, wantTripview, wantRareScanner)
 	local top = S.artTop
-	if not top or InCombatLockdown() then return end   -- (a frame level: restricted in combat, lifted when it ends)
-	local kids = { map:GetCanvas():GetChildren() }     -- (once a map change: every pin is a child)
-	for _, f in ipairs(kids) do
-		if f.isLeaMapsPin and f:GetFrameLevel() <= top then f:SetFrameLevel(top + 2) end
-	end
-end
-
--- Azeroth Tripview's live ships and docks: unnamed frames on the canvas at fixed levels (2400, 2500),
--- each holding its icon buttons (a .face, and an .arrow or a .label): kept above the stitched art,
--- wherever that ends. (Its route dots, under the map's own pins, stay under the art: OpenMap's routes
--- are there.) Where its ships show is its own doing: the map underneath only (docs/api.md)
-local function TripviewLayers()
-	local top = S.artTop
-	if not top or InCombatLockdown() then return end
-	for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
-		local lvl = f:GetFrameLevel()
-		if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
-			local first = f:GetNumChildren() > 0 and (f:GetChildren())
-			if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
+	if not top or InCombatLockdown() then return end   -- (frame levels: restricted in combat, lifted when it ends)
+	local canvas = map:GetCanvas()
+	local made = wantRareScanner and (canvas:GetFrameLevel() + 10)
+	for _, f in ipairs({ canvas:GetChildren() }) do
+		if wantLeatrix and f.isLeaMapsPin and f:GetFrameLevel() <= top then
+			f:SetFrameLevel(top + 2)
+		elseif wantTripview then
+			local lvl = f:GetFrameLevel()
+			if (lvl == 2400 or lvl == 2500) and lvl <= top + 2 then
+				local first = f:GetNumChildren() > 0 and (f:GetChildren())
+				if first and first.face and (first.arrow or first.label) then f:SetFrameLevel(top + (lvl == 2500 and 3 or 2)) end
+			end
+		end
+		if wantRareScanner and not f:GetName() and not f.isLeaMapsPin and f:GetFrameLevel() == made then
+			f:SetFrameLevel(top + 3)
+			for _, p in ipairs({ f:GetChildren() }) do
+				if p:GetFrameLevel() <= top then p:SetFrameLevel(top + 4) end
+			end
 		end
 	end
 end
@@ -109,22 +108,34 @@ local function QueueBooks(scan)
 	if scan or not booksQueued then booksQueued = scan and "scan" or "lift" end
 end
 
--- RareScanner's rare icons: its map frame is a plain unnamed frame on the canvas, made at the canvas's
--- level + 10 (its icons above that), so under the stitched art: lifted above it while stitched, as
--- Leatrix's are; icons made later hang off the lifted frame and come out above it themselves. (Found
--- by its place: any other addon's unnamed frame at exactly that level would be lifted too.)
-local function RareScannerPins()
+-- Forever City Labels' service pins: plain frames on the canvas at PIN_FRAME_LEVEL_AREA_POI (fixed,
+-- under the stitched art), each with its .location, .Marker and .Label: lifted above it as Books' are,
+-- found as the map changes or opens, and waited out in combat (PR #22)
+local fclPins = setmetatable({}, { __mode = "k" })
+local fclLoaded               -- (SetupCompat)
+local function LiftFCL()
 	local top = S.artTop
-	if not top or InCombatLockdown() then return end
-	local canvas = map:GetCanvas()
-	local made = canvas:GetFrameLevel() + 10
-	for _, f in ipairs({ canvas:GetChildren() }) do
-		if not f:GetName() and not f.isLeaMapsPin and f:GetFrameLevel() == made then
-			f:SetFrameLevel(top + 3)
-			for _, p in ipairs({ f:GetChildren() }) do
-				if p:GetFrameLevel() <= top then p:SetFrameLevel(top + 4) end
-			end
+	if not top or not Stitched() or InCombatLockdown() then return end
+	for _, f in ipairs({ map:GetCanvas():GetChildren() }) do
+		if f.location and f.Marker and f.Label then fclPins[f] = true end
+	end
+	for f in pairs(fclPins) do
+		if f.SetFixedFrameLevel and f:GetFrameLevel() <= top then
+			f:SetFixedFrameLevel(false)
+			f:SetFrameLevel(top + 2)
+			f:SetFixedFrameLevel(true)
 		end
+	end
+end
+local fclQueued
+local function RunFCL()
+	fclQueued = nil
+	LiftFCL()
+end
+local function QueueFCL()
+	if not fclQueued then
+		fclQueued = true
+		C_Timer.After(0, RunFCL)
 	end
 end
 
@@ -134,10 +145,14 @@ local function HoldAll()
 		local f = _G[name]
 		if type(f) == "table" and f.HookScript then Hold(f, reshow) end
 	end
-	if _G.LeaMapsDB then LeatrixPins() end
-	if _G.AzerothTripview then TripviewLayers() end
+	if fclLoaded then LiftFCL() end
 	local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-	if loaded and loaded("RareScanner") then RareScannerPins() end
+	local wantLeatrix = _G.LeaMapsDB ~= nil
+	local wantTripview = _G.AzerothTripview ~= nil
+	local wantRareScanner = loaded and loaded("RareScanner") and true or false
+	if wantLeatrix or wantTripview or wantRareScanner then
+		LiftCanvasAddons(wantLeatrix, wantTripview, wantRareScanner)
+	end
 end
 
 local function Release()
@@ -151,6 +166,7 @@ function mod.OnStitchedChanged(on)
 	if not map then return end
 	if on then HoldAll() else Release() end
 	if on and booksLoaded then QueueBooks(true) end   -- (stitched with the window open: no map change of its own)
+	if on and fclLoaded then QueueFCL() end
 	if mod.DrawQuestiePaths then mod.DrawQuestiePaths() end   -- (Questie's mob paths: ours while stitched, Extras.lua)
 end
 
@@ -218,5 +234,12 @@ function mod:SetupCompat(worldMap)
 		map:HookScript("OnShow", function() QueueBooks(true) end)
 		if map.OnCanvasScaleChanged then hooksecurefunc(map, "OnCanvasScaleChanged", function() QueueBooks(false) end) end
 		QueueBooks(true)
+	end
+	-- (Forever City Labels makes its pins on each map refresh: lifted once it has)
+	if loaded and loaded("ForeverCityLabels") then
+		fclLoaded = true
+		hooksecurefunc(map, "OnMapChanged", function() QueueFCL() end)
+		map:HookScript("OnShow", function() QueueFCL() end)
+		QueueFCL()
 	end
 end

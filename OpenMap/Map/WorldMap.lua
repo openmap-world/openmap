@@ -29,6 +29,8 @@ local mod = ns:NewModule("worldmap", {
 		flight = true,
 		hideWorldPinsInInstances = false,
 		playerArrow = true,     -- your own arrow on the world map (off: find your way old-school; the party still shows)
+		playerArrowScale = 1,   -- your own arrow at this times its own size (ARROW_SCALE)
+		playerArrowOnTop = false, -- your arrow (OpenMap's own) a strata over the map's view, above every map icon
 		iconsFrom = 0,          -- the places' icons from this zoom (ICONS_FROM; 1: the whole world); 0: each from its own (Auto)
 		iconScale = 1,          -- OpenMap's icons at this times their own size (ICON_SCALE)
 		brightness = 1,         -- brightness of the whole stitched map; icons keep their own colour
@@ -68,6 +70,8 @@ local ICONS_FROM = { 0, 20, 0.5 }   -- iconsFrom's least (0: Auto), most, step (
 mod.ICONS_FROM = ICONS_FROM
 local ICON_SCALE = { 0.6, 2, 0.05 } -- iconScale's least, most, step
 mod.ICON_SCALE = ICON_SCALE
+local ARROW_SCALE = { 0.6, 2.5, 0.05 } -- playerArrowScale's least, most, step
+mod.ARROW_SCALE = ARROW_SCALE
 
 local ZOOM_STEP = 1.25          -- each wheel notch
 local MAX_ZOOM = { 16, 192, 8 } -- the deepest zoom's setting: least, most, step (the minimap's own detail runs out
@@ -152,12 +156,18 @@ local function FromWorld(mapID, u, v)
 end
 
 -- the view: world centre (normalized) and zoom
+-- the own view in a fight (OwnView.lua): { on, scale, x, y (the host map's, as Blizzard's scroll), u, v, zoom }
+local own = { on = false }
+mod.own = own
+local function CanvasScale() return own.on and own.scale or sc:GetCanvasScale() end
 local function View()
 	local mapID = map:GetMapID()
-	local x, y = sc:GetCurrentScrollX() or 0.5, sc:GetCurrentScrollY() or 0.5
+	local x, y
+	if own.on then x, y = own.x, own.y
+	else x, y = sc:GetCurrentScrollX() or 0.5, sc:GetCurrentScrollY() or 0.5 end
 	if not ns.Safe.Finite(x, y) then x, y = 0.5, 0.5 end          -- (a scroll left NaN: the map's middle, #261)
 	local u, v = ToWorld(mapID, x, y)
-	local zoom = ZoomFor(mapID, sc:GetCanvasScale())
+	local zoom = ZoomFor(mapID, CanvasScale())
 	if not ns.Safe.Finite(zoom) or zoom <= 0 then zoom = 1 end    -- (the map 0 px across yet)
 	return u, v, zoom
 end
@@ -188,40 +198,54 @@ end
 -- one it has, the art was laid out for one and drawn at the other: stretched, half missing). The view
 -- asked for waits, and is put up as combat ends (mod.FlushWaitingView)
 local waitingView                 -- { mapID, scale, x, y }: a view the canvas refused in combat
+local resetDue = false           -- Blizzard reset its view in a fight: OpenMap's put up as it ends (mod.ResetDue)
+local afterCombat = false         -- something of Blizzard's map left as it was in a fight: put right as it ends
+local afterFight                  -- the view a fight ended on: { u, v, zoom, at = GetTime() } (mod.CombatOver)
+local AFTER_FIGHT = 2             -- seconds after it that the game's resets keep it (its map laid out again then)
 local viewOwner = {}              -- (its event handler's key)
+-- Blizzard's own scale changes (its reset as the map opens, to the whole world) are laid out a frame later,
+-- unless OpenMap's view follows first (SetView, from the reset's hook): each layout of the icon sets hid
+-- and showed them all again, and the opening did it twice (#293: "scale changed" 328 ms to 0)
+local viewSetting, scaleWaiting = false, false
+local ApplyZoom                   -- (below)
 local function Kept(want, have) return have and math.abs(have - want) > math.max(1e-3, math.abs(want) * 1e-3) end
 local function SetView(scale, x, y)
 	-- (never a view that isn't one: NaN or a zero scale, from a size of 0 while the map is laid out, stuck
 	-- the map on a blank view, every later view worked out from it NaN too: #260 #261 #263)
 	if not ns.Safe.Finite(scale, x, y) or scale <= 0 then return end
+	-- (in combat nothing of Blizzard's map is written from here: a field OpenMap sets is read by the game's own
+	-- code as the map opens, and that taints it, so the quest log's protected calls were blocked and the
+	-- objective tracker stopped updating: #345 #347 #368. The view waits for combat's end, FlushWaitingView)
+	if InCombatLockdown() then
+		waitingView = { mapID = map:GetMapID(), scale = scale, x = x, y = y }
+		-- (the own view up, OwnView.lua: the view is OpenMap's own frames', moved there; Blizzard's untouched.
+		-- Not up yet, the map opened in the fight before it was stitched: up now, at the canvas's view)
+		if not own.on and mod.OwnViewStart then mod.OwnViewStart() end
+		if own.on then
+			own.scale, own.x, own.y = scale, x, y
+			own.u, own.v = ToWorld(map:GetMapID(), x, y)
+			own.zoom = ZoomFor(map:GetMapID(), scale)
+			if mod.OwnViewPlace then mod.OwnViewPlace() end
+			if ApplyZoom then ApplyZoom() end
+		end
+		return
+	end
 	local wantScale, wantX, wantY = scale, x, y
 	sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
 	sc.Child:SetScale(scale)
-	local fight, refused = InCombatLockdown(), false
-	if fight and Kept(scale, sc.Child:GetScale()) then
-		scale = sc.Child:GetScale()
-		sc.currentScale, sc.targetScale, sc.zoomTarget = scale, scale, scale
-		refused = true
-	end
+	local refused = false
 	sc:CalculateScrollExtents()
 	x = Clamp(x, sc.scrollXExtentsMin, sc.scrollXExtentsMax)
 	y = Clamp(y, sc.scrollYExtentsMin, sc.scrollYExtentsMax)
 	sc.targetScrollX, sc.targetScrollY, sc.currentScrollX, sc.currentScrollY = x, y, x, y
 	sc:SetNormalizedHorizontalScroll(x)
 	sc:SetNormalizedVerticalScroll(y)
-	if fight then
-		-- (the scroll refused too: the view follows where the canvas is)
-		local hx, hy = sc:GetNormalizedHorizontalScroll(), sc:GetNormalizedVerticalScroll()
-		if Kept(x, hx) or Kept(y, hy) then
-			x, y = hx, hy
-			sc.targetScrollX, sc.targetScrollY, sc.currentScrollX, sc.currentScrollY = x, y, x, y
-			refused = true
-		end
-	end
 	waitingView = refused and { mapID = map:GetMapID(), scale = wantScale, x = wantX, y = wantY } or nil
 	local start = openStart and debugprofilestop and debugprofilestop()
 	local g, t0 = Before(), Clock()
+	viewSetting = true
 	map:OnCanvasScaleChanged()
+	viewSetting, scaleWaiting = false, false
 	After("pins (all addons)", g)
 	Clocked("every addon's pins rescaled", t0)
 	if start then Part("icons rescaled (all addons)", debugprofilestop() - start) end
@@ -469,7 +493,7 @@ local function Animate(_, elapsed)
 		ShowWorld(a.u - a.sx * pu, a.v - a.sy * pv, zoom)
 		if done then
 			anim = nil
-		elseif waitingView then
+		elseif waitingView and not own.on then
 			-- (refused in combat: the zoom would never arrive, every addon's icons rescaled each frame
 			-- till it's over. It ends here, and where it was going is what waits)
 			anim = nil
@@ -589,6 +613,47 @@ local function ScaleGroupBlips(pin)
 	groupBlipSizes[pin] = factor ~= 1 and { factor = factor, scale = scale } or nil
 end
 
+local playerBlipSizes = setmetatable({}, { __mode = "k" })
+local function ScalePlayerBlip(pin)
+	if not pin.SetPinSize or Locked(pin) or InCombatLockdown() then return end   -- (nothing of Blizzard's set in a fight)
+	-- (OpenMap's own arrow, in a fight and off the map underneath, the size of Blizzard's on screen: its size for
+	-- the player, before the arrow-size setting, which both take; they differed as combat came and went)
+	do
+		local dp = pin.dataProvider
+		local base = dp and dp.GetUnitPinSizesTable and dp:GetUnitPinSizesTable()
+		base = base and tonumber(base.player)
+		if base and base > 0 and S.SetPlayerBase then S.SetPlayerBase(base) end
+	end
+	if active and BlipOff("player") then
+		playerBlipSizes[pin] = nil
+		return
+	end
+	local applied = playerBlipSizes[pin]
+	local factor = active and tonumber(mod.db.playerArrowScale) or 1
+	if factor <= 0 then factor = 1 end
+	if factor == 1 and not applied then return end
+	local scale = map.GetCanvasScale and map:GetCanvasScale() or 1
+	if scale <= 0 or (applied and applied.factor == factor and applied.scale == scale) then return end
+	local provider = pin.dataProvider
+	local sizes = provider and provider.GetUnitPinSizesTable and provider:GetUnitPinSizesTable()
+	if not sizes or not sizes.player then return end
+	if not pcall(pin.SetPinSize, pin, "player", sizes.player * factor / scale) then return end
+	playerBlipSizes[pin] = factor ~= 1 and { factor = factor, scale = scale } or nil
+end
+
+-- for Nav.lua, your group's dots on the own view in a fight: Blizzard's size for a `kind` ("party", "raid"), with
+-- the icon-size setting, as Blizzard's own dots are out of one (nil: the dots are off), and that setting
+function mod.GroupDotSize(pin, kind)
+	if BlipOff(kind) then return end
+	local dp = pin and pin.dataProvider
+	local sizes = dp and dp.GetUnitPinSizesTable and dp:GetUnitPinSizesTable()
+	local base = sizes and tonumber(sizes[kind]) or (kind == "raid" and 8.25 or 11)
+	local factor = active and tonumber(mod.db.iconScale) or 1
+	if not factor or factor <= 0 then factor = 1 end
+	if base <= 0 then return end
+	return base * factor, factor
+end
+
 -- The rim uses the size that could be applied to the stock dot.
 function mod.NativeGroupIconScale(pin)
 	local applied = groupBlipSizes[pin]
@@ -602,11 +667,13 @@ local function Blips(pin)
 		if pin.SetPinSize and type(pin.SynchronizePinSizes) == "function" then
 			hooksecurefunc(pin, "SynchronizePinSizes", function(self)
 				groupBlipSizes[self] = nil -- Blizzard just restored the provider's default sizes
+				playerBlipSizes[self] = nil
 				if Locked(self) then return end
 				for unit in pairs(BLIP_UNITS) do
 					if BlipOff(unit) then pcall(self.SetPinSize, self, unit, BLIP_GONE) end
 				end
 				ScaleGroupBlips(self)
+				ScalePlayerBlip(self)
 			end)
 		end
 		if ping then
@@ -633,9 +700,14 @@ local function Blips(pin)
 		end
 	end
 	ScaleGroupBlips(pin)
+	ScalePlayerBlip(pin)
 end
 
+local STRATA_ABOVE = { BACKGROUND = "LOW", LOW = "MEDIUM", MEDIUM = "HIGH", HIGH = "DIALOG", DIALOG = "FULLSCREEN", FULLSCREEN = "FULLSCREEN_DIALOG" }
 local function RaisePlayer()
+	local baseStrata = (sc.GetFrameStrata and sc:GetFrameStrata()) or "MEDIUM"
+	local onTop = active and mod.db.playerArrowOnTop
+	local strata = onTop and (STRATA_ABOVE[baseStrata] or baseStrata) or baseStrata
 	local level = math.min(sc:GetFrameLevel() + PLAYER_ABOVE, 9500)
 	for pin in map:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
 		if not Locked(pin) then
@@ -644,9 +716,18 @@ local function RaisePlayer()
 			LayerGroupBlips(pin)
 		end
 	end
-	S.RaiseArrow(level + 1)
+	S.RaiseArrow(onTop and 9990 or (level + 1), strata)
 	if mod.RefreshNativeRingLayout then mod.RefreshNativeRingLayout() end
 end
+
+-- where you are on the world (normalized) and your facing; nil when not known (OpenMap's arrow: S.FollowPlayer)
+local function PlayerWorld()
+	local best, x, y = ns.Safe.PlayerPos()
+	if not (best and S.Rect(best) and x and y) then return end
+	local u, v = ToWorld(best, x, y)
+	return u, v, ns.Safe.Call(GetPlayerFacing)
+end
+S.PlayerSource = PlayerWorld
 
 local ticker = CreateFrame("Frame")
 ticker:Hide()
@@ -666,26 +747,21 @@ ticker:SetScript("OnUpdate", function(_, elapsed)
 	-- another addon's zoom steps past ours (BetterMaps', High Fidelity World Map's): the deepest
 	-- zoom is OpenMap's, and Blizzard's icons size themselves from the last step
 	local zl = sc.zoomLevels
-	if levelCount and zl and #zl > levelCount then
+	if levelCount and zl and #zl > levelCount and not InCombatLockdown() then
 		for i = #zl, levelCount + 1, -1 do zl[i] = nil end
 	end
 	local mapID = map:GetMapID()
 
-	-- the player, when the map underneath can't show them
-	local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-	if pos then
+	-- the player, when the map underneath can't show them; and in a fight, always OpenMap's own arrow: Blizzard's
+	-- (its group members pin) is protected then, so it can't be lifted over the art again as Blizzard reuses it,
+	-- and it went under the art: the arrow was gone. OpenMap's hangs in the art and is lifted with S.RaiseArrow.
+	-- (With "Your arrow over everything", OpenMap's own too: it's the one that can be lifted over everything)
+	local _, mx, my = ns.Safe.PlayerPos(mapID)
+	if mx and my and not InCombatLockdown() and not (mod.db.playerArrowOnTop and not ns.MapWorld) then
 		S.SetPlayer(nil)
 	else
-		local best = C_Map.GetBestMapForUnit("player")
-		local p = best and S.Rect(best) and C_Map.GetPlayerMapPosition(best, "player")
-		local x, y
-		if p then x, y = ns.Safe.XY(p) end
-		if not ns.Safe.IsSecret(x) and not ns.Safe.IsSecret(y) and x and y then
-			local u, v = ToWorld(best, x, y)
-			S.SetPlayer(u, v, ns.Safe.Call(GetPlayerFacing))
-		else
-			S.SetPlayer(nil)
-		end
+		local u, v, facing = PlayerWorld()
+		if u then S.SetPlayer(u, v, facing) else S.SetPlayer(nil) end
 	end
 
 	RaisePlayer()
@@ -808,10 +884,10 @@ local function ApplyView()
 	if active then viewFrame:Show() end
 end
 
-local function ApplyZoom()
+ApplyZoom = function()
 	if not active then return end
 	local g, t0 = Before(), Clock()
-	S.SetZoom(ZoomFor(map:GetMapID(), sc:GetCanvasScale()) * DetailK(), sc:GetCanvasScale())
+	S.SetZoom(ZoomFor(map:GetMapID(), CanvasScale()) * DetailK(), CanvasScale())
 	After("zoom", g)
 	Clocked("OpenMap's zoom update", t0)
 	ApplyView()
@@ -857,15 +933,21 @@ local function Attach(mapID, refreshed)
 	S.SetShown(active)
 	mod:UpdateBrightness()
 	BlizzardArt()
-	if active then
+	if InCombatLockdown() then
+		afterCombat = true                          -- (Blizzard's map left as it is in a fight: CombatOver)
+	elseif active then
 		sc:SetMouseWheelZoomMode(MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_NONE)
 		sc:SetScalingMode("SCALING_MODE_LINEAR")
+	end
+	if active then
 		if map:IsShown() then ticker:Show() end
 	else
 		for pin in pairs(groupBlipSizes) do ScaleGroupBlips(pin) end
 		for pin in pairs(loweredGroupBlips) do LayerGroupBlips(pin) end
-		sc:SetMouseWheelZoomMode(wheelMode)
-		sc:SetScalingMode(scalingMode)
+		if not InCombatLockdown() then
+			sc:SetMouseWheelZoomMode(wheelMode)
+			sc:SetScalingMode(scalingMode)
+		end
 		S.SetPlayer(nil)
 		ticker:Hide()
 		if mod.RefreshNativeRingLayout then mod.RefreshNativeRingLayout() end
@@ -919,7 +1001,8 @@ local function Prebuild()
 		end
 		return
 	end
-	if not BuildExtra() then C_Timer.After(0, Prebuild) end
+	if not BuildExtra() then C_Timer.After(0, Prebuild) return end
+	if mod.WarmAround then mod.WarmAround() end   -- (built: the art round you warmed before the first opening)
 end
 local function PrebuildSoon()
 	ns.UnregisterEvent(prebuildOwner, "LOADING_SCREEN_DISABLED")
@@ -943,6 +1026,8 @@ local function OnCreateZoomLevels(self)
 	Attach(self.mapID)
 	if not active then return end
 	if S.Chart then S.Chart.Layout(self:GetWidth(), self:GetHeight()) end   -- (the sea chart for the view's shape)
+	-- (in combat Blizzard's own zoom levels stand: nothing of its map written then, CombatOver puts ours in)
+	if InCombatLockdown() then afterCombat = true return end
 	local levels = {}
 	local zoom = LeastZoom()
 	local deepest = mod.db.maxZoom * CITY_ZOOM               -- (the deepest anywhere: a city's)
@@ -955,7 +1040,26 @@ local function OnCreateZoomLevels(self)
 	levelCount = #levels
 end
 
--- combat over: the view the canvas refused in it (SetView), if that map is still the one up
+-- combat over: what was left as Blizzard had it in the fight (its wheel and scaling modes, OpenMap's zoom
+-- levels) put in, then the view asked for in it (SetView), if that map is still the one up
+function mod.CombatOver()
+	-- (the own view's view, kept to the end: OpenMap's zoom levels and room to pan, put in below, have Blizzard
+	-- reset its view and OpenMap's reset follows, "When reopening the map": the zoom jumped as the fight ended)
+	local keep
+	if own.on then
+		keep = { mapID = map:GetMapID(), scale = own.scale, x = own.x, y = own.y }
+		afterFight = { own.u, own.v, own.zoom, at = GetTime() }   -- (kept through the game's resets just after: ResetView)
+		if mod.OwnViewStop then mod.OwnViewStop(true) end   -- (its view put on Blizzard's canvas: SetViewNow)
+		resetDue, waitingView = false, nil
+	end
+	if afterCombat and map and map:IsShown() and not InCombatLockdown() then
+		afterCombat = false
+		KeepPadCursor(sc.OnCanvasSizeChanged, sc)   -- (the zoom levels again: OnCreateZoomLevels, Attach)
+	end
+	if mod.ResetDue then mod.ResetDue() end
+	if keep then waitingView, anim = keep, nil end
+	mod.FlushWaitingView()
+end
 function mod.FlushWaitingView()
 	local w = waitingView
 	waitingView = nil
@@ -972,14 +1076,20 @@ end
 -- map as it is on screen (the drag shows more or less of it, at the same scale). Another
 -- map put up while it's open (the quest log's, the dropdown's) shows whole, as Blizzard's does
 local beforeReset                 -- the view on screen when Blizzard last put up a map: { u, v, zoom, at = GetTime() }
-local resize                      -- the window's corner being dragged: { left, scroll } (FollowResize)
+local resize                      -- the window's corner being dragged: { u, v, scale }, its view as it began
 local function ResetView(self)
 	userMoved = false
 	anim = nil
 	if live and map:IsShown() then beforeReset = { live[1], live[2], live[3], at = GetTime() } end
 	local u, v, zoom
-	if resize and live and map:IsShown() then
-		u, v, zoom = View()
+	if resize and map:IsShown() then
+		-- (the drag's view, noted as it began: this runs after the game's reset, a hook, and the view now is its
+		-- whole map's. At the same scale: the zoom for it in the window's new size)
+		u, v, zoom = resize.u, resize.v, ZoomFor(self.mapID, resize.scale)
+	elseif afterFight and GetTime() - afterFight.at <= AFTER_FIGHT and map:IsShown() then
+		-- (a fight just over: the view it ended on, whatever the game resets as it lays its map out again then:
+		-- its quest log's update held over the fight, the window laid out again ... the map went out as it ended)
+		u, v, zoom = afterFight[1], afterFight[2], afterFight[3]
 	elseif live and map:IsShown() and (math.abs(sc:GetWidth() - live[4]) > 0.5 or math.abs(sc:GetHeight() - live[5]) > 0.5) then
 		u, v, zoom = live[1], live[2], live[3]
 	elseif not live and mod.SavedView then          -- (no view drawn yet: the map is opening)
@@ -999,29 +1109,46 @@ local function ResetView(self)
 	SetView(math.min(self:GetWidth() / aw, self:GetHeight() / ah), 0.5, 0.5)
 end
 
--- the window's corner dragged (Window.lua): Blizzard isn't told the view's size changed until the
--- drop (laying the map out again takes every addon's icons with it), so each frame of the drag the
--- map is kept where it is on screen, under the window's edge that stays put, and the view's centre
--- and extents follow what's now in the window (the close-up art filling in as it grows); the drop
--- lays it out at that same scale (ResetView), so nothing jumps
+-- the window's corner dragged (Window.lua): the view keeps its centre and its scale all through the drag, the
+-- window showing more or less round it (as the own view does in a fight). Both are noted once, as the drag
+-- starts, and put back at every change of size, in one place: the game lays its map out again as the window's
+-- size changes (its reset to the whole map, its room to pan worked out for the new size), and a view read back
+-- from the map after that was its whole map's, or a scroll clamped for the new size: the map went out to a
+-- continent, then jumped about as the drag went on (test20, test21)
 function mod.BeginResize()
 	resize = nil
-	if not active or not map:IsShown() or not sc:GetLeft() then return end
-	resize = { left = sc:GetLeft(), scroll = sc:GetHorizontalScroll() }
+	if not active or not map:IsShown() or not sc:GetLeft() or own.on then return end
+	local u, v = View()
+	resize = { u = u, v = v, scale = sc:GetCanvasScale() }
 end
 function mod.FollowResize()
-	if not resize or not active or not map:IsShown() then return end
-	local left = sc:GetLeft()
-	if not left then return end
-	sc:SetHorizontalScroll(resize.scroll + (left - resize.left) / sc:GetCanvasScale())
+	if not resize or not active or not map:IsShown() or InCombatLockdown() then return end
+	local mapID = map:GetMapID()
+	-- (the game's reset changed the scale: the view put back whole, at the scale the drag began at)
+	if Kept(resize.scale, sc:GetCanvasScale()) then return ShowWorld(resize.u, resize.v, ZoomFor(mapID, resize.scale)) end
+	-- (else only the scroll: the scale is the same, so the icons needn't be laid out again each frame)
+	local x, y = FromWorld(mapID, resize.u, resize.v)
 	sc:CalculateScrollExtents()
-	local x, y = sc:GetNormalizedHorizontalScroll(), sc:GetNormalizedVerticalScroll()
+	x = Clamp(x, sc.scrollXExtentsMin, sc.scrollXExtentsMax)
+	y = Clamp(y, sc.scrollYExtentsMin, sc.scrollYExtentsMax)
 	sc.currentScrollX, sc.targetScrollX, sc.currentScrollY, sc.targetScrollY = x, x, y, y
+	sc:SetNormalizedHorizontalScroll(x)
+	sc:SetNormalizedVerticalScroll(y)
 	sc:MarkAreaTriggersDirty()
 	sc:MarkViewRectDirty()
 	ApplyView()
 end
 function mod.EndResize() resize = nil end
+-- (each change of the map's size in a drag, the game's own layout of it included: the drag's view put back)
+function mod.ResizeStep() if resize then mod.FollowResize() end end
+-- the window resized in a fight (OwnView.lua, the view's size changed): the own view keeps its centre and its
+-- scale (the window shows more or less round it, as out of a fight), its art and icons laid out for the new size
+function mod.OwnViewResized()
+	if not own.on or not active then return end
+	own.zoom = ZoomFor(map:GetMapID(), own.scale)
+	if mod.OwnViewPlace then mod.OwnViewPlace() end
+	if ApplyZoom then ApplyZoom() end
+end
 
 -- pan anywhere on the world, not just this map. Zoomed right out the world is centred;
 -- zooming in, the view gains room to go past its edges (EDGE_SLACK, in by CENTRE_UNTIL), so
@@ -1098,16 +1225,16 @@ local function HighlightZone(pin)
 end
 local function HookHighlight()
 	for pin in map:EnumeratePinsByTemplate("MapHighlightPinTemplate") do
-		if not pin.omRefresh and pin.Refresh and pin.HighlightTexture then
-			pin.omRefresh = pin.Refresh
-			pin.Refresh = function(self)
+		-- (after Blizzard's own Refresh, not in its place: a hook taints nothing of Blizzard's, #345)
+		if not pin.omHooked and pin.Refresh and pin.HighlightTexture then
+			pin.omHooked = true
+			hooksecurefunc(pin, "Refresh", function(self)
 				if mod.instanceWorldHidden then return self.HighlightTexture:Hide() end
 				if active and not mod.db.hoverHighlight then return self.HighlightTexture:Hide() end
 				if active and map:GetMapID() == WORLD and select(3, View()) >= ZONE_HIGHLIGHT then
 					return HighlightZone(self)
 				end
-				return self:omRefresh()
-			end
+			end)
 		end
 	end
 end
@@ -1118,15 +1245,50 @@ local function OnMouseWheel(_, delta)
 	ZoomAtCursor(delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP)
 end
 
--- a left click drops a pin under the cursor when the menu's pin button is on, or with Ctrl (unless
--- that's turned off: ctrlClickPin)
+-- Blizzard's map-pin button (#324), in one table: WorldMap's Setup is at Lua's 60 upvalues
+local pinBtn = { syncing = false, pending = false }
+function pinBtn.RuleOff()
+	local rule = Enum and Enum.GameRule and Enum.GameRule.WorldMapTrackingPinDisabled
+	return rule ~= nil and C_GameRules ~= nil and C_GameRules.IsGameRuleActive ~= nil and C_GameRules.IsGameRuleActive(rule) and true or false
+end
+function pinBtn.Find()
+	for _, f in ipairs(map and map.overlayFrames or {}) do
+		if f.SetActive and f.ActiveTexture then return f end
+	end
+end
+function pinBtn.Armed()
+	if pinBtn.RuleOff() then return false end
+	local btn = pinBtn.Find()
+	return btn and ((btn.IsActive and btn:IsActive()) or (btn.ActiveTexture and btn.ActiveTexture:IsShown())) and true or false
+end
+-- (armed, and not only waiting for combat's end to be put down)
+function pinBtn.ArmedNow() return pinBtn.Armed() and not pinBtn.pending end
+function pinBtn.Disarm()
+	local btn = pinBtn.Find()
+	if not (btn and btn.SetActive and pinBtn.Armed()) then
+		pinBtn.pending = false
+		return
+	end
+	if InCombatLockdown and InCombatLockdown() then
+		pinBtn.pending = true
+		return
+	end
+	pinBtn.pending = false
+	pinBtn.syncing = true
+	btn:SetActive(false)
+	pinBtn.syncing = false
+end
+
+-- a left click drops a pin under the cursor when the menu's pin button or Blizzard's map-pin
+-- button is on, or with Ctrl (unless that's turned off: ctrlClickPin)
 local function Dropping(button)
 	return active and button == "LeftButton" and mod.DropWaypoint
-		and ((IsControlKeyDown() and mod.db.ctrlClickPin ~= false) or (mod.PinMode and mod.PinMode()))
+		and ((IsControlKeyDown() and mod.db.ctrlClickPin ~= false) or (mod.PinMode and mod.PinMode()) or pinBtn.ArmedNow())
 end
 
 local function DropAtCursor()
 	if mod.SetPinMode then mod.SetPinMode(false) end
+	pinBtn.Disarm()
 	mod.DropWaypoint(mod.CursorWorld())     -- (not the click position Blizzard passes: that's clamped to this map's rectangle)
 end
 
@@ -1185,7 +1347,14 @@ local function OnCanvasClick(from, button)
 	if from and button == "LeftButton" and IsShiftKeyDown() then return PathTo() end
 	-- (Ctrl-click with "Ctrl-click drops a pin" off is other addons', Map Pin Enhanced's, and Blizzard's
 	-- own waypoint: passed on, not a zoom that ends the click here (#19))
-	if from and button == "LeftButton" and IsControlKeyDown() and mod.db.ctrlClickPin == false then return false end
+	if from and button == "LeftButton" and IsControlKeyDown() and mod.db.ctrlClickPin == false then
+		-- (in a fight Blizzard's canvas is under OpenMap's own view and never gets it: the waypoint set from here, Nav.lua)
+		if own.on and mod.OwnViewWaypoint then mod.OwnViewWaypoint() return true end
+		return false
+	end
+	-- (right-click with "Right-click zooms out" off is the map's and other addons', Questie's objectives:
+	-- passed on, #117. The controller's B, `from` nil, still steps out)
+	if from and button == "RightButton" and mod.db.rightClickOut == false then return false end
 	if from and button == "LeftButton" and WasDrag() then return true end
 	local u, v = mod.CursorWorld()
 	local _, _, zoom = View()
@@ -1219,17 +1388,31 @@ end
 -- the map was grabbed (on it or on one of our icons)
 local function OnGrab()
 	userMoved = true
-	waitingView = nil                 -- (the view is the user's again: not put back where it was as combat ends)
+	if not own.on then waitingView = nil end   -- (the view is the user's again: not put back where it was as combat ends)
 	if anim and anim.mode == "glide" then anim = nil end   -- a grab stops a glide where it is
 end
 
 local function OnPinMouseDown(_, button)
+	if InCombatLockdown() then
+		PressDown(nil, button)
+		if mod.OwnDragStart then mod.OwnDragStart(button) end
+		OnGrab()
+		return
+	end
 	sc:OnMouseDown(button)
 	PressDown(nil, button)
 	OnGrab()
 end
 
 local function OnPinMouseUp(pin, button)
+	if InCombatLockdown() then
+		local dragged = mod.OwnDragStop and mod.OwnDragStop()
+		if button == "LeftButton" and not dragged then
+			if Dropping(button) then DropAtCursor() return end
+			if pin.OnClick then pin:OnClick() end
+		end
+		return
+	end
 	local x, y = sc:GetCursorPosition()
 	if button ~= "LeftButton" or not sc:WouldCursorPositionBeClick(button, x, y) or WasDrag() then
 		sc:OnMouseUp(button)
@@ -1291,13 +1474,32 @@ local function Setup()
 	S.OpenMap = function(mapID) KeepPadCursor(map.SetMapID, map, mapID) end
 	S.Switching = function() return switching end   -- (the map underneath following the view, not another map put up)
 	hooksecurefunc(sc, "CreateZoomLevels", Ours("zoom levels", OnCreateZoomLevels))
-	local blizzardReset, ourReset = sc.ResetZoom, Ours("reset zoom", ResetView)
-	sc.ResetZoom = function(self, ...)
-		if active and not switching then return ourReset(self) end
-		return blizzardReset(self, ...)
+	-- (hooked after Blizzard's, never in its place: Blizzard's code calling OpenMap's taints what it does next,
+	-- the quest log's protected calls included, #345. Its reset done, ours puts the view where it should be)
+	local ourReset = Ours("reset zoom", ResetView)
+	hooksecurefunc(sc, "ResetZoom", function(self)
+		if not active or switching then return end
+		-- (Blizzard resets its view in a fight too, the quest log opened from the tracker: the whole map then,
+		-- left as it is till combat ends, and OpenMap's view put up then, CombatOver)
+		if InCombatLockdown() then
+			if mod.OwnViewStart and mod.OwnViewStart() then ourReset(self) else resetDue = true end
+			return
+		end
+		ourReset(self)
+	end)
+	mod.ResetDue = function()
+		if resetDue and active and map:IsShown() and not InCombatLockdown() then ourReset(sc) end
+		resetDue = false
 	end
 	if map.RefreshDetailLayers then hooksecurefunc(map, "RefreshDetailLayers", BlizzardArt) end
-	sc.CalculateScrollExtentsAtScale = Extents(sc.CalculateScrollExtentsAtScale)
+	-- (the world's room to pan, put in after Blizzard works out its map's, out of combat)
+	local extents = Extents(function() end)
+	hooksecurefunc(sc, "CalculateScrollExtents", function(self)
+		if not active or InCombatLockdown() then return end
+		local x0, x1, y0, y1 = extents(self, self:GetCanvasScale())
+		if x0 then self.scrollXExtentsMin, self.scrollXExtentsMax, self.scrollYExtentsMin, self.scrollYExtentsMax = x0, x1, y0, y1 end
+	end)
+	sc:HookScript("OnSizeChanged", mod.ResizeStep)
 	sc:HookScript("OnMouseWheel", OnMouseWheel)
 	sc:HookScript("OnMouseDown", OnGrab)
 	sc:HookScript("OnMouseDown", PressDown)
@@ -1311,28 +1513,32 @@ local function Setup()
 	-- its A (Blizzard's icons under the cursor, then this) presses OpenMap's control or icon under
 	-- the cursor (Gamepad.lua), or else zooms in as a click does; its X, with no icon under the
 	-- cursor, zooms out a map as a right-click does (Blizzard's would change the map underneath)
-	if sc.IsGamepadZooming then
+	-- (the gamepad's ways in, OpenMap's map with the controller only: padMap, a test, off. Replaced, not hooked:
+	-- they answer Blizzard's code, which a hook can't; they'd taint the map for everyone else)
+	local padHooks = mod.db.padMap
+	if padHooks and sc.IsGamepadZooming then
 		local zooming = sc.IsGamepadZooming
-		sc.IsGamepadZooming = function(self, ...)
+		sc.IsGamepadZooming = function(self, ...)   -- (padMap only)
 			if active then return false end
 			return zooming(self, ...)
 		end
 	end
 	-- other addons' view changes (zoom remembered per map, keep centred, a jump into a cave) don't
 	-- apply on the stitched map: its view is OpenMap's. Blizzard's own calls go through
-	if sc.InstantPanAndZoom and debugstack then
-		local pan = sc.InstantPanAndZoom
-		sc.InstantPanAndZoom = function(self, ...)
-			if active then
-				local caller = (debugstack(2, 1, 0) or ""):match("AddOns[\\/]([^\\/]+)[\\/]")
-				if caller and caller ~= "OpenMap" and not caller:find("^Blizzard_") then return end
+	if debugstack then
+		-- (put back after another addon's change, not stopped before it: a hook, as above)
+		hooksecurefunc(sc, "InstantPanAndZoom", function()
+			if not active or InCombatLockdown() or not live then return end
+			local caller = (debugstack(3, 1, 0) or ""):match("AddOns[\\/]([^\\/]+)[\\/]")
+			if caller and caller ~= "OpenMap" and not caller:find("^Blizzard_") then
+				local u, v, zoom = live[1], live[2], live[3]
+				C_Timer.After(0, function() if active and not InCombatLockdown() then ShowWorld(u, v, zoom) end end)
 			end
-			return pan(self, ...)
-		end
+		end)
 	end
-	if map.NavigateToGamepadCursor then
+	if padHooks and map.NavigateToGamepadCursor then
 		local navigate = map.NavigateToGamepadCursor
-		map.NavigateToGamepadCursor = function(self, ...)
+		map.NavigateToGamepadCursor = function(self, ...)   -- (padMap only)
 			local x, y = PadCursor()
 			-- (A has just clicked Blizzard's own icons under the cursor, GamepadMapClick's ClickHoveredPins:
 			-- then OpenMap's icon there isn't pressed as well, only its windows over the map)
@@ -1357,9 +1563,9 @@ local function Setup()
 			pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y))
 		end)
 	end
-	if map.NavigateToParentMap then
+	if padHooks and map.NavigateToParentMap then
 		local up = map.NavigateToParentMap
-		map.NavigateToParentMap = function(self, ...)
+		map.NavigateToParentMap = function(self, ...)   -- (padMap only)
 			if active and PadFocus() then return OnCanvasClick(nil, "RightButton") end
 			return up(self, ...)
 		end
@@ -1368,10 +1574,34 @@ local function Setup()
 	if map.AddGlobalPinMouseActionHandler and MapCanvasMixin and MapCanvasMixin.MouseAction then
 		map:AddGlobalPinMouseActionHandler(OnBlizzardPinAction, 1000)
 	end
-	-- Blizzard's pin cursor while the menu's pin button is on
+	-- Blizzard's pin cursor while the menu's pin button or Blizzard's map-pin button is on
 	if map.AddCursorHandler then
-		map:AddCursorHandler(function() if active and mod.PinMode and mod.PinMode() then return "MAP_PIN_CURSOR" end end, 1000)
+		map:AddCursorHandler(function()
+			if active and ((mod.PinMode and mod.PinMode()) or pinBtn.ArmedNow()) then return "MAP_PIN_CURSOR" end
+		end, 1000)
 	end
+	function mod.SyncBlizzardPin(on)
+		if pinBtn.syncing or on then return end
+		pinBtn.Disarm()
+	end
+	local hookedPinBtn                -- (Blizzard's map-pin button, once hooked: here, Setup is at Lua's 60 upvalues)
+	local function HookBlizzardPin()
+		local btn = pinBtn.Find()
+		-- (kept here, not as a field on Blizzard's button: a field OpenMap writes there is read as tainted)
+		if not btn or btn == hookedPinBtn then return end
+		hookedPinBtn = btn
+		hooksecurefunc(btn, "SetActive", function(_, on)
+			if pinBtn.syncing or pinBtn.RuleOff() or not active or not mod.SetPinMode then return end
+			pinBtn.syncing = true
+			mod.SetPinMode(on and true or false)
+			pinBtn.syncing = false
+		end)
+	end
+	HookBlizzardPin()
+	if map.RefreshOverlayFrames then hooksecurefunc(map, "RefreshOverlayFrames", HookBlizzardPin) end
+	ns.RegisterEvent({}, "PLAYER_REGEN_ENABLED", function()
+		if pinBtn.pending then pinBtn.Disarm() end
+	end)
 	HookHighlight()
 	-- a quest's details, Back: the map stays where you're looking (most likely at the quest's place,
 	-- to pick another nearby). Blizzard puts back the map it was on when they opened, and a map Blizzard
@@ -1402,19 +1632,33 @@ local function Setup()
 	end
 
 	local dp = CreateFromMixins(MapCanvasDataProviderMixin)
-	dp.OnCanvasScaleChanged = Ours("scale changed", ApplyZoom)
+	dp.OnCanvasScaleChanged = Ours("scale changed", function()
+		if viewSetting or InCombatLockdown() or not active then return ApplyZoom() end
+		if scaleWaiting then return end
+		scaleWaiting = true
+		C_Timer.After(0, function()
+			if scaleWaiting then scaleWaiting = false ApplyZoom() end   -- (no view of OpenMap's followed it)
+		end)
+	end)
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
+		mod.OwnMapChanged()
 		HookHighlight()                             -- (a highlight pin made since: the toggle reaches it too, #262)
 		ApplyZoom()
 		if mod.OnHostMapChanged then mod.OnHostMapChanged() end
 		if mod.RefreshPortrait then pcall(mod.RefreshPortrait) end   -- (OpenMap's icon only while stitching)
 	end
+	hooksecurefunc(map, "OnMapChanged", function()
+		if active then RaisePlayer() end
+	end)
 	dp.OnHide = function()
+		-- (the view noted first: closed in a fight, it's the own view's, which stopping it leaves behind; read
+		-- after, it was Blizzard's canvas's, the view from before the fight, and the map reopened there)
+		if mod.OnMapHidden then mod:OnMapHidden() end
+		if mod.OwnViewStop then mod.OwnViewStop(false) end
 		mod.instanceWorldBrowsing = nil
 		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
 		live = nil
-		if mod.OnMapHidden then mod:OnMapHidden() end
 		ticker:Hide()
 	end
 	local shown = Ours("map shown", function()
@@ -1430,6 +1674,8 @@ local function Setup()
 			ApplyZoom()
 			RaisePlayer()
 		end
+		-- (opened in a fight: the own view at once, not only once it's zoomed or dragged, OwnView.lua)
+		if InCombatLockdown() and mod.OwnViewStart then C_Timer.After(0, function() mod.OwnViewStart() end) end
 		if mod.OnMapShown then mod:OnMapShown() end
 	end)
 	dp.OnShow = function()
@@ -1442,7 +1688,8 @@ local function Setup()
 	Timed("Extras", mod.SetupExtras, mod, map)
 	Timed("Flights", mod.SetupFlights, mod)
 	-- map closed: the world-wide re-grade waits for the next opening
-	local exploredDirty, citiesDirty = false, false
+	-- (dirty from the start: the map is built at login, maybe before the game has sent what you explored)
+	local exploredDirty, citiesDirty = true, false
 	ns.RegisterEvent(mod, "MAP_EXPLORATION_UPDATED", function()
 		if not S.IsBuilt() then return end
 		if map:IsShown() then S.RefreshExplored() else exploredDirty = true end
@@ -1451,6 +1698,14 @@ local function Setup()
 	ns.RegisterEvent(mod, "ZONE_CHANGED_NEW_AREA", function()
 		if not S.IsBuilt() then return end
 		if map:IsShown() then S.RefreshCities() else citiesDirty = true end
+		exploredDirty = true
+	end)
+	-- (into a new subzone, where exploring happens: what's explored read again at the next opening, not only on
+	-- MAP_EXPLORATION_UPDATED, which a reveal can come without: places you'd found weren't shown, #410 #422)
+	local exploredOwner = {}
+	ns.RegisterEvent(exploredOwner, "ZONE_CHANGED", function()
+		if not S.IsBuilt() then return end
+		if map:IsShown() then S.RefreshExplored() else exploredDirty = true end
 	end)
 	map:HookScript("OnShow", function()
 		if not (exploredDirty or citiesDirty) then return end
@@ -1462,11 +1717,14 @@ local function Setup()
 	end)
 	Timed("Nav", mod.SetupNav, mod, map)          -- (before the menu: it holds Nav's search box)
 	Timed("Pins", mod.SetupPins, mod, map)
+	if mod.SetupOwnView then mod:SetupOwnView(map) end   -- (the map in a fight: OwnView.lua)
 	Timed("Friends", mod.SetupFriends, mod, map)
 	Timed("Quests", mod.SetupQuests, mod, map)
 	Timed("Dungeons", mod.SetupDungeons, mod, map)
 	Timed("Combat", mod.SetupCombat, mod, map)
-	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_ENABLED", mod.FlushWaitingView)
+	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_ENABLED", mod.CombatOver)
+	-- (a fight with the map open: the own view, OwnView.lua)
+	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_DISABLED", function() if mod.OwnViewStart then mod.OwnViewStart() end end)
 	-- (the map built ahead once the loading screen is gone: Prebuild)
 	if not ns.RegisterEvent(prebuildOwner, "LOADING_SCREEN_DISABLED", PrebuildSoon) then
 		ns.RegisterEvent(prebuildOwner, "PLAYER_ENTERING_WORLD", PrebuildSoon)
@@ -1514,6 +1772,20 @@ end
 function mod.Zooming() return anim ~= nil or GetTime() - (mod.padZoomAt or -10) < 0.2 end
 function mod.WheelZoom(delta) if active then ZoomAtCursor(delta > 0 and ZOOM_STEP or 1 / ZOOM_STEP) end end
 -- the world point (normalized) under the cursor, and world units per view px
+mod.SetViewNow = function(scale, x, y) SetView(scale, x, y) end
+-- the host map changed in a fight: the own view's world point kept, on the new map (Setup's upvalues are full)
+function mod.OwnMapChanged()
+	if not (own.on and own.u) then return end
+	local id = map:GetMapID()
+	own.x, own.y = FromWorld(id, own.u, own.v)
+	own.scale = ScaleFor(id, own.zoom)
+	if mod.OwnViewPlace then mod.OwnViewPlace() end
+end
+function mod.OwnInput()
+	return { View = View, PerPx = PerPx, CursorOffset = CursorOffset, Wheel = OnMouseWheel, PressDown = PressDown,
+		Click = function(button) return OnCanvasClick(true, button) end, Grab = OnGrab, FromWorld = FromWorld,
+		ScaleFor = ScaleFor, CanvasScale = CanvasScale }
+end
 function mod.CursorWorld()
 	if not active then return end
 	local u, v, zoom = View()
@@ -1639,7 +1911,14 @@ end
 function mod:OnEnable()
 	self.instancePinsEvents = self.instancePinsEvents or {}
 	for _, event in ipairs({ "PLAYER_ENTERING_WORLD", "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS" }) do
-		ns.RegisterEvent(self.instancePinsEvents, event, function() mod:RefreshInstancePins() end)
+		ns.RegisterEvent(self.instancePinsEvents, event, function(_, raised, ...)
+			mod.NoteDungeonWing(raised, ...)
+			mod:RefreshInstancePins()
+		end)
+	end
+	if ns.Client == "Forever" then
+		ns.RegisterEvent(self.instancePinsEvents, "LOADING_SCREEN_ENABLED", mod.SampleDungeonPortal)
+		ns.RegisterEvent(self.instancePinsEvents, "LOADING_SCREEN_DISABLED", function(_, event) mod.NoteDungeonWing(event) end)
 	end
 	ns.RegisterEvent(self.instancePinsEvents, "GLOBAL_MOUSE_UP", function(_, _, button)
 		if button ~= "RightButton" or not mod.instancePinsHidden or mod.db.dungeonMaps ~= false
@@ -1652,6 +1931,7 @@ function mod:OnEnable()
 		end)
 	end)
 	mod:RefreshInstancePins()
+	mod.NoteDungeonWing()
 	ns.RegisterEvent(styleOwner, "INPUT_DEVICE_INTERFACE_TRANSITION", StyleChanged)
 	if PadUI() and not self.db.padMap then
 		self.enabled, self.padWaits = false, true
@@ -1733,7 +2013,9 @@ function mod:Refresh()
 		if set then S.SetPinSetOn(set, self.db[opt]) end
 	end
 	if S.RefreshRoutes then S.RefreshRoutes() end
+	if self.RefreshExplore then self.RefreshExplore() end
 	S.SetPlayerHidden(self.db.playerArrow == false)
+	if S.SetPlayerScale then S.SetPlayerScale(self.db.playerArrowScale or 1) end
 	if active and map:IsShown() then RaisePlayer() end
 	S.SetPlacesFrom(self.db.iconsFrom)
 	S.SetFoundOnly(self.db.foundOnly)
@@ -1810,6 +2092,15 @@ function mod:Diag()
 	if next(after.close) then ns:Print("As the map last closed (ms): %s.", Worst(after.close)) end
 	if mod.dungeonOpenMs then ns:Print("Opening the latest dungeon's map took %.0f ms (OpenMap's part).", mod.dungeonOpenMs) end
 	if mod.FlightStatus then ns:Print("%s", mod.FlightStatus()) end
+	do   -- (the zone you're in: its explored pieces, as OpenMap and the game count them: #357 #360)
+		local here = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+		local found, all, game
+		if here and S.ExploredCount then found, all, game = S.ExploredCount(here) end
+		if found then ns:Print("Explored here (map %d): %d of %d pieces; the game reports %d explored.", here, found, all, game) end
+	end
+	local missing, where = 0, nil
+	if S.BakedMissing then missing, where = S.BakedMissing() end
+	if missing and missing > 0 then ns:Print("Baked zone tiles the game couldn't find: %d (in %s); restart the game, or reinstall OpenMap if it goes on.", missing, where) end
 	if mod.QuestsStatus then ns:Print("%s", mod.QuestsStatus()) end
 	local registered, shown, placed, ours, moved
 	if mod.QuestieStatus then registered, shown, placed, ours, moved = mod.QuestieStatus() end
@@ -1878,7 +2169,7 @@ function mod:Options()
 			desc = ns.L["Brightness of the entire OpenMap map, including explored areas and the sea. Player and quest icons stay bright. 100% restores the original brightness."] },
 		colorMatch = { type = "range", name = ns.L["Colour matching"], order = 21, min = 0, max = 1, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off,
-			desc = ns.L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours."] },
+			desc = ns.L["How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours. Below 100%, the ready-made zone tiles aren't used and every zone is drawn from its own art, which costs more while zooming."] },
 		desaturate = { type = "range", name = ns.L["Take colour out"], order = 22, min = 0, max = 0.6, step = 0.05, isPercent = true,
 			get = get, set = set, disabled = off },
 		chart = { type = "toggle", name = ns.L["Responsive ocean & border"], order = 23.6, get = get, set = set, disabled = off,
@@ -1905,6 +2196,9 @@ function mod:Options()
 		darkenColorReset = { type = "execute", name = ns.L["Default colour"], order = 23.56, width = "half",
 			func = function() mod.db.darkenColor = false mod:Refresh() end,
 			disabled = function() return off() or mod.Unexplored() ~= "dim" or not mod.db.darkenColor end },
+		explore = { type = "toggle", name = ns.L["Show places to explore"], order = 23.57, get = get, set = set, disabled = off,
+			hidden = function() return not ns.MapExplore end,     -- (Explore.lua's data: WoW Forever's toc only)
+			desc = ns.L["Outlines and pins where you still need to go to explore each zone, for its Explore achievement; further out, how many places each zone has left."] },
 		maxZoom = { type = "range", name = ns.L["Deepest zoom"], order = 24, min = MAX_ZOOM[1], max = MAX_ZOOM[2], step = MAX_ZOOM[3],
 			get = get, set = function(_, v) mod.SetMaxZoom(v) if mod.RefreshPanel then mod:RefreshPanel() end end, disabled = off,
 			desc = ns.L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] },
@@ -1926,6 +2220,9 @@ function mod:Options()
 		iconScale = { type = "range", name = ns.L["Icon size"], order = 33.6, min = ICON_SCALE[1], max = ICON_SCALE[2], step = ICON_SCALE[3],
 			isPercent = true, get = get, set = set, disabled = off,
 			desc = ns.L["OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options."] },
+		playerArrowScale = { type = "range", name = ns.L["Arrow size"], order = 33.65, min = ARROW_SCALE[1], max = ARROW_SCALE[2], step = ARROW_SCALE[3],
+			isPercent = true, get = get, set = set, disabled = off,
+			desc = ns.L["Your own arrow on the world map at this size."] },
 		allQuests = { type = "toggle", name = ns.L["Quests from every zone"], order = 33.7, get = get, set = set, disabled = off,
 			hidden = function() return mod.defaults.allQuests == nil end,   -- (Quests.lua: not in retail's toc)
 			desc = ns.L["The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone."] },
@@ -1934,6 +2231,8 @@ function mod:Options()
 			desc = ns.L["In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept."] },
 		playerArrow = { type = "toggle", name = ns.L["Your arrow"], order = 33, get = get, set = set, disabled = off,
 			desc = ns.L["Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap."] },
+		playerArrowOnTop = { type = "toggle", name = ns.L["Your arrow over everything"], order = 33.1, get = get, set = set, disabled = off,
+			desc = ns.L["Draw your own arrow above every other addon's icons and pins on the map."] },
 	}
 	if mod.ExtraOptions then mod:ExtraOptions(opts, get, set, off) end
 	if mod.NavOptions then mod:NavOptions(opts, get, set, off) end

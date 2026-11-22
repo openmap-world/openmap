@@ -49,6 +49,7 @@ class CtrlClickTests(unittest.TestCase):
             function IsControlKeyDown() return ctrl end
             function IsShiftKeyDown() return shift end
             active, dropped, glided = true, 0, 0
+            own = { on = false }     -- (OwnView.lua's view in a fight: off)
             mod = { db = {}, DropWaypoint = function() dropped = dropped + 1 end,
                 CursorWorld = function() return 0.5, 0.5 end }
             sc = { mouseButtonInfo = { LeftButton = { down = false } } }
@@ -59,9 +60,10 @@ class CtrlClickTests(unittest.TestCase):
             function Stitchable() return true end
             function FitZoom() return 2 end
             function GlideTo() glided = glided + 1 end
+            ns, tinsert = {}, table.insert
         """)
-        chunk = SOURCE[SOURCE.index('local function Dropping('):SOURCE.index('-- our icons: a press')]
-        self.lua.execute(chunk + '\n_G.OnCanvasClick = OnCanvasClick\n')
+        chunk = SOURCE[SOURCE.index("-- Blizzard's map-pin button (#324)"):SOURCE.index('-- our icons: a press')]
+        self.lua.execute(chunk + '\n_G.OnCanvasClick = OnCanvasClick\n_G.DisarmBlizzardPin = pinBtn.Disarm\n')
 
     def check(self, code):
         self.lua.execute(code)
@@ -74,8 +76,68 @@ class CtrlClickTests(unittest.TestCase):
                    "assert(OnCanvasClick(true, 'LeftButton') == false, 'the Ctrl-click was kept from other addons') "
                    "assert(dropped == 0 and glided == 0)")
 
+    def test_ctrl_click_in_a_fight_sets_blizzards_waypoint(self):
+        # (the own view: Blizzard's canvas under it never gets the click, the waypoint is set from OpenMap's code)
+        self.check("ctrl = true mod.db.ctrlClickPin = false own.on = true set = 0 "
+                   "mod.OwnViewWaypoint = function() set = set + 1 return true end "
+                   "assert(OnCanvasClick(true, 'LeftButton') == true) assert(set == 1 and dropped == 0 and glided == 0)")
+
     def test_plain_click_still_zooms_when_turned_off(self):
         self.check("mod.db.ctrlClickPin = false assert(OnCanvasClick(true, 'LeftButton') == true) assert(glided == 1)")
+
+    def test_right_click_zooms_out_by_default(self):
+        self.check("assert(OnCanvasClick(true, 'RightButton') == true) assert(glided == 1)")
+
+    def test_right_click_passes_on_when_turned_off(self):
+        # (#117: Questie's objectives take right-clicks)
+        self.check("mod.db.rightClickOut = false "
+                   "assert(OnCanvasClick(true, 'RightButton') == false, 'the right-click was kept from other addons') "
+                   "assert(glided == 0)")
+
+    def test_controller_b_still_steps_out_when_turned_off(self):
+        self.check("mod.db.rightClickOut = false assert(OnCanvasClick(nil, 'RightButton') == true) assert(glided == 1)")
+    def test_blizzard_pin_button_drops_and_disarms(self):
+        self.check("""
+            local armed = true
+            local pinBtn = {
+                ActiveTexture = { IsShown = function() return armed end },
+                SetActive = function(_, on) armed = on and true or false end,
+            }
+            map = { overlayFrames = { pinBtn } }
+            assert(OnCanvasClick(true, 'LeftButton') == true)
+            assert(dropped == 1 and glided == 0 and armed == false)
+        """)
+
+    def test_blizzard_pin_button_defers_disarm_in_combat(self):
+        self.check("""
+            local combat = true
+            function InCombatLockdown() return combat end
+            local armed, setCalls = true, 0
+            local pinBtn = {
+                ActiveTexture = { IsShown = function() return armed end },
+                SetActive = function(_, on) setCalls = setCalls + 1; armed = on and true or false end,
+            }
+            map = { overlayFrames = { pinBtn } }
+            assert(OnCanvasClick(true, 'LeftButton') == true)
+            assert(dropped == 1 and setCalls == 0 and armed == true)
+            combat = false
+            DisarmBlizzardPin()
+            assert(setCalls == 1 and armed == false)
+        """)
+
+    def test_blizzard_pin_button_respects_game_rule(self):
+        self.check("""
+            Enum = { GameRule = { WorldMapTrackingPinDisabled = 42 } }
+            C_GameRules = { IsGameRuleActive = function(r) return r == 42 end }
+            local armed = true
+            local pinBtn = {
+                ActiveTexture = { IsShown = function() return armed end },
+                SetActive = function(_, on) armed = on and true or false end,
+            }
+            map = { overlayFrames = { pinBtn } }
+            assert(OnCanvasClick(true, 'LeftButton') == true)
+            assert(dropped == 0 and glided == 1 and armed == true)
+        """)
 
 
 if __name__ == '__main__':

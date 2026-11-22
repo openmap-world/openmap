@@ -37,19 +37,30 @@ jobs:
       - run: python -P tools/offline-test/instances.py
       - run: python -P tools/offline-test/press.py
       - run: python -P tools/offline-test/brightness.py
+      - run: python -P tools/offline-test/window.py
+      - run: python -P tools/offline-test/arrow.py
       - run: python -P tools/offline-test/friends.py
       - run: python -P tools/offline-test/padfriends.py
+      - run: python -P tools/offline-test/version.py
+      - run: python -P tools/offline-test/combatmap.py
+      - run: python -P tools/offline-test/ownview.py
+      - run: python -P tools/offline-test/waypoint.py
+      - run: python -P tools/offline-test/warm.py
       - run: python -P tools/offline-test/bosses.py
       - run: python -P tools/offline-test/questie.py
       - run: python -P tools/offline-test/quests.py
       - run: python -P tools/offline-test/perf.py
+      - run: python -P tools/offline-test/opening.py
+      - run: python -P tools/offline-test/combatlayers.py
       - run: python -P tools/offline-test/flights.py
-      # (WoW Forever's own data: its combat list, caves, painted gaps and sea chart)
+      # (WoW Forever's own data: its combat list, caves, painted gaps, sea chart and places to explore)
       - if: matrix.client == 'forever'
         run: |
           python -P tools/offline-test/combat.py
           python -P tools/offline-test/caves.py
           python -P tools/offline-test/explored.py
+          python -P tools/offline-test/fog.py
           python -P tools/offline-test/chart.py
+          python -P tools/offline-test/explore.py
       - name: The tools at least compile
         run: python -m compileall -q tools

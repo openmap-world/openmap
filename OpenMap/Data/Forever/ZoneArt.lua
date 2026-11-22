@@ -32,5 +32,5 @@ ns.MapZoneArt = {
 		12316, 12572, 12828, 13084, 13340, 11293, 11549, 11805, 12061, 12317, 12573, 12829, 13085, 13341, 11294, 11550,
 		11806, 12062, 12318, 12574, 12830,
 	} },
-	locales = { ptBR = true },   -- MapZones\<locale>\: those clients' own art, in their language
+	locales = { ptBR = true, ruRU = true },   -- MapZones\<locale>\: those clients' own art, in their language
 }

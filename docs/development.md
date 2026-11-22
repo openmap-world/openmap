@@ -45,9 +45,18 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data), Ironforge's own minimap
    python -P tools/offline-test/explored.py # unexplored land hidden up close (Stitch.lua)
+   python -P tools/offline-test/fog.py      # unexplored land darkened as one (Shade.Fog, MapFog)
    python -P tools/offline-test/chart.py    # the sea chart's layout: Chart.lua as tools/map-chart/layout.py
+   python -P tools/offline-test/explore.py  # places to explore: Explore.lua's pieces are the map's own, Map/Explore.lua with the option off and on
    python -P tools/offline-test/friends.py  # friends and guild on the map: what Friends.lua hears and sends
    python -P tools/offline-test/padfriends.py  # the controller view: friends and guild set up with it, A on an icon with nothing to press
+   python -P tools/offline-test/version.py  # a newer OpenMap out: which versions heard count, told once a session; Pins.lua's "V1"
+   python -P tools/offline-test/combatmap.py  # the map in a fight: your arrow OpenMap's own, a view Blizzard reset put back as combat ends
+   python -P tools/offline-test/ownview.py  # the map in a fight on OpenMap's own frames: nothing of Blizzard's written, the view's maths, addons' icons across and back
+   python -P tools/offline-test/waypoint.py # Blizzard's own waypoint on the stitched map: on the zone under the cursor, followed (#19)
+   python -P tools/offline-test/warm.py     # keep-warm: the files held while the map is closed (Stitch.lua, Extras.lua)
+   python -P tools/offline-test/window.py   # the window: the quest log's spacer and the clamp, laid out in order (Window.lua)
+   python -P tools/offline-test/arrow.py    # your arrow: its size and "Your arrow over everything" (Stitch.lua, WorldMap.lua)
    python -P tools/offline-test/bosses.py   # boss pins' data: each on one of its dungeon's floors, on the picture
    python -P tools/offline-test/perf.py     # a zoom out's work: regions drawn, anchored, touched and made per step, against budgets (docs/performance.md)
    python -P tools/offline-test/questie.py  # Questie's icons found as a LibStub library (to 12.7) and a module (12.8)

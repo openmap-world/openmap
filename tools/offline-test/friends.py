@@ -5,6 +5,7 @@ the guild roster, a friends list, the map's pins, the addon-message channel.
 """
 import os
 from pathlib import Path
+import subprocess
 import unittest
 
 from lupa.lua51 import LuaRuntime
@@ -132,10 +133,10 @@ end
 
 
 class FriendsTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, src=None):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(STUB)
-        src = FRIENDS.read_text(encoding="utf-8")
+        src = src or FRIENDS.read_text(encoding="utf-8")
         self.lua.execute("local f = assert(loadstring(...)) f('OpenMap', ns)", src)
         self.lua.execute("""
             for k, v in pairs(mod.defaults) do mod.db[k] = v end
@@ -633,6 +634,144 @@ class FriendsTests(unittest.TestCase):
         self.run_(2)
         self.assertEqual((self.lua.eval("#pins"), self.zone_badges()), (0, "1429:1"))
 
+
+    # -- the version on the hellos (News.lua's update notice; version.py has which versions count)
+
+    def versions(self):
+        self.lua.execute("""
+            heard = {}
+            mod.VersionFields = function() if mod.db.updateNotice ~= false then return "v0.8.11", "Forever" end end
+            mod.HeardVersion = function(v, c) heard[#heard + 1] = tostring(v) .. "/" .. tostring(c) end
+        """)
+
+    def heard(self):
+        return list(self.lua.eval("heard").values())
+
+    def texts(self, channel, target=None):
+        return [m.text for m in self.lua.eval("sent").values()
+                if m.channel == channel and (target is None or m.target == target)]
+
+    def test_a_hello_carries_the_version(self):
+        self.versions()
+        self.run_(8)
+        self.assertEqual(self.texts("WHISPER", "Pal"), ["H1\tv0.8.11\tForever"])
+
+    def test_with_the_notice_off_the_hello_is_bare(self):
+        self.versions()
+        self.lua.execute("mod.db.updateNotice = false")
+        self.run_(8)
+        self.assertEqual(self.texts("WHISPER", "Pal"), ["H1"])
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H1', 'WHISPER', 'Pal')")
+        self.run_(2)
+        self.assertEqual(self.texts("WHISPER", "Pal"), ["H1", "H2"])
+
+    def test_a_hello_is_answered_with_the_version_and_the_place(self):
+        self.versions()
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(8)
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H1\\tv0.8.12\\tForever', 'WHISPER', 'Pal')")
+        self.run_(2)
+        self.assertEqual(self.heard(), ["v0.8.12/Forever"])
+        answers = self.texts("WHISPER", "Pal")[1:]           # (after its own hello)
+        self.assertEqual(answers[0], "H2\tv0.8.11\tForever")
+        self.assertTrue(answers[1].startswith("L1\t1429\t"), answers)
+
+    def test_a_version_only_from_friends_and_the_guild(self):
+        self.versions()
+        self.run_(8)
+        self.lua.execute("""
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H1\\tv0.9.0\\tForever', 'WHISPER', 'Stranger')
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'V1\\tv0.9.1\\tForever', 'WHISPER', 'Stranger')
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'V1\\tv0.9.2\\tForever', 'GUILD', 'Guildie-Forever')
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H2\\tv0.9.3\\tForever', 'WHISPER', 'Pal')
+        """)
+        self.assertEqual(self.heard(), ["v0.9.2/Forever", "v0.9.3/Forever"])
+        self.assertEqual(self.texts("WHISPER", "Stranger"), [])   # (a stranger's hello isn't answered either)
+
+    def test_old_bare_hellos_still_work(self):
+        # (v0.8.10 and before: "H1", "H2" with nothing after them)
+        self.versions()
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(8)
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H2', 'WHISPER', 'Pal')")
+        self.lua.execute("here = { 1429, 0.7, 0.5 }")
+        self.run_(12)
+        self.assertEqual(self.lua.eval("Sent('WHISPER', 'L1', 'Pal')"), 1)
+        self.assertEqual(self.heard(), ["nil/nil"])           # (nothing to tell: HeardVersion passes it over)
+
+    def test_the_guild_has_the_version_once_with_the_first_place(self):
+        self.versions()
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(2)
+        self.lua.execute("here = { 1429, 0.7, 0.5 }")
+        self.run_(12)
+        guild = self.texts("GUILD")
+        self.assertEqual(sum(t.startswith("L1") for t in guild), 2)
+        self.assertEqual([t for t in guild if t.startswith("V1")], ["V1\tv0.8.11\tForever"])
+
+    def test_no_version_to_the_guild_without_sharing(self):
+        self.versions()
+        self.run_(30)
+        self.assertEqual(self.texts("GUILD"), [])
+
+    def test_v0_8_10_hears_the_new_messages_as_before(self):
+        # the released Friends.lua, given the hellos with a version and "V1": answered and passed over
+        try:
+            old = subprocess.run(["git", "show", "v0.8.10:OpenMap/Map/Friends.lua"], cwd=ROOT, capture_output=True,
+                                 text=True, encoding="utf-8", check=True).stdout
+        except (OSError, subprocess.CalledProcessError):
+            self.skipTest("no v0.8.10 tag here")
+        self.setUp(old)
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(8)
+        self.lua.execute("""
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H1\\tv0.8.11\\tForever', 'WHISPER', 'Pal')
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'V1\\tv0.8.11\\tForever', 'GUILD', 'Guildie-Forever')
+            Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H2\\tv0.8.11\\tForever', 'WHISPER', 'Pal')
+        """)
+        self.run_(2)
+        self.assertTrue(any(t.startswith("L1") for t in self.texts("WHISPER", "Pal")[1:]))   # (the hello answered)
+        self.assertEqual(self.lua.eval("#pins"), 0)            # (no dot from a "V1")
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'L1\\t1429\\t0.3\\t0.4\\tMAGE\\t30', 'GUILD', 'Guildie-Forever')")
+        self.lua.execute("worldMap:Show() mod.RefreshFriends()")
+        self.run_(2)
+        self.assertEqual(self.lua.eval("#pins"), 1)
+
+    # -- Battle.net's Appear Offline (#395): your friends are told you're offline, so OpenMap tells them nothing
+
+    def appear_offline(self, on):
+        self.lua.execute("""
+            appearOff = %s
+            BNGetInfo = function() return nil, "Me#1", 77 end
+            C_BattleNet = C_BattleNet or {}
+            C_BattleNet.GetAccountInfoByID = function(id) if id == 77 then return { appearOffline = appearOff } end end
+        """ % ("true" if on else "false"))
+
+    def test_appearing_offline_sends_no_place(self):
+        self.appear_offline(True)
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.lua.execute("Fire('CHAT_MSG_ADDON', 'OpenMapLoc', 'H2', 'WHISPER', 'Pal')")
+        self.run_(30)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 0)
+        self.assertEqual(self.lua.eval("Sent('WHISPER', 'L1')"), 0)
+        self.assertEqual(self.lua.eval("Sent('WHISPER', 'H1')"), 0)   # (not even a hello: it says you're on)
+
+    def test_going_offline_says_goodbye_and_stops(self):
+        self.appear_offline(False)
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(2)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 1)
+        self.lua.execute("appearOff = true")
+        self.lua.execute("here = { 1429, 0.8, 0.5 }")
+        self.run_(30)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 1)        # (no more places)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L0')"), 1)        # (and the goodbye, so it stops showing)
+
+    def test_online_as_before(self):
+        self.appear_offline(False)
+        self.lua.execute("mod.db.friendsShare = true mod.RefreshFriends()")
+        self.run_(2)
+        self.assertEqual(self.lua.eval("Sent('GUILD', 'L1')"), 1)
 
 if __name__ == "__main__":
     unittest.main()
