@@ -1334,6 +1334,18 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	root:SetPoint("TOPLEFT", parent, "TOPLEFT")
 	root:SetSize(1, 1)
 	root:SetFrameLevel(artLevel)
+	-- (the map opening: its art in all at once, S.Gate. Once an opening: the first time the art shows in it. Shown
+	-- again in the same opening, back from a dungeon's map, the game's own map or the controller view, it's in at
+	-- once: faded in again there, it read as a flicker. A rebuild of the art gates again, BuildNow)
+	root:SetScript("OnShow", function()
+		if S.gate.shown then return end
+		S.gate.shown = true
+		S.Gate()
+	end)
+	if _G.WorldMapFrame and not S.gate.hooked then
+		S.gate.hooked = true
+		_G.WorldMapFrame:HookScript("OnHide", function() S.gate.shown = false end)
+	end
 	S.chartHost = { parent, artLevel - 1 }   -- (the sea chart's frame, Chart.lua: under all of the art)
 	contRoot = Layer(artLevel + 1)
 	tilesRoot = Layer(artLevel + 2)
@@ -1629,6 +1641,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	S.Pace()
 	BuildPins()
 	S.built = true
+	S.Gate()                                 -- (built as the map opens, its OnShow came before: in at once too)
 	return true
 end
 
@@ -2442,6 +2455,92 @@ function S.QueueLoad(tex)
 	Baked.busy = true
 end
 
+-- A texture that's just been given its file by its own layer, faded in over LOAD_FADE as the loader's are (in
+-- its steps), toward the alpha the layer wants (S.SetAlphaSoft keeps that up to date meanwhile): the baked
+-- tiles, the close-up minimap and its smaller copies, the caves, the shades. They came in at full strength as
+-- each file arrived, a patchwork. Apart from the loader: its files in flight hold the baked tiles over the live
+-- art (Baked.busy), which a minimap tile's fade mustn't. (On S: the file is near Lua's limit of 200 locals)
+S.softIn = { list = {}, frame = CreateFrame("Frame") }
+S.softIn.frame:Hide()
+S.softIn.frame:SetScript("OnUpdate", function(self)
+	local now, any, steps = GetTime(), false, LOAD_PER_FRAME.steps
+	for tex, t0 in pairs(S.softIn.list) do
+		local t = (now - t0) / LOAD_FADE
+		if t >= 1 then
+			tex:SetAlpha(tex.omTarget or 1)
+			tex.omTarget = nil
+			S.softIn.list[tex] = nil
+		else
+			local a = math.floor(t * t * (3 - 2 * t) * steps + 0.5) / steps * (tex.omTarget or 1)
+			if a ~= tex.omStep then
+				tex.omStep = a
+				tex:SetAlpha(a)
+			end
+			any = true
+		end
+	end
+	if not any then self:Hide() end
+end)
+function S.FadeIn(tex, target)
+	tex.omTarget = target or tex.omTarget or 1
+	tex.omStep = 0
+	tex:SetAlpha(0)
+	S.softIn.list[tex] = GetTime()
+	S.softIn.frame:Show()
+end
+-- a texture's alpha: at once, or where its fade-in is heading
+function S.SetAlphaSoft(tex, a)
+	if S.softIn.list[tex] then tex.omTarget = a else tex:SetAlpha(a) end
+end
+
+-- The map opening: its art held out of sight while the files it wants come in, then every fade under way
+-- finished and the whole of it faded in at once (layer by layer as each was ready, it came in as a patchwork,
+-- piece by piece: the map felt clunky to open). Released once nothing's been queued for SETTLE (the files
+-- set; the game reads them in a moment after), not before MIN, and at MOST however busy (a slow disk never
+-- leaves the map blank). Not while /openmap bench runs: it shows and hides the art itself
+S.gate = { frame = CreateFrame("Frame"), MIN = 0.08, SETTLE = 0.1, MOST = 0.7, FADE = 0.25 }
+S.gate.frame:Hide()
+S.gate.frame:SetScript("OnUpdate", function(self)
+	local g, now = S.gate, GetTime()
+	if not root then self:Hide() return end
+	if not g.fadeAt then
+		if loadAt <= #loadQueue then g.setAt = nil elseif not g.setAt then g.setAt = now end
+		local ready = g.setAt and now - g.setAt >= g.SETTLE and now - g.at >= g.MIN
+		if not ready and now - g.at < g.MOST then return end
+		-- (each piece's own fade done now: they come in as one, under the art's)
+		for tex in pairs(fading) do tex:SetAlpha(1) end
+		wipe(fading)
+		fadingN = 0
+		for tex in pairs(S.softIn.list) do tex:SetAlpha(tex.omTarget or 1) tex.omTarget = nil end
+		wipe(S.softIn.list)
+		g.fadeAt = now
+	end
+	local t = (now - g.fadeAt) / g.FADE
+	if t >= 1 then
+		g.Alpha(1)
+		self:Hide()
+	else
+		g.Alpha(t * t * (3 - 2 * t))
+	end
+end)
+-- the art, OpenMap's icons (pinRoot: on the map's view, not the art) and the sea chart (beside the art), in as
+-- one: the icons and your arrow over a blank map for a moment, then the art fading in under them, read as two
+function S.gate.Alpha(a)
+	root:SetAlpha(a)
+	if pinRoot then pinRoot:SetAlpha(a) end
+	local chart = S.Chart and S.Chart.Frame and S.Chart.Frame()
+	if chart then chart:SetAlpha(a) end
+end
+function S.Gate()
+	if not root then return end
+	local wm = ns:GetModule("worldmap")
+	if wm and wm.benching then S.gate.Alpha(1) S.gate.frame:Hide() return end
+	local g = S.gate
+	g.at, g.setAt, g.fadeAt = GetTime(), nil, nil
+	g.Alpha(0)
+	g.frame:Show()
+end
+
 --------------------------------------------------------------------------------
 -- Unexplored land, darkened ("dim"). A zone you haven't found any of: a shade over its art and the
 -- close-up minimap, through its land without the sea its art paints (MapZoneLand, so the sea is left
@@ -2479,6 +2578,7 @@ end
 function Shade.Tint(tex)
 	Shade.tinted[#Shade.tinted + 1] = tex
 	tex:SetColorTexture(UNDISCOVERED[1], UNDISCOVERED[2], UNDISCOVERED[3], UNDISCOVERED[4] * Shade.k)
+	S.FadeIn(tex)                       -- (made as it's first wanted: in softly, not a dark patch as its mask arrives)
 end
 -- color: the shade's colour ({ r, g, b }: Options' Darkening colour, #9), or nil for the game-like
 -- dark one; an unexplored piece's colour (DIM) follows it, as the shade at its alpha over white
@@ -2565,7 +2665,7 @@ function S.GreyMute(list)
 	local function Mute(tex)
 		tex:SetDesaturation(d)
 		tex:SetVertexColor(c, c * 0.97, c * 0.92)
-		tex:SetAlpha((1 - BACK_MUTE * m) * (tex.omWorld and (1 - wo) or 1))
+		S.SetAlphaSoft(tex, (1 - BACK_MUTE * m) * (tex.omWorld and (1 - wo) or 1))
 	end
 	if list then for _, tex in ipairs(list) do Mute(tex) end return end
 	for tex in pairs(S.greyTex or NONE) do
@@ -2613,6 +2713,7 @@ function Shade.Grey(mapID, p, share, x, y, w, h)
 						if file and mask and x1 > x0 and y1 > y0 then
 							local tex = g:CreateTexture(nil, "ARTWORK", nil, 1)
 							tex:SetTexture(file, nil, nil, "TRILINEAR")
+							S.FadeIn(tex)              -- (toward S.GreyMute's alpha)
 							local ku, kv = 1 / (tw * c.sx), 1 / (th * c.sy)
 							tex:SetTexCoord((x0 - tx) * ku, (x1 - tx) * ku, (y0 - ty) * kv, (y1 - ty) * kv)
 							Record(tex, x0, y0, x1 - x0, y1 - y0)
@@ -2669,6 +2770,7 @@ function Shade.Pieces(mapID, z)
 					for copy = 1, band and 2 or 1 do
 						local tex = f:CreateTexture(nil, "ARTWORK")
 						tex:SetTexture(file, nil, nil, "TRILINEAR")
+						S.FadeIn(tex)
 						tex:SetTexCoord(0, pw / fw, 0, ph / fh)
 						Record(tex, tx, ty, pw * p.sx, ph * p.sy)
 						tex:AddMaskTexture(edge)
@@ -3037,6 +3139,7 @@ function Shade.Hide.BuildIn(f, p, files, mapID, rects, un, grade)
 						for copy = 1, band and 2 or 1 do
 							local tex = f:CreateTexture(nil, "ARTWORK", nil, copy - 1)
 							tex:SetTexture(file, nil, nil, "TRILINEAR")
+							S.FadeIn(tex)
 							tex:SetTexCoord((x0 - k * tw) / tw, (x1 - k * tw) / tw, (y0 - j * th) / th, (y1 - j * th) / th)
 							Record(tex, p.left + x0 * p.sx, p.top + y0 * p.sy, (x1 - x0) * p.sx, (y1 - y0) * p.sy)
 							tex:AddMaskTexture(mask)
@@ -3459,6 +3562,7 @@ function Baked.Cull()
 			t.tex:SetTexCoord(Baked.inset, 1 - Baked.inset, Baked.inset, 1 - Baked.inset)
 			t.tex:SetDesaturation(Baked.desat)
 			Record(t.tex, t.x, t.y, t.size, t.size)
+			S.FadeIn(t.tex)                         -- (in over the continent's art, not popping in)
 			t.shown = true
 			-- (a tile the game can't find draws as a solid green square, the size of a zone or more: #349,
 			-- #353, an install that hasn't got them, or a game not restarted since. That one's left out; a few

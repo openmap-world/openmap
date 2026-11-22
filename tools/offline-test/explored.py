@@ -278,6 +278,7 @@ class HideShapesTests(unittest.TestCase):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute("""
             Shade = { Hide = { mode = "hide" } }
+            S = { FadeIn = function() end }
             NONE = {}
             gradeNow = { 0, 0 }
             ns = {}

@@ -45,6 +45,7 @@ AI coding agents: read [AGENTS.md](../AGENTS.md) too.
    python -P tools/offline-test/combat.py   # the map's pins in combat (Combat.lua)
    python -P tools/offline-test/caves.py    # caves surfacing (Close.lua, the cave data), Ironforge's own minimap
    python -P tools/offline-test/explored.py # unexplored land hidden up close (Stitch.lua)
+   python -P tools/offline-test/gate.py     # the art fading in on the window's opening, not on each showing (S.Gate)
    python -P tools/offline-test/fog.py      # unexplored land darkened as one (Shade.Fog, MapFog)
    python -P tools/offline-test/chart.py    # the sea chart's layout: Chart.lua as tools/map-chart/layout.py
    python -P tools/offline-test/explore.py  # places to explore: Explore.lua's pieces are the map's own, Map/Explore.lua with the option off and on

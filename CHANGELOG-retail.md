@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **The map opens smoothly**: its art fades in all together once its files are in, instead of each
+  layer popping in as it loads (the close-up minimap and its smaller copies, caves). Panning into new
+  ground, each piece fades in as it arrives.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

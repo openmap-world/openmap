@@ -143,6 +143,7 @@ local function Tile(layer, fid, cont)
 		t.mask = mask
 	end
 	t[1]:SetTexture(fid, nil, nil, "LINEAR")
+	S.FadeIn(t[1], 0)                   -- (in toward its mix, not popping in: UpdateMinimap says where, S.SetAlphaSoft)
 	t.omA = nil                 -- (its alpha set again: UpdateMinimap skips an unchanged one)
 	return t
 end
@@ -204,12 +205,14 @@ local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
 					if u0 and u1 then           -- (none for a piece off the stitched world: Outland's, on 530)
 						t = LODPiece(layer, cont, -level)
 						t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
+						S.FadeIn(t, 0)
+						t.omA = nil             -- (a pooled one's: set again below)
 						lodPieces[key] = t
 						S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
 						t:Show()
 					end
 				end
-				if t and t.omA ~= alpha then t.omA = alpha t:SetAlpha(alpha) end
+				if t and t.omA ~= alpha then t.omA = alpha S.SetAlphaSoft(t, alpha) end
 			end
 		end
 	end
@@ -266,7 +269,7 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 									tex:Show()
 								end
 							end
-							if t.omA ~= a3 then t.omA = a3 t[1]:SetAlpha(a3) end
+							if t.omA ~= a3 then t.omA = a3 S.SetAlphaSoft(t[1], a3) end
 						end
 					end
 				end
@@ -360,12 +363,13 @@ local function UpdateGapMinimap(conts, u, v, hu, hv, alpha)
 									tex.cont = cont
 								end
 								tex:SetTexture(fid, nil, nil, "LINEAR")
+								S.FadeIn(tex, 0)
 								tex:SetVertexColor(Tint(GapTone(cu, cv)))
 								S.PlaceWorld(tex, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
 								tex:Show()
 								gapTiles[key] = tex
 							end
-							tex:SetAlpha(alpha)
+							S.SetAlphaSoft(tex, alpha)
 						end
 					end
 				end
@@ -491,6 +495,7 @@ local function Cave(layer, id, c)
 		local pw, ph = math.min(256, 1002 - col * 256), math.min(256, 668 - row * 256)
 		local tex = frame:CreateTexture(nil, "ARTWORK")
 		tex:SetTexture(fid, nil, nil, "TRILINEAR")
+		S.FadeIn(tex)
 		tex:SetTexCoord(0, pw / 256, 0, ph / 256)
 		local x0, y0 = u0 + col * tw, v0 + row * th
 		S.PlaceWorld(tex, x0, y0, x0 + tw * pw / 256, y0 + th * ph / 256)
