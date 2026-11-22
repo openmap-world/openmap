@@ -1334,7 +1334,18 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	root:SetPoint("TOPLEFT", parent, "TOPLEFT")
 	root:SetSize(1, 1)
 	root:SetFrameLevel(artLevel)
-	root:SetScript("OnShow", function() S.Gate() end)   -- (the map opening: its art in all at once, S.Gate)
+	-- (the map opening: its art in all at once, S.Gate. Once an opening: the first time the art shows in it. Shown
+	-- again in the same opening, back from a dungeon's map, the game's own map or the controller view, it's in at
+	-- once: faded in again there, it read as a flicker. A rebuild of the art gates again, BuildNow)
+	root:SetScript("OnShow", function()
+		if S.gate.shown then return end
+		S.gate.shown = true
+		S.Gate()
+	end)
+	if _G.WorldMapFrame and not S.gate.hooked then
+		S.gate.hooked = true
+		_G.WorldMapFrame:HookScript("OnHide", function() S.gate.shown = false end)
+	end
 	S.chartHost = { parent, artLevel - 1 }   -- (the sea chart's frame, Chart.lua: under all of the art)
 	contRoot = Layer(artLevel + 1)
 	tilesRoot = Layer(artLevel + 2)
