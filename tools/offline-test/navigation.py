@@ -223,17 +223,13 @@ class NavigationTests(unittest.TestCase):
         """)
 
     def test_in_a_cave_the_other_choices_stand(self):
-        # (keep the zoom, your zone, always remember: as chosen; remember while visible opens on you, in a cave
-        # where its map is up, only once you're out of the view it kept)
+        # (your zone, always remember: as chosen; remember while visible opens on you, in a cave where its map
+        # is up, only once you're out of the view it kept)
         self.lua.execute(self.CAVE + """
             playerU, playerV = .5, .5
-            mod.db.reopenView = 'zoom'
-            assert(select(3, mod.SavedView(1)) == 8, 'keep zoom, none kept yet: the fit')
             mod:OnMapHidden()                       -- (the view kept: .5, .5 at 4)
-            local u, v, zoom = mod.SavedView(1)
-            assert(zoom == 4, 'keep zoom: ' .. zoom)
             mod.db.reopenView = 'inzone'
-            u, v, zoom = mod.SavedView(1)
+            local u, v, zoom = mod.SavedView(1)
             assert(u == .5 and v == .5 and zoom == 8, 'your zone: ' .. zoom)
             mod.db.reopenView = 'always'
             playerU = .9
@@ -246,6 +242,44 @@ class NavigationTests(unittest.TestCase):
             playerU = .9                            -- (out of it: on you)
             u, v, zoom = mod.SavedView(1)
             assert(u == .9 and zoom == 60, 'on you, in the cave: ' .. zoom)
+        """)
+
+    def test_keep_zoom_in_a_cave_opens_where_its_map_is_up_and_keeps_yours(self):
+        # (Center on player, keep zoom: further in for a cave too; the zoom kept for after it stays yours, the
+        # cave's would stay on outside it)
+        self.lua.execute(self.CAVE + """
+            mod.db.reopenView = 'zoom'
+            view = { .5, .5, 4 }
+            function mod.ViewNow() return view[1], view[2], view[3] end
+            assert(select(3, mod.SavedView(1)) == 60, 'none kept yet: the cave')
+            view[3] = 60 mod:OnMapHidden()
+            indoors = false
+            assert(select(3, mod.SavedView(1)) == 8, 'out of it: the fit it would have opened at')
+            view[3] = 10 mod:OnMapHidden()          -- (a zoom of yours kept: 10)
+            indoors = true
+            assert(select(3, mod.SavedView(1)) == 60, 'in the cave')
+            assert(select(3, mod.SavedView(nil, true)) == 60, 'put back a frame later as it opened (OnMapShown)')
+            view[3] = 60 mod:OnMapHidden()
+            assert(select(3, mod.SavedView(1)) == 60, 'in the cave again')
+            view[3] = 60 mod:OnMapHidden()
+            mod.db.reopenView = 'always'
+            assert(select(3, mod.SavedView(1)) == 60, 'always remember: the view it closed at')
+            mod.db.reopenView = 'zoom'
+            indoors = false
+            assert(select(3, mod.SavedView(1)) == 10, 'out of it: yours again')
+            view[3] = 100 mod:OnMapHidden()         -- (yours further in than the cave's: yours, and kept as it closes)
+            indoors = true
+            assert(select(3, mod.SavedView(1)) == 100, 'yours, further in')
+            view[3] = 120 mod:OnMapHidden()
+            indoors = false
+            assert(select(3, mod.SavedView(1)) == 120, 'the zoom it closed at')
+            indoors, caveZoom = true, 200           -- (a cave further in than yours: the cave's)
+            assert(select(3, mod.SavedView(1)) == 200, 'a cave further in')
+            view[3] = 200 mod:OnMapHidden()
+            assert(mod.SavedView(999) == nil)       -- then a map opened for a quest, zoomed there: that zoom kept
+            view[3] = 30 mod:OnMapHidden()
+            indoors = false
+            assert(select(3, mod.SavedView(1)) == 30, "after a quest's map: the zoom it closed at")
         """)
 
     def test_find_me_can_preserve_zoom(self):
