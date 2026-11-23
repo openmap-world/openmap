@@ -44,3 +44,13 @@ ns.MapCityZones = {
 	[1457] = 1438,   -- Darnassus in Teldrassil
 	[1458] = 1420,   -- Undercity in Tirisfal Glades
 }
+
+-- other languages' banners where they're wider than the English (banners.py's BANNERS_LOCALE): [locale] =
+-- { banners = { [city] = { zone, x, y, w, h } }, holes = { [zone] = true }, cuts = { [city] = true } }, in
+-- Media/Textures/MapBanner/<locale>/<city>, MapBannerHole/<locale>/<zone> and MapCityMask/<locale>/<city>
+ns.MapBannerLocales = {}
+ns.MapBannerLocales.ptBR = {
+	banners = { [1456] = { 1412, 306, 226, 256, 64 } },
+	holes = { [1412] = true },
+	cuts = { [1456] = true },
+}

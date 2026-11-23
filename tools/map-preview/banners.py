@@ -13,7 +13,7 @@
 # softened at the edge. Banners.lua also gets each city's zone (MapCityZones: the zone whose own land
 # is under the city), where going out of the city goes.
 # usage: python -P tools/map-preview/banners.py <db2 dir> <texture cache>
-import os, sys
+import os, re, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -108,11 +108,27 @@ CITY_TITLES = {
 # the zone's base art under it isn't its overlay's colour (Mulgore's is bare parchment under its green),
 # the city's own map covers the hole the banner leaves once it's gone
 COVER_BANNER = {"Thunder Bluff"}
-# cities whose plan runs into the art's torn frame (Ironforge's wards, top and bottom): their cut fades out
-# inside it, as a kept banner's does, not at the art's rectangle
-IN_FRAME = {"Ironforge"}
+# cities whose plan runs into the art's torn frame (Ironforge's wards, top and bottom; Orgrimmar's gate, at
+# the foot of its art): their cut fades out inside it, as a kept banner's does, not at the art's rectangle
+IN_FRAME = {"Ironforge", "Orgrimmar"}
 CITY_SOFT = 50                  # art px over which a city's cut fades (out from its outline: the plan stays whole)
 TITLE_FRAME = (10, 28)          # art px from the art's edge where a kept banner's cut (IN_FRAME: a plan's) is gone / whole (its torn frame)
+# another language's banners where they're wider than the English (traced on that client's art, run with
+# OPENMAP_LOCALE / OPENMAP_WOW on its install and a texture cache of its own): Mulgore's "PENHASCO DO TROVÃO"
+# runs 40 art px further right than "THUNDER BLUFF", past the English cut and hole. The others fit them
+LOCALE = os.environ.get("OPENMAP_LOCALE", "enUS")
+ENGLISH = LOCALE[:2] == "en"
+BANNERS_LOCALE = {
+    "ptBR": {
+        "Thunder Bluff": ("Mulgore", [
+            ("rect", (340, 229, 498, 254)),                                 # the plate
+            ("poly", [(341, 236), (326, 237), (318, 239), (312, 243), (309, 249), (311, 256),
+                      (316, 261), (322, 262), (326, 258), (330, 252), (341, 253)]),   # the left scroll end
+            ("poly", [(497, 236), (510, 237), (522, 239), (530, 244), (534, 250), (533, 258),
+                      (529, 262), (524, 261), (522, 255), (516, 252), (497, 253)]),   # the right one
+        ]),
+    },
+}
 
 def pow2(n):
     p = 16
@@ -123,8 +139,9 @@ os.makedirs(os.path.join(TEX, "MapBanner"), exist_ok=True)
 os.makedirs(os.path.join(TEX, "MapCityMask"), exist_ok=True)
 os.makedirs(os.path.join(TEX, "MapBannerHole"), exist_ok=True)
 by_name = {m["name"]: m for m in g["maps"]}
-rows = []
-for city, (zone, shapes) in BANNERS.items():
+def cut_banner(city, zone, shapes, sub=""):
+    """the zone's banner for the city cut from its overlay art (MapBanner<sub>/<city>) and the hole it leaves
+    (MapBannerHole<sub>/<zone>): (city id, zone id, x, y, w, h, city)"""
     c, z = by_name[city], by_name[zone]
     art = (np.clip(g["overlay_canvas"](z["art"]), 0, 1) * 255).astype(np.uint8)
     mask = Image.new("L", (1002, 668), 0)
@@ -135,16 +152,18 @@ for city, (zone, shapes) in BANNERS.items():
     mask = np.asarray(mask.filter(ImageFilter.GaussianBlur(1.2))).astype(np.float32) / 255
     mask *= art[..., 3] / 255.0                         # (only where the overlay art is)
     hole = Image.fromarray(((1 - mask) * 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS)
-    Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (hole,)).save(os.path.join(TEX, "MapBannerHole", "%d.tga" % z["id"]))
+    Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (hole,)).save(os.path.join(TEX, "MapBannerHole" + sub, "%d.tga" % z["id"]))
     ys, xs = np.nonzero(mask > 0.01)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
     w, h = pow2(x1 - x0), pow2(y1 - y0)
     out = np.zeros((h, w, 4), np.uint8)
     out[: y1 - y0, : x1 - x0, :3] = art[y0:y1, x0:x1, :3]
     out[: y1 - y0, : x1 - x0, 3] = (mask[y0:y1, x0:x1] * 255).astype(np.uint8)
-    Image.fromarray(out, "RGBA").save(os.path.join(TEX, "MapBanner", "%d.tga" % c["id"]))
-    rows.append((c["id"], z["id"], x0, y0, w, h, city))
+    Image.fromarray(out, "RGBA").save(os.path.join(TEX, "MapBanner" + sub, "%d.tga" % c["id"]))
     print("banner", city, "on", zone, "at", (int(x0), int(y0)), "size", (w, h))
+    return (c["id"], z["id"], x0, y0, w, h, city)
+
+rows = [cut_banner(city, zone, shapes) for city, (zone, shapes) in (BANNERS.items() if ENGLISH else [])]
 
 def soft_cut(poly):
     """an outline filled, grown and blurred: whole inside, fading out over CITY_SOFT past it"""
@@ -159,26 +178,65 @@ ys_, xs_ = np.mgrid[0:668, 0:1002]
 from_edge = np.minimum(np.minimum(xs_, 1001 - xs_), np.minimum(ys_, 667 - ys_)).astype(np.float32)
 INSIDE_FRAME = np.clip((from_edge - TITLE_FRAME[0]) / (TITLE_FRAME[1] - TITLE_FRAME[0]), 0, 1)
 
-def banner_on_city(city):
-    """the zone's banner for the city (BANNERS), its outline moved onto the city's own art"""
-    zone, shapes = BANNERS[city]
+def banner_on_city(city, banner=None):
+    """the zone's banner for the city (BANNERS, or another language's), its outline moved onto the city's own art"""
+    zone, shapes = banner or BANNERS[city]
     (cl, cr, ct, cb), (zl, zr, zt, zb) = by_name[city]["rect"], by_name[zone]["rect"]
     to = lambda x, y: ((zl + x / 1002 * (zr - zl) - cl) / (cr - cl) * 1002, (zt + y / 668 * (zb - zt) - ct) / (cb - ct) * 668)
     for kind, s in shapes:
         yield [to(*p) for p in ([(s[0], s[1]), (s[2], s[1]), (s[2], s[3]), (s[0], s[3])] if kind == "rect" else s)]
 
-cut = []
-for city, poly in CITIES.items():
+def city_cut(city, poly, banner=None, sub=""):
     c = by_name[city]
     m_ = soft_cut(poly)
     if city in IN_FRAME: m_ = m_ * INSIDE_FRAME
     if city in CITY_TITLES: m_ = np.maximum(m_, soft_cut(CITY_TITLES[city]) * INSIDE_FRAME)
     if city in COVER_BANNER:
-        for s in banner_on_city(city): m_ = np.maximum(m_, soft_cut(s) * INSIDE_FRAME)
+        for s_ in banner_on_city(city, banner): m_ = np.maximum(m_, soft_cut(s_) * INSIDE_FRAME)
     mask = Image.fromarray(np.clip(m_ + 0.5, 0, 255).astype(np.uint8)).resize((256, 256), Image.LANCZOS)
-    Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (mask,)).save(os.path.join(TEX, "MapCityMask", "%d.tga" % c["id"]))
-    cut.append((c["id"], city))
+    Image.merge("RGBA", (Image.new("L", (256, 256), 255),) * 3 + (mask,)).save(os.path.join(TEX, "MapCityMask" + sub, "%d.tga" % c["id"]))
     print("city cut", city)
+    return (c["id"], city)
+
+BANNERS_LUA = os.path.join(g["WM"], "Banners.lua")
+LOCALE_HEAD = "\n-- other languages' banners"
+def locale_section(text):
+    """Banners.lua's other languages' part (ns.MapBannerLocales), kept as it is when the rest is written"""
+    i = text.find(LOCALE_HEAD)
+    return text[i:] if i >= 0 else ""
+
+if not ENGLISH:
+    # another language: only its own banners (BANNERS_LOCALE), in <folder>/<locale>/, and its part of Banners.lua
+    sub = os.sep + LOCALE
+    for d_ in ("MapBanner", "MapBannerHole", "MapCityMask"):
+        os.makedirs(os.path.join(TEX, d_ + sub), exist_ok=True)
+        for f in os.listdir(os.path.join(TEX, d_ + sub)):
+            if f.endswith(".tga"): os.remove(os.path.join(TEX, d_ + sub, f))
+    rows_, cuts_ = [], []
+    for city, banner in BANNERS_LOCALE.get(LOCALE, {}).items():
+        rows_.append(cut_banner(city, banner[0], banner[1], sub))
+        if city in COVER_BANNER: cuts_.append(city_cut(city, CITIES[city], banner, sub))
+    text = open(BANNERS_LUA, encoding="utf-8").read()
+    old = locale_section(text)
+    have = dict(re.findall(r"^ns\.MapBannerLocales\.(\w+) = (\{.*?^\})\n", old, re.M | re.S))
+    have[LOCALE] = "\n".join([
+        "{",
+        "\tbanners = { %s }," % ", ".join("[%d] = { %d, %d, %d, %d, %d }" % tuple(int(v) for v in r[:6]) for r in rows_),
+        "\tholes = { %s }," % ", ".join("[%d] = true" % r[1] for r in rows_),
+        "\tcuts = { %s }," % ", ".join("[%d] = true" % c_[0] for c_ in cuts_),
+        "}"])
+    out_ = text[:len(text) - len(old)] if old else text
+    out_ += (LOCALE_HEAD + " where they're wider than the English (banners.py's BANNERS_LOCALE): [locale] =\n"
+             "-- { banners = { [city] = { zone, x, y, w, h } }, holes = { [zone] = true }, cuts = { [city] = true } }, in\n"
+             "-- Media/Textures/MapBanner/<locale>/<city>, MapBannerHole/<locale>/<zone> and MapCityMask/<locale>/<city>\n"
+             "ns.MapBannerLocales = {}\n")
+    for loc in sorted(have):
+        out_ += "ns.MapBannerLocales.%s = %s\n" % (loc, have[loc])
+    open(BANNERS_LUA, "w", encoding="utf-8", newline="\n").write(out_)
+    print("banners for", LOCALE, [r[6] for r in rows_])
+    sys.exit(0)
+
+cut = [city_cut(city, poly) for city, poly in CITIES.items()]
 
 # each city's zone: the one whose own land (its painted land, not the frame round it, render.py's
 # own_land) lies under the city's middle. A city's map is its continent's child in the game's
@@ -202,7 +260,8 @@ for c in cities:
         homes.append((c["id"], best[1]["id"], c["name"], best[1]["name"]))
         print("city", c["name"], "in", best[1]["name"])
 
-with open(os.path.join(g["WM"], "Banners.lua"), "w", encoding="utf-8", newline="\n") as fh:
+keep = locale_section(open(BANNERS_LUA, encoding="utf-8").read()) if os.path.exists(BANNERS_LUA) else ""
+with open(BANNERS_LUA, "w", encoding="utf-8", newline="\n") as fh:
     fh.write("-- City banners: [city uiMapID] = { zone uiMapID, x, y, width, height }: the zone's name banner for\n")
     fh.write("-- the city, at (x, y) in the zone's art pixels, in Media/Textures/MapBanner/<city> (width x height).\n")
     fh.write("-- Generated by tools/map-preview/banners.py; regenerate rather than edit.\n\nlocal _, ns = ...\n\nns.MapBanners = {\n")
@@ -220,4 +279,4 @@ with open(os.path.join(g["WM"], "Banners.lua"), "w", encoding="utf-8", newline="
     fh.write("}\n\n-- each city's zone, whose own land is under the city's middle: [city uiMapID] = zone uiMapID\nns.MapCityZones = {\n")
     for cid, zid, city, zone in sorted(homes):
         fh.write("\t[%d] = %d,   -- %s in %s\n" % (cid, zid, city, zone))
-    fh.write("}\n")
+    fh.write("}\n" + keep)

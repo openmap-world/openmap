@@ -41,8 +41,8 @@ which the map draws instead of the zones' hundreds of textures until the view pa
 own pixels. The tiles carry the art's lettering, so they're drawn only on a client of their language: with
 `OPENMAP_LOCALE=ptBR` (or another client language), `OPENMAP_WOW` on an install of that language and a
 texture cache of its own, `--bake-zones` reads that client's art (`tools/casc`; wago.tools's files are
-enUS, and it says when one comes from there) and writes `MapZones/<locale>/`, without the city banner
-holes (that client keeps its own banners), and `Data/ZoneArt.lua` lists the languages baked. Re-run it after anything that changes the zones (the grade, the art edits, the
+enUS, and it says when one comes from there) and writes `MapZones/<locale>/` (with the city banner holes,
+as the English tiles: that client's banners are cut from its own art, `Stitch.lua`'s `c.banner`), and `Data/ZoneArt.lua` lists the languages baked. Re-run it after anything that changes the zones (the grade, the art edits, the
 territories and edges, the banners, the gaps). `OPENMAP_BAKED=1` renders the zones from those
 tiles, as the game draws them, to compare with a render of the live layers.
 

@@ -211,12 +211,34 @@ def banner(city):
         zone = m_ and next((z for z in maps if z["id"] == int(m_.group(1))), None)
         if zone:
             x, y, w, h = (int(m_.group(i)) for i in range(2, 6))
+            own_ = banner_locale("banners", city)          # (another language's, wider: its own cut)
+            if own_: x, y, w, h = own_[1:5]
             l, r, t, b = zone["rect"]
             sx, sy = (r - l) / 1002, (b - t) / 668
-            img = Image.open(os.path.join(TEXDIR, "MapBanner", "%d.tga" % city)).convert("RGBA").resize((1002, 668), Image.LANCZOS)
+            img = Image.open(os.path.join(TEXDIR, "MapBanner", *([LOCALE] if own_ else []), "%d.tga" % city)).convert("RGBA").resize((1002, 668), Image.LANCZOS)
+            img = np.asarray(img).astype(np.float32) / 255
+            if not ENGLISH:                           # (another language: its zone's own art through the cut's shape, Stitch.lua's)
+                own = overlay_canvas(zone["art"])[y:y + h, x:x + w]   # (without its hole: it's the banner)
+                own = np.asarray(Image.fromarray((np.clip(own, 0, 1) * 255).astype(np.uint8), "RGBA").resize((1002, 668), Image.LANCZOS)).astype(np.float32) / 255
+                own[..., 3] *= img[..., 3]
+                img = own
             _cache[k] = {"id": "banner%d" % city, "rect": (l + x * sx, l + (x + w) * sx, t + y * sy, t + (y + h) * sy),
-                         "img": np.asarray(img).astype(np.float32) / 255}
+                         "img": img}
     return _cache[k]
+
+def banner_locale(kind, id_):
+    """another language's banner where it's wider than the English (Banners.lua's ns.MapBannerLocales,
+    Stitch.lua's S.BannerLocale): its entry of kind ("banners", "holes", "cuts") for id_, or None"""
+    if ENGLISH: return None
+    m_ = re.search(r"^ns\.MapBannerLocales\.%s = \{(.*?)^\}" % LOCALE, open(os.path.join(WM, "Banners.lua"), encoding="utf-8").read(), re.M | re.S)
+    k_ = m_ and re.search(r"%s = \{(.*?)\},?\n" % kind, m_.group(1))
+    e_ = k_ and re.search(r"\[%d\] = (true|\{ ([\d, ]+) \})" % id_, k_.group(1))
+    if not e_: return None
+    return True if e_.group(1) == "true" else [int(v) for v in e_.group(2).split(",")]
+
+def banner_hole(id_):
+    """MapBannerHole for a zone: another language's where its banner is wider (banner_locale)"""
+    return mask(("MapBannerHole/%s/%d" % (LOCALE, id_)) if banner_locale("holes", id_) else ("MapBannerHole/%d" % id_))
 
 def city_title(city):
     """whether the city's cut keeps its own name banner (Data/Banners.lua's MapCityTitles)"""
@@ -265,9 +287,9 @@ def over(m):
     k = ("o", m["id"])
     if k not in _cache:
         o = overlay_canvas(m["art"])
-        # (drawn without its banner for a city: banners.py; English only, as Stitch.lua's BannerHole:
-        # another language's art keeps its own banner, in its language)
-        hole = mask("MapBannerHole/%d" % m["id"]) if ENGLISH else None
+        # (drawn without its banner for a city: banners.py, as Stitch.lua's BannerHole; another language's
+        # banner is cut from this art too, banner())
+        hole = banner_hole(m["id"])
         if hole is not None:
             o = o.copy()
             o[..., 3] *= hole
@@ -281,8 +303,15 @@ TERR_OWN = False                # (gapfill.py: each zone through its own territo
 def terr(m):
     if TERR_OWN: return terr_own(m)
     k = ("terr", m["id"])
-    if k not in _cache: _cache[k] = mask("MapTerritory/%d" % m["id"])
+    if k not in _cache:   # (another language's, less its names round the zone's land, where it has one: letters.py)
+        own = None if ENGLISH else mask("MapTerritory/%s/%d" % (LOCALE, m["id"]))
+        _cache[k] = own if own is not None else mask("MapTerritory/%d" % m["id"])
     return _cache[k]
+
+def land_mask(id_):
+    """MapZoneLand: another language's, less its names round the zone's land, where it has one (letters.py)"""
+    own = None if ENGLISH else mask("MapZoneLand/%s/%d" % (LOCALE, id_))
+    return own if own is not None else mask("MapZoneLand/%d" % id_)
 
 def core(m):
     k = ("core", m["id"])
@@ -374,7 +403,7 @@ def over_shown(m):
     k = ("o_shown", m["id"])
     if k not in _cache:
         o = overlay_canvas(m["art"], {key for key, _ in reveal.get(m["art"], [])} - un)
-        hole = mask("MapBannerHole/%d" % m["id"])
+        hole = banner_hole(m["id"])
         if hole is not None:
             o = o.copy()
             o[..., 3] *= hole
@@ -668,7 +697,7 @@ def render(cu, cv, zoom, path):
             if UNEXPLORED_SIM.get(z["name"]) != "all": continue
             l, r, t, b_ = z["rect"]
             if r < cl or l > cr or b_ < ct or t > cb: continue
-            for rect, mk in (((l, r, t, b_), mask("MapZoneLand/%d" % z["id"])),
+            for rect, mk in (((l, r, t, b_), land_mask(z["id"])),
                              ((l - BORDER_REACH / W_, r + BORDER_REACH / W_, t - BORDER_REACH / H_, b_ + BORDER_REACH / H_), mask("MapZoneBorder/%d" % z["id"]))):
                 if mk is None: continue
                 rl, rr, rt, rb = rect                     # the art over that rectangle, in its own px
@@ -728,14 +757,17 @@ def render(cu, cv, zoom, path):
     if USE_CORE and not USE_BAKED:
         for m in zones:                                   # every zone's interior again, over its neighbours' halos
             if has_over[m["id"]]: place(m, over_shown, over_edge(m) * core(m), alpha=d)
+        for m in zones:                                   # another language's names a neighbour would cover, over them (letters.py)
+            lm = None if ENGLISH else mask("MapLetters/%s/%d" % (LOCALE, m["id"]))
+            if has_over[m["id"]] and lm is not None: place(m, over_shown, lm, alpha=d)   # (whole: not faded at its frame)
     if UNEXPLORED_SIM and not UNEXPLORED_HIDE and not ZONES_ONLY:   # a zone you've been to: each piece's art again, the unexplored
         for m in zones:                                   # darkened, the explored over them (Stitch.lua's Shade.Pieces)
             if UNEXPLORED_SIM.get(m["name"]) != "half" or not has_over[m["id"]]: continue
             keys = sorted(key for key, _ in reveal.get(m["art"], []))
             unexplored = set(keys[::2])
-            hole = mask("MapBannerHole/%d" % m["id"])
+            hole = banner_hole(m["id"])
             g, bd = grade.get(m["id"]), band(m)
-            land = mask("MapZoneLand/%d" % m["id"])
+            land = land_mask(m["id"])
             for dark in (True, False):
                 img = overlay_canvas(m["art"], {k for k in keys if (k in unexplored) == dark})
                 if hole is not None:
@@ -752,9 +784,10 @@ def render(cu, cv, zoom, path):
             f_ = 1 / (m["rect"][1] - m["rect"][0])
             fade = CITY_FADE_OF.get(m["id"], CITY_FADE)
             a_ = smooth(zf, (fade[0] * f_, fade[1] * f_))
-            cut_ = os.path.join(TEXDIR, "MapCityMask", "%d.tga" % m["id"])    # (cut down to the city: banners.py)
-            place(m, base, mask("MapCityMask/%d" % m["id"]) if os.path.exists(cut_) else M_ROUND, alpha=a_)
-            b_ = ENGLISH and banner(m["id"])              # its zone's banner for it: its title at every zoom,
+            cname_ = ("MapCityMask/%s/%d" % (LOCALE, m["id"])) if banner_locale("cuts", m["id"]) else ("MapCityMask/%d" % m["id"])
+            cut_ = os.path.join(TEXDIR, cname_ + ".tga")    # (cut down to the city: banners.py)
+            place(m, base, mask(cname_) if os.path.exists(cut_) else M_ROUND, alpha=a_)
+            b_ = banner(m["id"])                          # its zone's banner for it: its title at every zoom,
             if b_:                                        # or giving way to its own (Stitch.lua's MapCityTitles)
                 out_ = smooth(zf, (BANNER_OUT[0] * f_, BANNER_OUT[1] * f_)) if city_title(m["id"]) else 0
                 place(b_, b_["img"], None, alpha=d * (1 - out_))
@@ -769,7 +802,7 @@ def render(cu, cv, zoom, path):
     if UNEXPLORED_SIM and not UNEXPLORED_HIDE and not ZONES_ONLY:   # unexplored land, shaded over the art (Stitch.lua's shadeRoot)
         solid = np.dstack([np.full((668, 1002, 3), UNDISCOVERED[:3], np.float32), np.ones((668, 1002), np.float32)])
         for m in zones:
-            how, land = UNEXPLORED_SIM.get(m["name"]), mask("MapZoneLand/%d" % m["id"])
+            how, land = UNEXPLORED_SIM.get(m["name"]), land_mask(m["id"])
             if not how or land is None: continue
             if how == "all":
                 place(m, solid, land, alpha=UNDISCOVERED[3])
@@ -930,6 +963,8 @@ def over_edge(m, fresh=False):
     k = ("oedge", m["id"])
     if k not in _cache:
         p_ = os.path.join(TEXDIR, "MapEdge", "%d.tga" % m["id"])
+        own_ = os.path.join(TEXDIR, "MapEdge", LOCALE, "%d.tga" % m["id"])
+        if not ENGLISH and os.path.exists(own_) and not fresh: p_ = own_   # (less that language's names: letters.py)
         if os.path.exists(p_) and not fresh:
             _cache[k] = np.asarray(Image.open(p_).convert("RGBA").getchannel("A").resize((1002, 668), Image.BILINEAR)).astype(np.float32) / 255
             return _cache[k]
@@ -1595,6 +1630,10 @@ def bake_zones():
     for m in live:                                       # (coreRoot: the interiors, graded zones only)
         if grade.get(m["id"]) and os.path.exists(os.path.join(TEXDIR, "MapCore", "%d.tga" % m["id"])):
             layers.append((m["rect"], lambda m=m: over(m), lambda m=m: edge_of(m) * core(m), None, BAKE_DESAT))
+    for m in ([] if ENGLISH else live):                  # (another language's names a neighbour would cover: letters.py)
+        lm = mask("MapLetters/%s/%d" % (LOCALE, m["id"]))
+        if lm is not None:
+            layers.append((m["rect"], lambda m=m: over(m), lambda lm=lm: lm, None, BAKE_DESAT))
     out_dir = ZONES_DIR
     os.makedirs(out_dir, exist_ok=True)
     for f in os.listdir(out_dir):
@@ -1691,7 +1730,7 @@ def bake_fog():
         land = mask("MapZoneLand/%d" % m["id"])
         if land is None: continue
         edge_ = over_edge(m) if grade.get(m["id"]) else M_THIN
-        hole = mask("MapBannerHole/%d" % m["id"]) if ENGLISH else None
+        hole = mask("MapBannerHole/%d" % m["id"])
         C = (1 - np.prod(1 - A, 0)) * land * edge_ * (hole if hole is not None else 1)
         S_ = A.sum(0)
         entries = []
