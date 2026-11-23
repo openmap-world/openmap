@@ -120,6 +120,28 @@ local function Focus()
 	if mod.PadQuestFocus then mod.PadQuestFocus(found and tracked or nil, found and found.data.map or nil) end
 end
 
+-- for PadView.lua: where a quest's icon is (world, normalized) and the map it's from. Its icon up now (the
+-- one on `mapID`, the quest log's map for it, if it has one there), else read from that map, as the icons
+-- are; nil: no icon (as Blizzard's map shows none)
+function mod.QuestWorld(questID, mapID)
+	local other
+	for _, pin in ipairs(drawn) do
+		local q = pin.data
+		if q and q.id == questID then
+			if q.map == mapID then return pin.u, pin.v, q.map end
+			other = other or pin
+		end
+	end
+	if other then return other.u, other.v, other.data.map end
+	if not (mapID and S.Rect(mapID) and C_QuestLog.GetQuestsOnMap) then return end
+	for _, q in ipairs(C_QuestLog.GetQuestsOnMap(mapID) or NONE) do
+		if q.questID == questID and q.x and q.y then
+			local u, v = mod.ToWorld(mapID, q.x, q.y)
+			return u, v, mapID
+		end
+	end
+end
+
 -- a quest you can start: its name, and the quest line it begins (the game's own words)
 local function EnterOffer(pin)
 	local q = pin.data
@@ -282,6 +304,20 @@ function mod.QuestsStatus()
 	if not lastRead then return "Quests from every zone: not read yet." end
 	return ("Quests from every zone: %d zones read in %.0f ms over %d frames (the longest %.1f ms)%s."):format(
 		lastRead.zones, lastRead.ms, lastRead.frames, lastRead.worst, reading and "; reading again now" or "")
+end
+
+-- for /openmap padview: where the controller view's quest icons stand (none up: which step stopped them)
+function mod.QuestsPadDiag()
+	local first = drawn[1]
+	local cell = first and first:GetParent()
+	return ("Quest icons: set %s, on %s, shown %s, visible %s; %d up%s; read %s%s; all quests %s, Quest Objectives %s, view %s."):format(
+		set and "made" or "not made", tostring(set and set.on), tostring(set and set.shownNow),
+		tostring(set and set.frame:IsVisible() or false), #drawn,
+		first and (" (the first: shown %s, visible %s, its cell %s, at %.3f, %.3f)"):format(tostring(first:IsShown()),
+			tostring(first:IsVisible()), tostring(cell and cell:IsShown()), first.u or -1, first.v or -1) or "",
+		lastRead and (lastRead.zones .. " zones") or "not yet", reading and ", reading now" or "",
+		tostring(mod.db.allQuests ~= false), tostring(not (GetCVarBool and not GetCVarBool("questPOI"))),
+		tostring(PadView() and true or false))
 end
 
 function mod:RefreshQuests()
