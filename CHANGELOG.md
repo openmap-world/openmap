@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **The map opens on the cave you're in**: inside a cave, mine or crypt the map draws underground, opening
+  the map (When reopening the map: Center on player, the default) shows you there with the cave's map up,
+  not the zone with the cave a speck to zoom into by hand. The game's own map has no cave maps on WoW
+  Forever, so OpenMap goes by where you stand and whether the game has you indoors. The other choices
+  open as before.
+
 ## v0.8.14 (2026-11-27)
 
 ### New

@@ -191,6 +191,115 @@ class CaveTests(unittest.TestCase):
             assert(key == -i or ns.MapCaves[key], 'a cave of either list')
         """)
 
+    # the map opened on a world point at the zoom for the cave there (Nav.lua's SavedView, centred on you in
+    # one): a view whose half extents at zoom 1 are HU, HV (the whole world fits it)
+    OPEN = """
+        HU, HV = 0.5, 0.5
+        function OpenOn(u, v)
+            local zoom = S.CaveZoomAt(u, v, HU, HV)
+            if zoom then S.SetView(u, v, HU / zoom, HV / zoom, zoom, zoom) end
+            return zoom
+        end
+    """
+
+    def test_opened_in_a_cave_its_map_is_up(self):
+        # (WoW Forever's map tables have no cave maps: the game puts you in the zone, whose fit left a
+        # cave a speck)
+        self.lua.execute(self.OPEN + """
+            for _, size in ipairs({ { 30, 60 }, { 150, 300 }, { 400, 1100 } }) do
+                local i, c = Pick(0, size[1], size[2])
+                if not i then i, c = Pick(1, size[1], size[2]) end
+                assert(i, 'a cave ' .. size[1] .. ' to ' .. size[2] .. ' yards across')
+                local u, v = Middle(c)
+                local zoom = OpenOn(u, v)
+                assert(zoom and zoom >= 40, 'not before the zoom caves wait for: ' .. tostring(zoom))
+                local up = Up(c[6][1])
+                assert(up and up.alpha > 0.99, 'all the way up: ' .. tostring(up and up.alpha))
+                assert(underground > 0.99, 'the surface dims round it')
+                -- (anywhere in it: the same)
+                local cu, cv = S.FromYards(c[1], c[2] + (c[4] - c[2]) * 0.1, c[3] + (c[5] - c[3]) * 0.9)
+                assert(math.abs(S.CaveZoomAt(cu, cv, HU, HV) - zoom) < 1e-9, 'from its corner')
+            end
+        """)
+
+    def test_opened_in_blizzards_cave_maps(self):
+        self.lua.execute(self.OPEN + """
+            local function In(c, x, y) return x >= c[3] and x <= c[5] and y >= c[4] and y <= c[6] end
+            local function At(id, x, y)
+                local c = ns.MapCaves[id]
+                contMap = c[2] == 0 and 1415 or 1414
+                return S.FromYards(c[2], x or (c[3] + c[5]) / 2, y or (c[4] + c[6]) / 2)
+            end
+            local c = ns.MapCaves[11]                -- Wailing Caverns
+            local zoom = OpenOn(At(11))
+            assert(zoom and Up(c[11][1]) and Up(c[11][1]).alpha > 0.99, "Wailing Caverns' map up")
+            -- a floor that doesn't come up by itself (Ban'ethil Barrow Den's lower, 61, round its first, 60):
+            -- in its box past the first's, the zoom where the first is up
+            assert(In(ns.MapCaves[61], 9700, 1570) and not In(ns.MapCaves[60], 9700, 1570))
+            local u, v = At(61, 9700, 1570)
+            local fu, fv = At(60)
+            assert(S.CaveZoomAt(u, v, HU, HV) == S.CaveZoomAt(fu, fv, HU, HV), 'its first floor')
+            -- a cave wide enough to fill the view from further out (the Gaping Chasm): at the zoom caves wait for
+            zoom = OpenOn(At(73))
+            assert(zoom == 40 and Up(ns.MapCaves[73][11][1]).alpha > 0.99, 'the Gaping Chasm up: ' .. zoom)
+            -- Blackrock Mountain: up from further out (it waits for no zoom), its deeper floors standing for it
+            zoom = OpenOn(At(33))
+            assert(zoom < 40 and Up(ns.MapCaves[33][11][1]).alpha > 0.99, 'Blackrock Mountain up: ' .. zoom)
+            assert(In(ns.MapCaves[35], -7200, -1000) and not In(ns.MapCaves[33], -7200, -1000))
+            u, v = At(35, -7200, -1000)
+            assert(S.CaveZoomAt(u, v, HU, HV) == zoom, 'its way down to the Depths')
+        """)
+
+    def test_opened_in_a_cave_in_another_ones_box(self):
+        # a cave of the minimap's in a Blizzard cave map's box (Dun Morogh's ice dens by the Grizzled Den):
+        # the smaller box is where you are
+        self.lua.execute(self.OPEN + """
+            local m, c
+            for _, mm in pairs(ns.MapCaves) do
+                for _, cc in ipairs(ns.MapCaveMinimap) do
+                    if cc[1] == mm[2] and cc[2] < mm[5] and cc[4] > mm[3] and cc[3] < mm[6] and cc[5] > mm[4] then m, c = mm, cc end
+                end
+            end
+            assert(m, 'a cave in a cave map box')
+            assert((c[4] - c[2]) * (c[5] - c[3]) < (m[5] - m[3]) * (m[6] - m[4]), 'the minimap one the smaller')
+            contMap = c[1] == 0 and 1415 or 1414
+            local u, v = S.FromYards(c[1], (math.max(c[2], m[3]) + math.min(c[4], m[5])) / 2,
+                (math.max(c[3], m[4]) + math.min(c[5], m[6])) / 2)
+            OpenOn(u, v)
+            assert(Up(c[6][1]) and Up(c[6][1]).alpha > 0.99, 'the smaller up')
+        """)
+
+    def test_no_cave_no_zoom(self):
+        self.lua.execute(self.OPEN + """
+            assert(S.CaveZoomAt(0.02, 0.98, HU, HV) == nil, 'out at sea')
+            local _, c = Pick(0, 150, 300)
+            local u, v = Middle(c)
+            assert(S.CaveZoomAt(u, v, HU, HV), 'in it')
+            -- just past its box: the zoom over it goes on there (a margin round it, S.CaveRectAt), but you're
+            -- not in it
+            local pu, pv = S.FromYards(c[1], c[4] + (c[4] - c[2]) * 0.1, (c[3] + c[5]) / 2)
+            assert(S.CaveRectAt(pu, pv) and S.CaveZoomAt(pu, pv, HU, HV) == nil, 'just past it')
+            S.HiddenAt = function() return true end    -- (under land still unexplored, hidden: it stays down)
+            assert(S.CaveZoomAt(u, v, HU, HV) == nil, 'hidden')
+            S.HiddenAt = nil
+            mod.db.underground = false
+            assert(S.CaveZoomAt(u, v, HU, HV) == nil, 'caves off')
+        """)
+
+    def test_the_wait_in_another_clients_steps(self):
+        # (retail's layers go by half the zoom, ns.ClientMaps.zoom: WorldMap.lua's S.SetView steps)
+        self.lua.execute(self.OPEN + """
+            local _, c = Pick(1, 400, 1100)
+            local u, v = Middle(c)
+            local zoom = S.CaveZoomAt(u, v, HU, HV)
+            ns.ClientMaps = { zoom = 2 }
+            local twice = S.CaveZoomAt(u, v, HU, HV)
+            ns.ClientMaps = nil
+            assert(twice >= 80 and twice >= zoom, zoom .. ', ' .. twice)
+            S.SetView(u, v, HU / twice, HV / twice, twice, twice / 2)
+            assert(Up(c[6][1]) and Up(c[6][1]).alpha > 0.99, 'up at its steps')
+        """)
+
     # Ironforge's map (uiMap 1455): its box in yards (UiMapAssignment, build 1.60.1.70245), and places on
     # it by its art's pixels (1002 x 668): the Mystic Ward, the Forlorn Cavern, the Hall of Explorers, the
     # Gates, the Great Forge

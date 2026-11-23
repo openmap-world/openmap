@@ -189,6 +189,65 @@ class NavigationTests(unittest.TestCase):
             assert(u == playerU and v == playerV and zoom == 8)
         """)
 
+    # in a cave the map draws underground: Close.lua's S.CaveZoomAt stood in for (the zoom where its map is up,
+    # for a view of half extents hu, hv at zoom 1), and the game's IsIndoors
+    CAVE = """
+        indoors, caveZoom = true, 60
+        function IsIndoors() return indoors end
+        function ns.MapStitch.CaveZoomAt(u, v, hu, hv) asked = { u, v, hu, hv } return caveZoom end
+    """
+
+    def test_in_a_cave_the_map_opens_where_its_map_is_up(self):
+        # (WoW Forever's map tables have no cave maps: you're in the zone, whose fit left the cave a speck)
+        self.lua.execute(self.CAVE + """
+            function mod.ViewHalfExtents(zoom) return .4 / zoom, .2 / zoom end
+            mod.db.reopenView = 'player'
+            playerU, playerV = .8, .7
+            local u, v, zoom = mod.SavedView(1)
+            assert(u == playerU and v == playerV and zoom == 60, tostring(zoom))
+            assert(asked[1] == .8 and asked[2] == .7 and asked[3] == .4 and asked[4] == .2, 'the view at zoom 1')
+            indoors, asked = false, nil             -- on the ground over it: the zone, no cave looked for
+            assert(select(3, mod.SavedView(1)) == 8 and asked == nil)
+            indoors, caveZoom = true, nil           -- indoors with no cave (an inn): the zone
+            assert(select(3, mod.SavedView(1)) == 8)
+            caveZoom = 0 / 0                        -- (the map 0 px across yet: never a view that isn't one, #260)
+            assert(select(3, mod.SavedView(1)) == 8)
+            caveZoom = 1 / 0
+            assert(select(3, mod.SavedView(1)) == 8)
+            caveZoom = 5                            -- (up at the zone's fit already: never further out than that)
+            assert(select(3, mod.SavedView(1)) == 8)
+            caveZoom = 60
+            assert(mod.SavedView(999) == nil)       -- a map put up for a quest: as Blizzard shows it
+            mod:OnMapHidden()
+            assert(mod.SavedView(nil, true) == nil) -- (not put up again a frame later: OnMapShown's, saved views only)
+        """)
+
+    def test_in_a_cave_the_other_choices_stand(self):
+        # (keep the zoom, your zone, always remember: as chosen; remember while visible opens on you, in a cave
+        # where its map is up, only once you're out of the view it kept)
+        self.lua.execute(self.CAVE + """
+            playerU, playerV = .5, .5
+            mod.db.reopenView = 'zoom'
+            assert(select(3, mod.SavedView(1)) == 8, 'keep zoom, none kept yet: the fit')
+            mod:OnMapHidden()                       -- (the view kept: .5, .5 at 4)
+            local u, v, zoom = mod.SavedView(1)
+            assert(zoom == 4, 'keep zoom: ' .. zoom)
+            mod.db.reopenView = 'inzone'
+            u, v, zoom = mod.SavedView(1)
+            assert(u == .5 and v == .5 and zoom == 8, 'your zone: ' .. zoom)
+            mod.db.reopenView = 'always'
+            playerU = .9
+            u, v, zoom = mod.SavedView(1)
+            assert(u == .5 and zoom == 4, 'always remember: ' .. zoom)
+            mod.db.reopenView = 'visible'
+            playerU = .55                           -- (still in the view kept)
+            u, v, zoom = mod.SavedView(1)
+            assert(u == .5 and zoom == 4, 'remember while visible: ' .. zoom)
+            playerU = .9                            -- (out of it: on you)
+            u, v, zoom = mod.SavedView(1)
+            assert(u == .9 and zoom == 60, 'on you, in the cave: ' .. zoom)
+        """)
+
     def test_find_me_can_preserve_zoom(self):
         self.lua.execute("""
             mod:FindMe(true)

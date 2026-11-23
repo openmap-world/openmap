@@ -2,7 +2,8 @@
 -- Getting around the map:
 --   find me      a button that glides to where you are
 --   reopen       choose player-centred, zone-centred, always remember, or remember
---                only while the player is still inside the previous view
+--                only while the player is still inside the previous view; centred on
+--                the player in a cave, where its map is up (Close.lua)
 --   waypoints    Ctrl-click the map to drop Blizzard's map pin there (and a
 --                TomTom arrow, if TomTom is on); click the pin to clear it
 --   search       type a zone, city, dungeon or flight master and glide to it (on the
@@ -131,7 +132,15 @@ function mod.SavedView(mapID, onlySaved)
 		local l, r, t, b = S.Rect(best)
 		if l then return (l + r) / 2, (t + b) / 2, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
 	end
-	if u then return u, v, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
+	if not u then return end
+	local zoom = math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge)
+	-- (in a cave, mine or crypt the map draws underground: further in, if that's where its map is up, Close.lua.
+	-- The game's own map tables have no cave maps on WoW Forever, so you're in the zone, whose fit left the cave
+	-- a speck. Only indoors: the ground over a cave is in its box too. Not with "zoom", whose zoom is the one it
+	-- closed at: a cave's would stay on after it)
+	local cave = mode ~= "zoom" and Safe.Call(IsIndoors) and S.CaveZoomAt and S.CaveZoomAt(u, v, mod.ViewHalfExtents(1))
+	if cave and Safe.Finite(cave) and cave > zoom then return u, v, cave end
+	return u, v, zoom
 end
 
 function mod:OnMapShown()

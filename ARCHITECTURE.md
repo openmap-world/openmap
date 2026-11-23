@@ -230,7 +230,12 @@ Fed the view (centre, half extents, zoom) on every pan and zoom (`S.SetView`):
   view, once the zoom is deep enough (`UNDER_ZOOM`), fully at about half; the surface dims round
   the one you're centred on. Over a cave the zoom goes on past the deepest setting until its map
   fills the view (`WorldMap.lua`'s `MaxZoomAt`: at the deepest zoom most caves are a speck).
-  Entrance icons glide down into theirs.
+  Entrance icons glide down into theirs. Where the map would open centred on you at your zone's fit
+  (`Nav.lua`'s `SavedView`: Center on player, and Remember while visible or Always remember with no view
+  of their own to put back), indoors in a cave's box it opens further in if that's where the cave's map
+  is up (`S.CaveZoomAt`: the smallest box holding you; a floor that doesn't surface by itself stands for
+  its place's first). WoW Forever's map tables have no cave maps, so the game puts you in the zone,
+  whose fit left the cave a speck.
 
 ## The rest of `Map/`
 
