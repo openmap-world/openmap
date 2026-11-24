@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Added
+
+- **For other addons**: `OpenMapAPI.HoldWindow(owner, on)` (API version 5): an addon that docks the world map in a
+  frame of its own holds the window while it's docked, and OpenMap stops putting the map back on its saved place,
+  scale and size; let go, the window goes back there (docs/api.md). `OpenMapAPI.IsWindowHeld()` says whether one does.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

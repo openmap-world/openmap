@@ -8,10 +8,8 @@ from lupa.lua51 import LuaRuntime
 ROOT = Path(__file__).resolve().parents[2] / "OpenMap"
 
 
-class WindowTests(unittest.TestCase):
-    def test_spacer_anchoring_and_clamp_order(self):
-        lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute('''
+# the stubbed client and window: Window.lua loaded on it, mod:SetupWindow not run yet
+PRELUDE = '''
         local function noop() end
         ns = {
             L = setmetatable({}, { __index = function(_, k) return k end }),
@@ -120,9 +118,20 @@ class WindowTests(unittest.TestCase):
             KeepPadCursor = function(fn, self) return fn(self) end,
         }
         ns.WorldMap = mod
-        ''')
-        source = (ROOT / 'Map/Window.lua').read_text(encoding='utf-8')
-        lua.execute(source, 'OpenMap', lua.globals().ns)
+'''
+
+
+def load_window():
+    lua = LuaRuntime(unpack_returned_tuples=True)
+    lua.execute(PRELUDE)
+    source = (ROOT / 'Map/Window.lua').read_text(encoding='utf-8')
+    lua.execute(source, 'OpenMap', lua.globals().ns)
+    return lua
+
+
+class WindowTests(unittest.TestCase):
+    def test_spacer_anchoring_and_clamp_order(self):
+        lua = load_window()
         apply_calls, log_calls, combat_calls, drag_calls = lua.execute('''
         mod:SetupWindow(testMap)
         testMap.calls = {}
@@ -162,6 +171,39 @@ class WindowTests(unittest.TestCase):
         self.assertIn("Clamp,SetPoint", drag_calls)
         self.assertTrue(drag_calls.endswith("Spacer,Refit"))
 
+
+    def test_held_window_is_left_to_its_holder(self):
+        lua = load_window()
+        held_scale, grip_width, released_scale, held_flag, released_flag = lua.execute('''
+        UIParent.GetEffectiveScale = function() return 1 end
+        mod.db.window = { "TOPLEFT", "TOPLEFT", 100, -100 }
+        mod:SetupWindow(testMap)
+        mod.HoldWindow("Dock", true)
+        local heldFlag = mod.WindowHeld()
+        -- another addon docks it: OpenMap leaves its scale alone
+        testMap:SetScale(0.5)
+        local heldScale = testMap:GetScale()
+        -- the corner grips don't size a held window
+        local grip
+        for _, f in ipairs(created) do
+            if f.scripts.OnMouseDown and f.scripts.OnMouseUp then grip = f break end
+        end
+        local w = testMap:GetWidth()
+        cursorX, cursorY = 500, 300
+        grip.scripts.OnMouseDown(grip)
+        cursorX, cursorY = 620, 220
+        grip.scripts.OnUpdate(grip)
+        grip.scripts.OnMouseUp(grip)
+        local gripWidth = testMap:GetWidth() - w
+        -- let go: back to the saved scale
+        mod.HoldWindow("Dock", false)
+        return heldScale, gripWidth, testMap:GetScale(), heldFlag, mod.WindowHeld()
+        ''')
+        self.assertEqual(0.5, held_scale)
+        self.assertEqual(0, grip_width)
+        self.assertEqual(1, released_scale)
+        self.assertTrue(held_flag)
+        self.assertFalse(released_flag)
 
 
 if __name__ == "__main__":
