@@ -888,6 +888,15 @@ ApplyZoom = function()
 	if not active then return end
 	local g, t0 = Before(), Clock()
 	S.SetZoom(ZoomFor(map:GetMapID(), CanvasScale()) * DetailK(), CanvasScale())
+	-- (no view culled yet, at the session's first opening, or after the bench: the view's own box at once, not a
+	-- frame on in the view update. With none, the art the zoom brought in took everything as near the view,
+	-- the baked tiles all of the world's, two hundred and more files; and its first frame had nothing culled)
+	if S.Culled and not S.Culled() and map:IsShown() then
+		local u, v, zoom = View()
+		local pu, pv = PerPx(zoom)
+		local hu, hv = sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv
+		if ns.Safe.Finite(u, v, hu, hv) then S.Cull(u - hu, v - hv, u + hu, v + hv) end
+	end
 	After("zoom", g)
 	Clocked("OpenMap's zoom update", t0)
 	ApplyView()
