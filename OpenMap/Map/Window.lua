@@ -33,6 +33,11 @@ local classicMap = false        -- ClassicUI Forever's World map option owns the
 local afterCombat = false       -- something here waited out combat: done as it ends
 local afterCombatRefit = false  -- resize spacer/refit waited out combat: done even if dimensions already match
 local windowOwner = {}          -- (its event handler's key)
+local held = {}                 -- other addons holding the window (OpenMapAPI.HoldWindow): owner -> true
+
+-- another addon places and scales the window now (it docks the map in a frame of its own): the saved
+-- place, scale and size aren't put back, and the title bar and grips don't move or size it
+local function Held() return next(held) ~= nil end
 
 -- At PLAYER_LOGIN, enabled addons have finished loading. An installed but disabled
 -- Move Any must not affect OpenMap's layout (GetAddOnEnableState can misreport it).
@@ -116,7 +121,7 @@ local function OffScreen()
 end
 
 local function Apply()
-	if not map or Maximized() or ours or sizing or classicMap then return end
+	if not map or Maximized() or ours or sizing or classicMap or Held() then return end
 	if Locked() then return end
 	-- (a place or size saved that isn't one, NaN or infinite, or no size at all: forgotten, or the map would
 	-- be put there every time it opens, blank: #260)
@@ -170,6 +175,15 @@ local function Save()
 	local point, _, relPoint, x, y = map:GetPoint(1)
 	if point then mod.db.window = { point, relPoint, x, y } end
 end
+
+-- (OpenMapAPI.HoldWindow) owner holds the window, or lets it go; let go by the last one, the window
+-- goes back to its saved place, scale and size
+function mod.HoldWindow(owner, on)
+	local was = Held()
+	held[owner] = on and true or nil
+	if was and not Held() and map and map:IsShown() then Apply() end
+end
+function mod.WindowHeld() return Held() end
 
 function mod:ResetWindow()
 	mod.db.window = false
@@ -234,7 +248,7 @@ local function Grip(corner)
 	end
 	local start
 	g:SetScript("OnMouseDown", function()
-		if Maximized() or Locked() then return end
+		if Maximized() or Held() or Locked() then return end
 		local x, y = GetCursorPosition()
 		-- (where the window is, now: not known yet, or the drag would anchor it at 0, 0, bottom left: #241)
 		local l, r, t = map:GetLeft(), map:GetRight(), map:GetTop()
@@ -375,7 +389,7 @@ function mod:SetupWindow(worldMap)
 		handle:RegisterForDrag("LeftButton")
 		handle:SetScript("OnDragStart", function()
 			-- (in combat the map's protected: moving it from here is refused)
-			if Maximized() or (InCombatLockdown() and map:IsProtected()) then return end
+			if Maximized() or Held() or (InCombatLockdown() and map:IsProtected()) then return end
 			handle.moving = true
 			map:SetMovable(true)
 			map:StartMoving()

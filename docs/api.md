@@ -111,6 +111,26 @@ It's shown on the card OpenMap puts on a dungeon's map, after OpenMap's own boss
 whenever the card is filled. Keep it quick: it runs on the map's change. Pass `nil` as the function
 to take it off.
 
+### Docking the map in a frame of yours
+
+(version 5) OpenMap keeps the windowed map where it was put and at its scale: whenever anything
+else places, scales or sizes `WorldMapFrame`, it puts the saved place back. An addon that docks the
+map in a frame of its own holds the window first, and lets it go when it undocks:
+
+```lua
+OM.HoldWindow("MyAddon", true)      -- yours to place and scale now
+WorldMapFrame:ClearAllPoints()
+WorldMapFrame:SetPoint("CENTER", myPanel, "CENTER")
+WorldMapFrame:SetScale(0.6)
+-- ...
+OM.HoldWindow("MyAddon", false)     -- back to where the player put it
+```
+
+While held, OpenMap doesn't put back its saved place, scale or size, and its title bar and corner
+grips don't move or size the window. Let go by the last holder, the window goes back to its saved
+place. `OM.IsWindowHeld()` says whether anyone holds it. The maximized map, and the window with
+Move Any or ClassicUI Forever's World map option, are theirs already: holding changes nothing there.
+
 ### Townsfolk from your own NPC database
 
 (version 4) OpenMap's townsfolk and rare mobs (On the map > Townsfolk) come from Questie's NPC

@@ -19,7 +19,7 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 
-local API = { major = 1, version = 4 }
+local API = { major = 1, version = 5 }
 OpenMapAPI = API
 
 local CBH = LibStub and LibStub("CallbackHandler-1.0", true)
@@ -141,6 +141,18 @@ function API.RegisterTownsfolkProvider(owner, provider)
 	end
 	if mod.SetTownsfolkProvider then mod.SetTownsfolkProvider(provider) end
 end
+
+-- (version 5) hold the world map's window: while held, OpenMap stops putting back its saved place, scale
+-- and size, and its title bar and corner grips don't move or size it, so your addon can place and scale
+-- WorldMapFrame (to dock it in a frame of yours). on = false lets it go; let go by the last holder, the window
+-- goes back to its saved place. Not while maximized, nor with Move Any or ClassicUI's map (they own it already)
+function API.HoldWindow(owner, on)
+	if type(owner) ~= "string" then error("OpenMapAPI.HoldWindow(owner, on)", 2) end
+	if mod.HoldWindow then mod.HoldWindow(owner, on and true or false) end
+end
+
+-- (version 5) whether any addon holds the window now
+function API.IsWindowHeld() return mod.WindowHeld and mod.WindowHeld() or false end
 
 -- for Panel.lua: the toggles, as its checklist's rows (each tab's under its section's heading)
 function mod.ExtraMenuRows(row)
