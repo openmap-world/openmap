@@ -3450,6 +3450,12 @@ end
 
 -- /openmap status: baked tiles the game couldn't find (#349, #353), and where it looked
 function S.BakedMissing() return Baked.missing or 0, Baked.path end
+-- /openmap status: the baked tiles made so far (their files set), of all of them
+function S.BakedMade()
+	local n = 0
+	for _, t in ipairs(Baked.tiles) do if t.tex then n = n + 1 end end
+	return n, #Baked.tiles
+end
 
 -- (none made before a view is culled. At the session's first opening S.SetZoom brings the tiles in before
 -- any view has been (where the view is under a screen px a tile px): with no box every tile counted as

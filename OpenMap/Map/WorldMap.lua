@@ -783,6 +783,9 @@ end)
 -- its handlers' time from the open until the second frame after it
 local openTimes, openOurs, openFrames = {}, 0, 0
 local openParts, openLast = {}, {}
+-- (the session's first opening: its entry in openTimes, with its parts, kept once the latest three have moved
+-- on: it's the one that sets up what later openings find ready)
+local openFirst
 local openTimer = CreateFrame("Frame")
 openTimer:Hide()
 openTimer:SetScript("OnUpdate", function(self)
@@ -793,6 +796,7 @@ openTimer:SetScript("OnUpdate", function(self)
 	elseif openFrames >= 2 then
 		if openTimes[1] then openTimes[1][2] = openOurs end
 		openLast, openParts = openParts, {}
+		if not openFirst and openTimes[1] then openFirst = openTimes[1] openFirst.parts = openLast end
 		openStart = nil
 		self:Hide()
 	end
@@ -821,14 +825,22 @@ local AFTER_OPEN = 3
 local after = { parts = {}, close = {}, gap = 0, gapAt = 0 }
 local afterFrame = CreateFrame("Frame")
 afterFrame:Hide()
+-- (after.first: the session's first opening's longest frame, { ms, ms in }, kept as AFTER_OPEN ends or the map
+-- closes, whichever is first: a loading screen just after, its frame seconds long, isn't the opening's)
+local function KeepFirst()
+	if after.firstOn then after.firstOn, after.first = nil, { after.gap, after.gapAt } end
+end
 afterFrame:SetScript("OnUpdate", function(self)
 	local now = debugprofilestop()
+	if not map:IsShown() or now - after.start > AFTER_OPEN * 1000 then KeepFirst() end
 	if after.last and now - after.last > after.gap then after.gap, after.gapAt = now - after.last, after.last - after.start end
 	after.last = now
 	if now - after.start > AFTER_OPEN * 1000 then self:Hide() end
 end)
 local function AfterOpening()
 	if not debugprofilestop then return end
+	KeepFirst()                                 -- (opened again before it was kept)
+	if not after.first then after.firstOn = true end
 	after.start, after.last, after.gap, after.gapAt = debugprofilestop(), nil, 0, 0
 	wipe(after.parts)
 	afterFrame:Show()
@@ -2093,6 +2105,17 @@ function mod:Diag()
 		table.sort(parts, function(a, b) return a[2] > b[2] end)
 		for i, p in ipairs(parts) do parts[i] = ("%s %.0f"):format(p[1], p[2]) end
 		if #parts > 0 then ns:Print("  the latest, by part (ms; parts can run inside each other): %s.", table.concat(parts, ", ")) end
+	end
+	-- (the session's first opening, once a later one is the latest: the lines above are about that one)
+	if openFirst and openFirst ~= openTimes[1] then
+		local gap = after.first
+		ns:Print("The session's first opening took %.0f ms (OpenMap %.0f)%s%s.", openFirst[1], openFirst[2],
+			next(openFirst.parts) and "; by part: " .. Worst(openFirst.parts) or "",
+			gap and ("; the longest frame in the %d s after it %.0f ms, %.1f s in"):format(AFTER_OPEN, gap[1], gap[2] / 1000) or "")
+	end
+	if S.BakedMade then
+		local made, all = S.BakedMade()
+		if all > 0 then ns:Print("Baked zone tiles with their files set so far (each as it first comes near the view): %d of %d.", made, all) end
 	end
 	if after.start then
 		ns:Print("In the %d s after the latest opening: the longest frame %.0f ms, %.1f s in; OpenMap's later work, slowest (ms): %s.",
