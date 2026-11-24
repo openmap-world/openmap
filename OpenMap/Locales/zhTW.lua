@@ -531,6 +531,7 @@ L["Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its
 L["Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp."] = "放大後，手繪地圖的像素不夠用：此選項會柔化地圖並疊上紙張紋理。地圖移動時柔化會暫停，所以縮放或拖曳時地圖是清晰的，停下片刻後才變柔和。關閉（預設）：始終清晰。"
 L["Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border."] = "縮到最遠時，世界地圖會鋪在一片填滿視窗的海洋上，四周圍著邊框：海洋、羅盤、海怪、船隻與邊框由 Santiago Reyes 繪製（經其同意使用），並依視窗的形狀排列，無論寬窄。遊戲本身的地圖仍在中間。關閉：沒有邊框。"
 L["a dungeon's map opening when you open the map inside it, and one icon for townsfolk who walk about"] = "在地城內開啟地圖時開啟該地城的地圖，以及為四處走動的城鎮居民只顯示一個圖示"
+L["a quicker first opening of the map after a login"] = "登入後首次開啟地圖更快"
 L["about %s"] = "約 %s"
 L["addons' memory: %s"] = "插件記憶體：%s"
 L["baked zone tiles for the Russian client"] = "為俄文客戶端預先產生的區域圖塊"

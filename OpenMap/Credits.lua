@@ -42,6 +42,7 @@ ns.Credits = {
 		{ "Danpiel", L["baked zone tiles for the Russian client"] },
 		{ "marquesm91", L["Forever City Labels' pins on the stitched map"] },
 		{ "gOOvER", L["your position read safely, the maximized dungeon map, the Stockade's map, and German"] },
+		{ "t4styy", L["a quicker first opening of the map after a login"] },
 	} },
 	{ L["Map art"], {
 		{ "Blizzard Entertainment", L["the map art is the game's own"] },

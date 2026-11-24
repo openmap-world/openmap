@@ -571,5 +571,6 @@
  "Your own arrow on the world map at this size.": "世界地图上你自己的箭头按此大小显示。",
  "Your arrow over everything": "箭头置于最上层",
  "Draw your own arrow above every other addon's icons and pins on the map.": "将你自己的箭头绘制在地图上所有其他插件的图标和标记之上。",
- "OpenMap is free and made in spare time. To support it:": "OpenMap 免费，利用业余时间制作。支持它："
+ "OpenMap is free and made in spare time. To support it:": "OpenMap 免费，利用业余时间制作。支持它：",
+ "a quicker first opening of the map after a login": "登录后首次打开地图更快"
 }
