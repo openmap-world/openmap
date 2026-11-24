@@ -1,7 +1,11 @@
 """Offline performance test: the stitched map's work per frame while zooming out (Lua 5.1).
 
-Usage:  python -P tools/offline-test/perf.py [--table]      (OPENMAP_CLIENT: the client, tools/clients.py)
+Usage:  python -P tools/offline-test/perf.py [--table | --opening]   (OPENMAP_CLIENT: the client, tools/clients.py)
 Needs:  pip install lupa
+
+--opening: the session's first opening at a few zooms instead, its first frame (each a fresh runtime): the
+baked zone tiles it makes and their files' size, regions made, calls, Lua ms. (Run it with main's Stitch.lua
+too for the before.)
 
 The game's map tables (UiMap*, wago.tools) aren't in the repo, so world.py can't run without them. This
 builds a world of its own from what is: the zones in Grade.lua laid out in a grid over two continents,
@@ -78,7 +82,7 @@ def synthetic_maps():
 
 # the counting: a wrapper round each region method that changes something
 PROBE = r'''
-CALLS = { n = 0, by = {} }
+CALLS = { n = 0, by = {}, baked = 0, bakedFiles = {} }
 do
 	local mt = getmetatable(CreateFrame("Frame"))
 	local index = mt.__index
@@ -95,7 +99,16 @@ do
 		if type(f) ~= "function" then return f end
 		local w = wrapped[f]
 		if w then return w end
-		if counted[k] then
+		if k == "SetTexture" then   -- (and the baked tiles' files set: each a file the game reads)
+			w = function(self, file, ...)
+				tally(k)
+				if type(file) == "string" and file:find("MapZones", 1, true) then
+					CALLS.baked = CALLS.baked + 1
+					CALLS.bakedFiles[#CALLS.bakedFiles + 1] = file
+				end
+				return f(self, file, ...)
+			end
+		elseif counted[k] then
 			w = function(...) tally(k) return f(...) end
 		elseif k == "Show" then   -- (a shown state that changes: Show / Hide to what it already is cost nothing)
 			w = function(self, ...) if not self.__shown then tally("Show") end return f(self, ...) end
@@ -109,7 +122,7 @@ do
 	end
 end
 
-function PERF(ns, zooms, start, unexplored)
+function PERF(ns, zooms, start, unexplored, openFrames)
 	local S = ns.MapStitch
 	local out = { rows = {} }
 	local view = CreateFrame("Frame", nil, UIParent)
@@ -156,7 +169,7 @@ function PERF(ns, zooms, start, unexplored)
 	local function step(z, frames)
 		zNow = z
 		local before, made0 = collectgarbage("count"), #FRAMES
-		CALLS.n, CALLS.by = 0, {}
+		CALLS.n, CALLS.by, CALLS.baked, CALLS.bakedFiles = 0, {}, 0, {}
 		local t0 = os.clock()
 		S.SetZoom(z / k, z)
 		S.SetView(cu, cv, 0.5 / z, 0.5 / z, z / k, z / k)
@@ -165,10 +178,16 @@ function PERF(ns, zooms, start, unexplored)
 		local calls, by = CALLS.n, CALLS.by
 		local kb = collectgarbage("count") - before
 		local drawn, placed, icons = census()
-		return { zoom = z, drawn = drawn, placed = placed, icons = icons, calls = calls, ms = ms, kb = kb, by = by, made = #FRAMES - made0 }
+		return { zoom = z, drawn = drawn, placed = placed, icons = icons, calls = calls, ms = ms, kb = kb, by = by, made = #FRAMES - made0,
+			baked = CALLS.baked, bakedFiles = CALLS.bakedFiles }
 	end
-	-- the map open at the first zoom (settled: its files in), then the zoom out
-	step(zooms[1], 120)
+	-- the map open at the first zoom (settled: its files in), then the zoom out. (The opening's baked tiles
+	-- kept: S.SetZoom runs before its first view is culled, test_the_first_opening_makes_only_the_baked_tiles_near_it;
+	-- the opening alone, its first frame, for --opening: openFrames 1)
+	local open = step(zooms[1], openFrames or 120)
+	out.open = open
+	out.stats.openBaked = open.baked
+	out.stats.bakedTiles = ns.MapZoneArt and #ns.MapZoneArt.tiles or 0
 	for i = 1, #zooms do
 		out.rows[#out.rows + 1] = step(zooms[i], 4)
 	end
@@ -234,6 +253,33 @@ def run(unexplored="show"):
     return rows, stats, [errs[i] for i in range(1, len(errs) + 1)]
 
 
+OPENING_ZOOMS = (4, 6, 8, 10, START_ZOOM)   # (--opening: on the stub's 1080 px screen the baked tiles show below about 10.8)
+
+
+def opening(zoom, runs=5):
+    """the session's first opening at `zoom`, each run in a fresh runtime (it happens once a session): its first
+    frame's baked tiles made, their files' size on disk (MB), regions made, calls, and Lua ms (the median)"""
+    tex = os.path.join(ROOT, "Media", "Textures", "Forever")
+    out = []
+    for _ in range(runs):
+        L, ns = load_runtime()
+        o = L.eval("PERF")(ns, L.table_from([zoom]), 1429, "show", 1)["open"]
+        files = [o["bakedFiles"][i] for i in range(1, len(o["bakedFiles"]) + 1)]
+        mb = sum(os.path.getsize(os.path.join(tex, f[f.index("MapZones"):].replace("\\", os.sep) + ".blp"))
+                 for f in files) / 1e6
+        out.append((o["baked"], mb, o["made"], o["calls"], o["ms"]))
+    ms = sorted(r[4] for r in out)[len(out) // 2]
+    return out[0][:4] + (ms,)
+
+
+def opening_table():
+    lines = ["  zoom  baked tiles  their files (MB)  regions made  calls  lua ms (median of 5)"]
+    for z in OPENING_ZOOMS:
+        baked, mb, made, calls, ms = opening(z)
+        lines.append("%6.2f %12d %17.1f %13d %6d %7.1f" % (z, baked, mb, made, calls, ms))
+    return "\n".join(lines)
+
+
 def table(rows):
     lines = ["  zoom  drawn placed icons  calls   made   lua ms     kb"]
     for r in rows:
@@ -274,6 +320,20 @@ class ZoomOut(unittest.TestCase):
                 worst = max(r[key] for r in rows)
                 self.assertLessEqual(worst, limit, "%s, %s: %s in one step of a zoom out, budget %s\n%s" % (u, key, worst, limit, table(rows)))
 
+    def test_the_first_opening_makes_only_the_baked_tiles_near_it(self):
+        # (the map's first opening of a session runs S.SetZoom before its first view is culled, and the baked
+        # tiles show from it where the view is under a screen px a tile px: zoom 8 here, on the stub's 1080
+        # px screen; START_ZOOM is past that, live art alone. With no box every tile counted as near, and that
+        # opening made and set all of the world's tiles at once, where a later one makes a few near its view.
+        # The view's cull right after the zoom, in the same call, as WorldMap.lua's ApplyZoom does: opening.py)
+        L, ns = load_runtime()
+        res = L.eval("PERF")(ns, L.table_from([8]), 1429, "show")
+        made, tiles = res["stats"]["openBaked"], res["stats"]["bakedTiles"]
+        self.assertGreater(tiles, 100)
+        msg = "%d of the %d baked tiles made as the map first opened" % (made, tiles)
+        self.assertLess(made, tiles / 4, msg)
+        self.assertGreater(made, 0, msg + ": the view's own, at least (the baked tiles not drawn at zoom 8?)")
+
     def test_a_settled_view_costs_nothing(self):
         # (the same view again: nothing in it changed, so nothing should be touched)
         L, ns = load_runtime()
@@ -292,4 +352,8 @@ if __name__ == "__main__":
             print("worst:", {k: round(max(r[k] for r in rows), 1) for k in ("drawn", "placed", "calls", "made", "ms", "kb")}, "\n")
             bad = bad or bool(errs)
         sys.exit(1 if bad else 0)
+    if "--opening" in sys.argv:
+        print("the session's first opening, its first frame (baked zone tiles, on the stub's 1920 x 1080 screen):")
+        print(opening_table())
+        sys.exit(0)
     unittest.main()

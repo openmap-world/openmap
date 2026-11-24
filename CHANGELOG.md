@@ -1,5 +1,19 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **The map's first opening after a login or /reload no longer stalls**: before any view was culled, every
+  zone tile of the baked map counted as in view, so that opening loaded all of them at once (two hundred and
+  more files, where a later opening loads the few near its view: a frame of about 800 ms in #433). Now it
+  loads only the tiles round the view, as every later opening does. By t4styy.
+
+### Improved
+
+- **`/openmap status` keeps the session's first opening**: how long it took (by part, and its longest frame
+  just after), once a later opening is the latest; and how many of the baked zone tiles are loaded so far.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

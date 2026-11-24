@@ -531,6 +531,7 @@ L["Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its
 L["Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp."] = "가까이 확대하면 그려진 지도의 화소가 부족해집니다. 이 옵션은 지도를 부드럽게 하고 종이 질감을 입힙니다. 지도가 움직이는 동안에는 부드럽게 하기가 멈추므로, 확대하거나 이동할 때는 선명하고 멈춘 잠시 뒤에 부드러워집니다. 끄기(기본값): 항상 선명합니다."
 L["Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border."] = "가장 멀리 축소하면 세계 지도가 창을 가득 채우는 바다 위, 테두리 안에 놓입니다. 주변의 바다, 나침반, 바다 괴물, 배와 테두리는 Santiago Reyes가 그렸으며(허락을 받아 사용), 창이 넓든 길든 창의 모양에 맞춰 배치됩니다. 게임 자체의 지도는 가운데에 그대로 있습니다. 끄면 테두리가 없습니다."
 L["a dungeon's map opening when you open the map inside it, and one icon for townsfolk who walk about"] = "던전 안에서 지도를 열면 그 던전의 지도가 열리는 기능, 돌아다니는 마을 주민을 아이콘 하나로 표시"
+L["a quicker first opening of the map after a login"] = "접속 후 처음 지도를 열 때 더 빠르게"
 L["about %s"] = "약 %s"
 L["addons' memory: %s"] = "애드온 메모리: %s"
 L["baked zone tiles for the Russian client"] = "러시아어 클라이언트용으로 미리 만든 지역 타일"

@@ -3336,6 +3336,9 @@ end
 -- the view's size), or has zoomed in `zoom` times since (the box would be much too big).
 -- (One table: the file is near Lua's limit of 200 locals)
 local CULL = { margin = ns.ClientMaps and ns.ClientMaps.cullMargin or 0.35, keep = 0.1, zoom = 1.6 }
+-- whether a view has been culled yet (none before the session's first opening, or after the bench's
+-- S.ResetShown): WorldMap.lua's ApplyZoom culls the view at once then
+function S.Culled() return cullBox ~= nil end
 function S.Cull(u0, v0, u1, v1)
 	if not root then return end
 	local w, h = u1 - u0, v1 - v0
@@ -3447,12 +3450,23 @@ end
 
 -- /openmap status: baked tiles the game couldn't find (#349, #353), and where it looked
 function S.BakedMissing() return Baked.missing or 0, Baked.path end
+-- /openmap status: the baked tiles made so far (their files set), of all of them
+function S.BakedMade()
+	local n = 0
+	for _, t in ipairs(Baked.tiles) do if t.tex then n = n + 1 end end
+	return n, #Baked.tiles
+end
 
+-- (none made before a view is culled. At the session's first opening S.SetZoom brings the tiles in before
+-- any view has been (where the view is under a screen px a tile px): with no box every tile counted as
+-- near, and that opening made and set all of the world's tiles at once, two hundred and more files, where
+-- a later one makes a few near its view at most. The opening culls its view right after, in the same call
+-- (WorldMap.lua's ApplyZoom), and they're made then)
 function Baked.Cull()
 	local f, box = Baked.frame, cullBox
-	if not f or not f:IsShown() then return end
+	if not f or not f:IsShown() or not box then return end
 	for _, t in ipairs(Baked.tiles) do
-		local near = not box or (t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4])
+		local near = t.u1 > box[1] and t.u0 < box[3] and t.v1 > box[2] and t.v0 < box[4]
 		if near and not t.tex then
 			t.tex = f:CreateTexture(nil, "ARTWORK")
 			local ok = t.tex:SetTexture(Baked.path .. t.name, nil, nil, "TRILINEAR")
