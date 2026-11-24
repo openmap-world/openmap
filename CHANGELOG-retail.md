@@ -1,5 +1,12 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **`/openmap status` keeps the session's first opening**: how long it took (by part, and its longest frame
+  just after), once a later opening is the latest. By t4styy.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed
