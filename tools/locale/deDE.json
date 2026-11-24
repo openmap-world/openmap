@@ -575,5 +575,7 @@
  "Your own arrow on the world map at this size.": "Euer eigener Pfeil auf der Weltkarte in dieser Größe.",
  "Your arrow over everything": "Euer Pfeil über allem",
  "Draw your own arrow above every other addon's icons and pins on the map.": "Zeichnet Euren eigenen Pfeil über allen Symbolen und Markierungen anderer Addons auf der Karte.",
- "OpenMap is free and made in spare time. To support it:": "OpenMap ist kostenlos und entsteht in der Freizeit. Unterstützen kannst du es hier:"
+ "OpenMap is free and made in spare time. To support it:": "OpenMap ist kostenlos und entsteht in der Freizeit. Unterstützen kannst du es hier:",
+ "%d highlights recorded: saved (OpenMapDB: worldmap, highlights) once you /reload or log out.": "%d Hervorhebungen aufgezeichnet: gespeichert (OpenMapDB: worldmap, highlights), sobald Ihr /reload eingebt oder Euch ausloggt.",
+ "Areas you haven't explored yet: shown as they are, or hidden like Blizzard's own map (blank parchment until you get there).": "Gebiete, die Ihr noch nicht erforscht habt: so, wie sie sind, oder ausgeblendet wie auf Blizzards eigener Karte (leeres Pergament, bis Ihr dort gewesen seid)."
 }
