@@ -208,18 +208,20 @@ local function ApplyDetail()
 	end
 	if blurRoot and softNow ~= appliedSoft then
 		appliedSoft = softNow
-		Fade(blurRoot, d * softNow)
+		Fade(blurRoot, S.terrainView and 0 or d * softNow)
 	end
 	local live = Baked.use and Baked.live or 1
 	local warm = Baked.use and Baked.warm or false
 	-- (the tiles held while zones' files are still coming in, however they came to be wanted: a quick
 	-- zoom brings more zones into view after the live layers came on, and they'd show as parchment)
 	Baked.holding = d > 0.001 and (live > 0 or warm) and Baked.use and Baked.busy or false
-	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0)
+	local key = live + (warm and 2 or 0) + (Baked.holding and 4 or 0) + (S.terrainView and 8 or 0)
 	if d == appliedDetail and key == Baked.applied then return end
 	appliedDetail, Baked.applied = d, key
-	-- (the live layers at full under the tiles, from just before the handover: Baked, above)
+	-- (the live layers at full under the tiles, from just before the handover: Baked, above; and none
+	-- of them under the terrain imagery, which covers every zone while it's on)
 	local on, seen = d > 0.001 and (live > 0 or warm), d > 0.001
+	if S.terrainView then on, seen = false, false end
 	local dl = on and d or 0
 	if on ~= detailLive or seen ~= Live.seen then   -- (zones' files load once their detail first shows; the live
 		detailLive, Live.seen = on, seen             --  layers' regions are anchored while they show, ShowZone)
@@ -230,12 +232,12 @@ local function ApplyDetail()
 	tilesRoot:SetShown(on)
 	overlayRoot:SetShown(on)
 	tilesRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)   -- (each zone's own, above, where they come in by continent)
-	for _, tex in ipairs(gapFill) do tex:SetAlpha(d) end
+	for _, tex in ipairs(gapFill) do tex:SetAlpha(S.terrainView and 0 or d) end
 	overlayRoot:SetAlpha(Live.zones and (on and 1 or 0) or dl)
 	-- the interiors (a second copy of every zone's overlays) only with the zones proper:
 	-- under the faint hint from further out they'd hardly show, over both continents at once
 	Fade(coreRoot, on and math.max(0, (d - DETAIL_HINT[3]) / (1 - DETAIL_HINT[3])) or 0)
-	if blurRoot then Fade(blurRoot, d * softNow) end
+	if blurRoot then Fade(blurRoot, S.terrainView and 0 or d * softNow) end
 	if Baked.frame then
 		-- (the live layers stack: a zone's base art and its overlays, each at d, cover 1 - (1 - d)^2 of
 		-- what's under them; the tiles are all of them in one, so they're drawn that strong)
@@ -246,7 +248,7 @@ local function ApplyDetail()
 		if Baked.hold == nil then Baked.hold = Baked.want end
 		if Baked.hold ~= Baked.want and Baked.easer then Baked.easer:Show() end
 		local gone = live * (1 - Baked.hold)
-		Fade(Baked.frame, math.floor((1 - (1 - d) ^ 2) * (1 - gone) * 100 + 0.5) / 100)
+		Fade(Baked.frame, S.terrainView and 0 or math.floor((1 - (1 - d) ^ 2) * (1 - gone) * 100 + 0.5) / 100)
 		Baked.Cull()
 	end
 end
@@ -261,6 +263,17 @@ Baked.easer:SetScript("OnUpdate", function(self, elapsed)
 	appliedDetail = nil                     -- (ApplyDetail again, for the tiles' alpha)
 	ApplyDetail()
 end)
+
+-- Close.lua: the game's terrain imagery covers the view (it is at full strength), so the painted zones
+-- under it aren't drawn (their art, baked tiles and colour-matched copies); only the open sea stays
+-- painted. Further out, where the imagery mixes in over the painted map, it is left on.
+function S.SetTerrainView(on)
+	on = on and true or false
+	if S.terrainView == on then return end
+	S.terrainView = on
+	if root then ApplyDetail() end
+	if S.ApplyCities then S.ApplyCities() end
+end
 S.stats = { zones = 0, tiles = 0, overlays = 0, pins = 0, cities = {} }
 S.viewHooks = {}                -- fn(u, v, hu, hv, zoom) on every pan / zoom (Close.lua's S.SetView calls them)
 S.exploredHooks = {}            -- fn() once pieces have been explored (S.RefreshExplored; Explore.lua)
@@ -2038,6 +2051,25 @@ local function Smooth(range, to)
 end
 local fades = {}
 
+-- the cities' own maps' alphas: with the zoom, and off while the terrain imagery covers them (in the
+-- open; an underground city's own map stays over it). SetZoom and SetTerrainView both call it: whether
+-- the imagery covers the view depends on the zoom, so it can change without a new zoom step.
+function S.ApplyCities()
+	for _, c in ipairs(cities) do
+		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
+		local a = Smooth(fade[1] * c[2], fade[2] * c[2])
+		if S.terrainView and not UNDERGROUND_CITIES[c.mapID] then a = 0 end
+		-- (shown near the view, S.Cull, while it's faded in at all: at alpha 0 its textures still cost their
+		-- size to draw, and a retail city is 150 of them)
+		if c.alpha ~= a then
+			c.alpha = a
+			c[1]:SetAlpha(a)
+			local shown = a > 0.003 and c.cull.here ~= false
+			if c[1]:IsShown() ~= shown then c[1]:SetShown(shown) end
+		end
+	end
+end
+
 function S.SetZoom(zoom, scale)
 	if not root then return end
 	Step()
@@ -2077,18 +2109,7 @@ function S.SetZoom(zoom, scale)
 	end
 	ApplyDetail()
 	Step("zone detail")
-	for _, c in ipairs(cities) do
-		local fade = CITY_FADE_OF[c.mapID] or CITY_FADE
-		local a = Smooth(fade[1] * c[2], fade[2] * c[2])
-		-- (shown near the view, S.Cull, while it's faded in at all: at alpha 0 its textures still cost their
-		-- size to draw, and a retail city is 150 of them)
-		if c.alpha ~= a then
-			c.alpha = a
-			c[1]:SetAlpha(a)
-			local shown = a > 0.003 and c.cull.here ~= false
-			if c[1]:IsShown() ~= shown then c[1]:SetShown(shown) end
-		end
-	end
+	S.ApplyCities()
 	-- (the zone's banner for each city: the zone's art is drawn without it, so this is the banner, with
 	-- the zone's detail; the city's title once you're in it, unless the city's own map keeps its own)
 	cities.Banners()

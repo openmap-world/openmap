@@ -44,6 +44,7 @@ Write down anything odd, with `/openmap status` output, or use the map's own
 - [ ] `/openmap entrance Test` standing anywhere outdoors: a line like `"Test": [(0, -8840.6, 489.7)],` in chat.
 
 - [ ] The menu's "Minimap detail from" slider: lower, and the minimap's detail mixes in further out; higher, only right up close. At 1x it shows on the whole-world view, and zooming in from there it gets sharper with no pop or jump in strength. "Minimap opacity" caps it at every zoom. Both greyed out with Minimap detail off. Watch the frame rate (debug overlay) zoomed out with it at 1x.
+- [ ] WoW Forever's Terrain view (the menu's Up close row and Options): on, the game's terrain imagery shows up close only, and it is still on after `/reload` and relog. Off, the painted map leads again, and the minimap sliders work as before. "Terrain view from the whole world" (the menu's The map and Options) also shows it from the whole-world view; starred, it joins the buttons in the row the arrow folds away (or on the edge rail), turns the all-zoom view on and off, stays lit while it is on, and disappears again when unstarred. With OpenMap's map buttons off, the button is hidden too. Watch the frame rate (debug overlay) on and off at a few zooms: the painted zones, baked tiles and colour-matched copies should not be drawn under the imagery.
 
 ## 4. Icons and routes (3 min)
 - [ ] Dungeon, boat and zeppelin icons; the zeppelin is a red-ballooned airship. Click one: it glides to the other end.

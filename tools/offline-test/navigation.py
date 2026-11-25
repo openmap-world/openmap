@@ -232,6 +232,48 @@ class NavigationTests(unittest.TestCase):
             end
         """)
 
+    def test_terrain_rows_and_star(self):
+        # (#268) all-zoom belongs to The map, not Up close, and is starred onto the map's
+        # buttons like any other setting; there is no separate toggle setting
+        self.lua.execute("ns.MapMinimapLOD = { [0] = {}, [1] = {} }")
+        self.lua.execute((ROOT / "Map/Panel.lua").read_text(encoding="utf-8"),
+                         "OpenMap", self.lua.globals().ns)
+        self.lua.execute("""
+            local function upvalue(fn, wanted)
+                for i = 1, 100 do
+                    local name, value = debug.getupvalue(fn, i)
+                    if name == wanted then return value end
+                    if not name then break end
+                end
+                error('Missing menu function: ' .. wanted)
+            end
+            local rows = upvalue(upvalue(mod.RefreshPanel, 'Fill'), 'Rows')()
+            local section, allRow, allSection, mapHeader
+            for _, row in ipairs(rows) do
+                if not row[2] then
+                    if row[1] == 'The map' then section = 'map' mapHeader = row end
+                    if row[1] == 'Up close' then section = 'close' end
+                end
+                if row[1] == 'Terrain view from the whole world' then allRow, allSection = row, section end
+                assert(row[1] ~= 'Terrain toggle on the map', 'no separate toggle row')
+            end
+            assert(allRow and allSection == 'map', 'all-zoom is in The map')
+            assert(allRow.id == 'terrainAll', 'the row can be starred')
+            assert(mapHeader.right, 'The map section stays in the right column')
+            function mod:Refresh() end
+            mod.db.terrainAll, mod.db.terrainView = false, true
+            assert(allRow[2]() == false)
+            allRow[3](true)
+            assert(mod.db.terrainAll == true and mod.db.terrainView == true)
+            allRow[3](false)
+            assert(mod.db.terrainAll == false and mod.db.terrainView == true)
+            -- (starred, the row itself is the button: get/set are the setting's)
+            mod.db.favorites = { 'find', 'pin', 'terrainAll', 'quill' }
+            local entries = upvalue(upvalue(mod.RefreshPanel, 'RefreshFavorites'), 'Entries')
+            local fav = entries()['terrainAll']
+            assert(fav and fav[1] == 'Terrain view from the whole world' and fav.id == 'terrainAll')
+        """)
+
 
 class GroupPinTests(unittest.TestCase):
     def setUp(self):

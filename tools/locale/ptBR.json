@@ -37,7 +37,7 @@
  "An arrow: drag from its tail to where it points.": "Seta: arraste da base até onde ela aponta.",
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "Áreas que você ainda não explorou: mostradas como são, escurecidas e com cores mais frias (e uma zona que você ainda nem descobriu fica escurecida em todos os zooms, inclusive nos dos continentes), ou ocultas como no próprio mapa da Blizzard (pergaminho em branco até você chegar lá).",
  "Arrow": "Seta",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "No zoom mais próximo, mistura o minimapa do jogo para dar detalhe (vegetação, rochas, construções). Desativado, você vê só o mapa pintado, por mais que aproxime o zoom.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "No zoom mais próximo, mistura o minimapa do jogo para dar detalhe (árvores, rochas, construções). Desativado: você só vê o mapa pintado, a menos que a visão do terreno esteja ativada.",
  "Auctioneers": "Leiloeiros",
  "Auto": "Auto",
  "Back": "Voltar",
@@ -588,5 +588,9 @@
  "Not on the map: %s": "Não está no mapa: %s",
  "Always": "Sempre",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "Quão cedo o detalhe do minimapa se mistura ao aproximar: mais à direita, mais cedo. Totalmente à direita, Sempre: desde o mundo inteiro, em qualquer zoom.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "No zoom mais próximo, quanto do minimapa do jogo é misturado para dar detalhe, nunca mais que a opacidade do minimapa (o máximo em qualquer zoom)."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "No zoom mais próximo, quanto do minimapa do jogo é misturado para dar detalhe, nunca mais que a opacidade do minimapa (o máximo em qualquer zoom).",
+ "Terrain view": "Visão do terreno",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "Mostra o terreno real do jogo de perto, em vez do mapa pintado. Desativado: o mapa pintado manda e o detalhe do minimapa se mistura ao aproximar o zoom.",
+ "Terrain view from the whole world": "Visão do terreno do mundo inteiro",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "Mostra o terreno também na visão do mundo inteiro, não só de perto. Com a visão do terreno ativada."
 }
