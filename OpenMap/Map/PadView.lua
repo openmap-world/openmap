@@ -75,6 +75,7 @@ local WHEEL_EVERY = 0.12        -- seconds between the right stick's wheel notch
 local area = {}                 -- the quest's area: { frame, quest, map (drawn), hoverQ/M, focusQ/M, failed }
 local DrawArea                  -- (below: Apply redraws the area with it)
 local diag = { started = 0, setup = "not yet", shows = 0, why = "not tried yet" }   -- (/openmap padview)
+local RememberWaypoint          -- (below: the waypoint as last seen, for the left stick's)
 
 local function Clamp(x, lo, hi) return math.max(lo, math.min(hi, x)) end
 
@@ -941,6 +942,7 @@ local function Show()
 	pcall(place.Blizzard, 0)
 	view:Show()
 	dirty = true
+	pcall(RememberWaypoint)
 end
 
 local function Hide()
@@ -1015,13 +1017,70 @@ local function PutAgain()
 	local zone = chain[#chain]
 	if zone and zone ~= WORLD and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(zone)) then
 		local l, r, t, b = S.Rect(zone)
-		pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, (cu - l) / (r - l), (cv - t) / (b - t)))
+		-- (set as the map closes, Nav.lua's: set now, Blizzard's map open underneath would remake its pin as ours)
+		if mod.HoldGameWaypoint then
+			mod.HoldGameWaypoint(zone, (cu - l) / (r - l), (cv - t) / (b - t))
+		else
+			pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, (cu - l) / (r - l), (cv - t) / (b - t)))
+		end
 	end
 end
 
--- the waypoint changed (whoever set it or took it off): its icon here
+-- The left stick's waypoint is seen from its event too. With the Gamepad UI on at login, Blizzard's map makes
+-- its left-stick binding as it loads (SetupGamepad, from OnLoad: GenerateClosure(self.GamepadTryPlaceWaypoint,
+-- self)), before any addon: the binding calls the function itself, never the hook below, and the stick's
+-- waypoint stayed where Blizzard's cursor is on its map underneath, away from this view's cursor. The event
+-- comes inside Blizzard's SetUserWaypoint or ClearUserWaypoint (a synchronous event): its cursor is where it
+-- pressed then
+local PadPressed                -- (below)
+local seen = false              -- the event came: the hook, if it runs after it, has nothing left to do
+local gameWp, shownWp           -- the game's waypoint as last seen, and the one this view showed: { mapID, x, y }
+local STICK_OFF = 0.03          -- Blizzard's GamepadTryPlaceWaypoint takes its waypoint off this near its cursor
+
+function RememberWaypoint()
+	gameWp = nil
+	if C_Map.HasUserWaypoint and C_Map.HasUserWaypoint() then
+		local point = C_Map.GetUserWaypoint()
+		local x, y
+		if point and point.position then x, y = ns.Safe.XY(point.position) end
+		if type(x) == "number" and type(y) == "number" and not ns.Safe.IsSecret(x) and not ns.Safe.IsSecret(y) then
+			gameWp = { point.uiMapID, x, y }
+		end
+	end
+	local m, x, y = mod.WaypointPoint()
+	shownWp = m and { m, x, y } or nil
+end
+
+-- whether the left stick is pressed in now (as mod.PadStickTilt reads the right: the API's index is 0 based)
+local function StickDown()
+	if not (C_GamePad and C_GamePad.GetDeviceMappedState and C_GamePad.ButtonBindingToIndex) then return false end
+	local ok, i = pcall(C_GamePad.ButtonBindingToIndex, "PADLSTICK")
+	if not ok or type(i) ~= "number" then return false end
+	local ok2, state = pcall(C_GamePad.GetDeviceMappedState)
+	local buttons = ok2 and type(state) == "table" and ns.Safe.Value(state.buttons)
+	return type(buttons) == "table" and buttons[i + 1] == true
+end
+
+-- the waypoint changed (whoever set it or took it off): its icon here. Changed while the left stick is
+-- pressed in, it's the stick's (another addon's, set any other time, stays where that addon put it)
 local function OnWaypoint()
+	if built and view:IsVisible() and PadPressed and StickDown() then
+		seen = true
+		pcall(PadPressed)
+	end
 	if built and mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
+	pcall(RememberWaypoint)
+end
+
+-- whether this view's cursor is away from a waypoint on it (further than REACH)
+local function AwayFrom(wp)
+	if not (wp and lastX and S.Rect(wp[1])) then return false end
+	local wu, wv = mod.ToWorld(wp[1], wp[2], wp[3])
+	local W, H = S.Size()
+	local px = FitPx() * zoom
+	local cx, cy = Offset(lastX, lastY)
+	local dx, dy = (wu - u) * W * px - cx, (wv - v) * H * px - cy
+	return dx * dx + dy * dy > REACH * REACH
 end
 
 -- whether a game rule has map pins off: Blizzard's GamepadTryPlaceWaypoint does nothing then
@@ -1033,7 +1092,7 @@ end
 -- the left stick pressed, after Blizzard's own GamepadTryPlaceWaypoint. That one did one of three things:
 -- nothing (a game rule: whatever waypoint is there is someone else's), took the waypoint off (its cursor was
 -- on it: none there now), or set one where its cursor is on its map: only that one is put again here
-local function PadPressed()
+function PadPressed()
 	if not (built and view:IsShown() and map.GetNormalizedGamepadCursorPosition) then return end
 	local ok, mapID, x, y = pcall(function()
 		if PinsOff() then return end
@@ -1044,6 +1103,18 @@ local function PadPressed()
 	local ok2, stick = pcall(WaypointAt, mapID, x, y)
 	if ok2 and stick then
 		PutAgain()
+		if mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
+	elseif ok2 and mod.DropHeldWaypoint and not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then
+		-- the stick took the game's waypoint off, so none waits for the map to close. The game's stays at
+		-- Blizzard's cursor on its map underneath until then: pressed near that, away from the one shown here,
+		-- the stick meant a new one, here
+		local was = gameWp
+		if was and was[1] == mapID and math.abs(was[2] - x) <= STICK_OFF and math.abs(was[3] - y) <= STICK_OFF
+			and AwayFrom(shownWp) then
+			PutAgain()
+		else
+			mod.DropHeldWaypoint()
+		end
 		if mod.RefreshWaypoint then pcall(mod.RefreshWaypoint) end
 	end
 end
@@ -1108,7 +1179,10 @@ local function Setup()
 	end
 	-- the left stick pressed: its waypoint put again where this view's cursor is (PadPressed)
 	if map.GamepadTryPlaceWaypoint then
-		hooksecurefunc(map, "GamepadTryPlaceWaypoint", PadPressed)
+		hooksecurefunc(map, "GamepadTryPlaceWaypoint", function()
+			if seen then seen = false return end   -- (its event did it, above)
+			PadPressed()
+		end)
 	end
 	-- a setting changed (the menu's checklist, Options): the view's look again
 	hooksecurefunc(mod, "Refresh", function()

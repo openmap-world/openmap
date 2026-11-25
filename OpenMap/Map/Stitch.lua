@@ -50,6 +50,20 @@ local _, ns = ...
 local S = {}
 ns.MapStitch = S
 
+-- A frame of this file's, made under its parent. With the Gamepad UI on, the game hooks CreateFrame
+-- (SmartNavigation's SetupFrameHooks): a frame made with a parent under a window its cursor has open (the
+-- map) has it refresh that window's buttons, which it refuses an addon in a fight ("Interface action failed
+-- because of an AddOn"). In a fight it's made with no parent and put under its own after: the same frame.
+-- (On S, not a local: this file is at Lua's 200 locals)
+function S.NewFrame(kind, parent, template)
+	if parent and InCombatLockdown() then
+		local f = CreateFrame(kind, nil, nil, template)
+		f:SetParent(parent)
+		return f
+	end
+	return CreateFrame(kind, nil, parent, template)
+end
+
 local WORLD = 947
 S.WORLD = WORLD
 S.PLAYER_ATLAS = "UI-WorldMapArrow"   -- your arrow: Blizzard's map arrow's art (its GroupMembersPin's)
@@ -674,7 +688,7 @@ local function PlaceOverlays(mapID)
 	-- its base art's, S.ZoneByContinent)
 	local parent = overlayRoot
 	if ns.ClientMaps and ns.ClientMaps.detailDensity then
-		parent = CreateFrame("Frame", nil, overlayRoot)
+		parent = S.NewFrame("Frame", overlayRoot)
 		parent:SetAllPoints(root)
 		parent:SetFrameLevel(overlayRoot:GetFrameLevel())
 		Live.overlayOf = Live.overlayOf or {}
@@ -772,7 +786,7 @@ end
 function S.PinSet(key, minZoom, level)
 	local set = sets[key]
 	if not set then
-		set = { frame = CreateFrame("Frame", nil, pinRoot), on = true, minZoom = minZoom or 1,
+		set = { frame = S.NewFrame("Frame", pinRoot), on = true, minZoom = minZoom or 1,
 			pins = {}, lines = {}, anchors = {}, pinPool = {}, linePool = {} }
 		set.frame:SetAllPoints(pinRoot)
 		sets[key] = set
@@ -812,7 +826,7 @@ local function PinCell(set, u, v)
 	local key = i * 4096 + j
 	local cell = set.cells[key]
 	if not cell then
-		cell = CreateFrame("Frame", nil, set.frame)
+		cell = S.NewFrame("Frame", set.frame)
 		cell:SetAllPoints(set.frame)
 		cell:SetFrameLevel(set.frame:GetFrameLevel())
 		cell.u0, cell.v0 = i * PIN_CELL, j * PIN_CELL
@@ -828,7 +842,7 @@ end
 function S.AddPin(set, u, v, look, data)
 	local pin = tremove(set.pinPool)
 	if not pin then
-		pin = CreateFrame("Button", nil, set.frame)
+		pin = S.NewFrame("Button", set.frame)
 		pin.Icon = pin:CreateTexture(nil, "ARTWORK")
 		pin.Icon:SetAllPoints()
 		pin.Highlight = pin:CreateTexture(nil, "HIGHLIGHT")
@@ -1325,12 +1339,12 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	W, H = ArtSize(WORLD)
 	if not W then return end
 	local function Layer(level)
-		local fr = CreateFrame("Frame", nil, root)
+		local fr = S.NewFrame("Frame", root)
 		fr:SetAllPoints(root)
 		fr:SetFrameLevel(level)
 		return fr
 	end
-	root = CreateFrame("Frame", nil, parent)
+	root = S.NewFrame("Frame", parent)
 	root:SetPoint("TOPLEFT", parent, "TOPLEFT")
 	root:SetSize(1, 1)
 	root:SetFrameLevel(artLevel)
@@ -1352,12 +1366,12 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	marksRoot:Hide()
 	-- (on the map's view, which clips them as the canvas does, not on the canvas: see Pin sets)
 	local view = parent:GetParent() or parent
-	pinRoot = CreateFrame("Frame", nil, view)
+	pinRoot = S.NewFrame("Frame", view)
 	pinRoot:SetAllPoints(view)
 	pinRoot:SetFrameLevel(iconLevel)
 	if pinRoot.SetClipsChildren then pinRoot:SetClipsChildren(true) end
 	-- (on a frame of its own, so it can be lifted over every icon: S.RaiseArrow)
-	arrow = CreateFrame("Frame", nil, pinRoot):CreateTexture(nil, "OVERLAY", nil, 7)
+	arrow = S.NewFrame("Frame", pinRoot):CreateTexture(nil, "OVERLAY", nil, 7)
 	-- (Blizzard's own arrow's art, at its size: one arrow in and out of a fight. The minimap's, on a client
 	-- without it, has a wide clear edge round a smaller arrow: at the same size it was a third as big)
 	if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(S.PLAYER_ATLAS) then
@@ -1463,7 +1477,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	end
 
 	-- the continents' and seas' names (S.SetZoom letters each when it first shows)
-	namesFrame = CreateFrame("Frame", nil, labelsRoot)
+	namesFrame = S.NewFrame("Frame", labelsRoot)
 	namesFrame:SetSize(1, 1)
 	-- while the map moves, the seas' names' halos rest: every font string is drawn again at its new size on
 	-- each frame of a zoom, and laid out again on each of a pan, and the halo is eight of a letter's
@@ -1488,7 +1502,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		if GetTime() - (names.movedAt or 0) > 0.15 then names.Hush(false) end
 	end)
 	for _, label in ipairs(ns.MapLabels or {}) do
-		local f = CreateFrame("Frame", nil, namesFrame)
+		local f = S.NewFrame("Frame", namesFrame)
 		f:SetPoint("TOPLEFT")
 		f:SetSize(1, 1)
 		f:Hide()
@@ -1527,7 +1541,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 			local n = kind ~= 2 and PlaceOverlays(info.mapID) or 0
 			if kind == 1 or (not kind and n > 0) then
 				level = math.min(level + 1, artLevel + range - 17)
-				local zf = CreateFrame("Frame", nil, tilesRoot)
+				local zf = S.NewFrame("Frame", tilesRoot)
 				zf:SetAllPoints(root)
 				zf:SetFrameLevel(level)
 				if ns.ClientMaps and ns.ClientMaps.detailDensity then S.ZoneByContinent(info.mapID, zf) end
@@ -1537,7 +1551,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 				S.stats.overlays = S.stats.overlays + n
 			else
 				tinsert(S.stats.cities, info.mapID)
-				local cf = CreateFrame("Frame", nil, citiesRoot)
+				local cf = S.NewFrame("Frame", citiesRoot)
 				cf:SetAllPoints(root)
 				-- (an underground city above the minimap layer, which shows the surface over it)
 				cf:SetFrameLevel(UNDERGROUND_CITIES[info.mapID] and artLevel + range - 5 or citiesRoot:GetFrameLevel())
@@ -1565,7 +1579,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		for i, f in ipairs(list) do files[i] = f ~= 0 and f or nil end
 		local p = { left = r[1] * W, top = r[3] * H, sx = (r[2] - r[1]) * W / 1002, sy = (r[4] - r[3]) * H / 668,
 			layer = { layerWidth = 1002, layerHeight = 668, tileWidth = 256, tileHeight = 256 } }
-		local f = CreateFrame("Frame", nil, tilesRoot)
+		local f = S.NewFrame("Frame", tilesRoot)
 		f:SetAllPoints(root)
 		f:SetFrameLevel(tilesRoot:GetFrameLevel())
 		PlaceTiles(f, p, files, 0, 0, 1002, 668, "ARTWORK", 0, false, Feather(f, p, TEX .. "MapCoastArt\\" .. name))
@@ -1576,14 +1590,14 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 	-- painted in the zone maps' style from Blizzard's art), over the gaps' paper and Blizzard's finer
 	-- maps, under every zone. Each shows near the view only (S.Cull), its files loading the first time
 	-- it does; S.SetGapFillsShown turns them all off (the baked tiles have them in: Baked.noFills)
-	S.fillRoot = CreateFrame("Frame", nil, tilesRoot)
+	S.fillRoot = S.NewFrame("Frame", tilesRoot)
 	S.fillRoot:SetAllPoints(root)
 	S.fillRoot:SetFrameLevel(tilesRoot:GetFrameLevel())
 	for _, x in ipairs(ns.MapGapFills or {}) do
 		S.Pace()
 		local num, r, fw, fh, cols, list = unpack(x)
 		local sx, sy = (r[3] - r[1]) * W / fw, (r[4] - r[2]) * H / fh
-		local f = CreateFrame("Frame", nil, S.fillRoot)
+		local f = S.NewFrame("Frame", S.fillRoot)
 		f:SetAllPoints(root)
 		f:SetFrameLevel(tilesRoot:GetFrameLevel())
 		f:Hide()
@@ -1612,7 +1626,7 @@ function S.BuildNow(parent, artLevel, range, iconLevel)
 		local b = Baked.english and ns.MapBanners and ns.MapBanners[c.mapID]
 		local p = b and Place(b[1])
 		if p then
-			local f = CreateFrame("Frame", nil, citiesRoot)
+			local f = S.NewFrame("Frame", citiesRoot)
 			f:SetAllPoints(root)
 			f:SetFrameLevel(artLevel + range - 3)
 			local tex = f:CreateTexture(nil, "ARTWORK")
@@ -2152,7 +2166,7 @@ local function BuildBlur(mapID)
 	if not p or not (ns.MapGrade and ns.MapGrade[mapID]) then blurZones[mapID] = false return end
 	local frames, from = {}, #graded + 1
 	for i, tap in ipairs(BLUR_TAPS) do
-		local f = CreateFrame("Frame", nil, blurRoot)
+		local f = S.NewFrame("Frame", blurRoot)
 		f.omShift = true
 		f.dx, f.dy = tap[1] * BLUR_PX * p.sx, tap[2] * BLUR_PX * p.sy
 		f:SetFrameLevel(blurRoot:GetFrameLevel() + i)
@@ -2521,7 +2535,7 @@ function Shade.Zone(mapID)
 	z = false
 	local p = Place(mapID)
 	if p and shadeRoot then
-		local frame = CreateFrame("Frame", nil, shadeRoot)
+		local frame = S.NewFrame("Frame", shadeRoot)
 		frame:SetAllPoints(root)
 		local recs, prev = Shade.Collect()
 		local land = ZoneMask(frame, p, ZONELAND)
@@ -2577,7 +2591,7 @@ function Shade.Grey(mapID, p, share, x, y, w, h)
 	local info = C_Map.GetMapInfo(mapID)
 	if not (info and info.parentMapID and contRoot) then return end
 	if not S.greyRoot then
-		S.greyRoot = CreateFrame("Frame", nil, contRoot)
+		S.greyRoot = S.NewFrame("Frame", contRoot)
 		S.greyRoot:SetAllPoints(root)
 		S.greyRoot:SetFrameLevel(contRoot:GetFrameLevel())
 		S.greyRoot:SetShown(detailNow < 0.98)
@@ -2641,11 +2655,11 @@ function Shade.Pieces(mapID, z)
 	z.pieces = {}
 	local p = z.p
 	if not Shade.root then
-		Shade.root = CreateFrame("Frame", nil, root)
+		Shade.root = S.NewFrame("Frame", root)
 		Shade.root:SetAllPoints(root)
 		Shade.root:SetFrameLevel(blurRoot:GetFrameLevel())   -- (blurRoot holds no art of its own: its copies are a level up)
 	end
-	local f = CreateFrame("Frame", nil, Shade.root)
+	local f = S.NewFrame("Frame", Shade.root)
 	f:SetAllPoints(root)
 	z.dim = f
 	local recs, prev = Shade.Collect()
@@ -2804,11 +2818,11 @@ function Shade.Fog.Show(mapID, on)
 		local p, data = Place(mapID), ns.MapFog[mapID]
 		if not p or not root then return end
 		if not Shade.Fog.root then
-			Shade.Fog.root = CreateFrame("Frame", nil, root)
+			Shade.Fog.root = S.NewFrame("Frame", root)
 			Shade.Fog.root:SetAllPoints(root)
 			Shade.Fog.root:SetFrameLevel(S.artTop - 6)   -- (Shade.Hide's: over the minimap)
 		end
-		local f = CreateFrame("Frame", nil, Shade.Fog.root)
+		local f = S.NewFrame("Frame", Shade.Fog.root)
 		f:SetAllPoints(root)
 		local recs, prev = Shade.Collect()
 		z = { frame = f, recs = recs, tex = {} }
@@ -2976,11 +2990,11 @@ function Shade.Hide.Build(mapID, rects, un, grade)
 	local files = p and ArtFiles(mapID)
 	if not files or #files == 0 then return false end
 	if not S.minimapCover then
-		S.minimapCover = CreateFrame("Frame", nil, root)
+		S.minimapCover = S.NewFrame("Frame", root)
 		S.minimapCover:SetAllPoints(root)
 		S.minimapCover:SetFrameLevel(S.artTop - 6)
 	end
-	local f = CreateFrame("Frame", nil, S.minimapCover)
+	local f = S.NewFrame("Frame", S.minimapCover)
 	f:SetAllPoints(root)
 	local recs, prev = Shade.Collect()
 	local made = Shade.Hide.BuildIn(f, p, files, mapID, rects, un, grade)
@@ -3430,7 +3444,7 @@ end
 function Baked.Build()
 	local art = ns.MapZoneArt
 	if not art or not root then return end
-	local f = CreateFrame("Frame", nil, root)
+	local f = S.NewFrame("Frame", root)
 	f:SetAllPoints(root)
 	f:SetFrameLevel(coreRoot:GetFrameLevel())   -- (in place of the live layers, under the blur and the cities)
 	f:Hide()
@@ -3625,7 +3639,7 @@ end
 function Shade.Places.Frame(e, how)
 	local b = e.box
 	local x, y, w, h = b[1] * W, b[2] * H, (b[3] - b[1]) * W, (b[4] - b[2]) * H
-	local f = CreateFrame("Frame", nil, how == "hide" and tilesRoot or shadeRoot)
+	local f = S.NewFrame("Frame", how == "hide" and tilesRoot or shadeRoot)
 	f:SetAllPoints(root)
 	f:SetFrameLevel(how == "hide" and S.artTop - 6 or shadeRoot:GetFrameLevel())
 	local mask = f:CreateMaskTexture()

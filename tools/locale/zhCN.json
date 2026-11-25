@@ -571,5 +571,7 @@
  "Your own arrow on the world map at this size.": "世界地图上你自己的箭头按此大小显示。",
  "Your arrow over everything": "箭头置于最上层",
  "Draw your own arrow above every other addon's icons and pins on the map.": "将你自己的箭头绘制在地图上所有其他插件的图标和标记之上。",
- "OpenMap is free and made in spare time. To support it:": "OpenMap 免费，利用业余时间制作。支持它："
+ "OpenMap is free and made in spare time. To support it:": "OpenMap 免费，利用业余时间制作。支持它：",
+ "Click: zoom to this quest": "点击：放大到此任务",
+ "With the controller, OpenMap's settings are in its menu on the map: leave Options with B, open the map and press A on the OpenMap button.": "使用手柄时，OpenMap 的设置在地图上的菜单里：按 B 离开选项，打开地图，然后在 OpenMap 按钮上按 A。"
 }

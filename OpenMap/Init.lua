@@ -98,6 +98,13 @@ boot:SetScript("OnEvent", function(self, event, name)
 			button:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -12)
 			button:SetText(ns.L["Open OpenMap's settings"])
 			button:SetScript("OnClick", function()
+				-- with the Gamepad UI on, Blizzard's settings aren't closed from here: closed by an addon, the
+				-- Gamepad UI's code that runs as they close runs as the addon's (SmartNavigation checks issecure),
+				-- and the options window can't be used with the controller either; the map's menu can
+				if InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled() then
+					ns:Print(ns.L["With the controller, OpenMap's settings are in its menu on the map: leave Options with B, open the map and press A on the OpenMap button."])
+					return
+				end
 				if SettingsPanel then HideUIPanel(SettingsPanel) end
 				OpenOptions()
 			end)

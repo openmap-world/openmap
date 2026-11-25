@@ -571,5 +571,7 @@
  "Your own arrow on the world map at this size.": "Votre propre flèche sur la carte du monde à cette taille.",
  "Your arrow over everything": "Votre flèche au-dessus de tout",
  "Draw your own arrow above every other addon's icons and pins on the map.": "Affiche votre propre flèche au-dessus des icônes et repères de tous les autres addons sur la carte.",
- "OpenMap is free and made in spare time. To support it:": "OpenMap est gratuit et fait sur le temps libre. Pour le soutenir :"
+ "OpenMap is free and made in spare time. To support it:": "OpenMap est gratuit et fait sur le temps libre. Pour le soutenir :",
+ "Click: zoom to this quest": "Clic : zoomer sur cette quête",
+ "With the controller, OpenMap's settings are in its menu on the map: leave Options with B, open the map and press A on the OpenMap button.": "À la manette, les réglages d'OpenMap sont dans son menu sur la carte : quittez les Options avec B, ouvrez la carte et appuyez sur A sur le bouton OpenMap."
 }

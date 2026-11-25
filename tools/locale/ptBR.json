@@ -571,5 +571,7 @@
  "Your own arrow on the world map at this size.": "Sua própria seta no mapa-múndi neste tamanho.",
  "Your arrow over everything": "Sua seta acima de tudo",
  "Draw your own arrow above every other addon's icons and pins on the map.": "Desenha sua própria seta acima dos ícones e marcadores de qualquer outro addon no mapa.",
- "OpenMap is free and made in spare time. To support it:": "O OpenMap é gratuito e feito nas horas vagas. Para apoiá-lo:"
+ "OpenMap is free and made in spare time. To support it:": "O OpenMap é gratuito e feito nas horas vagas. Para apoiá-lo:",
+ "Click: zoom to this quest": "Clique: aproximar desta missão",
+ "With the controller, OpenMap's settings are in its menu on the map: leave Options with B, open the map and press A on the OpenMap button.": "Com o controle, as configurações do OpenMap ficam no menu dele no mapa: saia das Opções com B, abra o mapa e aperte A no botão do OpenMap."
 }

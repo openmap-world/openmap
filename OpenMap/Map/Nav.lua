@@ -154,10 +154,47 @@ end
 local wpSet, RefreshWaypoint
 local WAYPOINT = { atlas = "Waypoint-MapPin-Tracked", texture = "Interface\\Minimap\\Ping\\ping5", size = 30 }
 
+-- With the controller view up (PadView.lua), OpenMap's own changes to the game's waypoint wait until the map
+-- closes. SetUserWaypoint and ClearUserWaypoint send USER_WAYPOINT_UPDATED inside the call (SynchronousEvent
+-- in MapDocumentation): with Blizzard's map open under the view, its waypoint pin is made again in the map's
+-- own pin pools as OpenMap's code. Closed, the map's providers no longer listen. Meanwhile the waypoint shown
+-- is the one OpenMap asked for
+local held                      -- the write waiting: { mapID, x, y, followed }, or false: taken off
+local heldHooked = false
+local function Holding()
+	local m = _G.WorldMapFrame
+	return mod.PadViewOn and mod.PadViewOn() and m and m:IsShown() or false
+end
+local function PutHeld()
+	local h = held
+	held = nil
+	if h == false then
+		if C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
+	elseif h then
+		if pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(h[1], h[2], h[3])) and h[4]
+			and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then
+			pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+		end
+	end
+end
+local function Hold(h)
+	held = h
+	if not heldHooked then
+		heldHooked = true
+		_G.WorldMapFrame:HookScript("OnHide", PutHeld)   -- (after the map's own OnHide: its providers gone)
+	end
+end
+-- for PadView.lua: the left stick's waypoint put where the view's cursor is, as the map closes; and none
+-- waiting (the stick took the game's off)
+function mod.HoldGameWaypoint(mapID, x, y) Hold({ mapID, x, y, false }) end
+function mod.DropHeldWaypoint() held = nil end
+
 -- The waypoint being followed: Blizzard's user waypoint where the client takes it (its pin, its
 -- arrow); else our own, kept per character (mod.char.pin). Either shows on the whole stitched map,
 -- as its own marker unless it's on one of the map pins (Pins.lua), which then shows as tracked.
 local function BlizzardPin()
+	if held then return held[1], held[2], held[3] end      -- (one waiting for the map to close, above)
+	if held == false then return end
 	if not (C_Map.HasUserWaypoint and C_Map.GetUserWaypoint) then return end
 	local ok, has = pcall(C_Map.HasUserWaypoint)
 	if not ok or not has then return end
@@ -177,7 +214,9 @@ local function ClearTomTom()
 end
 
 local function ClearPin()
-	if C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
+	if Holding() then       -- (the controller view: as the map closes, above)
+		if C_Map.HasUserWaypoint and C_Map.HasUserWaypoint() then Hold(false) else held = nil end
+	elseif C_Map.ClearUserWaypoint then pcall(C_Map.ClearUserWaypoint) end
 	mod.char.pin = nil
 	ClearTomTom()
 	RefreshWaypoint()
@@ -296,8 +335,13 @@ function mod.TrackPoint(mapID, x, y, title)
 	local blizzard = false
 	if C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates
 		and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(mapID)) then
-		blizzard = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y)) and BlizzardPin() ~= nil
-		if blizzard and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+		if Holding() then       -- (the controller view: as the map closes, above)
+			Hold({ mapID, x, y, true })
+			blizzard = true
+		else
+			blizzard = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y)) and BlizzardPin() ~= nil
+			if blizzard and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+		end
 	end
 	mod.char.pin = not blizzard and { mapID, x, y } or nil
 	local tomtom = _G.TomTom

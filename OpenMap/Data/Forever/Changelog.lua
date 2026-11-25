@@ -4,6 +4,13 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", [5] = "Changed", }, items = {
+		"|cff6e2c0aL3's waypoint under the cursor on the controller view|r: with the Gamepad UI on at login, the left stick put it where Blizzard's own map, unseen under the view, has the cursor (#474). By auslander404.",
+		"|cff6e2c0aNo \"Interface action failed\" with the map open in a fight|r with the Gamepad UI on: an icon made then set it off (#474). By auslander404.",
+		"|cff6e2c0aThe controller view leaves Blizzard's map and quest tracker alone|r: following a pin, placing the waypoint and taking it off set the game's waypoint as the map closes, and A on a quest icon only zooms to it (track quests from the quest log) (#474). By auslander404.",
+		"|cff6e2c0aOpenMap's page in Options with the Gamepad UI|r: its button says where the settings are instead of closing Options (#474). By auslander404.",
+		"|cff6e2c0aThe controller view is on by default|r with the Gamepad UI: off, its switches were out of a controller's reach (#474). By auslander404.",
+	} },
 	{ version = "v0.8.13", date = "2026-11-22", heads = { [1] = "Fixed", [8] = "Improved", [10] = "Known issue", }, items = {
 		"|cff6e2c0aPlaces you've explored show on the map|r: the map read what you'd explored as it was built at login, maybe before the game had sent it, and then only when the game said something new was explored. It reads it again as the map first opens and after you enter a new subzone (#422, #410).",
 		"|cff6e2c0aNo lag zooming with Show places to explore on|r: every zone you'd looked at kept its outlines, thousands of lines laid out again on every frame of each zoom and pan, nine times the map's own. Only the zones in view and a few recent ones keep them now (#411, #413, #419).",
@@ -105,10 +112,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aZygor's map line stays thick on the stitched map|r: Zygor's route line (and its dots and waypoint icons) shrank to a thin grey line zoomed in and grew far too wide zoomed out, as Zygor sizes them for Blizzard's zoom range; they now stay the same size on screen at every zoom (#218). By rogeriocamorim.",
 		"|cff6e2c0aGilneas shows on every language's client|r: on the Russian and Latin American Spanish clients Gilneas was a solid green square, as the game doesn't have its map's art in those languages (as with the dungeon and cave maps before v0.8.5). OpenMap now brings those tiles itself (#152). Found and tested by XaksFlaX. (New textures: restart the game.)",
 		"|cff6e2c0aDungeon level ranges|r: the dungeons' levels on the map are now the ones the game's Group Finder gives (each Scarlet Monastery and Dire Maul wing its own); they were an old level each, five levels wide, and some were far off: Razorfen Kraul showed 24-29 for a dungeon of 29-38 (#201). By ConfusionOrb221.",
-	} },
-	{ version = "v0.8.8", date = "2026-11-13", heads = { [1] = "Fixed", }, items = {
-		"|cff6e2c0aParty and raid markers stay steady|r: one marker per member, moving smoothly. OpenMap's ring now follows Blizzard's own dot where the game places a member, instead of a second dot of its own that lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.",
-		"|cff6e2c0aFriends on the map: your own faction only.|r Your place is only shared with, and shown from, players of your own faction: Battle.net friends on the other faction no longer see where you are, nor you them (a player's report: it let Horde and Alliance find each other for PvP).",
-		"|cff6e2c0aFriends in another realm group show on the map|r: a friend on CAMWOW US1 and one on US2 (or EU4 and EU5) never saw each other with \"Share where you are\" on (#164, #167).",
 	} },
 }

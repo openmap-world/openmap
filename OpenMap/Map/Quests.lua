@@ -73,7 +73,9 @@ local function Enter(pin)
 			if text and not finished then GameTooltip:AddLine((_G.QUEST_DASH or "- ") .. text, 1, 1, 1, true) end
 		end
 	end
-	GameTooltip:AddLine((PadView() or (map and map.IsMaximized and map:IsMaximized())) and L["Click: track this quest and zoom to it"]
+	GameTooltip:AddLine((mod.PadViewOn and mod.PadViewOn()) and L["Click: zoom to this quest"]
+		or PadView() and L["Click: track this quest and zoom to it"]
+		or (map and map.IsMaximized and map:IsMaximized()) and L["Click: track this quest and zoom to it"]
 		or L["Click: track this quest, zoom to it and show it in the quest log"], 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 	-- (the controller view: the quest's area, as Blizzard's map shows it for its own icons: PadView.lua)
@@ -138,6 +140,13 @@ local ZOOM_TO = 6
 local function Click(pin)
 	local q = pin.data
 	if not q then return end
+	-- the controller view only zooms. AddQuestWatch sends QUEST_WATCH_LIST_CHANGED inside the call (a synchronous
+	-- event): Blizzard's map under the view and the objective tracker would answer it as OpenMap's code. A quest
+	-- is tracked from Blizzard's quest log there (the D-pad's right)
+	if mod.PadViewOn and mod.PadViewOn() then
+		if S.GlideToWorld then S.GlideToWorld(pin.u, pin.v, ZOOM_TO) end
+		return
+	end
 	if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
 		if C_QuestLog.AddQuestWatch and not (C_QuestLog.GetQuestWatchType and C_QuestLog.GetQuestWatchType(q.id)) then
 			pcall(C_QuestLog.AddQuestWatch, q.id)

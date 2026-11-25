@@ -132,6 +132,7 @@ class ShowTests(unittest.TestCase):
                 return r
             end
             function CreateFrame() return Region() end
+            function S.NewFrame() return Region() end
             root = Region()
             function Place(mapID) return { left = 1000, top = 2000, sx = 2, sy = 3 } end
             function Record(tex, x, y, w, h) placed[tex] = { x, y, w, h } end

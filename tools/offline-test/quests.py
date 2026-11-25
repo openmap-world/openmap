@@ -304,10 +304,12 @@ class Quests(unittest.TestCase):
     def click(self):
         self.lua.execute("Refresh() pin = drawn[1] pin.OnClick(pin)")
 
-    def test_click_in_the_controller_view_tracks_and_zooms_but_leaves_blizzards_quest_log(self):
+    def test_click_in_the_controller_view_only_zooms(self):
+        # (AddQuestWatch's QUEST_WATCH_LIST_CHANGED comes inside the call: Blizzard's map under the view and the
+        # objective tracker would answer it as OpenMap's code)
         self.controller_view()
         self.click()
-        self.assertEqual(list(self.lua.eval("calls").values()), ["watch 100", "track 100"])
+        self.assertEqual(list(self.lua.eval("calls").values()), [], "the watch list or the focused quest written")
         self.assertEqual(self.lua.eval("#glides"), 1)
         self.assertEqual(self.lua.eval("#details"), 0, "Blizzard's quest details opened from OpenMap's code")
         self.assertEqual(self.lua.eval("#opened"), 0, "Blizzard's quest log opened from OpenMap's code")
@@ -322,9 +324,9 @@ class Quests(unittest.TestCase):
         self.lua.execute("Refresh() pin = drawn[1] pin.scripts.OnEnter(pin) hint = tip[#tip]")
         return self.lua.eval("hint")
 
-    def test_tooltip_in_the_controller_view_doesnt_promise_the_quest_log(self):
+    def test_tooltip_in_the_controller_view_promises_only_the_zoom(self):
         self.controller_view()
-        self.assertEqual(self.hint(), "Click: track this quest and zoom to it")
+        self.assertEqual(self.hint(), "Click: zoom to this quest")
 
     def test_tooltip_on_the_windowed_usual_map_does(self):
         self.usual_map()

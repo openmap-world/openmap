@@ -1,5 +1,24 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **L3's waypoint under the cursor on the controller view**: with the Gamepad UI on at login, the left stick
+  put it where Blizzard's own map, unseen under the view, has the cursor (#474). By auslander404.
+- **No "Interface action failed" with the map open in a fight** with the Gamepad UI on: an icon made then set
+  it off (#474). By auslander404.
+- **The controller view leaves Blizzard's map and quest tracker alone**: following a pin, placing the
+  waypoint and taking it off set the game's waypoint as the map closes, and A on a quest icon only zooms to
+  it (track quests from the quest log) (#474). By auslander404.
+- **OpenMap's page in Options with the Gamepad UI**: its button says where the settings are instead of
+  closing Options (#474). By auslander404.
+
+### Changed
+
+- **The controller view is on by default** with the Gamepad UI: off, its switches were out of a
+  controller's reach (#474). By auslander404.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

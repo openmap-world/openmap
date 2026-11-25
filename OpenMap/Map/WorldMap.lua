@@ -46,7 +46,8 @@ local mod = ns:NewModule("worldmap", {
 		                        --  be set to; a world of smaller zones goes as much further: Data\<client>\Client.lua)
 		chart = false,          -- Santiago Reyes's sea chart round the world (Chart.lua)
 		padMap = false,         -- OpenMap's map with the Gamepad UI on too (Gamepad.lua binds B and full screen; a test)
-		padView = false,        -- with the Gamepad UI on, OpenMap's map over Blizzard's on a frame of its own (PadView.lua; a test)
+		padView = true,         -- with the Gamepad UI on, OpenMap's map over Blizzard's on a frame of its own (PadView.lua; a test).
+		                        --  On: off, its switches (the map's menu, the options window) can't be reached with the controller
 	},
 })
 
