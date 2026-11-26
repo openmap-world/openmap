@@ -131,20 +131,24 @@ local function PlaceIcons()
 end
 mod.OwnPlaceIcons = PlaceIcons
 
--- the icons given back: to the pin they were on, centred on it as the library has them; hidden otherwise
+-- the icons given back: to the pin they were on, centred on it as the library has them, while that pin
+-- still holds the icon; otherwise left hidden on UIParent, where the library keeps an icon on no pin. The
+-- libraries' icon lists also hold icons on no pin, parented to UIParent (HereBeDragons' OnReleased): given
+-- back to UIParent's centre and shown, such an icon sat mid-screen with the map closed (#448)
 local function GiveBackIcons()
 	for icon, parent in pairs(moved) do
 		if icon:GetParent() == iconLayer then
 			icon:ClearAllPoints()
+			local onPin = parent and parent.icon == icon
+			icon:SetParent(onPin and parent or UIParent)
 			local was = levelOf[icon]
-			if parent then
-				icon:SetParent(parent)
-				if was then
-					if icon.SetFixedFrameLevel then icon:SetFixedFrameLevel(false) end
-					if was.strata then icon:SetFrameStrata(was.strata) end
-					icon:SetFrameLevel(was.level)
-					if was.fixed and icon.SetFixedFrameLevel then icon:SetFixedFrameLevel(true) end
-				end
+			if was then
+				if icon.SetFixedFrameLevel then icon:SetFixedFrameLevel(false) end
+				if was.strata then icon:SetFrameStrata(was.strata) end
+				icon:SetFrameLevel(was.level)
+				if was.fixed and icon.SetFixedFrameLevel then icon:SetFixedFrameLevel(true) end
+			end
+			if onPin then
 				icon:SetPoint("CENTER", parent, "CENTER")
 				if parent.IsShown and parent:IsShown() then icon:Show() else icon:Hide() end
 			else

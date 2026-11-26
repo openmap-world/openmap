@@ -1,5 +1,13 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **No more map icons stuck in the middle of the screen after combat**: if the map was open during combat,
+  icons from other addons could be left showing in the middle of the screen afterwards, even with the map
+  closed. They now stay hidden until they are back on the map (#448).
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

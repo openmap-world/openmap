@@ -259,12 +259,28 @@ class IconMirrorTests(unittest.TestCase):
                     Wheel = function() end, PressDown = function() end, Click = function() end, Grab = function() end,
                 }
             end
-            -- a pins library with two icons: one on a pin of Blizzard's canvas, one at the map's edge (off the view)
+            -- A pin library with five icons:
+            --   near:   on a map pin, which holds it in pin.icon as HereBeDragons' pins do
+            --   later:  on a second map pin
+            --   far:    at the map's edge, outside the view
+            --   parked: not on the map, so hidden on UIParent, where HereBeDragons keeps a released icon
+            --   loose:  never had a parent (Questie creates its icons that way)
+            UIParent = Frame(nil)
             pin = Frame(sc.Child)
             near = Frame(pin) near.UiMapID, near.x, near.y = 1429, 50, 50
             near.level, near.fixed = 2101, true      -- (Questie's: a fixed level, from 2015 up)
+            pin.icon = near
             far = Frame(nil) far.UiMapID, far.x, far.y = 1429, 0, 0
-            lib = { worldmapPins = { [near] = { uiMapID = 1429 }, [far] = { uiMapID = 1429 } } }
+            parked = Frame(UIParent) parked.UiMapID, parked.x, parked.y = 1429, 50, 50
+            parked.level, parked.fixed = 2050, true
+            parked:Hide()
+            pin2 = Frame(sc.Child)
+            later = Frame(pin2) later.UiMapID, later.x, later.y = 1429, 50, 50
+            pin2.icon = later
+            loose = Frame(nil) loose.UiMapID, loose.x, loose.y = 1429, 50, 50
+            loose.level, loose.fixed = 2060, true
+            lib = { worldmapPins = { [near] = { uiMapID = 1429 }, [far] = { uiMapID = 1429 },
+                [parked] = { uiMapID = 1429 }, [later] = { uiMapID = 1429 }, [loose] = { uiMapID = 1429 } } }
             LibStub = { IterateLibraries = function() return pairs({ ["HereBeDragons-Pins-2.0"] = lib }) end }
         """)
         self.lua.execute("local f = assert(loadstring(...)) f('OpenMap', ns)", (ROOT / "Map" / "OwnView.lua").read_text(encoding="utf-8"))
@@ -299,6 +315,67 @@ class IconMirrorTests(unittest.TestCase):
         p = self.lua.eval("near.point")
         self.assertEqual(p[1], "CENTER")
         self.assertTrue(self.lua.eval("near.point[2] == pin"))
+
+    def test_icon_not_on_the_map_stays_hidden_after_combat(self):
+        """Regression test for #448: an icon that was not on the map when combat started must not be shown
+        in the middle of the screen when combat ends."""
+        # Given - `parked` is not on the map, so it started hidden on UIParent, and OpenMap has moved it
+        #         onto its combat frame and shown it there
+        self.assertTrue(self.lua.eval("parked.shown"))
+        # When - combat ends and OpenMap puts the icons back
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        # Then - `parked` is hidden again, attached to UIParent and not anchored anywhere
+        self.assertFalse(self.lua.eval("parked.shown"))
+        self.assertTrue(self.lua.eval("parked:GetParent() == UIParent"))
+        self.assertIsNone(self.lua.eval("parked.point"))
+
+    def test_icon_released_during_combat_stays_hidden(self):
+        """Regression test for #448: an icon that HereBeDragons takes off the map during combat must not be
+        shown in the middle of the screen when combat ends."""
+        # Given - `later` started on a map pin and OpenMap has moved it onto its combat frame
+        # And - during combat HereBeDragons releases that pin, which hides `later` on UIParent, and then
+        #       gives the pin to another icon
+        # And - OpenMap's next scan picks `later` up from UIParent and shows it on the combat frame again
+        self.lua.execute("""
+            later:Hide() later:SetParent(UIParent) later:ClearAllPoints() pin2.icon = nil
+            other = Frame(pin2) pin2.icon = other
+            mod.OwnScanIcons() mod.OwnPlaceIcons()
+        """)
+        self.assertTrue(self.lua.eval("later.shown"))
+        # When - combat ends and OpenMap puts the icons back
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        # Then - `later` is hidden, attached to UIParent and not anchored anywhere
+        self.assertFalse(self.lua.eval("later.shown"))
+        self.assertTrue(self.lua.eval("later:GetParent() == UIParent"))
+        self.assertIsNone(self.lua.eval("later.point"))
+        # And - the icon that took over the pin is still on it
+        self.assertTrue(self.lua.eval("other:GetParent() == pin2"))
+
+    def test_icon_without_a_parent_is_moved_off_the_combat_frame(self):
+        """Protects against an icon that never had a parent being left on OpenMap's combat frame, at that
+        frame's raised level, after combat ends."""
+        # Given - `loose` was created with no parent, as Questie creates its icons, and OpenMap has moved
+        #         it onto its combat frame
+        self.assertIsNotNone(self.lua.eval("loose.parent"))
+        # When - combat ends and OpenMap puts the icons back
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        # Then - `loose` is hidden and attached to UIParent
+        self.assertTrue(self.lua.eval("loose:GetParent() == UIParent"))
+        self.assertFalse(self.lua.eval("loose.shown"))
+        # And - it has its original frame level and fixed-level flag back
+        self.assertEqual(self.lua.eval("loose.level"), 2060)
+        self.assertTrue(self.lua.eval("loose.fixed"))
+
+    def test_icon_not_on_the_map_gets_its_frame_level_back(self):
+        """Protects against an icon that stays hidden after combat keeping the raised frame level it had on
+        OpenMap's combat frame."""
+        # Given - `parked` is not on the map, and OpenMap has raised it to its combat frame's level
+        self.assertGreater(self.lua.eval("parked.level"), 9000)
+        # When - combat ends and OpenMap puts the icons back
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        # Then - `parked` has its original frame level and fixed-level flag back
+        self.assertEqual(self.lua.eval("parked.level"), 2050)
+        self.assertTrue(self.lua.eval("parked.fixed"))
 
 
 class RehostTests(unittest.TestCase):
