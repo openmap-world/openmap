@@ -1,5 +1,16 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Follow mode**: right-click Find me (or /openmap follow) to turn it on or off. While it's on, the map keeps
+  you in the middle as you move and as you zoom with the wheel. A drag, or a click that zooms in or out a
+  level, lets you look around freely; left-click Find me to follow again. The map always opens following
+  you, at the zoom you last followed at. Find me shows your arrow, turned the way you face, and glows while
+  the map is following you. Off until you turn it on. Inside an instance it stays out of the way (the map and Find me
+  as without it); your setting and zoom are kept for when you're out.
+
 ## v0.8.14 (2026-11-27)
 
 ### New

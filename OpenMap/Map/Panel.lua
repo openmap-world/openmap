@@ -48,6 +48,10 @@ end
 -- Blizzard's icons for the menu (an atlas this client lacks falls back to the texture: S.Look).
 -- Returns whether it's a square spell icon (framed like an action button) or a map symbol.
 local function Icon(name) return { texture = "Interface\\Icons\\" .. name, icon = true } end
+-- Find me's icon: the crosshair, or your own arrow (the minimap's) while Follow mode is on
+local FIND_ICON = Icon("Ability_Hunter_SniperShot")   -- (a crosshair)
+local FOLLOW_ICON = { texture = "Interface\\Minimap\\MinimapArrow", scale = 1.25 }   -- (turned as you face: FindMeTurn)
+local function FindMeIcon() return mod.FollowHere and mod.FollowHere() and FOLLOW_ICON or FIND_ICON end
 local function SetIcon(tex, look)
 	S.Look(tex, look)
 	local atlas = look.atlas and (not C_Texture or not C_Texture.GetAtlasInfo or C_Texture.GetAtlasInfo(look.atlas))
@@ -97,7 +101,7 @@ end
 local function ShowIcon(icon, look)
 	local square = SetIcon(icon, look)
 	icon.square = square                        -- (a square picture fills a tab's face: FaceSideTab)
-	local s = square and icon.size or math.floor(icon.size * 0.78 + 0.5)
+	local s = square and icon.size or math.floor(icon.size * (look.scale or 0.78) + 0.5)   -- (look.scale: a picture's own size)
 	icon:SetSize(s, s)
 end
 
@@ -160,9 +164,16 @@ end
 -- right = true (it takes right-clicks itself), grey = fn (optional: its icon greyed, as a setting's off) }
 local function Actions()
 	local list = {
-		{ L["Find me"], id = "find", icon = Icon("Ability_Hunter_SniperShot"),   -- (a crosshair)
+		{ L["Find me"], id = "find", icon = FindMeIcon(),   -- (a crosshair; your arrow in Follow mode)
 			 tip = L["Glide to where you are. Middle-click the map to center on you at the current zoom."],
-			run = function() mod:FindMe() end },
+			run = function(button)   -- (right-click: Follow mode on or off, WorldMap.lua)
+				if button ~= "RightButton" then return mod:FindMe() end
+				if not (mod.FollowInDungeon and mod.FollowInDungeon()) then mod:ToggleFollow() end
+			end, right = true,
+			lit = function() return mod.Following and mod.Following() or false end,   -- (lit while the map follows you)
+			rightTip = function()   -- (a grey line under its tip; none in a dungeon)
+				if not (mod.FollowInDungeon and mod.FollowInDungeon()) then return mod.RightClickTip(L["toggle follow mode"]) end
+			end },
 		{ L["Drop a pin"], id = "pin", icon = { atlas = "Waypoint-MapPin-Tracked", texture = "Interface\\Icons\\INV_Misc_Map_01" },
 			tip = L["Click, then click the map to add a map pin, with a note if you like (Ctrl-click the map does it any time). Right-click: stop following the waypoint."],
 			run = function(button)
@@ -896,6 +907,7 @@ end
 RefreshTiles = function()
 	if not tiles then return end
 	for _, t in ipairs(tiles) do
+		if t.entry.id == "find" then ShowIcon(t.icon, FindMeIcon()) end   -- (Follow mode on or off)
 		SetLit(t, State(t.entry))
 		SetStar(t.star, t.entry.id)
 		if t.entry.id == "pin" then t.label:SetText(mod.PinMode() and L["Click the map..."] or t.entry[1]) end
@@ -1287,6 +1299,8 @@ end
 function mod:SetupPanel(worldMap)
 	map, sc = worldMap, worldMap.ScrollContainer
 	local level = math.min(sc:GetFrameLevel() + 9300, 9950)
+	-- (Find me's arrow turned as you face, while the map's shown: mod.TurnFindMe)
+	CreateFrame("Frame", nil, map):SetScript("OnUpdate", function() mod.TurnFindMe() end)
 
 	-- the OpenMap button, its icon alone, in the bottom-left corner: placed again whenever
 	-- Blizzard refreshes its overlay buttons
@@ -1792,4 +1806,21 @@ function mod:RefreshPanel()
 	if menu and menu:IsShown() then Fill() end
 	LightToggle()
 	RefreshFavorites()
+end
+
+-- Find me in Follow mode: your arrow on it turned the way you face, as it is on the map (each frame
+-- while the map's open, SetupPanel: a few textures, and ShowIcon puts a picture back unturned)
+local function FindMeTurn(b, facing)
+	if b and b.entry and b.entry.id == "find" and b.icon then b.icon:SetRotation(facing) end
+end
+local findHere                   -- (Follow mode there as Find me last showed it: into a dungeon and out, it's shown again)
+function mod.TurnFindMe()
+	if not (map and map:IsShown()) then return end
+	local here = mod.FollowHere and mod.FollowHere() or false
+	if here ~= findHere then findHere = here mod:RefreshPanel() end
+	if not here then return end
+	local facing = ns.Safe.Call(GetPlayerFacing) or 0
+	if favBar and favBar.buttons then for _, b in ipairs(favBar.buttons) do FindMeTurn(b, facing) end end
+	if rail and rail.favs then for _, b in ipairs(rail.favs) do FindMeTurn(b, facing) end end
+	if tiles then for _, b in ipairs(tiles) do FindMeTurn(b, facing) end end
 end

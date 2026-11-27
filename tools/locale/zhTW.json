@@ -571,7 +571,7 @@
  "A battleground's map zooms in like the world map, and the game's minimap of it shows its detail up close (as Minimap detail is set). Off: the game's own map, as it was.": "戰場地圖可以像世界地圖一樣放大，近處由遊戲的小地圖顯示細節（依「小地圖細節」的設定）。關閉：遊戲本身的地圖，維持原樣。",
  "Battleground": "戰場",
  "Right-click: %s": "右鍵點擊：%s",
- "a right-click for other addons' buttons, and keys in gold in the tooltips": "其他插件按鈕的右鍵點擊，以及提示中的金色按鍵",
+ "follow mode, a right-click for other addons' buttons, and keys in gold in the tooltips": "跟隨模式、其他插件按鈕的右鍵點擊，以及提示中的金色按鍵",
  "Right-click: edit it": "右鍵點擊：編輯",
  "Right-click: open its card": "右鍵點擊：開啟資訊卡",
  "TomTom waypoint too": "同時設定 TomTom 路徑點",
@@ -588,5 +588,10 @@
  "Not on the map: %s": "不在地圖上：%s",
  "Always": "總是",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "放大時小地圖細節多早混入：越靠右越早。最右端為「總是」：從整個世界起，任何縮放都顯示。",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "最近縮放時混入多少遊戲小地圖以顯示細節，不超過小地圖不透明度（任何縮放下的最大值）。"
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "最近縮放時混入多少遊戲小地圖以顯示細節，不超過小地圖不透明度（任何縮放下的最大值）。",
+ "Follow mode": "跟隨模式",
+ "on": "開啟",
+ "off": "關閉",
+ "toggle follow mode": "切換跟隨模式",
+ "Follow mode can't be changed inside an instance.": "副本內無法變更跟隨模式。"
 }

@@ -571,7 +571,7 @@
  "A battleground's map zooms in like the world map, and the game's minimap of it shows its detail up close (as Minimap detail is set). Off: the game's own map, as it was.": "전장 지도를 세계 지도처럼 확대할 수 있고, 가까이에서는 게임의 미니맵이 세부 모습을 보여 줍니다(「미니맵 세부 묘사」 설정에 따름). 끄면: 원래대로 게임 자체의 지도입니다.",
  "Battleground": "전장",
  "Right-click: %s": "오른쪽 클릭: %s",
- "a right-click for other addons' buttons, and keys in gold in the tooltips": "다른 애드온 버튼의 오른쪽 클릭, 그리고 툴팁의 금색 키",
+ "follow mode, a right-click for other addons' buttons, and keys in gold in the tooltips": "따라가기 모드, 다른 애드온 버튼의 오른쪽 클릭, 그리고 툴팁의 금색 키",
  "Right-click: edit it": "오른쪽 클릭: 편집",
  "Right-click: open its card": "오른쪽 클릭: 카드 열기",
  "TomTom waypoint too": "TomTom 이동 지점도",
@@ -588,5 +588,10 @@
  "Not on the map: %s": "지도에 없음: %s",
  "Always": "항상",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "확대할 때 미니맵 세부가 얼마나 일찍 섞이는지: 오른쪽일수록 일찍. 맨 오른쪽, 항상: 전체 세계부터 모든 확대 수준에서.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "가장 가까운 확대에서 세부를 위해 섞는 게임 미니맵의 양으로, 미니맵 불투명도(모든 확대에서의 최대값)를 넘지 않습니다."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "가장 가까운 확대에서 세부를 위해 섞는 게임 미니맵의 양으로, 미니맵 불투명도(모든 확대에서의 최대값)를 넘지 않습니다.",
+ "Follow mode": "따라가기 모드",
+ "on": "켬",
+ "off": "끔",
+ "toggle follow mode": "따라가기 모드 전환",
+ "Follow mode can't be changed inside an instance.": "인스턴스 안에서는 따라가기 모드를 바꿀 수 없습니다."
 }

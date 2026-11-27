@@ -23,6 +23,7 @@ local mod = ns:NewModule("worldmap", {
 	defaults = {
 		enabled = true,
 		autoSwitch = true,      -- the map underneath follows what you're looking at
+		followPlayer = false,   -- Follow mode, the player's to turn on (Find me's right-click, /openmap follow): the view follows you
 		hoverHighlight = false, -- Blizzard's glow on the zone under the cursor (on the stitched map)
 		icons = true,           -- dungeon and raid entrances
 		boats = true,           -- boat docks and routes
@@ -388,12 +389,159 @@ local function MaxZoomAt(u, v)
 	return most
 end
 
+-- Follow mode: while the view is on you (the map opened on you, or Find me), it stays centred on you as
+-- you move and as you zoom. A drag, a click that zooms the map, a glide somewhere else (a quest, a pin,
+-- the search) or another map put up stops it; Find me starts it again. Off altogether with a right-click
+-- on Find me, or /openmap follow (mod.db.followPlayer).
+-- The zoom it was following you at as it stopped (or as the map closed) is kept (mod.db.followZoom), and
+-- the map always opens following you at it, straight there (Nav.lua's SavedView, FollowOnShow), however
+-- it was left.
+local following = false
+local followHeld = false        -- the button pressed on the map while following: it waits (a drag or a click that zooms stops it; any other click lets it go on)
+local FOLLOW_ON_OPEN = 0.15     -- the map opens following you when you're this near its middle (a share of the half view)
+local FOLLOW_OPEN_FRAMES = 30    -- frames drawn after the map opens that Follow mode goes on once the view is on you (frames,
+                                --  not seconds: the first opening builds the map, one frame of a second or more)
+local followOpenUntil = 0       -- (frames left; 0: not opening, or the user has moved the map since)
+local closedOn                  -- the map underneath as the map closed (Blizzard reopens on it first: FollowResetView)
+local followOpenSince            -- (GetTime() of the opening's first frame drawn: the look lasts FOLLOW_OPEN_FRAMES and a second)
+
+-- Inside a dungeon (an instance, or a dungeon's map over the world's: NeedRoll's or OpenMap's own) Follow
+-- mode isn't there at all: the map opens, resets and is moved as it does without it, Find me is as it was.
+-- The setting and the zoom kept stay as they are, for when you're out again
+local function InDungeon() return (IsInInstance and IsInInstance()) or mod.instanceWorldHidden or false end
+local function FollowHere() return mod.db.followPlayer == true and not InDungeon() end
+mod.FollowHere = FollowHere
+mod.FollowInDungeon = InDungeon
+
+-- where you are on the world (normalized), or nil (in an instance, or a place the map doesn't cover); nil
+-- too where Follow mode isn't (FollowHere): everything it does starts from here
+local function PlayerWorldNow()
+	if not FollowHere() then return end
+	local best = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+	if not best or not S.Rect(best) then return end
+	local p = ns.Safe.Call(C_Map.GetPlayerMapPosition, best, "player")
+	if not p then return end
+	local x, y = ns.Safe.XY(p)
+	if ns.Safe.IsSecret(x) or ns.Safe.IsSecret(y) or not x or not y or (x == 0 and y == 0) then return end
+	return ToWorld(best, x, y)
+end
+
+-- the point the view follows (you), or nil when it isn't following
+local function FollowPoint()
+	if not (following and active) then return end
+	return PlayerWorldNow()
+end
+
+-- the view's centre moved to a world point (normalized) at the zoom it's at: the scroll alone, as a drag moves
+-- it. The scale isn't set, so no map data provider is told it changed (every addon's pins laid out again:
+-- #411 #413). In a fight only OpenMap's own view moves (OwnView.lua); Blizzard's map isn't written then (#345),
+-- and the view is put up on it as combat ends (waitingView, FlushWaitingView)
+local function FollowScroll(u, v)
+	local mapID = map:GetMapID()
+	local x, y = FromWorld(mapID, u, v)
+	if not ns.Safe.Finite(x, y) then return end
+	if InCombatLockdown() then
+		if not own.on then return end
+		own.x, own.y, own.u, own.v = x, y, u, v
+		waitingView = { mapID = mapID, scale = own.scale, x = x, y = y }
+		if mod.OwnViewPlace then mod.OwnViewPlace() end
+	else
+		x = Clamp(x, sc.scrollXExtentsMin, sc.scrollXExtentsMax)
+		y = Clamp(y, sc.scrollYExtentsMin, sc.scrollYExtentsMax)
+		sc.currentScrollX, sc.targetScrollX, sc.currentScrollY, sc.targetScrollY = x, x, y, y
+		sc:SetNormalizedHorizontalScroll(x)
+		sc:SetNormalizedVerticalScroll(y)
+		sc:MarkAreaTriggersDirty()
+		sc:MarkViewRectDirty()
+	end
+	if mod.RefreshView then mod.RefreshView() end   -- (ApplyView: OpenMap's art for the view, as a drag's pan does)
+end
+
+-- each frame with no zoom or glide running: the view eased onto you (FOLLOW_EASE: the steps of where the game
+-- says you are, and of frame times, smoothed out; a few pixels behind you at a run). Moved by fractions of a
+-- pixel, every frame: by whole pixels it went in jerks. Far off (a jump, a teleport), straight onto you
+local FOLLOW_EASE = 18           -- the ease's approach, per second
+local function FollowStep(elapsed)
+	if followHeld then return end    -- (a press: a drag or a zoom may be starting)
+	-- (a view refused in combat waits for its end: not asked again each frame. Follow mode's own in a fight is
+	-- the own view's, FollowScroll)
+	if waitingView and not InCombatLockdown() then return end
+	local fu, fv = FollowPoint()
+	if not fu then return end
+	local u, v, zoom = View()
+	local pu, pv = PerPx(zoom)
+	local dx, dy = (fu - u) / pu, (fv - v) / pv   -- (in pixels)
+	if math.abs(dx) < 0.05 and math.abs(dy) < 0.05 then return end
+	if math.abs(dx) < 200 and math.abs(dy) < 200 and elapsed then
+		local k = 1 - math.exp(-elapsed * FOLLOW_EASE)
+		if math.abs(dx) * k > 0.05 or math.abs(dy) * k > 0.05 then fu, fv = u + (fu - u) * k, v + (fv - v) * k end
+	end
+	FollowScroll(fu, fv)
+	userMoved = true
+end
+
+-- the zoom Follow mode is following you at, noted each frame (Animate): kept as it stops or the map closes. Not
+-- read from the view then: another map put up (the world's) has moved the view already, and that zoom was kept
+local followAtZoom
+local followLit = false         -- (Find me's look as last shown: lit or not)
+local function FollowZoomNow()
+	return anim and anim.mode == "anchor" and anim.target or followAtZoom or select(3, View())
+end
+-- Follow mode stops (a drag, a click that zooms, a glide or a map put up): the zoom it was following
+-- you at, right before, is kept for the next opening. A wheel zoom under way counts at the zoom it's going to
+local function StopFollowing()
+	if following and active then
+		local zoom = FollowZoomNow()
+		if ns.Safe.Finite(zoom) and zoom > 0 then mod.db.followZoom = zoom end
+	end
+	following = false
+	followAtZoom = nil
+end
+mod.StopFollowing = StopFollowing   -- (Setup reaches it here: it is at Lua 5.1's 60 upvalues)
+
+-- the map just opened: Follow mode goes on as soon as the view is on you. Blizzard and Nav.lua put the view
+-- up as the map opens, maybe a frame or two after it shows (its reset, another map put up after it): looked
+-- at each frame for a moment, not once. A drag, a click or a glide of the user's ends the look (followOpenUntil)
+local function FollowOpenCheck()
+	if following or followOpenUntil == 0 then return end
+	if not map:IsShown() or not FollowHere() then followOpenUntil = 0 return end
+	if not active then return end
+	followOpenSince = followOpenSince or GetTime()
+	if followOpenUntil > 1 then followOpenUntil = followOpenUntil - 1
+	elseif GetTime() - followOpenSince > 1 then followOpenUntil = 0 return end
+	if anim then return end
+	local fu, fv = PlayerWorldNow()
+	if not fu then return end
+	local id = map:GetMapID()
+	local zone = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+	local display = MapUtil and MapUtil.GetDisplayableMapForPlayer and ns.Safe.Call(MapUtil.GetDisplayableMapForPlayer)
+	-- (your map, or the one the map was left on, which it reopens on before yours: a continent, after a drag
+	-- out over the sea. Not another map put up for something else)
+	if id ~= zone and id ~= display and id ~= closedOn then return end
+	local u, v, zoom = View()
+	local hu, hv = mod.ViewHalfExtents(zoom)
+	if math.abs(fu - u) <= hu * FOLLOW_ON_OPEN and math.abs(fv - v) <= hv * FOLLOW_ON_OPEN then following = true return end
+	-- (not on you, on your map, untouched: the view the opening should have had, if it's Follow mode's, put up
+	-- now. The first opening builds the map, and the view put up as it opens can be the whole zone then)
+	local yours = (id == zone or id == display) and id or nil   -- (the map left on: the view your map would have)
+	local ou, ov, oz = mod.FollowOpenView(yours, zoom)
+	if not ou then return end
+	ShowWorld(ou, ov, Clamp(oz, LeastZoom(), MaxZoomAt(ou, ov)))
+	userMoved = true
+	following = true
+	followAtZoom = Clamp(oz, LeastZoom(), MaxZoomAt(ou, ov))
+end
+
 -- wheel: zoom about the point under the cursor (zooming in never takes it out: deep over a cave,
 -- with the cursor moved off it)
 local function ZoomAtCursor(factor)
+	if not following then followOpenUntil = 0 end   -- (the user zooms the map as it opens: Follow mode doesn't go on by itself now)
 	local u, v, zoom = View()
 	local sx, sy = CursorOffset()
 	local pu, pv = PerPx(zoom)
+	-- (following you: the zoom is about you, in the middle, not the cursor)
+	local fu, fv = FollowPoint()
+	if fu then u, v, sx, sy = fu, fv, 0, 0 end
 	local from = anim and anim.mode == "anchor" and anim.target or zoom
 	local most = MaxZoomAt(u + sx * pu, v + sy * pv)
 	if factor > 1 then most = math.max(most, from) end
@@ -404,6 +552,8 @@ end
 
 -- glides the view to a world point (normalized) at `zoom`
 local function GlideTo(u, v, zoom)
+	StopFollowing()                 -- (somewhere else: Find me follows again after its glide)
+	followOpenUntil = 0
 	local u0, v0, z0 = View()
 	anim = { mode = "glide", u0 = u0, v0 = v0, z0 = z0, u1 = u, v1 = v,
 		z1 = Clamp(zoom, LeastZoom(), MaxZoomAt(u, v)), t = 0 }
@@ -462,6 +612,12 @@ end
 
 -- after Blizzard's own OnUpdate, so its panning never adds to ours
 local function Animate(_, elapsed)
+	FollowOpenCheck()   -- (Follow mode, as the map opens)
+	if following ~= followLit then   -- (Find me lit while following, Panel.lua: its look follows each change)
+		followLit = following
+		if mod.RefreshPanel then mod:RefreshPanel() end
+	end
+	if following and active then followAtZoom = anim and anim.mode == "anchor" and anim.target or select(3, View()) else followAtZoom = nil end
 	local tilt = active and mod.db.padMap and PadFocus() and PadStickTilt() or nil
 	if tilt == nil and active and (sc.gamepadZoom or 0) ~= 0 then
 		local speed = sc.gamepadZoomSpeed
@@ -471,7 +627,10 @@ local function Animate(_, elapsed)
 	if padTilt ~= 0 then return PadZoom(elapsed, padTilt) end
 	-- the gamepad's cursor at the view's edge pans it (Blizzard's): a move of the user's
 	if active and sc.HasGamepadScrollSpeed and sc:HasGamepadScrollSpeed() then userMoved = true end
-	if not anim then return end
+	if not anim then
+		if following then FollowStep(elapsed) end
+		return
+	end
 	if not active then anim = nil return end
 	local a = anim
 	if a.mode == "anchor" then
@@ -488,6 +647,11 @@ local function Animate(_, elapsed)
 			a.u, a.v, a.sx, a.sy = u + sx * pu, v + sy * pv, sx, sy
 		elseif down then
 			a.sx, a.sy = CursorOffset()
+		end
+		if not down then
+			-- (following you: the zoom stays about you as you move)
+			local fu, fv = FollowPoint()
+			if fu then a.u, a.v, a.sx, a.sy = fu, fv, 0, 0 end
 		end
 		a.down = down
 		local pu, pv = PerPx(zoom)
@@ -1082,6 +1246,44 @@ end
 -- (full screen and back): where you were looking, at the same framing; its corner dragged: the
 -- map as it is on screen (the drag shows more or less of it, at the same scale). Another
 -- map put up while it's open (the quest log's, the dropdown's) shows whole, as Blizzard's does
+-- Follow mode and Blizzard putting your map up again (as the map opens, it can twice: the second time,
+-- once a view is drawn, it showed the whole zone and Follow mode stopped). Your own map (your zone's, or
+-- the one shown for it) put up again keeps the view on you: following, at the zoom it's at; the map just
+-- opened, as it opened (FollowOpenView). Another map (a quest's, a dungeon's) shows as it would
+local function YourMap(mapID)
+	if not mapID then return false end
+	local zone = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+	local display = MapUtil and MapUtil.GetDisplayableMapForPlayer and ns.Safe.Call(MapUtil.GetDisplayableMapForPlayer)
+	return mapID == zone or mapID == display
+end
+function mod.FollowYourMap(mapID) return YourMap(mapID) end   -- (for Setup: its upvalues are at Lua 5.1's limit)
+local function FollowResetView(mapID)
+	if not FollowHere() then return end
+	-- (opening: Blizzard puts up the map it was left on first, the zone the view had gone on to, a frame
+	-- before yours. That one opens as yours would, not shown whole for a frame. A map put up for a quest
+	-- comes after the opening, a reset of its own)
+	if not live then
+		-- (your map, or the one it was left on: the view the opening has for you, when it's Follow mode's)
+		if not (YourMap(mapID) or (closedOn and mapID == closedOn)) then return end
+		local _, _, zoom = mod.SavedView()
+		return mod.FollowOpenView(nil, zoom)
+	end
+	if not YourMap(mapID) then return end
+	if following then
+		local fu, fv = PlayerWorldNow()
+		-- (at the zoom it's following you at: not the view last drawn, which can be from before a move onto you)
+		if fu then return fu, fv, followAtZoom or mod.db.followZoom or live[3] end
+		return
+	end
+	-- (the map just opened, maybe first on another map, the one it was left on, then on yours: the view it
+	-- opens on for your map, as Nav.lua's SavedView has it, when that's Follow mode's)
+	if followOpenUntil > 0 then
+		local _, _, zoom = mod.SavedView(mapID)
+		return mod.FollowOpenView(mapID, zoom)
+	end
+end
+mod.FollowResetView = FollowResetView   -- (ResetView reaches it here)
+
 local beforeReset                 -- the view on screen when Blizzard last put up a map: { u, v, zoom, at = GetTime() }
 local resize                      -- the window's corner being dragged: { u, v, scale }, its view as it began
 local function ResetView(self)
@@ -1089,10 +1291,15 @@ local function ResetView(self)
 	anim = nil
 	if live and map:IsShown() then beforeReset = { live[1], live[2], live[3], at = GetTime() } end
 	local u, v, zoom
+	local fu, fv, fz
+	-- (Follow mode. As the map opens, its reset can come before it counts as shown: looked at then too)
+	if not resize and (map:IsShown() or not live) and mod.FollowResetView then fu, fv, fz = mod.FollowResetView(self.mapID) end
 	if resize and map:IsShown() then
 		-- (the drag's view, noted as it began: this runs after the game's reset, a hook, and the view now is its
 		-- whole map's. At the same scale: the zoom for it in the window's new size)
 		u, v, zoom = resize.u, resize.v, ZoomFor(self.mapID, resize.scale)
+	elseif fu then
+		u, v, zoom = fu, fv, fz         -- (Follow mode: your own map put up again, the view stays on you)
 	elseif afterFight and GetTime() - afterFight.at <= AFTER_FIGHT and map:IsShown() then
 		-- (a fight just over: the view it ended on, whatever the game resets as it lays its map out again then:
 		-- its quest log's update held over the fight, the window laid out again ... the map went out as it ended)
@@ -1333,11 +1540,22 @@ local function PressDown(_, button)
 	press.x, press.y = sc:GetCursorPosition()
 	press.moved = false
 end
-local function PressTrack()
+local function PressMoved()
 	if press.moved or not press.x or not sc.mouseButtonInfo.LeftButton.down then return end
 	local x, y = sc:GetCursorPosition()
 	local dx, dy = x - press.x, y - press.y
 	if dx * dx + dy * dy > PRESS_SLOP_SQ then press.moved = true end
+end
+-- Follow mode held by a press (OnGrab): a left drag stops it; let go without one, it goes on (a click that
+-- zoomed the map has stopped it already: GlideTo)
+local function FollowHoldTrack()
+	if not followHeld then return end
+	if followHeld == "LeftButton" and press.moved then followHeld = false StopFollowing() return end
+	if not IsMouseButtonDown(followHeld) then followHeld = false end
+end
+local function PressTrack()
+	PressMoved()
+	FollowHoldTrack()
 end
 local function WasDrag() return press.moved end
 
@@ -1407,6 +1625,7 @@ local function OnCanvasClick(from, button)
 		for _, id in ipairs(chain) do
 			if id ~= WORLD and Stitchable(id) and FitZoom(id) < zoom * 0.95 then target = id end
 		end
+		if following and FitZoom(target) >= zoom * 0.95 then return true end   -- (Follow mode: no zoom out, nothing changes)
 		local l, r, t, b = S.Rect(target)
 		GlideTo((l + r) / 2, (t + b) / 2, FitZoom(target))
 	end
@@ -1415,8 +1634,17 @@ end
 
 -- our icons: a press still drags the map, a click is the icon's
 -- the map was grabbed (on it or on one of our icons)
-local function OnGrab()
+local function OnGrab(_, button)
 	userMoved = true
+	followOpenUntil = 0               -- (the map is the user's: Follow mode doesn't go on by itself now)
+	-- Follow mode: a left or right press only holds it: a drag (FollowHoldTrack) or a click that zooms the map
+	-- (OnCanvasClick's glide) stops it then, keeping the zoom from before; any other click lets it go on.
+	-- Middle-click (Find me at this zoom) leaves it as it is. In a fight (the own view's press, no button) it stops
+	if button == "LeftButton" or button == "RightButton" then
+		followHeld = following and button or false
+	elseif button ~= "MiddleButton" then
+		StopFollowing()
+	end
 	if not own.on then waitingView = nil end   -- (the view is the user's again: not put back where it was as combat ends)
 	if anim and anim.mode == "glide" then anim = nil end   -- a grab stops a glide where it is
 end
@@ -1425,12 +1653,12 @@ local function OnPinMouseDown(_, button)
 	if InCombatLockdown() then
 		PressDown(nil, button)
 		if mod.OwnDragStart then mod.OwnDragStart(button) end
-		OnGrab()
+		OnGrab()                      -- (in a fight any press on the map stops Follow mode: the own view's drag is its own)
 		return
 	end
 	sc:OnMouseDown(button)
 	PressDown(nil, button)
-	OnGrab()
+	OnGrab(nil, button)
 end
 
 local function OnPinMouseUp(pin, button)
@@ -1500,6 +1728,60 @@ local function Timed(name, fn, ...)
 	local t0 = debugprofilestop and debugprofilestop()
 	fn(...)
 	if t0 then ns.loadMs.parts[name] = debugprofilestop() - t0 end
+end
+
+-- Follow mode as the map closes: the zoom it was following you at, and the map it closed on, for the next opening
+-- (out of Setup: its upvalues are at Lua's limit)
+function mod.FollowOnHide()
+	if not FollowHere() then following, followAtZoom = false, nil return end
+	closedOn = map and map:GetMapID()
+	if active then
+		local zoom = FollowZoomNow()
+		if following and ns.Safe.Finite(zoom) and zoom > 0 then mod.db.followZoom = zoom end
+	end
+	following = false
+	followAtZoom = nil
+end
+
+-- Follow mode as the map opens: the view is put straight on you, at the zoom kept (FollowOpenView, here
+-- and through Nav.lua's SavedView), and it follows you; once it's laid out, FollowOpenCheck makes sure.
+-- Only for the map opened for you (your zone's), not one put up for a quest
+function mod.FollowOnShow()
+	following = false
+	if not FollowHere() then followOpenUntil = 0 return end
+	followOpenUntil = FOLLOW_OPEN_FRAMES   -- (FollowOpenCheck, each frame)
+	followOpenSince = nil
+	-- (reopened with no reset, the map as it was left, a drag away from you: put on you now, before it's drawn.
+	-- Your map, or the one it was left on; not one put up for a quest)
+	if not active or mod.db.followPlayer ~= true then return end
+	local id = map:GetMapID()
+	local yours = YourMap(id)
+	if not (yours or (closedOn and id == closedOn)) then return end
+	local fu, fv, fz = mod.FollowOpenView(yours and id or nil)
+	if not fu then return end
+	fz = Clamp(fz, LeastZoom(), MaxZoomAt(fu, fv))
+	ShowWorld(fu, fv, fz)
+	userMoved = true
+	following, followAtZoom = true, fz
+end
+
+-- the view the map opens on in Follow mode, for Nav.lua's SavedView: you, at the zoom kept (or `zoom`, before
+-- any was). Follow mode on, the map always opens following you, however it was left (a drag away from you, a
+-- zoom out over the world). nil when it's off or where you are isn't known. mapID: the map opening (only
+-- your zone's, or the one shown for it), nil for any
+function mod.FollowOpenView(mapID, zoom)
+	if mod.db.followPlayer ~= true then return end
+	local fu, fv = PlayerWorldNow()
+	if not fu then return end
+	if mapID then
+		local zone = ns.Safe.Call(C_Map.GetBestMapForUnit, "player")
+		local display = MapUtil and MapUtil.GetDisplayableMapForPlayer and ns.Safe.Call(MapUtil.GetDisplayableMapForPlayer)
+		if mapID ~= zone and mapID ~= display then return end
+	end
+	local keep = mod.db.followZoom
+	if not (ns.Safe.Finite(keep) and keep > 0) then keep = zoom end
+	if not (ns.Safe.Finite(keep) and keep > 0) then return end
+	return fu, fv, keep
 end
 
 local function Setup()
@@ -1709,6 +1991,8 @@ local function Setup()
 	end)
 	dp.OnCanvasPanChanged = ApplyView
 	dp.OnMapChanged = function()
+		-- (another map put up, a quest's or a dungeon's: Follow mode stops. Your own map put up again doesn't stop it)
+		if not switching and not mod.FollowYourMap(map:GetMapID()) then mod.StopFollowing() end
 		mod.OwnMapChanged()
 		HookHighlight()                             -- (a highlight pin made since: the toggle reaches it too, #262)
 		ApplyZoom()
@@ -1727,6 +2011,7 @@ local function Setup()
 	end)
 	dp.OnHide = function()
 		mod.instanceHost = nil
+		mod.FollowOnHide()   -- (Follow mode: the zoom it followed you at, for the next opening)
 		-- (the view noted first: closed in a fight, it's the own view's, which stopping it leaves behind; read
 		-- after, it was Blizzard's canvas's, the view from before the fight, and the map reopened there)
 		if mod.OnMapHidden then mod:OnMapHidden() end
@@ -1764,6 +2049,7 @@ local function Setup()
 		if debugprofilestop then openStart, openOurs, openFrames, openParts = debugprofilestop(), 0, 0, {} openTimer:Show() end
 		AfterOpening()
 		shown()
+		mod.FollowOnShow()   -- (Follow mode: the map opens on you, following you)
 	end
 	if not mod.Skipped("Provider") then map:AddDataProvider(dp) end
 
@@ -1889,9 +2175,22 @@ function mod.ViewHalfExtents(zoom)
 	local pu, pv = PerPx(zoom)
 	return sc:GetWidth() / 2 * pu, sc:GetHeight() / 2 * pv
 end
+-- Follow mode (Nav.lua's Find me; a right-click on Find me or /openmap follow turns it off or on altogether)
+function mod.SetFollowing(on) following = on and mod.db.followPlayer == true and PlayerWorldNow() ~= nil or false end
+function mod.Following() return following and FollowHere() end
+function mod:ToggleFollow()
+	-- (not in an instance: Follow mode isn't there, and the setting stays as it is for when you're out)
+	if InDungeon() then return ns:Print(ns.L["Follow mode can't be changed inside an instance."]) end
+	mod.db.followPlayer = mod.db.followPlayer ~= true
+	if not mod.db.followPlayer then following = false followOpenUntil = 0 end
+	-- (turned on with the map open: it glides to you and follows you from there, as Find me does)
+	if mod.db.followPlayer and active and map:IsShown() then mod:FindMe() end
+	if mod.RefreshPanel then mod:RefreshPanel() end   -- (Find me's icon: your arrow or the crosshair)
+	ns:Print(ns.L["Follow mode"] .. " " .. (mod.db.followPlayer and "|cff40ff40" .. ns.L["on"] or "|cffff4040" .. ns.L["off"]) .. "|r.")
+end
 -- for Nav.lua: glide / jump to a world point (normalized) at a zoom; the zoom where a map fits
 function mod.Glide(u, v, zoom) if active then GlideTo(u, v, zoom) end end
-function mod.ShowNow(u, v, zoom) if active then anim = nil ShowWorld(u, v, Clamp(zoom, LeastZoom(), MaxZoomAt(u, v))) userMoved = true end end
+function mod.ShowNow(u, v, zoom) if active then StopFollowing() anim = nil ShowWorld(u, v, Clamp(zoom, LeastZoom(), MaxZoomAt(u, v))) userMoved = true end end
 -- for Bench.lua: the view heads for a world point (normalized) the way a drag moves it, Blizzard's
 -- scroll easing there over the next frames; and whether a zoom or glide of ours is running
 function mod.PanTo(u, v)

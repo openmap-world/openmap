@@ -370,5 +370,90 @@ class ClosedInAFightTests(unittest.TestCase):
         self.assertLess(noted, stopped)
 
 
+class FollowModeTests(unittest.TestCase):
+    """Follow mode (off till the player turns it on) keeps you in the middle by moving the scroll alone, never the
+    scale (every map data provider would lay its pins out again each frame: #411 #413); in a fight it moves only
+    OpenMap's own view, nothing of Blizzard's map written (#345), and the view is put up on it as combat ends"""
+
+    def setUp(self):
+        from lupa.lua51 import LuaRuntime
+        m = re.search(r"\nlocal function FollowScroll\(u, v\)\n.*?\nend\n", WORLDMAP, re.S)
+        self.assertIsNotNone(m, "FollowScroll")
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.lua.execute("""
+            fight, written, placed, applied = false, {}, 0, 0
+            function InCombatLockdown() return fight end
+            function Clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
+            function FromWorld(mapID, u, v) return u * 2, v * 2 end
+            ns = { Safe = { Finite = function(...) return true end } }
+            map = { GetMapID = function() return 1416 end }
+            own = { on = true, scale = 3, x = 0.1, y = 0.1 }
+            mod = { OwnViewPlace = function() placed = placed + 1 end, RefreshView = function() applied = applied + 1 end }
+            local real = { scrollXExtentsMin = 0, scrollXExtentsMax = 1, scrollYExtentsMin = 0, scrollYExtentsMax = 1 }
+            for _, name in ipairs({ "SetNormalizedHorizontalScroll", "SetNormalizedVerticalScroll", "MarkAreaTriggersDirty",
+                "MarkViewRectDirty", "SetScale", "CalculateScrollExtents" }) do
+                real[name] = function() written[#written + 1] = name end
+            end
+            sc = setmetatable({}, { __index = real, __newindex = function(t, k, v) written[#written + 1] = k rawset(t, k, v) end })
+        """ + m.group(0).replace("local function FollowScroll", "function FollowScroll"))
+
+    def test_off_by_default(self):
+        self.assertIn("\t\tfollowPlayer = false,", WORLDMAP)
+        self.assertIn("return mod.db.followPlayer == true and not InDungeon()", WORLDMAP)
+
+    def test_out_of_a_fight_the_scroll_alone(self):
+        self.lua.execute("FollowScroll(0.2, 0.3)")
+        written = list(self.lua.eval("written").values())
+        self.assertIn("SetNormalizedHorizontalScroll", written)
+        self.assertNotIn("SetScale", written)
+        self.assertEqual(self.lua.eval("applied"), 1)
+        body = re.search(r"\nlocal function FollowScroll\(u, v\)\n.*?\nend\n", WORLDMAP, re.S).group(0)
+        for scale in ("OnCanvasScaleChanged", "SetView(", "ShowWorld(", "currentScale", "SetScale"):
+            self.assertNotIn(scale, body)
+        step = re.search(r"\nlocal function FollowStep\(elapsed\)\n.*?\nend\n", WORLDMAP, re.S).group(0)
+        self.assertIn("FollowScroll(fu, fv)", step)
+        self.assertNotIn("ShowWorld(", step)
+
+    def test_in_a_fight_the_own_view_alone(self):
+        self.lua.execute("fight = true FollowScroll(0.2, 0.3)")
+        self.assertEqual(len(self.lua.eval("written")), 0)          # (nothing of Blizzard's canvas)
+        own = self.lua.eval("own")
+        self.assertEqual((own.x, own.y, own.u, own.v), (0.4, 0.6, 0.2, 0.3))
+        self.assertEqual(self.lua.eval("placed"), 1)
+        w = self.lua.eval("waitingView")                            # (put up on Blizzard's as combat ends)
+        self.assertEqual((w.mapID, w.scale, w.x, w.y), (1416, 3, 0.4, 0.6))
+
+    def test_in_a_fight_without_the_own_view_nothing(self):
+        self.lua.execute("fight = true own.on = false FollowScroll(0.2, 0.3)")
+        self.assertEqual(len(self.lua.eval("written")), 0)
+        self.assertEqual(self.lua.eval("placed"), 0)
+        self.assertIsNone(self.lua.eval("waitingView"))
+
+    def test_a_press_in_a_fight_stops_it(self):
+        # (the own view's press and our icons' in a fight: OnGrab with no button, Follow mode stops; OwnView.lua's
+        # drag as it was)
+        own = (Path(__file__).resolve().parents[2] / "OpenMap" / "Map" / "OwnView.lua").read_text(encoding="utf-8")
+        self.assertIn("\t\tinput.Grab()\n", own)
+        pin = re.search(r"\nlocal function OnPinMouseDown\(_, button\)\n\tif InCombatLockdown\(\) then\n(.*?)\n\t\treturn\n", WORLDMAP, re.S)
+        self.assertIsNotNone(pin)
+        self.assertIn("OnGrab()", pin.group(1))
+
+
+    def test_reopening_its_own_only_when_on(self):
+        # ("When reopening the map" as it is unless the player turned Follow mode on: Nav.lua's SavedView is its
+        # own, the follow view taken only when FollowOpenView gives one, which it doesn't while Follow mode is off)
+        nav = (Path(__file__).resolve().parents[2] / "OpenMap" / "Map" / "Nav.lua").read_text(encoding="utf-8")
+        saved = re.search(r"\nfunction mod\.SavedView\(mapID, onlySaved\)\n(.*?)\nend\n", nav, re.S)
+        self.assertIsNotNone(saved)
+        self.assertIn("PlainSavedView(mapID, onlySaved)", saved.group(1))
+        self.assertIn("return u, v, zoom", saved.group(1))
+        view = re.search(r"\nfunction mod\.FollowOpenView\(mapID, zoom\)\n\t(.*?)\n", WORLDMAP)
+        self.assertEqual(view.group(1), "if mod.db.followPlayer ~= true then return end")
+        show = re.search(r"\nfunction mod\.FollowOnShow\(\)\n(.*?)\nend\n", WORLDMAP, re.S).group(1)
+        self.assertIn("if not FollowHere() then followOpenUntil = 0 return end", show)
+        reset = re.search(r"\nlocal function FollowResetView\(mapID\)\n\t(.*?)\n", WORLDMAP)
+        self.assertEqual(reset.group(1), "if not FollowHere() then return end")
+
+
 if __name__ == "__main__":
     unittest.main()

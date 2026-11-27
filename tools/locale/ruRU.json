@@ -571,7 +571,7 @@
  "A battleground's map zooms in like the world map, and the game's minimap of it shows its detail up close (as Minimap detail is set). Off: the game's own map, as it was.": "Карту поля боя можно приближать, как карту мира, а вблизи мини-карта игры показывает её детали (как задано в «Детали мини-карты»). Выкл.: собственная карта игры, как раньше.",
  "Battleground": "Поле боя",
  "Right-click: %s": "Правый щелчок: %s",
- "a right-click for other addons' buttons, and keys in gold in the tooltips": "правый щелчок для кнопок других аддонов и клавиши золотом в подсказках",
+ "follow mode, a right-click for other addons' buttons, and keys in gold in the tooltips": "режим следования, правый щелчок для кнопок других аддонов и клавиши золотом в подсказках",
  "Right-click: edit it": "Правый щелчок: изменить",
  "Right-click: open its card": "Правый щелчок: открыть карточку",
  "TomTom waypoint too": "Путевая точка TomTom тоже",
@@ -588,5 +588,10 @@
  "Not on the map: %s": "Нет на карте: %s",
  "Always": "Всегда",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "Как рано при приближении подмешиваются детали миникарты: правее — раньше. В крайнем правом положении, Всегда: с вида всего мира, при любом масштабе.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "При самом близком масштабе — сколько миникарты игры подмешивается для деталей, не больше непрозрачности миникарты (максимума при любом масштабе)."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "При самом близком масштабе — сколько миникарты игры подмешивается для деталей, не больше непрозрачности миникарты (максимума при любом масштабе).",
+ "Follow mode": "Режим следования",
+ "on": "вкл.",
+ "off": "выкл.",
+ "toggle follow mode": "вкл./выкл. режим следования",
+ "Follow mode can't be changed inside an instance.": "Режим следования нельзя изменить в подземелье."
 }

@@ -71,7 +71,11 @@ function mod:FindMe(keepZoom)
 		return
 	end
 	local _, _, zoom = mod.ViewNow()
+	local following = mod.Following and mod.Following()
 	mod.Glide(u, v, keepZoom and zoom or math.max(zoom, mod.FitZoom(best)))
+	-- (Follow mode, WorldMap.lua: Find me follows you after its glide; middle-click, at the zoom it's at,
+	-- leaves it as it was)
+	if mod.SetFollowing and (not keepZoom or following) then mod.SetFollowing(true) end
 end
 
 local saved                     -- { u, v, zoom, zone, host } when the map closed
@@ -101,7 +105,7 @@ end
 -- Blizzard shows it, or the view would move the map back and Blizzard would close the quest.
 -- (No mapID: whether there's a view to reopen on at all. onlySaved: only a view saved when the map
 -- closed, never the one on the player)
-function mod.SavedView(mapID, onlySaved)
+local function PlainSavedView(mapID, onlySaved)
 	local mode = mod.GetReopenView()
 	local zone = Safe.Call(C_Map.GetBestMapForUnit, "player")
 	local restore = saved and mode == "always"
@@ -132,6 +136,17 @@ function mod.SavedView(mapID, onlySaved)
 		if l then return (l + r) / 2, (t + b) / 2, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
 	end
 	if u then return u, v, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
+end
+function mod.SavedView(mapID, onlySaved)
+	local u, v, zoom = PlainSavedView(mapID, onlySaved)
+	-- (Follow mode, WorldMap.lua: the map opens on you at the zoom it last followed you at, straight there,
+	-- not put up as it was and moved a frame later. Nothing for the next frame to put back then: onlySaved)
+	local fu, fv, fz = mod.FollowOpenView and mod.FollowOpenView(mapID, zoom)
+	if fu then
+		if onlySaved then return end
+		return fu, fv, fz
+	end
+	return u, v, zoom
 end
 
 function mod:OnMapShown()

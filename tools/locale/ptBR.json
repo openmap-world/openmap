@@ -571,7 +571,7 @@
  "A battleground's map zooms in like the world map, and the game's minimap of it shows its detail up close (as Minimap detail is set). Off: the game's own map, as it was.": "O mapa de um campo de batalha aproxima como o mapa-múndi, e de perto o minimapa do jogo mostra seus detalhes (conforme o ajuste Detalhe do minimapa). Desligado: o próprio mapa do jogo, como era.",
  "Battleground": "Campo de Batalha",
  "Right-click: %s": "Clique direito: %s",
- "a right-click for other addons' buttons, and keys in gold in the tooltips": "um clique direito para os botões de outros addons e as teclas em dourado nas dicas",
+ "follow mode, a right-click for other addons' buttons, and keys in gold in the tooltips": "o modo seguir, um clique direito para os botões de outros addons e as teclas em dourado nas dicas",
  "Right-click: edit it": "Clique direito: editar",
  "Right-click: open its card": "Clique direito: abrir o cartão",
  "TomTom waypoint too": "Ponto de rota do TomTom também",
@@ -588,5 +588,10 @@
  "Not on the map: %s": "Não está no mapa: %s",
  "Always": "Sempre",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "Quão cedo o detalhe do minimapa se mistura ao aproximar: mais à direita, mais cedo. Totalmente à direita, Sempre: desde o mundo inteiro, em qualquer zoom.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "No zoom mais próximo, quanto do minimapa do jogo é misturado para dar detalhe, nunca mais que a opacidade do minimapa (o máximo em qualquer zoom)."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "No zoom mais próximo, quanto do minimapa do jogo é misturado para dar detalhe, nunca mais que a opacidade do minimapa (o máximo em qualquer zoom).",
+ "Follow mode": "Modo seguir",
+ "on": "ativado",
+ "off": "desativado",
+ "toggle follow mode": "ativar ou desativar o modo seguir",
+ "Follow mode can't be changed inside an instance.": "O modo seguir não pode ser alterado dentro de uma instância."
 }

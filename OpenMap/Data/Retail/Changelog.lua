@@ -4,6 +4,9 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "Unreleased", date = "", heads = { [1] = "New", }, items = {
+		"|cff6e2c0aFollow mode|r: right-click Find me (or /openmap follow) to turn it on or off. While it's on, the map keeps you in the middle as you move and as you zoom with the wheel. A drag, or a click that zooms in or out a level, lets you look around freely; left-click Find me to follow again. The map always opens following you, at the zoom you last followed at. Find me shows your arrow, turned the way you face, and glows while the map is following you. Off until you turn it on. Inside an instance it stays out of the way (the map and Find me as without it); your setting and zoom are kept for when you're out.",
+	} },
 	{ version = "v0.8.14", date = "2026-11-27", heads = { [1] = "New", [3] = "Improved", [6] = "Known issue", [7] = "Fixed", }, items = {
 		"|cff6e2c0aA right-click for other addons' buttons|r (API version 5): RegisterMenuToggle takes onRightClick and rightClickTip, so an addon's button on the map can do something of its own on a right-click, and lit and grey, so its gold edge and its greying can show something other than its switch; RefreshMenuToggles() draws the buttons again (docs/api.md). By Lvcidx0.",
 		"|cff6e2c0aTomTom's waypoint can be left out|r: with TomTom on, \"TomTom waypoint too\" (OpenMap's menu > More, and Options) is on as before; off, a pin you follow on the map sets only Blizzard's waypoint (#444).",
@@ -75,16 +78,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aLess work while the map is closed|r: the guild and friends lists are read at most every 30 seconds (a raid's roster changes came each time), exploring somewhere recolours the map's art the next time it opens rather than then, and another addon loading no longer looks through every global table again.",
 		"|cff6e2c0aSmoother panning and zooming|r: darkened unexplored land lets go of zones out of view (they were laid out on every frame, more the more of the world you'd seen), and of a zone's old shading when it's made again; the boat and zeppelin routes' finer dots are hidden, not only faded, from afar; the continents' names rest their outer glow while the map moves; and the close-up minimap, the cursor's place name and the coordinates skip work when nothing has changed. By cscoder69.",
 		"|cff6e2c0aSmoother with the map open|r: \"Quests from every zone\" asked the game for the quests of every zone and city in a single frame, half a second after each opening and again after each burst of quest log updates while the map was open (and once more after it closed). The zones are now read a few a frame and the icons put up together once all are in; nothing is read while the map is closed. /openmap status says what the last reading cost. By Merryfett.",
-	} },
-	{ version = "v0.8.9", date = "2026-11-14", heads = { [1] = "New", [3] = "Improved", [4] = "Fixed", }, items = {
-		"|cff6e2c0aHide world markers in instances|r (the menu's On the map tab, and Options; off unless turned on): in dungeons, raids and battlegrounds, OpenMap's friends, guild, transport and all-zone quest markers step aside. With Dungeon maps off and another addon's dungeon map shown over the world (NeedRoll's), the world under it stops answering the mouse, and a right-click brings the world map back, at the dungeon's outdoor entrance (#232). By HonzoNebro.",
-		"|cff6e2c0aPin options|r (OpenMap's options, Moving about and Sharing): - |cff6e2c0aFollow new pins|r: on by default, as before. Off, a pin you drop doesn't become the waypoint, so addons that route to it (Shortest Path Forever) are left alone; the pin's Follow still sets it. - |cff6e2c0aSend new pins to group|r: a pin you drop goes to your party or raid once its card is closed. - |cff6e2c0aAuto-add group's pins|r: pins your party or raid shares are added without asking. By diegodiaz1256.",
-		"|cff6e2c0aThe controller view's switch in the map's menu too|r: \"OpenMap's map with the Gamepad UI (test)\" is under The map in OpenMap's menu as well as in Options (it was only in Esc > Options > AddOns, and a player took it for gone).",
-		"|cff6e2c0aOne arrow for you, not two|r: where OpenMap draws your arrow itself (the map underneath can't place you), Blizzard's arrow now steps aside, so the two no longer show a little apart (#229).",
-		"|cff6e2c0aQuests from the tracker open on their details|r: the first click on a tracked quest opened the map on the quest list; it shows the quest's text now (#224).",
-		"|cff6e2c0aThe map cooler on your graphics card|r: OpenMap's \"Map frame rate cap\" is now 60 by default (and set to 60 once for everyone): a still map was drawn as fast as the card could go (#233). Turn it off in Options if you'd rather.",
-		"|cff6e2c0aFade while moving fades while you steer with the mouse|r: the hidden cursor's last place over the map held it solid, so it hardly ever faded (#69).",
-		"|cff6e2c0aResizing the window keeps it where it is|r: it could jump to the screen's bottom left (#241).",
-		"|cff6e2c0aCity names in your language|r: Thunder Bluff's and Darnassus' name banners showed in English on other languages' clients; the zone map's own banner, in the client's language, is shown there now (#47).",
 	} },
 }
