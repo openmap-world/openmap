@@ -5,7 +5,7 @@ local _, ns = ...
 
 ns.MapChangelog = {
 	{ version = "Unreleased", date = "", heads = { [1] = "Fixed", }, items = {
-		"OpenMap uses Blizzard's icon sizes for in-progress and ready-to-turn-in quest markers.",
+		"Quest dots and question marks keep their size as you pan and zoom. OpenMap hands off to Blizzard's quest markers as soon as the underlying zone changes.",
 	} },
 	{ version = "v0.8.13", date = "2026-11-22", heads = { [1] = "Fixed", [8] = "Improved", [10] = "Known issue", }, items = {
 		"|cff6e2c0aPlaces you've explored show on the map|r: the map read what you'd explored as it was built at login, maybe before the game had sent it, and then only when the game said something new was explored. It reads it again as the map first opens and after you enter a new subzone (#422, #410).",

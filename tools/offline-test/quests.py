@@ -40,8 +40,9 @@ function S.SetPinSetOn(set, on) onSets[set.key] = on end
 function S.Look() end
 function S.GlideToWorld(u, v, z) glides[#glides + 1] = { u, v, z } end
 function S.AddPin(set, u, v, look, data)
-	local pin = setmetatable({ u = u, v = v, data = data, scripts = {} }, NOOP)
+	local pin = setmetatable({ u = u, v = v, data = data, scripts = {}, shown = true, scale = set.iconScale }, NOOP)
 	function pin:SetScript(k, fn) self.scripts[k] = fn end
+	function pin:SetShown(on) self.shown = on end
 	function pin:CreateTexture() return setmetatable({}, NOOP) end
 	local list = pinsOf[set.key]
 	list[#list + 1] = pin
@@ -76,7 +77,13 @@ timers, errors = {}, {}
 C_Timer = { After = function(_, fn) timers[#timers + 1] = fn end }
 function FireTimers() local due = timers timers = {} for _, fn in ipairs(due) do fn() end end
 geterrorhandler = function() return function(e) errors[#errors + 1] = tostring(e) end end
-hooksecurefunc = function() end
+function hooksecurefunc(object, key, fn)
+	local original = object[key]
+	object[key] = function(self, ...)
+		original(self, ...)
+		fn(self, ...)
+	end
+end
 GameTooltip = setmetatable({}, { __index = function(t, k)
 	return function(_, a, ...) if k == "AddLine" or k == "SetText" then tip[#tip + 1] = a end end
 end })
@@ -120,6 +127,14 @@ blizz = setmetatable({ QuestLog = setmetatable({}, NOOP) }, NOOP)
 function blizz:GetMapID() return ZONE end
 function blizz:IsMaximized() return false end
 function blizz:IsShown() return shown end
+function blizz:EnumeratePinsByTemplate()
+	local i, quests = 0, QUESTS[host] or {}
+	return function()
+		i = i + 1
+		local q = quests[i]
+		if q then return { GetQuestID = function() return q.questID end } end
+	end
+end
 function blizz:HookScript(k, fn) hooks[k] = hooks[k] or {} table.insert(hooks[k], fn) end
 function Script(k) for _, fn in ipairs(hooks[k] or {}) do fn(blizz) end end
 function blizz.QuestLog:IsShown() return true end
@@ -140,7 +155,15 @@ function ManyZones(n)
 	end
 	C_Map.GetMapChildrenInfo = function() return list end
 end
-function Ids() local out = {} for i, p in ipairs(drawn) do out[i] = p.data.id end table.sort(out) return out end
+function FirstShownPin()
+	for _, pin in ipairs(drawn) do if pin.shown then return pin end end
+end
+function Ids()
+	local out = {}
+	for _, pin in ipairs(drawn) do if pin.shown then out[#out + 1] = pin.data.id end end
+	table.sort(out)
+	return out
+end
 function OfferIds() local out = {} for i, p in ipairs(offers) do out[i] = p.data.id end table.sort(out) return out end
 """
 
@@ -167,6 +190,20 @@ class Quests(unittest.TestCase):
         self.usual_map()
         self.lua.execute("Refresh()")
         self.assertEqual(self.ids(), [200], "the host zone's quest drawn over Blizzard's own pin for it")
+
+    def test_host_switch_hands_over_quest_pins_before_the_delayed_read(self):
+        self.usual_map()
+        self.lua.execute("Refresh()")
+        self.assertEqual(self.ids(), [200])
+        self.lua.execute("host = OTHER blizz:OnMapChanged()")
+        self.assertEqual(self.ids(), [100], "duplicated the new host's quest or dropped the old host's quest")
+        self.assertEqual(self.lua.eval("reads"), 2, "the handoff reread the quest data")
+        self.assertEqual(self.lua.eval("FirstShownPin().scale"), 1, "the badge must match Blizzard's scale")
+
+        self.lua.execute("FireTimers() host = ZONE blizz:OnMapChanged()")
+        self.assertEqual(self.ids(), [200])
+        self.lua.execute("Frames()")
+        self.assertEqual(self.ids(), [200], "a completed read restored the old host's pin")
 
     def test_usual_map_with_all_quests_off_draws_none(self):
         self.usual_map()
@@ -302,7 +339,7 @@ class Quests(unittest.TestCase):
         self.assertEqual(self.ids(), [100, 200])
 
     def click(self):
-        self.lua.execute("Refresh() pin = drawn[1] pin.OnClick(pin)")
+        self.lua.execute("Refresh() pin = FirstShownPin() pin.OnClick(pin)")
 
     def test_click_in_the_controller_view_tracks_and_zooms_but_leaves_blizzards_quest_log(self):
         self.controller_view()
@@ -319,7 +356,7 @@ class Quests(unittest.TestCase):
         self.assertEqual(list(self.lua.eval("details").values()), [200])
 
     def hint(self):
-        self.lua.execute("Refresh() pin = drawn[1] pin.scripts.OnEnter(pin) hint = tip[#tip]")
+        self.lua.execute("Refresh() pin = FirstShownPin() pin.scripts.OnEnter(pin) hint = tip[#tip]")
         return self.lua.eval("hint")
 
     def test_tooltip_in_the_controller_view_doesnt_promise_the_quest_log(self):
@@ -342,9 +379,9 @@ class Quests(unittest.TestCase):
     def test_the_zones_are_read_a_few_a_frame(self):
         self.many_zones()
         self.lua.execute("mod:RefreshQuests()")
-        self.assertEqual(self.lua.eval("reads"), 1, "more than the host's own quests read in the refresh itself")
+        self.assertEqual(self.lua.eval("reads"), 0, "zones read before the reader's first frame")
         frames = self.lua.eval("Frames()")
-        self.assertEqual(self.lua.eval("reads"), 21, "each zone read once")
+        self.assertEqual(self.lua.eval("reads"), 20, "each zone read once")
         self.assertLessEqual(self.lua.eval("mostReads"), 3)
         self.assertEqual(frames, 7)
         self.assertEqual(len(self.ids()), 6)
@@ -413,7 +450,7 @@ class Quests(unittest.TestCase):
                          "Quests from every zone: 20 zones read in 24 ms over 7 frames (the longest 3.6 ms).")
 
     def title(self):
-        self.lua.execute("Refresh() pin = drawn[1] pin.scripts.OnEnter(pin) title = tip[1]")
+        self.lua.execute("Refresh() pin = FirstShownPin() pin.scripts.OnEnter(pin) title = tip[1]")
         return self.lua.eval("title")
 
     def test_tooltip_title_has_the_level_as_blizzards_own_quest_icons(self):

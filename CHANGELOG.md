@@ -4,7 +4,7 @@
 
 ### Fixed
 
-- OpenMap uses Blizzard's icon sizes for in-progress and ready-to-turn-in quest markers.
+- Quest dots and question marks keep their size as you pan and zoom. OpenMap hands off to Blizzard's quest markers as soon as the underlying zone changes.
 
 ## v0.8.13 (2026-11-22)
 
