@@ -1,5 +1,14 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Improved
+
+- **A smoother map on a German client**: the zones' art from further out is drawn from tiles baked
+  from the deDE client's own maps, place names and city banners in German, as on an English, a
+  Brazilian Portuguese or a Russian client (it was every zone's art drawn live, #287). (New textures:
+  restart the game.)
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed
