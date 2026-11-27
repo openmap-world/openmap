@@ -14,7 +14,8 @@
 --   underground caves and pre-instance areas: Blizzard's own micro maps (ns.MapCaves,
 --              frameless: MapCave masks), and every other one as the game's minimap draws
 --              it inside (ns.MapCaveMinimap). Zoom right in on one and the surface dims as
---              its map surfaces in at its real place; zoom back out and it sinks.
+--              its map surfaces in at its real place; zoom back out and it sinks. Open the map
+--              standing in one and it opens where its map is up (S.CaveZoomAt, Nav.lua).
 -- Everything here follows the view: S.SetView from WorldMap.lua on every pan / zoom.
 --------------------------------------------------------------------------------
 
@@ -620,15 +621,16 @@ end
 -- one floor per place: a cave or dungeon entrance with several floors in one spot (Tiragarde
 -- Keep ...) shows its first
 local primary
-local function Primary(id, c)
+local function PrimaryOf(c)
 	if not primary then
 		primary = {}
 		for k, cc in pairs(ns.MapCaves or EMPTY) do
 			if not UNDER_SKIP[k] and (not primary[cc[1]] or k < primary[cc[1]]) then primary[cc[1]] = k end
 		end
 	end
-	return primary[c[1]] == id
+	return primary[c[1]]
 end
+local function Primary(id, c) return PrimaryOf(c) == id end
 
 -- Every cave in view surfaces by how much of the view it fills (UNDER_START .. UNDER_FULL of its
 -- longer side) once the zoom is deep enough (UNDER_ZOOM), and stays while it's on screen. The surface
@@ -733,6 +735,34 @@ function S.CaveRectAt(u, v)
 		if r then best, area = Nearest(r, u, v, best, area) end
 	end
 	if best then return best[1], best[2], best[3], best[4] end
+end
+
+-- the zoom the map opens at on you in a cave (Nav.lua's SavedView): where the cave holding a world point
+-- (normalized) has come all the way up (UNDER_FULL of the view, past the zoom it waits for), for a view of
+-- half extents hu, hv (normalized) at zoom 1. Of the boxes holding the point the smallest; a floor that doesn't
+-- surface by itself stands for its place's first (Primary). nil: no cave there, or none that would come up
+local function Holding(r, u, v)
+	if r and u >= r[1] and u <= r[3] and v >= r[2] and v <= r[4] then return (r[3] - r[1]) * (r[4] - r[2]) end
+end
+function S.CaveZoomAt(u, v, hu, hv)
+	if not mod.db.underground then return end
+	local key, area
+	for id, c in pairs(ns.MapCaves or EMPTY) do
+		local a, k = Holding(RectOf(id), u, v), PrimaryOf(c)
+		if a and k and (not area or a < area) then key, area = k, a end
+	end
+	for i in ipairs(ns.MapCaveMinimap or EMPTY) do
+		local a = Holding(RectOf(-i), u, v)
+		if a and (not area or a < area) then key, area = -i, a end
+	end
+	local r = key and RectOf(key)
+	-- (not one under land still unexplored, while that's hidden: it stays down, Surface)
+	if not r or (S.HiddenAt and S.HiddenAt((r[1] + r[3]) / 2, (r[2] + r[4]) / 2)) then return end
+	local wait = UNDER_ZOOM_OF[key]
+	if wait == nil then wait = UNDER_ZOOM end
+	local fits = math.min(2 * hu / (r[3] - r[1]), 2 * hv / (r[4] - r[2]))   -- (the zoom it just fills the view at)
+	-- (the wait is in the layers' steps: the zoom over ns.ClientMaps.zoom, as WorldMap.lua feeds S.SetView)
+	return math.max(fits / UNDER_FULL, wait and wait[2] * (ns.ClientMaps and ns.ClientMaps.zoom or 1) or 0)
 end
 
 --------------------------------------------------------------------------------

@@ -2,7 +2,8 @@
 -- Getting around the map:
 --   find me      a button that glides to where you are
 --   reopen       choose player-centred, zone-centred, always remember, or remember
---                only while the player is still inside the previous view
+--                only while the player is still inside the previous view; centred on
+--                the player in a cave, where its map is up (Close.lua)
 --   waypoints    Ctrl-click the map to drop Blizzard's map pin there (and a
 --                TomTom arrow, if TomTom is on); click the pin to clear it
 --   search       type a zone, city, dungeon or flight master and glide to it (on the
@@ -74,7 +75,8 @@ function mod:FindMe(keepZoom)
 	mod.Glide(u, v, keepZoom and zoom or math.max(zoom, mod.FitZoom(best)))
 end
 
-local saved                     -- { u, v, zoom, zone, host } when the map closed
+local saved                     -- { u, v, zoom, zone, host, kept } when the map closed (kept: caveKept)
+local caveKept                  -- the map opened further in for a cave (SavedView): the zoom it'd have opened at
 
 function mod.GetReopenView()
 	-- Preserve existing preferences, including the earlier two-checkbox setting.
@@ -92,7 +94,8 @@ end
 function mod:OnMapHidden()
 	local u, v, zoom = mod.ViewNow()
 	-- (never a view that isn't one, NaN: reopened on, it left the map blank, #260)
-	if u and Safe.Finite(u, v, zoom) and zoom > 0 then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player"), mod.HostMap() } end
+	if u and Safe.Finite(u, v, zoom) and zoom > 0 then saved = { u, v, zoom, Safe.Call(C_Map.GetBestMapForUnit, "player"), mod.HostMap(), caveKept } end
+	caveKept = nil
 end
 
 -- the view to reopen on: restore the previous view when the selected condition holds,
@@ -123,15 +126,22 @@ function mod.SavedView(mapID, onlySaved)
 	end
 	if mapID and mapID ~= zone and mapID ~= display then return end
 	-- (where your map fits, but never past the deepest zoom set: a city fits further in than that, its
-	-- own extra half that the wheel can still go to; with "zoom", the zoom it closed at)
+	-- own extra half that the wheel can still go to; with "zoom", the zoom it closed at, or kept through a cave)
 	local u, v, best = UnitWorld("player")
-	if u and mode == "zoom" and saved then return u, v, saved[3] end   -- (the zoom it closed at)
 	-- ("inzone": the whole zone you're in, in the middle, wherever you are in it: #143)
 	if u and mode == "inzone" and best then
 		local l, r, t, b = S.Rect(best)
 		if l then return (l + r) / 2, (t + b) / 2, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
 	end
-	if u then return u, v, math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge) end
+	if not u then return end
+	local zoom = mode == "zoom" and saved and (saved[6] or saved[3]) or math.min(mod.FitZoom(best), mod.db.maxZoom or math.huge)
+	-- (in a cave, mine or crypt the map draws underground: further in, if that's where its map is up, Close.lua.
+	-- The game's own map tables have no cave maps on WoW Forever, so you're in the zone, whose fit left the cave
+	-- a speck. Only indoors: the ground over a cave is in its box too. With "zoom", the zoom it'd have opened at
+	-- stays the one kept, OnMapHidden: the cave's would stay on after it)
+	local cave = Safe.Call(IsIndoors) and S.CaveZoomAt and S.CaveZoomAt(u, v, mod.ViewHalfExtents(1))
+	caveKept = cave and Safe.Finite(cave) and cave > zoom and zoom or nil
+	return u, v, caveKept and cave or zoom
 end
 
 function mod:OnMapShown()
