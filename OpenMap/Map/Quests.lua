@@ -24,8 +24,8 @@ local function G(name) return _G[name] end
 mod.defaults.allQuests = true   -- the quests in your log from every zone (off: Blizzard's, the zone's own map only)
 
 local BADGE = { atlas = "UI-QuestPoi-QuestNumber", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 22 }
-local IN_PROGRESS = { atlas = "Quest-In-Progress-Icon-yellow", texture = "Interface\\GossipFrame\\IncompleteQuestIcon" }
-local TURN_IN = { atlas = "UI-QuestPoi-QuestBangTurnIn", texture = "Interface\\GossipFrame\\ActiveQuestIcon" }
+local IN_PROGRESS = { atlas = "Quest-In-Progress-Icon-yellow", texture = "Interface\\GossipFrame\\IncompleteQuestIcon", size = 16 }
+local TURN_IN = { atlas = "UI-QuestIcon-TurnIn-Normal", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 16 }
 local FOCUSED = { atlas = "UI-QuestPoi-QuestNumber-SuperTracked", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 22 }
 local OFFER = { atlas = "QuestNormal", texture = "Interface\\GossipFrame\\AvailableQuestIcon", size = 22 }
 local SAME = 0.002              -- world (normalized): one quest's icons this close are one
@@ -38,6 +38,13 @@ local dirty = false             -- a refresh is wanted (Soon)
 local waiting = false           -- ... and on its timer
 local reading                   -- the zones being read: { list, at, found, seen, ids, ... } (RefreshQuests)
 local lastRead                  -- the last reading, for /openmap status: { zones, ms, frames, worst }
+
+-- Match the dimensions Blizzard uses for each layer of its quest pins. Dots and
+-- turn-in marks have different proportions, even when they share the same badge.
+local function SizeFromAtlas(region, look)
+	local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(look.atlas)
+	region:SetSize(info and info.width or look.size, info and info.height or look.size)
+end
 
 -- the controller view is the map now (Blizzard's under it, unseen)
 -- (and the own view in a fight, OwnView.lua: Blizzard's quest pins under it, unseen)
@@ -95,6 +102,7 @@ local focusedPin                -- the one of them in the focused look (Focus)
 local function Style(pin, on)
 	local look = on and FOCUSED or BADGE
 	pin.look = look
+	SizeFromAtlas(pin, look)
 	S.Look(pin.Icon, look)
 	S.Look(pin.Highlight, look)
 	if on and focusTint then pin.Icon:SetVertexColor(1, 0.82, 0) else pin.Icon:SetVertexColor(1, 1, 1) end
@@ -168,9 +176,9 @@ local function Mark(pin, complete)
 		pin.questMark = pin:CreateTexture(nil, "OVERLAY")
 		pin.questMark:SetPoint("CENTER")
 	end
-	local m, size = pin.questMark, BADGE.size * 0.6
-	m:SetSize(size, size)
-	S.Look(m, complete and TURN_IN or IN_PROGRESS)
+	local m, look = pin.questMark, complete and TURN_IN or IN_PROGRESS
+	SizeFromAtlas(m, look)
+	S.Look(m, look)
 	m:Show()
 end
 
@@ -234,6 +242,7 @@ local function Draw(r)
 	wipe(drawn)
 	for _, f in ipairs(r.found) do
 		local pin = S.AddPin(set, f[1], f[2], BADGE, { id = f[3], complete = f[4], map = f[5] })
+		SizeFromAtlas(pin, BADGE)
 		Mark(pin, f[4])
 		pin:SetScript("OnEnter", Enter)
 		pin:SetScript("OnLeave", Leave)

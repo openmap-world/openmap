@@ -1,5 +1,11 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- OpenMap uses Blizzard's icon sizes for in-progress and ready-to-turn-in quest markers.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed
