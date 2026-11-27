@@ -66,9 +66,10 @@ C_QuestLog = {
 	IsComplete = function() return false end,
 	GetTitleForQuestID = function(id) return "Quest " .. id end,
 	GetLogIndexForQuestID = function() end,
-	GetQuestWatchType = function() end,
+	GetQuestWatchType = function(id) return WATCHED[id] end,
 	AddQuestWatch = function(id) calls[#calls + 1] = "watch " .. id end,
 }
+WATCHED = {}                        -- the tracked quests: [id] = its watch type (0 is one: automatic)
 C_SuperTrack = { SetSuperTrackedQuestID = function(id) calls[#calls + 1] = "track " .. id end }
 GetCVarBool = function() return questPOI end
 InCombatLockdown = function() return false end
@@ -304,31 +305,54 @@ class Quests(unittest.TestCase):
     def click(self):
         self.lua.execute("Refresh() pin = drawn[1] pin.OnClick(pin)")
 
-    def test_click_in_the_controller_view_tracks_and_zooms_but_leaves_blizzards_quest_log(self):
-        self.controller_view()
-        self.click()
-        self.assertEqual(list(self.lua.eval("calls").values()), ["watch 100", "track 100"])
-        self.assertEqual(self.lua.eval("#glides"), 1)
+    # A click runs none of Blizzard's quest log from OpenMap's code (#295, #426, #446): AddQuestWatch sends
+    # its event inside the call, so the objective tracker answered it as OpenMap's code and every update
+    # of it after that was OpenMap's; the details' quest ID, which Share and Track read, was OpenMap's too.
+
+    def left_alone(self):
+        self.assertNotIn("watch", " ".join(self.lua.eval("calls").values()), "a quest tracked from OpenMap's code")
         self.assertEqual(self.lua.eval("#details"), 0, "Blizzard's quest details opened from OpenMap's code")
         self.assertEqual(self.lua.eval("#opened"), 0, "Blizzard's quest log opened from OpenMap's code")
 
-    def test_click_on_the_usual_map_still_shows_the_quest_in_the_log(self):
+    def test_click_in_the_controller_view_zooms_and_leaves_blizzards_quest_log(self):
+        self.controller_view()
+        self.click()
+        self.assertEqual(list(self.lua.eval("calls").values()), [], "a quest that isn't tracked is left so")
+        self.assertEqual(self.lua.eval("#glides"), 1)
+        self.left_alone()
+
+    def test_click_on_the_usual_map_zooms_and_leaves_blizzards_quest_log(self):
         self.usual_map()
         self.click()   # (the one zone Blizzard's map isn't on: 200)
-        self.assertEqual(list(self.lua.eval("calls").values()), ["watch 200", "track 200"])
-        self.assertEqual(list(self.lua.eval("details").values()), [200])
+        self.assertEqual(list(self.lua.eval("calls").values()), [])
+        self.assertEqual(self.lua.eval("#glides"), 1)
+        self.left_alone()
+
+    def test_click_on_the_usual_map_with_its_quest_log_closed_doesnt_open_it(self):
+        self.usual_map()
+        self.lua.execute("function blizz.QuestLog:IsShown() return false end")
+        self.click()
+        self.left_alone()
+
+    def test_click_on_a_tracked_quest_makes_it_the_focused_one(self):
+        # (0 is a watch type, automatic: tracked)
+        for view, quest in ((self.controller_view, 100), (self.usual_map, 200)):
+            with self.subTest(quest=quest):
+                self.lua.execute("calls, details, opened, WATCHED = {}, {}, {}, { [100] = 0, [200] = 1 }")
+                view()
+                self.click()
+                self.assertEqual(list(self.lua.eval("calls").values()), ["track %d" % quest])
+                self.left_alone()
 
     def hint(self):
         self.lua.execute("Refresh() pin = drawn[1] pin.scripts.OnEnter(pin) hint = tip[#tip]")
         return self.lua.eval("hint")
 
-    def test_tooltip_in_the_controller_view_doesnt_promise_the_quest_log(self):
-        self.controller_view()
-        self.assertEqual(self.hint(), "Click: track this quest and zoom to it")
-
-    def test_tooltip_on_the_windowed_usual_map_does(self):
-        self.usual_map()
-        self.assertEqual(self.hint(), "Click: track this quest, zoom to it and show it in the quest log")
+    def test_tooltip_says_what_a_click_does_in_either_view(self):
+        for view in (self.controller_view, self.usual_map):
+            with self.subTest(view=view.__name__):
+                view()
+                self.assertEqual(self.hint(), "Click: zoom to this quest")
 
     # (every stitched zone's quests in one frame was a hitch: they're read a few a frame)
 

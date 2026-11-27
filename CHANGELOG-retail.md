@@ -1,5 +1,17 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- **The quest tracker keeps updating, and Share works in the map's quest log**: a click on a quest's icon on
+  the map tracked the quest and showed it in the quest log from OpenMap's code, and the game's quest tracker
+  and quest log were OpenMap's from then until a reload. The tracker then stopped updating after "Auras
+  cannot be accessed when secret while tainted by 'OpenMap'" (from the tracker, or from Edit Mode, which
+  updates the tracker too), and Share was blocked ("tried to call the protected function
+  'QuestLogPushQuest()'"). A click now zooms to the quest and makes it the focused quest if it's tracked;
+  track a quest, or open its details, from the quest log (#295, #426, #446).
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed
