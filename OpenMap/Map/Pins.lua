@@ -15,6 +15,7 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local Look, Safe, L = ns.Look, ns.Safe, ns.L
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 
 mod.defaults.pins = { list = {}, nextId = 1 }
 mod.defaults.pinsShared = true  -- pins others share reach you (you're asked first)
@@ -134,9 +135,9 @@ local function PinEnter(self)
 	GameTooltip:AddLine(("%s  %.1f, %.1f"):format(ZoneName(p.map), p.x * 100, p.y * 100), 1, 1, 1)
 	if p.from then GameTooltip:AddLine(L["Shared by %s"]:format(p.from), 0.6, 0.8, 1) end
 	if Followed(p) then GameTooltip:AddLine(L["Followed (the waypoint)"], 0.5, 0.95, 0.4) end
-	GameTooltip:AddLine(L["Click to edit its note, follow, share or delete it"], 0.6, 0.6, 0.6)
-	GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
-	GameTooltip:AddLine(L["Alt-click: delete it"], 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(Gold(L["Click: edit its note, follow, share or delete it"]), 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(Gold(L["Shift-click: share in chat"]), 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(Gold(L["Alt-click: delete it"]), 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 end
 
@@ -146,6 +147,7 @@ end
 local function ChatLink(p)
 	local link
 	if C_Map.GetUserWaypointHyperlink and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates
+		and not InCombatLockdown()   -- (in a fight: its note and place as text, #295)
 		and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(p.map)) then
 		local before = C_Map.GetUserWaypoint and C_Map.GetUserWaypoint()
 		if pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(p.map, p.x, p.y)) then
@@ -381,7 +383,7 @@ local function CodeBox(text)
 		codeFrame:EnableMouse(true)
 		local top, title = Look:Window(codeFrame, "")   -- (the map window's own frame, its title bar and X)
 		codeFrame:SetSize(560, 150 + top)
-		if not PadView() then tinsert(UISpecialFrames, "OpenMapPinsCode") end   -- (the Gamepad UI reads that list)
+		if not PadView() then ns.CloseOnEscape("OpenMapPinsCode") end   -- (the Gamepad UI reads that list)
 		codeFrame.title = title
 		local scroll = CreateFrame("ScrollFrame", nil, codeFrame, "UIPanelScrollFrameTemplate")
 		scroll:SetPoint("TOPLEFT", 16, -10 - top)
@@ -726,9 +728,10 @@ local function BuildList()
 			GameTooltip:AddLine(p.note ~= "" and p.note or L["Map pin"], 1, 0.82, 0, true)
 			GameTooltip:AddLine(("%s  %.1f, %.1f"):format(ZoneName(p.map), p.x * 100, p.y * 100), 1, 1, 1)
 			if p.from then GameTooltip:AddLine(L["Shared by %s"]:format(p.from), 0.6, 0.8, 1) end
-			GameTooltip:AddLine(L["Click to go there, right-click to open its card"], 0.6, 0.6, 0.6)
-			GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6)
-			GameTooltip:AddLine(L["Alt-click: delete it"], 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Click: go there"]), 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Right-click: open its card"]), 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Shift-click: share in chat"]), 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Alt-click: delete it"]), 0.6, 0.6, 0.6)
 			GameTooltip:Show()
 		end)
 		row:SetScript("OnLeave", GameTooltip_Hide)

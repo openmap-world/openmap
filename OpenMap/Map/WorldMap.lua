@@ -11,7 +11,8 @@
 --     continent) you're looking at, so quest areas, coordinates and the zone
 --     name always match what's on screen
 --   * left-click zooms into the place under the cursor, right-click out a level
--- Other maps (dungeons, battlegrounds) behave as Blizzard made them.
+-- Other maps (dungeons, battlegrounds) behave as Blizzard made them (a battleground's zooms, with
+-- its minimap's detail: Battlegrounds.lua).
 --------------------------------------------------------------------------------
 
 local _, ns = ...
@@ -930,12 +931,15 @@ local function Attach(mapID, refreshed)
 	local wasHidden = mod.instanceWorldHidden
 	mod.instanceWorldHidden = mod.InstanceWorldHidden(mapID)
 	active = mod.enabled and not mod.instanceWorldHidden and Stitchable(mapID) and S.IsBuilt() and S.Layout(mapID) or false
+	-- (another addon's dungeon map up in a fight: the own view would cover it)
+	if not active and own and own.on and mod.OwnViewStop then mod.OwnViewStop(false) end
 	S.SetShown(active)
 	mod:UpdateBrightness()
 	BlizzardArt()
 	if InCombatLockdown() then
 		afterCombat = true                          -- (Blizzard's map left as it is in a fight: CombatOver)
 	elseif active then
+		mod.modesOurs = true
 		sc:SetMouseWheelZoomMode(MAP_CANVAS_MOUSE_WHEEL_ZOOM_BEHAVIOR_NONE)
 		sc:SetScalingMode("SCALING_MODE_LINEAR")
 	end
@@ -944,7 +948,10 @@ local function Attach(mapID, refreshed)
 	else
 		for pin in pairs(groupBlipSizes) do ScaleGroupBlips(pin) end
 		for pin in pairs(loweredGroupBlips) do LayerGroupBlips(pin) end
-		if not InCombatLockdown() then
+		-- (only where OpenMap's were put in: Blizzard's map reads its scaling mode each frame and works its scale out
+		-- after, and its clicks read that scale; written on a battleground's map, Report AFK was blocked, #472)
+		if mod.modesOurs and not InCombatLockdown() then
+			mod.modesOurs = false
 			sc:SetMouseWheelZoomMode(wheelMode)
 			sc:SetScalingMode(scalingMode)
 		end
@@ -1334,7 +1341,29 @@ local function PressTrack()
 end
 local function WasDrag() return press.moved end
 
+-- someone of your group's dot under the cursor (Blizzard's GroupMembersPin; read only, nothing written to it)
+local function GroupDotUnderCursor()
+	for pin in map:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+		if pin:IsShown() and pin.GetMouseOverUnits then
+			local units = { pcall(pin.GetMouseOverUnits, pin) }
+			for i = 2, units[1] and #units or 0 do
+				local unit = ns.Safe.Value(units[i])
+				if type(unit) == "string" and unit ~= "player" then return true end
+			end
+		end
+	end
+	return false
+end
+
 local function OnCanvasClick(from, button)
+	-- (a right-click on the map of the battleground you're in, or on a group dot anywhere, is never OpenMap's:
+	-- Blizzard's group dots' Report AFK menu and its own way up a map, #472)
+	if from and button == "RightButton" then
+		local mapID = map:GetMapID()
+		if mod.InsideBattleground and mapID and mod.InsideBattleground(mapID) then return false end
+		-- (not on the own view in a fight: Blizzard's dots under it get no click, Nav.lua has its own)
+		if not own.on and GroupDotUnderCursor() then return false end
+	end
 	-- NeedRoll draws over a world-map host: a click must not select a zone underneath it.
 	if mod.instanceWorldHidden then return true end
 	if not active then return false end
@@ -1432,8 +1461,42 @@ local function OnBlizzardPinAction(_, action, button)
 end
 
 -- one part of the setup, its time kept (ns.loadMs.parts: /openmap status)
+-- /openmap bisect (a test build's): parts of OpenMap's map left out at login, by name, to find which one taints
+-- Blizzard's map (#472): the setups below (Timed's names), and Click, Handlers and Provider (what OpenMap registers on
+-- Blizzard's map). Kept in mod.db.bisect for the version it was set in (a new version starts with everything
+-- on); a /reload applies it
+mod.BISECT = { "Extras", "Flights", "Nav", "Pins", "Friends", "Quests", "Dungeons", "Battlegrounds", "Explore", "News",
+	"Panel", "Paint", "Sketch", "Debug", "Bench", "Gamepad", "Report", "Window", "Compat", "Click", "Handlers", "Provider",
+	"WindowPlace", "WindowClamp", "WindowLog", "WindowGrips" }   -- (the last four: parts of Window's)
+function mod.Skipped(name)
+	local s = mod.db and mod.db.bisect
+	if type(s) ~= "table" then return false end
+	if mod.db.bisectVersion ~= ns.version then mod.db.bisect, mod.db.bisectVersion = nil, nil return false end
+	return s[name] or false
+end
+function mod:Bisect(arg)
+	local s = type(mod.db.bisect) == "table" and mod.db.bisectVersion == ns.version and mod.db.bisect or {}
+	arg = (arg or ""):lower()
+	local known = {}
+	for _, n in ipairs(mod.BISECT) do known[n:lower()] = n end
+	if arg == "none" then s = {}
+	elseif arg == "all" then s = {} for _, n in ipairs(mod.BISECT) do s[n] = true end
+	elseif arg ~= "" then
+		for word in arg:gmatch("%S+") do
+			local n = known[word]
+			if n then s[n] = not s[n] or nil else ns:Print("bisect: no part called " .. word) end
+		end
+	end
+	mod.db.bisect = next(s) and s or nil
+	mod.db.bisectVersion = mod.db.bisect and ns.version or nil
+	local off = {}
+	for _, n in ipairs(mod.BISECT) do if s[n] then off[#off + 1] = n end end
+	ns:Print("bisect: left out at login: " .. (#off > 0 and table.concat(off, " ") or "nothing") .. ". Parts: "
+		.. table.concat(mod.BISECT, " ") .. ". /openmap bisect <part ...> switches them, none, all; then /reload.")
+end
+
 local function Timed(name, fn, ...)
-	if not fn then return end
+	if not fn or mod.Skipped(name) then return end
 	local t0 = debugprofilestop and debugprofilestop()
 	fn(...)
 	if t0 then ns.loadMs.parts[name] = debugprofilestop() - t0 end
@@ -1553,7 +1616,7 @@ local function Setup()
 	-- the map underneath, clamped to its edge: on the stitched map, where the cursor is, on the zone there
 	if map.GamepadTryPlaceWaypoint then
 		hooksecurefunc(map, "GamepadTryPlaceWaypoint", function()
-			if not active or not PadCursor() or not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then return end
+			if not active or InCombatLockdown() or not PadCursor() or not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then return end   -- (#295)
 			local u, v = mod.CursorWorld()
 			local chain = u and S.ChainAt(u, v)
 			local mapID = chain and chain[#chain]
@@ -1570,12 +1633,16 @@ local function Setup()
 			return up(self, ...)
 		end
 	end
-	map:AddCanvasClickHandler(OnCanvasClick, 1000)
-	if map.AddGlobalPinMouseActionHandler and MapCanvasMixin and MapCanvasMixin.MouseAction then
+	-- (after Blizzard's own, priority 0: its group dots' Report AFK handler runs before any of OpenMap's code. Blizzard's
+	-- map calls its handlers one after another in one call, so OpenMap's run first left the menu Blizzard's then makes
+	-- running as OpenMap's: Report AFK blocked, #472. Tried in test9 while OpenMap's Escape-list entries tainted the map
+	-- anyway (taken off since); a Ctrl-click is OpenMap's pin still unless a handler of Blizzard's takes it first)
+	if not mod.Skipped("Click") then map:AddCanvasClickHandler(OnCanvasClick, -1) end
+	if map.AddGlobalPinMouseActionHandler and MapCanvasMixin and MapCanvasMixin.MouseAction and not mod.Skipped("Handlers") then
 		map:AddGlobalPinMouseActionHandler(OnBlizzardPinAction, 1000)
 	end
 	-- Blizzard's pin cursor while the menu's pin button or Blizzard's map-pin button is on
-	if map.AddCursorHandler then
+	if map.AddCursorHandler and not mod.Skipped("Handlers") then
 		map:AddCursorHandler(function()
 			if active and ((mod.PinMode and mod.PinMode()) or pinBtn.ArmedNow()) then return "MAP_PIN_CURSOR" end
 		end, 1000)
@@ -1650,8 +1717,16 @@ local function Setup()
 	end
 	hooksecurefunc(map, "OnMapChanged", function()
 		if active then RaisePlayer() end
+		-- (NeedRoll's map goes as another map is picked: the world's back, as after its right-click)
+		if mod.instanceWorldHidden and mod.instanceHost and map:IsShown() and map:GetMapID() ~= mod.instanceHost
+			and not (mod.DungeonJournalMapShown and mod.DungeonJournalMapShown()) then
+			mod.instanceWorldBrowsing = true
+			mod:RefreshInstancePins()
+			if not InCombatLockdown() then sc:CreateZoomLevels() sc:ResetZoom() end
+		end
 	end)
 	dp.OnHide = function()
+		mod.instanceHost = nil
 		-- (the view noted first: closed in a fight, it's the own view's, which stopping it leaves behind; read
 		-- after, it was Blizzard's canvas's, the view from before the fight, and the map reopened there)
 		if mod.OnMapHidden then mod:OnMapHidden() end
@@ -1665,9 +1740,16 @@ local function Setup()
 		HookHighlight()
 		mod.instanceWorldBrowsing = nil
 		mod.instanceMapGeneration = (mod.instanceMapGeneration or 0) + 1
-		if not (S.IsBuilt() and ExtrasBuilt()) and map:GetMapID() then sc:OnCanvasSizeChanged() end   -- built on first showing
+		if not (S.IsBuilt() and ExtrasBuilt()) and map:GetMapID() and not (mod.InsideBattleground and mod.InsideBattleground(map:GetMapID())) then
+			sc:OnCanvasSizeChanged()                -- built on first showing (not from here on your battleground's map, #472)
+		end
+		mod.instanceHost = map:GetMapID()
 		mod:RefreshInstancePins()
 		if mod.instanceWorldHidden then ticker:Show() RaisePlayer() end
+		-- (Dungeon Journal puts its map up as the map opens, maybe after this)
+		if mod.HasDungeonJournal and mod.HasDungeonJournal() then
+			C_Timer.After(0, function() if map:IsShown() then mod:RefreshInstancePins() end end)
+		end
 		if active then
 			ticker:Show()
 			S.Recull()
@@ -1683,7 +1765,7 @@ local function Setup()
 		AfterOpening()
 		shown()
 	end
-	map:AddDataProvider(dp)
+	if not mod.Skipped("Provider") then map:AddDataProvider(dp) end
 
 	Timed("Extras", mod.SetupExtras, mod, map)
 	Timed("Flights", mod.SetupFlights, mod)
@@ -1715,13 +1797,18 @@ local function Setup()
 			elseif citiesDirty then citiesDirty = false S.RefreshCities() end
 		end)
 	end)
-	Timed("Nav", mod.SetupNav, mod, map)          -- (before the menu: it holds Nav's search box)
+	Timed("Nav", mod.SetupNav, mod, map)          -- (before the menu; Nav puts the search on the title bar)
 	Timed("Pins", mod.SetupPins, mod, map)
 	if mod.SetupOwnView then mod:SetupOwnView(map) end   -- (the map in a fight: OwnView.lua)
 	Timed("Friends", mod.SetupFriends, mod, map)
 	Timed("Quests", mod.SetupQuests, mod, map)
 	Timed("Dungeons", mod.SetupDungeons, mod, map)
-	Timed("Combat", mod.SetupCombat, mod, map)
+	Timed("Battlegrounds", mod.SetupBattlegrounds, mod, map)
+	if mod.SetupExplore then Timed("Explore", mod.SetupExplore, mod, map) end   -- (Forever's toc only)
+	-- (off since 0.8.14: Combat.lua points every pin's mouse setters at OpenMap's, Blizzard's group dots' too, so
+	-- Blizzard's map refresh ran OpenMap's code and the dot a right-click reads was OpenMap's: Report AFK from the
+	-- battleground map was blocked, #472. Without it no "action blocked" in a fight has been seen since)
+	-- Timed("Combat", mod.SetupCombat, mod, map)
 	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_ENABLED", mod.CombatOver)
 	-- (a fight with the map open: the own view, OwnView.lua)
 	ns.RegisterEvent(viewOwner, "PLAYER_REGEN_DISABLED", function() if mod.OwnViewStart then mod.OwnViewStart() end end)
@@ -1743,7 +1830,9 @@ local function Setup()
 	if setupStart then ns.loadMs.setup = debugprofilestop() - setupStart end
 
 	-- the map may already be showing something
-	if map:IsShown() and map:GetMapID() then sc:OnCanvasSizeChanged() end
+	if map:IsShown() and map:GetMapID() and not (mod.InsideBattleground and mod.InsideBattleground(map:GetMapID())) then
+		sc:OnCanvasSizeChanged()
+	end
 end
 
 -- for Extras / Flights / Townsfolk / Panel / Paint
@@ -1921,7 +2010,7 @@ function mod:OnEnable()
 		ns.RegisterEvent(self.instancePinsEvents, "LOADING_SCREEN_DISABLED", function(_, event) mod.NoteDungeonWing(event) end)
 	end
 	ns.RegisterEvent(self.instancePinsEvents, "GLOBAL_MOUSE_UP", function(_, _, button)
-		if button ~= "RightButton" or not mod.instancePinsHidden or mod.db.dungeonMaps ~= false
+		if button ~= "RightButton" or not mod.instanceWorldHidden
 			or mod.instanceWorldBrowsing or not map or not map:IsShown() or not sc:IsMouseOver()
 			or (mod.MenuShown and mod.MenuShown()) then return end
 		local generation = mod.instanceMapGeneration
@@ -1966,8 +2055,16 @@ end
 
 function mod.InstanceWorldHidden(mapID)
 	-- A real dungeon map keeps its native player/group positions. Only suspend a world host.
-	return mod.instancePinsHidden and not mod.instanceWorldBrowsing and mod.db.dungeonMaps == false
-		and Stitchable(mapID or (map and map:GetMapID())) or false
+	if not Stitchable(mapID or (map and map:GetMapID())) then return false end
+	local inside, kind = IsInInstance()
+	inside, kind = ns.Safe.Value(inside), ns.Safe.Value(kind)
+	if inside and (kind == "party" or kind == "raid") then
+		-- Another addon's map of the dungeon, which OpenMap's art, icons and own view (in a fight) were drawn
+		-- over: they're put away, whatever the markers' setting.
+		if mod.DungeonJournalMapShown and mod.DungeonJournalMapShown() then return true end
+		if not mod.instanceWorldBrowsing and mod.NeedRollMap and mod.NeedRollMap() then return true end
+	end
+	return mod.instancePinsHidden and not mod.instanceWorldBrowsing and mod.db.dungeonMaps == false or false
 end
 
 function mod:RefreshInstancePins(onlyPins)
@@ -1976,7 +2073,7 @@ function mod:RefreshInstancePins(onlyPins)
 	inside, kind = ns.Safe.Value(inside), ns.Safe.Value(kind)
 	self.instancePinsHidden = self.db.hideWorldPinsInInstances and inside
 		and (kind == "party" or kind == "raid" or kind == "pvp" or kind == "arena") or false
-	if not self.instancePinsHidden then self.instanceWorldBrowsing = nil end
+	if not inside then self.instanceWorldBrowsing = nil end
 	if not inside and self.RememberOutsideInstance then self.RememberOutsideInstance() end
 	S.SetWorldPinsHidden(self.instancePinsHidden and not self.instanceWorldBrowsing)
 	if not onlyPins and map and sc and S.IsBuilt()
@@ -1988,7 +2085,7 @@ function mod:RefreshInstancePins(onlyPins)
 end
 
 function mod:BrowseInstanceWorld()
-	if not self.instancePinsHidden or self.db.dungeonMaps ~= false or self.instanceWorldBrowsing
+	if not self.instanceWorldHidden or self.instanceWorldBrowsing
 		or not map or not map:IsShown() or not Stitchable(map:GetMapID()) then return end
 	self.instanceWorldBrowsing = true
 	self:RefreshInstancePins()
@@ -2239,6 +2336,7 @@ function mod:Options()
 	if mod.PinOptions then mod:PinOptions(opts, get, set, off) end
 	if mod.FriendsOptions then mod:FriendsOptions(opts, get, set, off) end
 	if mod.DungeonOptions then mod:DungeonOptions(opts, get, set, off) end
+	if mod.BattlegroundOptions then mod:BattlegroundOptions(opts, get, set, off) end
 	if mod.LauncherOptions then mod:LauncherOptions(opts, get, off) end
 	if mod.SketchOptions then mod:SketchOptions(opts, get, set, off) end
 	if mod.WindowOptions then mod:WindowOptions(opts, get, set, off) end

@@ -1106,6 +1106,16 @@ def shore(m):
 ZONE_LAND_SEED, ZONE_LAND_GROW, ZONE_LAND_MIN = 0.42, 0.47, 4000   # saturation; saturation; art px
 ZONE_LAND_ISLAND = 3000         # art px: land patches smaller than this, apart from the rest, are left out
 ZONE_LAND_SOFT = 5.0            # art px: the land mask's edge falloff (the darkening's, Stitch.lua's Shade)
+# a zone's sea traced by hand on its art, where the colours can't find it: Riverglades' (WoW Forever's own
+# map) is hatched in strokes as saturated as its land, and a strip of parchment parts it from the frame, so
+# the open sea zone_sea_found looks for isn't there (it finds the rivers). Its pieces cover the sea too.
+# The outline runs down the middle of the shore's pale band, out to the frame
+ZONE_SEA_TRACED = {
+    "Riverglades": [(690, 0), (700, 45), (712, 95), (760, 112), (810, 122), (845, 150), (862, 190),
+                    (878, 225), (905, 255), (905, 285), (870, 305), (820, 322), (800, 345), (800, 400),
+                    (795, 445), (790, 490), (760, 505), (720, 525), (690, 550), (640, 590), (590, 635),
+                    (560, 668), (1002, 668), (1002, 0)],
+}
 def zone_land(m):
     k = ("zland", m["id"])
     if k not in _cache:
@@ -1122,6 +1132,12 @@ def zone_land(m):
         coast = island_coast(m)
         if coast is not None:                             # (an island: its land is known, the rest is its sea)
             sea_ |= ~ndimage.binary_dilation(own_land(m) | coast, iterations=2)
+        traced = ZONE_SEA_TRACED.get(m["name"])
+        if traced:                                        # (a sea the colours can't find: traced by hand)
+            from PIL import ImageDraw
+            img_ = Image.new("L", (1002, 668), 0)
+            ImageDraw.Draw(img_).polygon(traced, fill=255)
+            sea_ |= np.asarray(img_) > 127
         solid = (t > 0.5) & ~ndimage.binary_dilation(sea_, iterations=1)
         lab, n = ndimage.label(solid)
         if n:
@@ -1665,6 +1681,20 @@ FOG_S = 0.62                    # the shade's alpha the fog is baked at (Stitch.
                                 #  scales it in game)
 FOG_SCALE = 0.5                 # the masks' px per art px (the pieces' edges are soft: half is plenty)
 
+FOG_CUT = 16                    # art px over which a piece cut off hard at its rectangle's side eases out (bake_fog)
+def soften_cut(a, w, h, x, y):
+    """a piece's alpha (on its zone's art) eased out over FOG_CUT px at each side of its rectangle where it
+    runs on solid to the side (not at the art's frame): three of Blizzard's pieces (Darkshore, Silverpine,
+    Hillsbrad) are cut off there, and their share of the fog ended in a straight line across the land"""
+    x1, y1 = min(x + w, a.shape[1]), min(y + h, a.shape[0])
+    if x1 <= x or y1 <= y: return
+    sub = a[y:y1, x:x1]
+    ramp = lambda n: np.clip((np.arange(n) + 0.5) / FOG_CUT, 0, 1)
+    if x > 0 and sub[:, 0].max() > 0.5: sub *= ramp(sub.shape[1])[None, :]
+    if x + w <= a.shape[1] and x1 == x + w and sub[:, -1].max() > 0.5: sub *= ramp(sub.shape[1])[None, ::-1]
+    if y > 0 and sub[0].max() > 0.5: sub *= ramp(sub.shape[0])[:, None]
+    if y + h <= a.shape[0] and y1 == y + h and sub[-1].max() > 0.5: sub *= ramp(sub.shape[0])[::-1, None]
+
 def bake_fog():
     """MapFog/<mapID>_<n>.blp and Data/Fog.lua: for a zone you've been to, each explored-area piece's share of
     the zone's darkness, so the unexplored pieces darken as one at every zoom. Blizzard's pieces overlap (their
@@ -1688,6 +1718,8 @@ def bake_fog():
         keys = sorted(k for k, _ in reveal.get(m["art"], []))
         if not keys: continue
         A = np.stack([overlay_canvas(m["art"], {k})[..., 3] for k in keys])
+        for n, k in enumerate(keys):                         # (a piece cut off hard at its rectangle: eased)
+            soften_cut(A[n], *map(int, k.split(":")))
         land = mask("MapZoneLand/%d" % m["id"])
         if land is None: continue
         edge_ = over_edge(m) if grade.get(m["id"]) else M_THIN

@@ -300,6 +300,28 @@ class IconMirrorTests(unittest.TestCase):
         self.assertEqual(p[1], "CENTER")
         self.assertTrue(self.lua.eval("near.point[2] == pin"))
 
+    def release(self):
+        # (the library's pin released in the fight, as HereBeDragons' OnReleased: the icon hidden, on UIParent)
+        self.lua.execute("""
+            UIParent = Frame(nil)
+            near:Hide() near:SetParent(UIParent) near:ClearAllPoints()
+            for _, f in ipairs(frames) do if f.OnUpdate then f.OnUpdate(f, 1) end end
+        """)
+
+    def test_released_icon_not_given_back_to_the_screen(self):
+        # (taken again from UIParent, it was given back there as the map closed: in the middle of the screen)
+        self.release()
+        self.assertTrue(self.lua.eval("near.shown"))
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        self.assertFalse(self.lua.eval("near:GetParent() == UIParent"))
+        self.assertFalse(self.lua.eval("near.shown"))
+
+    def test_not_given_back_to_a_pin_holding_another_icon(self):
+        self.lua.execute("other = Frame(nil) pin.icon = other")
+        self.lua.execute("fight = false mod.OwnViewStop(false)")
+        self.assertFalse(self.lua.eval("near:GetParent() == pin"))
+        self.assertFalse(self.lua.eval("near.shown"))
+
 
 class RehostTests(unittest.TestCase):
     """S.Rehost: root, the chart and pinRoot onto OpenMap's frames and back, anchored as Layout has them"""

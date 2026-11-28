@@ -1009,7 +1009,7 @@ end
 
 -- the stick's waypoint put again where this view's cursor is
 local function PutAgain()
-	if not (view:IsShown() and lastX) then return end
+	if not (view:IsShown() and lastX) or InCombatLockdown() then return end   -- (#295)
 	local cu, cv = WorldAt(Offset(lastX, lastY))
 	local chain = S.ChainAt(cu, cv)
 	local zone = chain[#chain]

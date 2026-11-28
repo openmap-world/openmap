@@ -159,11 +159,40 @@ class QuestieLiftedOnOpen(unittest.TestCase):
         self.lua.execute("LiftAll()")                       # (again: already over, unchanged)
         self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017 - 2015 + 2091 + 5 + 1)
 
+    def test_a_quest_icon_set_below_questies_base_still_over_every_openmap_icon(self):
+        # (a "?" Questie drew from under QUESTIE_BASE was lifted under OpenMap's townsfolk)
+        self.lua.execute("pins[1].icon.level = 2003 S.artTop, S.iconLevel = 2083, 2091 LiftAll()")
+        self.assertEqual(self.lua.eval("pins[1].icon.level"), 2091 + 5 + 1)
+        self.assertGreater(self.lua.eval("pins[2].icon.level"), self.lua.eval("pins[1].icon.level"))   # (order kept above the base)
+
     def test_not_while_the_map_isnt_stitched_or_shown(self):
         self.lua.execute("S.artTop, S.iconLevel = 2083, 2091 stitched = false LiftAll()")
         self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017)
         self.lua.execute("stitched, shown = true, false LiftAll()")
         self.assertEqual(self.lua.eval("pins[1].icon.level"), 2017)
+
+
+
+class IconLayers(unittest.TestCase):
+    """OpenMap's townsfolk are its lowest icons (with the route lines): under quests' icons (OpenMap's, and Questie's
+    lifted over ICONS_ABOVE), pins, dungeons, flight masters, your group's dots and your arrow"""
+
+    def test_townsfolk_lowest(self):
+        root = Path(__file__).resolve().parents[2] / "OpenMap" / "Map"
+        levels = {}
+        for f in root.glob("*.lua"):
+            for key, level in re.findall(r'S\.PinSet\("([a-z_]+)"[^,)]*,\s*[^,)]+,\s*(\d+)\)', f.read_text(encoding="utf-8")):
+                levels[key] = int(level)
+        tf = re.search(r'S\.PinSet\("tf_" \.\. k\.key, k\.zoom, (\d+)\)', (root / "Townsfolk.lua").read_text(encoding="utf-8"))
+        self.assertIsNotNone(tf)
+        tf = int(tf.group(1))
+        for key in ("quests", "questoffers", "userpins", "group", "flight", "waypoint", "ping", "friends"):
+            self.assertLess(tf, levels[key], key)
+        above = int(re.search(r"local ICONS_ABOVE = (\d+)", SRC).group(1))
+        self.assertLess(tf, above + 1)                       # (Questie's quest icons: from ICONS_ABOVE + 1 up)
+        # your arrow and Blizzard's group dots: thousands of levels over the view, over every icon (WorldMap.lua)
+        player = int(re.search(r"local PLAYER_ABOVE = (\d+)", (root / "WorldMap.lua").read_text(encoding="utf-8")).group(1))
+        self.assertGreater(player, 1000)
 
 
 if __name__ == "__main__":

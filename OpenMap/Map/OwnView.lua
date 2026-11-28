@@ -131,12 +131,15 @@ local function PlaceIcons()
 end
 mod.OwnPlaceIcons = PlaceIcons
 
--- the icons given back: to the pin they were on, centred on it as the library has them; hidden otherwise
+-- the icons given back: to the pin they were on, centred on it as the library has them; hidden otherwise.
+-- Not to a pin that has let it go: the library's pin, released, hands its icon to UIParent (HereBeDragons'
+-- OnReleased), and one taken from there was given back to the middle of the screen, shown, as the map closed
 local function GiveBackIcons()
 	for icon, parent in pairs(moved) do
 		if icon:GetParent() == iconLayer then
 			icon:ClearAllPoints()
 			local was = levelOf[icon]
+			if parent and (parent == UIParent or (parent.icon ~= nil and parent.icon ~= icon)) then parent = false end
 			if parent then
 				icon:SetParent(parent)
 				if was then
@@ -149,6 +152,7 @@ local function GiveBackIcons()
 				if parent.IsShown and parent:IsShown() then icon:Show() else icon:Hide() end
 			else
 				icon:Hide()
+				if was and was.strata then icon:SetFrameStrata(was.strata) end
 			end
 		end
 	end

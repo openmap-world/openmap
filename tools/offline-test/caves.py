@@ -336,5 +336,38 @@ class CaveTests(unittest.TestCase):
         self.assertFalse([e for e in errs if "underground" in str(e)], errs)
 
 
+
+class MinimapHoldTests(unittest.TestCase):
+    """The minimap's detail going out of a view is held while what comes in loads (Close.lua's Held): at least 0.3 s,
+    up to 1.2 s while something new hasn't loaded; the parchment showed through at each hand-over while zooming"""
+
+    def setUp(self):
+        src = (ROOT / "Map" / "Close.lua").read_text(encoding="utf-8")
+        block = src[src.index("local HOLD, HOLD_MOST = 0.3, 1.2"):src.index("S.MinimapHeld = Held")]
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.lua.execute(block + "\n_G.Held = Held\n_G.Loaded = Loaded\n")
+        self.src = src
+
+    def test_held_then_let_go(self):
+        self.lua.execute("t = {}")
+        self.assertTrue(self.lua.eval("Held(t, 10, false)"))      # (gone from the view now: held)
+        self.assertTrue(self.lua.eval("Held(t, 10.2, false)"))
+        self.assertFalse(self.lua.eval("Held(t, 10.31, false)"))  # (past 0.3 s, nothing waiting: let go)
+
+    def test_held_longer_while_something_new_loads(self):
+        self.lua.execute("t = {}")
+        self.lua.eval("Held(t, 10, true)")
+        self.assertTrue(self.lua.eval("Held(t, 11, true)"))
+        self.assertFalse(self.lua.eval("Held(t, 11.3, true)"))    # (never past 1.2 s)
+        self.assertTrue(self.lua.eval("Loaded({})"))              # (a client without IsObjectLoaded: loaded)
+        self.assertFalse(self.lua.eval("Loaded({ IsObjectLoaded = function() return false end })"))
+
+    def test_used_for_both_the_tiles_and_the_copies(self):
+        body = self.src[self.src.index("local function UpdateMinimap("):self.src.index("-- The minimap in the gaps")]
+        self.assertEqual(body.count("Held(t, now, waiting)"), 2)
+        self.assertIn("LookAgain()", body)
+        self.assertIn("t.omGone = nil", body)                      # (wanted again: no longer going)
+
+
 if __name__ == "__main__":
     unittest.main()

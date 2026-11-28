@@ -23,6 +23,8 @@ NOW, frames, events, sets, removed = 1000, {}, {}, {}, 0
 waypoint, eventOnSet, ruleOff = nil, true, false
 bx, by = 0.9, 0.9               -- Blizzard's cursor on its map underneath (not where the view's is)
 GetTime = function() return NOW end
+fight = false
+InCombatLockdown = function() return fight end
 wipe = function(t) for k in pairs(t) do t[k] = nil end return t end
 GetPlayerFacing = function() return 0 end
 PlaySound = function() end

@@ -55,6 +55,7 @@ Data\Forever\DungeonMaps.lua
 Data\Forever\DungeonDrawn.lua
 Data\Forever\DungeonMinimap.lua
 Data\Forever\DungeonBosses.lua
+Data\Forever\Battlegrounds.lua
 Data\Forever\Grade.lua
 Data\Forever\Levels.lua
 Data\Forever\Fishing.lua
@@ -90,6 +91,7 @@ Map\Townsfolk.lua
 Map\Quests.lua
 Map\DungeonJournal.lua
 Map\Dungeons.lua
+Map\Battlegrounds.lua
 Map\Paint.lua
 Map\Sketch.lua
 Map\Debug.lua

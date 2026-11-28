@@ -46,6 +46,7 @@ LAYERS = {
 
 # OpenMap's code that reaches Blizzard's canvas itself: each one's way in a fight
 ON_BLIZZARDS_CANVAS = {
+    "Battlegrounds.lua": "a battleground's minimap tiles: its map isn't stitched, so no own view in a fight; Blizzard's map as it is",
     "Compat.lua": "other addons' frames on it lifted over the art (out of combat; under the view in a fight)",
     "Extras.lua": "its scale read for Questie's icons",
     "Nav.lua": "your group's rings out of a fight; in one, TryOwnGroup's frames on the view",

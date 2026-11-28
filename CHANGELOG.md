@@ -6,6 +6,96 @@
 
 - Quest dots and question marks keep their size as you pan and zoom. OpenMap hands off to Blizzard's quest markers as soon as the underlying zone changes.
 
+## v0.8.14 (2026-11-27)
+
+### New
+
+- **Battleground maps zoom in**: the maps of Warsong Gulch, Arathi Basin, Alterac Valley and Darkspear
+  Islands zoom in like the world map, and up close the game's own minimap of the battleground shows
+  its buildings, trees and rocks, as Minimap detail does on the world. It's still the game's map, with
+  your arrow, your group, the flags and the bases on it. Find a battleground in the map's search to open
+  its map from anywhere. The map of the battleground you're in doesn't zoom (the game's report from a group
+  member's dot needs its map as the game made it); it shows the minimap's detail only with Minimap detail
+  set to Always. `/openmap bg` says what its map has of OpenMap's. To turn it off: OpenMap's menu > Dungeons >
+  Battleground maps.
+- **A right-click for other addons' buttons** (API version 5): `RegisterMenuToggle` takes `onRightClick`
+  and `rightClickTip`, so an addon's button on the map can do something of its own on a right-click,
+  and `lit` and `grey`, so its gold edge and its greying can show something other than its switch;
+  `RefreshMenuToggles()` draws the buttons again (docs/api.md). By Lvcidx0.
+- **The waypoint's distance in meters**: "Waypoint distance in meters" (OpenMap's menu > More, off by default) shows the distance
+  under the game's waypoint arrow on your screen in meters, and in km from 1000 m, instead of yards.
+- **A search box on the map's title bar**: type a place in "Find a place", at the top right of the map window, and
+  the map takes you there. It finds zones, cities, the areas inside each zone (Goldshire, the Crossroads ...),
+  dungeons, caves, flight masters, boats and zeppelins, battlegrounds and your map pins by their notes; with Questie
+  also NPCs, objects and quests by name (a quest shows who gives it and who takes it in) and townsfolk by kind
+  (Innkeepers, Vendors ...). Something in several places is marked at each. A key opens the map and puts you in the
+  box: Key Bindings > OpenMap: Find a place. The search is no longer inside the menu.
+- **TomTom's waypoint can be left out**: with TomTom on, "TomTom waypoint too" (OpenMap's menu > More, and
+  Options) is on as before; off, a pin you follow on the map sets only Blizzard's waypoint (#444).
+
+### Improved
+
+- **Minimap detail at every zoom**: the far right of the Minimap detail slider in the menu is now "Always",
+  and with it the map no longer flickers back to the painted map while you zoom in: the detail stays up
+  while what comes in loads.
+- **Minimap strength goes up to 100%** (it stopped at 80%).
+- **A smoother map on a German client**: the zones' art from further out is drawn from tiles baked
+  from the deDE client's own maps, place names and city banners in German, as on an English, a
+  Brazilian Portuguese or a Russian client (it was every zone's art drawn live, #287). By byi77. (New
+  textures: restart the game.)
+- **Keys in gold in the tooltips**: Click, Right-click, Shift-click, Alt-click, Drag, on the map's buttons,
+  map pins, notes, the waypoint, quests, dungeon entrances, flight masters, boats and zeppelins, the
+  minimap button and the window's corners. Each reads "Key: what it does" ("Click: open its map"). By Lvcidx0.
+
+### Known issue
+
+- Until you've moved or resized the map window in a session, it can be dragged partly off the screen
+  (keeping it on the screen from the start is what blocked Report AFK). `/openmap reset` brings it back.
+
+### Fixed
+
+- **Places to explore count what you've explored, in every zone**: a zone long explored still read 6 of 12
+  (Elwynn) or 0 of 16 (Tirisfal). The game lists the pieces of a zone's newer map art, the same places in
+  other sizes, and they were matched against the older art's whole size and place. A piece now counts when
+  the game lists one at its place, or says its ground is explored (#445, #478). By bhalial.
+- **Report AFK from the battleground map works again**: right-clicking a group member's dot on the map and
+  choosing Report AFK was blocked, blaming OpenMap (#472). OpenMap no longer changes anything the game reads for
+  it: its own windows are off the game's Escape list (they still close with Escape), its clicks on the map come
+  after the game's, and in a battleground or arena the map window's place, size, full-screen width and zoom
+  steps are left to the game. On any map, a right-click on a group member's dot, and any right-click on the
+  map of the battleground you're in, is the game's rather than zooming out.
+- **Townsfolk under quests' icons**: vendors, innkeepers and the other townsfolk are OpenMap's lowest icons now, under
+  Questie's "!" and "?" (also one Questie draws below its usual level, which could go under a vendor), OpenMap's
+  quest icons, your pins, dungeons, flight masters, your group's dots and your arrow, at every zoom.
+- **NeedRoll's and Dungeon Journal's dungeon maps aren't covered**: inside a dungeon or raid, OpenMap's world
+  art and icons, and its own view in a fight, were drawn over their maps. They're put away while either is up.
+  With NeedRoll's Map in dungeons set to Game, "Dungeon maps inside dungeons" works again.
+- **Places to explore clear as you explore them**: a place explored with the map closed kept its outline and pin
+  until a /reload, and so did places explored before you logged in. The map is told as Blizzard's loads now, and
+  what you've explored is read again at the next opening (#434).
+- **No quest icon left in the middle of the screen as the map closes**: another addon's icon (HereBeDragons':
+  AllTheQuests', Questie's ...) whose pin the library let go in a fight was given back to the screen, shown,
+  as the map closed or the fight ended. It's hidden now, till its addon puts it on the map again (#448). By imigu17.
+- **The cursor's coordinates off a battleground's or dungeon's map read "--"**: over the frame round a map
+  smaller than the window, they showed the map's edge (57.6, 0.0).
+- **With Move Any, a bottom corner's resize keeps the map's top in place**: dragging a bottom resize grip lifted the
+  top of the map when Move Any anchored the window at the bottom. By puschie286.
+- **Clicking a quest's icon no longer breaks the quest tracker or Share**: a click tracked the quest and opened
+  the quest log from OpenMap's code, which left the game's tracker and quest log marked as OpenMap's: "auras
+  ... secret while tainted by OpenMap" errors, a tracker that stopped updating, and a blocked Share button
+  (#295, #426, #446). A click now zooms to the quest and makes it the one you follow if it's tracked; to track
+  a quest or see its details, use the quest log. Ctrl-click's waypoint and following a pin wait for a fight
+  to end. From sato942's PR #504.
+- **Stormwind sits in Elwynn's map**: the city's map had no cut, so the blank parchment round it covered
+  Elwynn's painting of the hills about the city, and Elwynn's "Stormwind" banner stayed faint under it. It's
+  now cut down to the city, like Orgrimmar and Thunder Bluff: Elwynn's banner is drawn over it from further out,
+  and gives way to the city's own as you close in. By cscoder69.
+- **No darkening over Riverglades' sea**: with unexplored areas darkened, the shade over Riverglades covered
+  its sea too, out to a straight edge. Its land now stops at its coast. By cscoder69.
+- **Fewer straight lines in the darkening**: with unexplored areas darkened, three of the game's explored-area
+  pieces (in Darkshore, Silverpine Forest and Hillsbrad Foothills) ended their darkening in a straight line
+  across the land. It now fades out there. By cscoder69.
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

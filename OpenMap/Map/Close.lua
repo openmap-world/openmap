@@ -69,6 +69,13 @@ local function Tint(tone)
 	return PAPER[1] + (r - PAPER[1]) * TONE_SHARE, PAPER[2] + (g - PAPER[2]) * TONE_SHARE, PAPER[3] + (b - PAPER[3]) * TONE_SHARE
 end
 
+-- a battleground's minimap tiles look as the world's do (Battlegrounds.lua): the parchment's warmth, no
+-- zone's colour (their maps have no tone)
+function S.MiniTileLook(tex)
+	tex:SetDesaturation(MINI_DESAT)
+	tex:SetVertexColor(Tint(DEFAULT_TONE))
+end
+
 local function TileTone(u, v)
 	local chain = S.ChainAt(u, v)
 	return Tint(ns.MapTones and ns.MapTones[chain[#chain]] or DEFAULT_TONE)
@@ -126,6 +133,7 @@ end
 --------------------------------------------------------------------------------
 
 local tiles, pool = {}, {}      -- cont * 4096 + index -> { texture }
+local fresh = {}                -- { texture, when it was set }: set lately, not yet loaded (or given up on)
 local TileKey = function(cont, tx, ty) return cont * 4096 + tx * 64 + ty end   -- (a number: no string a tile a frame)
 local wantedTiles, wantedGap = {}, {}   -- (reused each update)
 
@@ -149,6 +157,7 @@ end
 
 local function DropTile(key)
 	local t = tiles[key]
+	t.omGone = nil
 	for _, tex in ipairs(t) do tex:Hide(); S.UnplaceWorld(tex) end
 	tiles[key] = nil
 	pool[#pool + 1] = t
@@ -205,14 +214,40 @@ local function ShowLOD(layer, cont, level, per, keys, tx0, tx1, ty0, ty1, alpha)
 						t = LODPiece(layer, cont, -level)
 						t:SetTexture(LOD .. cont .. "_" .. per .. "_" .. col .. "_" .. row, nil, nil, "LINEAR")
 						lodPieces[key] = t
+						fresh[#fresh + 1] = { t, GetTime() }
 						S.PlaceWorld(t, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
 						t:Show()
 					end
 				end
+				if t then t.omGone = nil end
 				if t and t.omA ~= alpha then t.omA = alpha t:SetAlpha(alpha) end
 			end
 		end
 	end
+end
+
+-- The minimap's detail going out of a view is held a moment, at the strength it had, while what comes in loads: the
+-- game draws nothing of a texture until its file is in, and the parchment showed through at each hand-over between
+-- the game's tiles and the smaller copies, and each new piece coming into view (with Always, from the whole world, at
+-- every zoom step). Held at least HOLD, longer while something new hasn't loaded (IsObjectLoaded), never past
+-- HOLD_MOST; then let go, the view looked at again for it (a timer, once)
+local HOLD, HOLD_MOST = 0.3, 1.2
+local function Loaded(tex) return not tex.IsObjectLoaded or tex:IsObjectLoaded() end
+local function Held(t, now, waiting)
+	if not t.omGone then t.omGone = now end
+	local age = now - t.omGone
+	return age < HOLD or (waiting and age < HOLD_MOST)
+end
+S.MinimapHeld = Held            -- (tools/offline-test/caves.py)
+local againSoon = false
+local function LookAgain()
+	if againSoon then return end
+	againSoon = true
+	C_Timer.After(0.1, function()
+		againSoon = false
+		local a = S.closeView.args
+		if a and S.SetView then S.SetView(a[1], a[2], a[3], a[4], a[5], a[6]) end
+	end)
 end
 
 local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
@@ -260,12 +295,14 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 							if not t then
 								t = Tile(layer, fid, cont)
 								tiles[key] = t
+								fresh[#fresh + 1] = { t[1], GetTime() }
 								t[1]:SetVertexColor(TileTone((u0 + u1) / 2, (v0 + v1) / 2))
 								for _, tex in ipairs(t) do
 									S.PlaceWorld(tex, math.min(u0, u1), math.min(v0, v1), math.max(u0, u1), math.max(v0, v1))
 									tex:Show()
 								end
 							end
+							t.omGone = nil
 							if t.omA ~= a3 then t.omA = a3 t[1]:SetAlpha(a3) end
 						end
 					end
@@ -273,16 +310,34 @@ local function UpdateMinimap(layer, conts, u, v, hu, hv, mix)
 			end
 		end
 	end
-	for key in pairs(tiles) do
-		if not wanted[key] then DropTile(key) end
+	-- (what's gone from the view: held while what came in loads, then let go)
+	local now = GetTime()
+	local waiting = false
+	for i = #fresh, 1, -1 do
+		local f = fresh[i]
+		-- (loaded, or not after HOLD_MOST: a file that never comes isn't waited for, nor looked again for)
+		if Loaded(f[1]) or now - f[2] >= HOLD_MOST then table.remove(fresh, i) else waiting = true end
+	end
+	local held = false
+	for key, t in pairs(tiles) do
+		if not wanted[key] then
+			if Held(t, now, waiting) then held = true else DropTile(key) end
+		end
 	end
 	for key, t in pairs(lodPieces) do
 		if not wantedLOD[key] then
-			t:Hide(); S.UnplaceWorld(t)
-			lodPieces[key] = nil
-			lodPool[#lodPool + 1] = t
+			if Held(t, now, waiting) then
+				held = true
+			else
+				t.omGone = nil
+				t:Hide(); S.UnplaceWorld(t)
+				lodPieces[key] = nil
+				lodPool[#lodPool + 1] = t
+			end
 		end
 	end
+	if held or waiting then LookAgain() end
+	if #fresh > 64 then wipe(fresh) end     -- (never a long list: the hold has its cap anyway)
 end
 
 --------------------------------------------------------------------------------
@@ -805,6 +860,8 @@ function S.SetView(u, v, hu, hv, zoom, steps)
 	local cv = S.closeView
 	local start = debugprofilestop and debugprofilestop()
 	cv.zoom, cv.time, cv.updates = zoom, GetTime(), (cv.updates or 0) + 1
+	cv.args = cv.args or {}
+	cv.args[1], cv.args[2], cv.args[3], cv.args[4], cv.args[5], cv.args[6] = u, v, hu, hv, zoom, steps   -- (LookAgain)
 	if S.Moved then S.Moved() end
 	local cont = Try("continent", ContinentAt, u, v)
 	Try("sea", S.SetSea, u, v, hu, hv)
@@ -875,9 +932,11 @@ function mod:CloseOptions(opts, get, set, off)
 	opts.closeHeader = ns.Header(ns.L["Up close"], 50)
 	opts.minimap = { type = "toggle", name = ns.L["Minimap detail"], order = 50.5, width = "full", get = get, set = set, disabled = off,
 		desc = ns.L["At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom."] }
-	opts.minimapMix = { type = "range", name = ns.L["Minimap strength"], order = 51, min = 0, max = 0.8, step = 0.05, isPercent = true,
+	-- (up to 100%: never more than Minimap opacity, the most it shows at any zoom, which the painted map's look is kept
+	-- by: Close.lua's mix is min(strength, most), and its hand-overs hold at 100% too)
+	opts.minimapMix = { type = "range", name = ns.L["Minimap strength"], order = 51, min = 0, max = 1, step = 0.05, isPercent = true,
 		get = get, set = set, disabled = noMinimap,
-		desc = ns.L["At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads."] }
+		desc = ns.L["At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom)."] }
 	opts.minimapFrom = { type = "range", name = ns.L["Minimap detail from zoom"], order = 51.1, min = MINI_FROM[1], max = MINI_FROM[2], step = MINI_FROM[3],
 		get = get, set = set, disabled = function() return noMinimap() or (mod.db.minimapMix or 0) == 0 end,
 		desc = ns.L["How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show."] }

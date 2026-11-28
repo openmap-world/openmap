@@ -146,7 +146,7 @@ function mod:ShowReportCode(code)
 		-- (the map window's own frame, its title bar and X, as What's new's)
 		local top = ns.Look:Window(codeFrame, L["Report a problem"])
 		codeFrame:SetSize(540, 196 + top)
-		if not PadView() then tinsert(UISpecialFrames, "OpenMapReport") end   -- (the Gamepad UI reads that list)
+		if not PadView() then ns.CloseOnEscape("OpenMapReport") end   -- (the Gamepad UI reads that list)
 		local function Field(label, y)
 			y = y - top
 			local fs = codeFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")

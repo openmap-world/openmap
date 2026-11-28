@@ -4,6 +4,19 @@
 local _, ns = ...
 
 ns.MapChangelog = {
+	{ version = "v0.8.14", date = "2026-11-27", heads = { [1] = "New", [3] = "Improved", [6] = "Known issue", [7] = "Fixed", }, items = {
+		"|cff6e2c0aA right-click for other addons' buttons|r (API version 5): RegisterMenuToggle takes onRightClick and rightClickTip, so an addon's button on the map can do something of its own on a right-click, and lit and grey, so its gold edge and its greying can show something other than its switch; RefreshMenuToggles() draws the buttons again (docs/api.md). By Lvcidx0.",
+		"|cff6e2c0aTomTom's waypoint can be left out|r: with TomTom on, \"TomTom waypoint too\" (OpenMap's menu > More, and Options) is on as before; off, a pin you follow on the map sets only Blizzard's waypoint (#444).",
+		"|cff6e2c0aMinimap detail at every zoom|r: the far right of the Minimap detail slider in the menu is now \"Always\", and with it the map no longer flickers back to the painted map while you zoom in: the detail stays up while what comes in loads.",
+		"|cff6e2c0aMinimap strength goes up to 100%|r (it stopped at 80%).",
+		"|cff6e2c0aKeys in gold in the tooltips|r: Click, Right-click, Shift-click, Alt-click, Drag, on the map's buttons, map pins, notes, the waypoint, quests, dungeon entrances, flight masters, boats and zeppelins, the minimap button and the window's corners. Each reads \"Key: what it does\" (\"Click: open its map\"). By Lvcidx0.",
+		"Until you've moved or resized the map window in a session, it can be dragged partly off the screen. /openmap reset brings it back.",
+		"|cff6e2c0aThe cursor's coordinates off a battleground's or dungeon's map read \"--\"|r: over the frame round a map smaller than the window, they showed the map's edge (57.6, 0.0).",
+		"|cff6e2c0aNo quest icon left in the middle of the screen as the map closes|r: another addon's icon (HereBeDragons': AllTheQuests', Questie's ...) whose pin the library let go in a fight was given back to the screen, shown, as the map closed or the fight ended. It's hidden now, till its addon puts it on the map again (#448). By imigu17.",
+		"|cff6e2c0aWith Move Any, a bottom corner's resize keeps the map's top in place|r: dragging a bottom resize grip lifted the top of the map when Move Any anchored the window at the bottom. By puschie286.",
+		"|cff6e2c0aFewer \"auras ... secret while tainted by OpenMap\" errors from the quest tracker in a fight|r: Ctrl-click's waypoint and following a pin set the game's waypoint from OpenMap's code, and in a fight the tracker's next redraw failed. In a fight they're set as it ends now (#295).",
+		"|cff6e2c0aFewer \"blocked\" errors from the map window|r: OpenMap's own windows are off the game's Escape list (they still close with Escape), and in a battleground or arena the map window's place, size and full-screen width are left to the game (#472).",
+	} },
 	{ version = "v0.8.13", date = "2026-11-22", heads = { [1] = "Fixed", [5] = "Improved", [7] = "Known issue", }, items = {
 		"|cff6e2c0aPlaces you've explored show on the map|r: the map read what you'd explored as it was built at login, maybe before the game had sent it, and then only when the game said something new was explored. It reads it again as the map first opens and after you enter a new subzone (#422, #410).",
 		"|cff6e2c0aNo stack overflow as the map closes|r with Keep warm on, when a frame of the map holds thousands of icons' anchors (#414).",
@@ -73,9 +86,5 @@ ns.MapChangelog = {
 		"|cff6e2c0aFade while moving fades while you steer with the mouse|r: the hidden cursor's last place over the map held it solid, so it hardly ever faded (#69).",
 		"|cff6e2c0aResizing the window keeps it where it is|r: it could jump to the screen's bottom left (#241).",
 		"|cff6e2c0aCity names in your language|r: Thunder Bluff's and Darnassus' name banners showed in English on other languages' clients; the zone map's own banner, in the client's language, is shown there now (#47).",
-	} },
-	{ version = "v0.8.8", date = "2026-11-13", heads = { [1] = "Fixed", }, items = {
-		"|cff6e2c0aParty and raid markers stay steady|r: one marker per member, moving smoothly. OpenMap's ring now follows Blizzard's own dot where the game places a member, instead of a second dot of its own that lagged behind it; elsewhere OpenMap's dot keeps its highlight and tooltip as it moves. The ring is now a thin gold edge (the wide one round a dark gap read as a target: #158, #170). By puschie286.",
-		"|cff6e2c0aFriends on the map: your own faction only.|r Your place is only shared with, and shown from, players of your own faction: Battle.net friends on the other faction no longer see where you are, nor you them (a player's report: it let Horde and Alliance find each other for PvP).",
 	} },
 }

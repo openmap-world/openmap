@@ -10,6 +10,7 @@
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local Look, Safe, L = ns.Look, ns.Safe, ns.L
@@ -328,7 +329,7 @@ local function BuildView()
 	view:SetClipsChildren(true)
 	-- (the gamepad's cursor presses its tabs and buttons, and A on it isn't the map's under it: Gamepad.lua)
 	mod.padRoots[#mod.padRoots + 1] = view
-	if not PadView() then tinsert(UISpecialFrames, "OpenMapDungeonView") end   -- (the Gamepad UI reads that list)
+	if not PadView() then ns.CloseOnEscape("OpenMapDungeonView") end   -- (the Gamepad UI reads that list)
 	local bg = view:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints()
 	bg:SetColorTexture(0.05, 0.04, 0.03, 0.96)
@@ -719,6 +720,7 @@ local function BuildView()
 				local f = _G[name]
 				if f and f ~= self and type(f) == "table" and f.IsShown and f:IsShown() then return end
 			end
+			if ns.EscapeFrameShown(self) then return end   -- (OpenMap's own windows: Core.lua's list)
 			self:SetPropagateKeyboardInput(false)
 			passing = false
 			CloseView()
@@ -1214,6 +1216,13 @@ end
 function mod.DungeonViewShown() return view and view:IsShown() or false end
 
 local function NeedRoll() return SlashCmdList and SlashCmdList.NEEDROLL end
+-- its map laid over the game's inside a dungeon: its "Map in dungeons", not set to Game (its own default is on)
+local function NeedRollMap()
+	if not NeedRoll() then return false end
+	local settings = _G.NeedRollDB
+	return not (type(settings) == "table" and settings.dungeonMap == "game")
+end
+mod.NeedRollMap = NeedRollMap
 
 -- (in combat with the gamepad's UI the game's own map isn't changed by OpenMap: WorldMap.lua's
 -- mod.PadCombat; once a while, said why)
@@ -1352,11 +1361,11 @@ local function Enter(pin)
 	local bosses = one and (Places().bosses or {})[one[1]]
 	if bosses and #bosses > 0 then GameTooltip:AddLine(L["%d bosses"]:format(#bosses), 0.8, 0.8, 0.8) end
 	if not MapsOn() then
-		GameTooltip:AddLine(#pin.instances == 1 and L["Click to see what's inside"] or L["Click to pick one"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(Gold(#pin.instances == 1 and L["Click: see what's inside"] or L["Click: pick one"]), 0.6, 0.6, 0.6)
 	elseif one then
-		GameTooltip:AddLine((DungeonMap(one) or FloorsOf(one)) and L["Click to open its map"] or L["Click to see what's inside (no map of it yet)"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(Gold((DungeonMap(one) or FloorsOf(one)) and L["Click: open its map"] or L["Click: see what's inside (no map of it yet)"]), 0.6, 0.6, 0.6)
 	else
-		GameTooltip:AddLine(L["Click to pick one and open its map"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(Gold(L["Click: pick one and open its map"]), 0.6, 0.6, 0.6)
 	end
 	GameTooltip:Show()
 end
@@ -1367,7 +1376,7 @@ local function Chooser()
 	chooser:EnableMouse(true)
 	chooser:SetClampedToScreen(true)
 	chooser.pad = { Look:Dropdown(chooser) }      -- (the game's own dropdowns' look)
-	if not PadView() then tinsert(UISpecialFrames, "OpenMapDungeonChooser") end   -- (the Gamepad UI reads that list)
+	if not PadView() then ns.CloseOnEscape("OpenMapDungeonChooser") end   -- (the Gamepad UI reads that list)
 	chooser.rows = {}
 	chooser:SetScript("OnShow", function(self) self:RegisterEvent("GLOBAL_MOUSE_DOWN") end)
 	chooser:SetScript("OnHide", function(self) self:UnregisterEvent("GLOBAL_MOUSE_DOWN") end)
@@ -1847,8 +1856,8 @@ FillSide = function()
 				tip = function(owner)
 					GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
 					GameTooltip:AddLine(name, 1, 0.82, 0)
-					GameTooltip:AddLine(NeedRoll() and L["Click to see loot in NeedRoll"] or L["See the Loot tab for loot"], 0.6, 0.6, 0.6)
-					if _G.NeedRoll_ShowMap then GameTooltip:AddLine(L["Shift-click: where it is, on NeedRoll's map"], 0.6, 0.6, 0.6) end
+					GameTooltip:AddLine(Gold(NeedRoll() and L["Click: see its loot in NeedRoll"] or L["See the Loot tab for loot"]), 0.6, 0.6, 0.6)
+					if _G.NeedRoll_ShowMap then GameTooltip:AddLine(Gold(L["Shift-click: where it is, on NeedRoll's map"]), 0.6, 0.6, 0.6) end
 					GameTooltip:Show()
 				end }
 		end
@@ -1901,7 +1910,7 @@ FillSide = function()
 							local okReq, req = pcall(QDB.QueryQuestSingle, q.id, "requiredLevel")
 							GameTooltip:AddLine((LEVEL or "Level") .. " " .. q.level .. (okReq and req and req > 0 and ("  (" .. L["from %d"]:format(req) .. ")") or ""), 0.8, 0.8, 0.8)
 							GameTooltip:AddLine(q.done and L["Completed"] or q.inLog and L["In your quest log"] or "", 0.5, 0.95, 0.4)
-							if _G.NeedRoll_ShowQuest then GameTooltip:AddLine(L["Click to see it in NeedRoll"], 0.6, 0.6, 0.6) end
+							if _G.NeedRoll_ShowQuest then GameTooltip:AddLine(Gold(L["Click: see it in NeedRoll"]), 0.6, 0.6, 0.6) end
 							GameTooltip:Show()
 						end }
 				end
@@ -2077,7 +2086,7 @@ local function PinTip(pin)
 	GameTooltip:SetOwner(pin, "ANCHOR_RIGHT")
 	GameTooltip:AddLine(("%d. %s"):format(pin.index, pin.name), 1, 0.82, 0)
 	if pin.mine then GameTooltip:AddLine(L["Placed by you (/openmap bosses)"], 0.6, 0.6, 0.6) end
-	if NeedRoll() then GameTooltip:AddLine(L["Click to see loot in NeedRoll"], 0.6, 0.6, 0.6) end
+	if NeedRoll() then GameTooltip:AddLine(Gold(L["Click: see its loot in NeedRoll"]), 0.6, 0.6, 0.6) end
 	GameTooltip:Show()
 end
 
@@ -2470,7 +2479,7 @@ local function InstanceHere()
 end
 
 function mod.ActiveDungeonWing()
-	if not (map and map:IsShown() and MapsOn()) or mod.db.dungeonInside == false or NeedRoll() then return end
+	if not (map and map:IsShown() and MapsOn()) or mod.db.dungeonInside == false or NeedRollMap() then return end
 	local record = SavedWing()
 	if type(record) == "table" and InstanceIDs() == record[1] then return record, record == confirmedWing end
 end
@@ -2485,7 +2494,7 @@ function mod.NoteDungeonWing(event, initialLogin, reloading)
 	if not instID then return end
 	WingHere(instID, lfgID, portalWing)
 	if confirmedWing and confirmedWing ~= previous and map and map:IsShown() and not (view and view:IsShown())
-		and MapsOn() and mod.db.dungeonInside ~= false and not NeedRoll() then
+		and MapsOn() and mod.db.dungeonInside ~= false and not NeedRollMap() then
 		local inst, record = InstanceHere()
 		if inst and record then mod.DungeonJournalHandlesMap(inst, record, true) end
 	end
@@ -2507,7 +2516,7 @@ end
 local function NoteDungeonMap()
 	local inst = InstanceHere()
 	if not inst or mod.db.dungeonMapNoted or not MapsOn() or mod.db.dungeonInside == false then return end
-	if mod.DungeonJournalHandlesMap(inst) or NeedRoll() then return end
+	if mod.DungeonJournalHandlesMap(inst) or NeedRollMap() then return end
 	mod.db.dungeonMapNoted = true
 	ns:Print(L["Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons."])
 end
@@ -2658,7 +2667,7 @@ function mod:SetupDungeons(worldMap)
 			-- (Dungeon Journal shows its own map of the dungeon you're in, its bosses on it: OpenMap's isn't put
 			-- over it as the map opens there, #302. An entrance clicked on the world map still opens OpenMap's)
 			local sharedInstance = ns.Client == "Forever" and WING_LFG[inst[1]] ~= nil
-			if NeedRoll() or mod.DungeonJournalHandlesMap(inst, record, sharedInstance) then return end   -- (NeedRoll's own map: #267)
+			if NeedRollMap() or mod.DungeonJournalHandlesMap(inst, record, sharedInstance) then return end   -- (NeedRoll's own map: #267)
 			local id = DungeonMap(inst)
 			if not id then OpenView(inst, nil) elseif map:GetMapID() ~= id then S.OpenMap(id) end
 		end)

@@ -52,8 +52,12 @@ jobs:
       - run: python -P tools/offline-test/perf.py
       - run: python -P tools/offline-test/opening.py
       - run: python -P tools/offline-test/combatlayers.py
+      - run: python -P tools/offline-test/taint.py
+      - run: python -P tools/offline-test/cursor.py
       - run: python -P tools/offline-test/flights.py
-      # (WoW Forever's own data: its combat list, caves, painted gaps, sea chart and places to explore)
+      - run: python -P tools/offline-test/menutoggle.py
+      - run: python -P tools/offline-test/search.py
+      # (WoW Forever's own data: its combat list, caves, painted gaps, sea chart, places to explore and battleground maps)
       - if: matrix.client == 'forever'
         run: |
           python -P tools/offline-test/combat.py
@@ -62,5 +66,6 @@ jobs:
           python -P tools/offline-test/fog.py
           python -P tools/offline-test/chart.py
           python -P tools/offline-test/explore.py
+          python -P tools/offline-test/battlegrounds.py
       - name: The tools at least compile
         run: python -m compileall -q tools

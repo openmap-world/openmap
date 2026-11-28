@@ -101,6 +101,17 @@ local function ShowIcon(icon, look)
 	icon:SetSize(s, s)
 end
 
+-- a tooltip line's keys in gold, the text before its colon ("Shift-right-click: take it off the map")
+local function GoldKeys(line)
+	local key, rest = line:match("^(.-)([:：].*)$")
+	if not key or key == "" then return line end
+	return "|cffffd100" .. key .. "|r" .. rest
+end
+ns.GoldKeys = GoldKeys   -- (the map pins' tooltips too: Pins.lua, Nav.lua)
+
+-- a button's right-click line, for its tooltip: "Right-click: <what it does>", the key in gold (API.lua)
+function mod.RightClickTip(text) return GoldKeys(L["Right-click: %s"]:format(text)) end
+
 local function Tip(owner, anchor, title, ...)
 	GameTooltip:SetOwner(owner, anchor)
 	GameTooltip:AddLine(title, LIT[1], LIT[2], 0)
@@ -250,6 +261,10 @@ local function Rows()
 	rows[#rows + 1] = { L["Dungeons"] }
 	rows[#rows + 1] = row(L["Dungeon maps"], "dungeonMaps", Icon("INV_Misc_Map_01"), mod.DungeonMapsOn, mod.SetDungeonMaps)
 	rows[#rows + 1] = optRow(L["Dungeon maps inside dungeons"], "dungeonInside", Icon("INV_Misc_Key_13"))
+	if mod.SetBattlegroundMaps then             -- (Battlegrounds.lua: WoW Forever's toc loads it, retail's doesn't)
+		rows[#rows + 1] = row(L["Battleground maps"], "bgMaps", Icon("INV_BannerPVP_02"),
+			function() return db.bgMaps ~= false end, mod.SetBattlegroundMaps)
+	end
 	rows[#rows + 1] = optRow(L["Level ranges"], "dungeonLevels", Icon("Spell_ChargePositive"))
 	rows[#rows + 1] = optRow(L["Dungeon bosses"], "dungeonBosses", Icon("INV_Misc_Bone_ElfSkull_01"))
 	-- (with Questie, Dungeon Journal or NeedRoll: where they come from is in Options)
@@ -343,6 +358,11 @@ local function Rows()
 	rows[#rows + 1] = optRow(L["Load the zone in view"], "autoSwitch", Icon("Ability_Hunter_Pathfinding"))
 	fromOptions(L["Ctrl-click drops a pin"], "ctrlClickPin", Icon("INV_Misc_Map_01"))
 	fromOptions(L["Follow new pins"], "pinsFollowNew", Icon("INV_Misc_Map_01"))
+	if _G.TomTom and TomTom.AddWaypoint then      -- (#444: only with TomTom on)
+		fromOptions(L["TomTom waypoint too"], "tomtom", Icon("INV_Misc_Map_01"))
+	end
+	-- (the game's waypoint arrow's distance in meters, Nav.lua: here, as OpenMap's settings open on this menu)
+	fromOptions(L["Waypoint distance in meters"], "waypointMeters", Icon("INV_Misc_Map_01"))
 	rows[#rows + 1] = { L["Reopen map (choose one)"] }
 	for _, choice in ipairs({ { "player", L["Center on player"] }, { "zoom", L["Center on player, keep zoom"] }, { "inzone", L["Center on your zone"] }, { "always", L["Always remember"] },
 		{ "visible", L["Remember while visible"] } }) do
@@ -404,13 +424,18 @@ end
 --------------------------------------------------------------------------------
 
 local function SetLit(b, state)
+	local e = b.entry
+	-- (another addon's switch can light and grey its button apart from its state: litOf, greyOf, API.lua)
+	local lit = state == "on"
+	if e and e.litOf then lit = e.litOf() end
 	if b.boxed then
-		local c = state == "on" and LIT or BRONZE
+		local c = lit and LIT or BRONZE
 		b:SetBackdropBorderColor(c[1], c[2], c[3], 1)
 	end
-	b.glow:SetShown(state == "on")
+	b.glow:SetShown(lit)
 	-- (an action can be greyed and lit at once: the Pins list open while your pins are hidden)
-	local grey = state == "off" or (b.entry and b.entry.grey and b.entry.grey()) or false
+	local grey = state == "off" or (e and e.grey and e.grey()) or false
+	if e and e.greyOf then grey = e.greyOf() end
 	b.icon:SetDesaturated(grey)
 	b.icon:SetAlpha(grey and 0.55 or 1)
 end
@@ -566,6 +591,8 @@ local RefreshFavorites, RefreshRail
 local function FavClick(self, button)
 	if button == "RightButton" and IsShiftKeyDown() then
 		SetFavorite(self.entry.id, false)
+	elseif button == "RightButton" and self.entry.onRight then   -- (another addon's switch: its own right-click, API.lua)
+		self.entry.onRight()
 	elseif button == "RightButton" and not self.entry.right then
 		return
 	elseif self.entry.run then
@@ -580,9 +607,10 @@ end
 local function FavEnter(self)
 	local e2 = self.entry
 	local state = State(e2)
-	local off = L["Shift-right-click: take it off the map"]
+	local off = GoldKeys(L["Shift-right-click: take it off the map"])
 	Tip(self, self.tipAnchor or "ANCHOR_TOP", e2[1],
 		e2.run and { e2.tip } or { state == "on" and L["On: click to turn it off"] or L["Off: click to turn it on"] },
+		e2.rightTip and e2.rightTip() and { e2.rightTip(), 0.6, 0.6, 0.6 },
 		{ off .. " " .. L["(the stars in the OpenMap menu put buttons here)"], 0.6, 0.6, 0.6 })
 end
 
@@ -704,7 +732,7 @@ local function BuildRail()
 	rail.main:SetScript("OnDragStop", EndDrag)
 	rail.main:SetScript("OnEnter", function(self)
 		Tip(self, self.tipAnchor or "ANCHOR_LEFT", "OpenMap", { L["Search, find me, map pins, the quest log, report a problem, options, and what the map shows."] },
-			{ L["Drag it anywhere round the map's edge."], 0.6, 0.6, 0.6 })
+			{ GoldKeys(L["Drag: move it anywhere round the map's edge"]), 0.6, 0.6, 0.6 })
 	end)
 	rail.main:SetScript("OnLeave", GameTooltip_Hide)
 	-- the arrow: the way the favourites go to unfold them, back toward the OpenMap tab to fold them
@@ -1357,7 +1385,7 @@ function mod:SetupPanel(worldMap)
 	close:SetFrameLevel(menu:GetFrameLevel() + 20)
 	close:SetHitRectInsets(-4, -4, -4, -4)
 	close:SetScript("OnClick", function() SetOpen(false) end)
-	if not PadView() then tinsert(UISpecialFrames, "OpenMapMenu") end
+	if not PadView() then ns.CloseOnEscape("OpenMapMenu") end
 	menu:SetScript("OnHide", function()
 		-- (Escape, or the X: closed. The map closing hides it too, but then it opens again with the map)
 		if map:IsShown() then
@@ -1382,11 +1410,7 @@ function mod:SetupPanel(worldMap)
 	local inner = W - 2 * PAD
 	local y = -titleH - 12
 	if titleH == 0 then y = -30 end
-	local search = mod.CreateSearch and mod.CreateSearch(menu, inner - 8)
-	if search then
-		search:SetPoint("TOPLEFT", PAD + 6, y)
-		y = y - 32
-	end
+	-- (the search is on the window's title bar now, Nav.lua: always there with OpenMap's map, not one click away)
 
 	-- the actions: a tile each, with its star in the corner
 	local actions = Actions()
@@ -1410,7 +1434,10 @@ function mod:SetupPanel(worldMap)
 			RefreshTiles()
 			RefreshFavorites()
 		end)
-		t:SetScript("OnEnter", function(self) Tip(self, "ANCHOR_TOP", self.entry[1], { self.entry.tip }) end)
+		t:SetScript("OnEnter", function(self)
+			local e = self.entry
+			Tip(self, "ANCHOR_TOP", e[1], { e.tip }, e.rightTip and e.rightTip() and { e.rightTip(), 0.6, 0.6, 0.6 })
+		end)
 		t:SetScript("OnLeave", GameTooltip_Hide)
 		t.star = MakeStar(t, function() RefreshTiles() RefreshFavorites() end)
 		t.star:SetPoint("TOPRIGHT", -2, -2)
@@ -1501,11 +1528,15 @@ function mod:SetupPanel(worldMap)
 	zoomRow = SliderRow(sliders, COL, { label = L["Deepest zoom"], icon = Icon("INV_Misc_Spyglass_02"), range = mod.MAX_ZOOM,
 		get = function() return mod.db.maxZoom end, set = mod.SetMaxZoom,
 		tip = L["How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged."] })
-	miniRow = SliderRow(sliders, COL, { label = L["Minimap detail from"], icon = Icon("Spell_Nature_FarSight"), range = mod.MINI_FROM,
-		get = function() return mod.db.minimapFrom end,
-		set = function(v) mod.db.minimapFrom = v if mod.RefreshView then mod.RefreshView() end end,
+	-- (the zoom it mixes in from, the other way round: further right, sooner; at the far right, from the whole world,
+	-- always. A player took the far right for "the most", and it was the latest. Options keeps the zoom itself)
+	local miniLo, miniHi = mod.MINI_FROM[1], mod.MINI_FROM[2]
+	miniRow = SliderRow(sliders, COL, { label = L["Minimap detail"], icon = Icon("Spell_Nature_FarSight"), range = mod.MINI_FROM,
+		get = function() return miniLo + miniHi - (mod.db.minimapFrom or 20) end,
+		set = function(v) mod.db.minimapFrom = miniLo + miniHi - v if mod.RefreshView then mod.RefreshView() end end,
+		text = function(v) return v >= miniHi and L["Always"] or ("%dx"):format(miniLo + miniHi - v) end,
 		enabled = function() return mod.db.minimap and (mod.db.minimapMix or 0) > 0 end,
-		tip = L["How far in the minimap's detail starts to mix in: lower comes in sooner, higher later."] })
+		tip = L["How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom."] })
 	opacityRow = SliderRow(sliders, COL, { label = L["Minimap opacity"], icon = Icon("Spell_Nature_FarSight"), range = { 0, 1, 0.05 },
 		get = function() return mod.db.minimapDeep end,
 		set = function(v) mod.db.minimapDeep = v if mod.RefreshView then mod.RefreshView() end end,
@@ -1694,7 +1725,7 @@ function mod:SetupPanel(worldMap)
 	grip:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
 	grip:SetScript("OnEnter", function(self)
 		Tip(self, "ANCHOR_TOP", L["Resize the OpenMap menu"],
-			{ L["Drag to change width and height. The settings scroll when needed."] })
+			{ GoldKeys(L["Drag: change its width and height. The settings scroll when needed."]) })
 	end)
 	grip:SetScript("OnLeave", GameTooltip_Hide)
 
@@ -1739,13 +1770,14 @@ end
 -- opening the map first if it's closed (a player's request: a key for Find me)
 -- (in a section of their own, each named OpenMap: ..., so the bindings' search finds them: in the AddOns
 -- section, under a header, they were hard to find)
-for key, text in pairs({ FIND = L["Find me"], PIN = L["Drop a pin"], PINS = L["Pins"], QUILL = L["Quill"],
+for key, text in pairs({ FIND = L["Find me"], SEARCH = L["Find a place"], PIN = L["Drop a pin"], PINS = L["Pins"], QUILL = L["Quill"],
 	QUESTLOG = L["Quest log"], MENU = L["The map's menu"] }) do
 	_G["BINDING_NAME_OPENMAP_" .. key] = "OpenMap: " .. text
 end
 function _G.OpenMap_Binding(id)
 	if not (mod.enabled and menu) then return end
 	if id == "menu" then mod:OpenMenu() return end
+	if id == "search" then if mod.FocusSearch then mod.FocusSearch() end return end
 	local run
 	for _, e in ipairs(Actions()) do if e.id == id then run = e.run end end
 	if not run then return end

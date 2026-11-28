@@ -1198,13 +1198,13 @@ local function DockEnter(pin)
 	local info = pin.away and C_Map.GetMapInfo(pin.away)
 	if info then
 		GameTooltip:AddLine(L["To"] .. " " .. (info.name or "?"), 1, 1, 1)
-		GameTooltip:AddLine(L["Click to open its map"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine((ns.GoldKeys or tostring)(L["Click: open its map"]), 0.6, 0.6, 0.6)
 	elseif pin.to then
 		-- where it goes: the zone at the other end, in the player's language
 		local chain = S.ChainAt(pin.to[1], pin.to[2])
 		local info = C_Map.GetMapInfo(chain[#chain])
 		if info and info.name then GameTooltip:AddLine(L["To"] .. " " .. info.name, 1, 1, 1) end
-		GameTooltip:AddLine(L["Click to go to the other end"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine((ns.GoldKeys or tostring)(L["Click: go to the other end"]), 0.6, 0.6, 0.6)
 	end
 	GameTooltip:Show()
 end

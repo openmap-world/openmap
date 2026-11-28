@@ -14,6 +14,18 @@ end
 
 function mod.HasDungeonJournal() return Journal() ~= nil end
 
+-- Its map up on the world map now (its own World Map button, or a right-click, puts it away).
+local attachedHooked
+function mod.DungeonJournalMapShown()
+	local dj = Journal()
+	if not dj or type(dj.IsWorldMapOverlayAttached) ~= "function" then return false end
+	if not attachedHooked and type(dj.RefreshWorldMapOverlay) == "function" then
+		attachedHooked = true
+		hooksecurefunc(dj, "RefreshWorldMapOverlay", function() mod:RefreshInstancePins() end)
+	end
+	return Safe.Call(dj.IsWorldMapOverlayAttached) and true or false
+end
+
 -- Journal's page names can use different punctuation ("Scarlet Monastery: Graveyard").
 function mod.DungeonJournalPage(inst, dj)
 	dj = dj or Journal()

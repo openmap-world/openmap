@@ -22,6 +22,8 @@ class ZoneWaypointTests(unittest.TestCase):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(r"""
             Enum = { UIMapType = { Continent = 2, Zone = 3 } }
+            fight = false
+            function InCombatLockdown() return fight end
             -- the waypoint as Blizzard set it: on the continent (1415), at its own clamped point
             wp = { 1415, 0.9, 0.5 }
             set, tracked = {}, false
@@ -45,6 +47,11 @@ class ZoneWaypointTests(unittest.TestCase):
             function mod.FromWorld(id, u, v) return (u % 0.5) * 2, v end
         """ + m.group(0))
 
+
+    def test_in_a_fight_left_as_the_game_set_it(self):
+        # (set from OpenMap's code in a fight, the tracker's next redraw failed: #295)
+        self.lua.execute("fight = true mod.ZoneWaypoint()")
+        self.assertEqual(len(list(self.lua.eval("set").values())), 0)
     def test_put_on_the_zone_under_the_cursor_and_followed(self):
         self.lua.execute("mod.ZoneWaypoint()")
         p = self.lua.eval("set[1]")
@@ -69,6 +76,112 @@ class ZoneWaypointTests(unittest.TestCase):
         # (its own update, as it sets the zone's: nothing more)
         self.lua.execute("mod.ZoneWaypoint() mod.ZoneWaypoint()")
         self.assertEqual(self.lua.eval("#set"), 1)
+
+
+class TomTomTests(unittest.TestCase):
+    """A waypoint followed sets TomTom's too, unless "TomTom waypoint too" is off (#444)"""
+    def setUp(self):
+        clear = re.search(r"\nlocal tomtomPoint\nlocal function ClearTomTom\(\)\n.*?\nend\n", NAV, re.S)
+        track = re.search(r"\nfunction mod\.TrackPoint\(mapID, x, y, title\)\n.*?\nend\n", NAV, re.S)
+        toggle = re.search(r"\nfunction mod\.SetTomTomWaypoint\(on\).*?\nend\n", NAV, re.S)
+        for m in (clear, track, toggle):
+            self.assertIsNotNone(m, "Nav.lua's TomTom waypoint")
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.lua.execute(r"""
+            function InCombatLockdown() return false end
+            C_Map = { GetMapInfo = function(id) return { name = "Elwynn Forest" } end }
+            added, removed = {}, {}
+            TomTom = {
+                AddWaypoint = function(self, id, x, y, opts) added[#added + 1] = { id, x, y, opts.title } return "handle" .. #added end,
+                RemoveWaypoint = function(self, h) removed[#removed + 1] = h end,
+            }
+            function RefreshWaypoint() end
+            mod = { db = {}, char = {} }
+        """ + clear.group(0) + track.group(0) + toggle.group(0))
+
+    def test_on_by_default(self):
+        self.lua.execute("mod.TrackPoint(1429, 0.4, 0.6, 'Goldshire')")
+        self.assertEqual(self.lua.eval("#added"), 1)
+        self.assertEqual(self.lua.eval("added[1][4]"), "Goldshire")
+
+    def test_off_no_tomtom_waypoint(self):
+        self.lua.execute("mod.db.tomtom = false mod.TrackPoint(1429, 0.4, 0.6)")
+        self.assertEqual(self.lua.eval("#added"), 0)
+        self.assertEqual(self.lua.eval("mod.char.pin[1]"), 1429)    # (OpenMap's own waypoint still set)
+
+    def test_turned_off_clears_the_one_set(self):
+        self.lua.execute("mod.TrackPoint(1429, 0.4, 0.6) mod.SetTomTomWaypoint(false)")
+        self.assertEqual(self.lua.eval("removed[1]"), "handle1")
+        self.assertFalse(self.lua.eval("mod.db.tomtom"))
+
+
+class WaypointMetersTests(unittest.TestCase):
+    """The game's waypoint arrow's distance in meters (Nav.lua): its text written again after Blizzard's update, from a
+    secure hook, nothing else of Blizzard's written; off by default, a secret distance left alone, a client without the
+    method or text: nothing"""
+
+    def setUp(self):
+        block = NAV[NAV.index("local YARD = 0.9144"):NAV.index("function mod:NavOptions")]
+        self.lua = LuaRuntime(unpack_returned_tuples=True)
+        self.lua.execute("""
+            secret = false
+            function issecretvalue(v) return secret and type(v) == "number" end
+            Safe = {}
+            function Safe.Value(v) if issecretvalue(v) then return nil end return v end
+            function Safe.Call(fn, ...) local ok, v = pcall(fn, ...) if ok then return Safe.Value(v) end end
+            function Safe.Finite(n) return type(n) == "number" and n == n and n ~= math.huge end
+            L = setmetatable({}, { __index = function(_, k) return k end })
+            mod = { db = {} }
+            distance = 250
+            C_Navigation = { GetDistance = function() return distance end }
+            function hooksecurefunc(t, name, fn)
+                local was = rawget(t, name)
+                rawset(t, name, function(...) was(...) fn(...) end)
+            end
+            -- Blizzard's frame, locked: a write to it (not its text's own) errors
+            text = { shown = true }
+            function text:IsShown() return self.shown end
+            function text:SetText(t) self.text = t end
+            function text:GetText() return self.text end
+            SuperTrackedFrame = { DistanceText = text }
+            function SuperTrackedFrame:UpdateDistanceText() self.DistanceText:SetText(string.format("%d yds", distance)) end
+            setmetatable(SuperTrackedFrame, { __newindex = function(_, k) error("wrote Blizzard's " .. tostring(k)) end })
+            IN_GAME_NAVIGATION_RANGE = "%s yds"
+        """)
+        self.lua.execute(block)
+
+    def update(self):
+        self.lua.execute("SuperTrackedFrame:UpdateDistanceText()")
+        return self.lua.eval("text.text")
+
+    def test_off_by_default_blizzards_yards(self):
+        self.assertTrue(self.lua.eval("mod.SetupWaypointMeters()"))
+        self.assertEqual(self.update(), "250 yds")
+
+    def test_meters_and_km(self):
+        self.lua.execute("mod.SetupWaypointMeters() mod.db.waypointMeters = true")
+        self.assertEqual(self.update(), "229 m")                 # (250 yards)
+        self.lua.execute("distance = 2000")
+        self.assertEqual(self.update(), "1.8 km")
+        self.assertEqual(self.lua.eval("IN_GAME_NAVIGATION_RANGE"), "%s yds")   # (the game's text untouched)
+
+    def test_left_alone_when_secret_hidden_or_none(self):
+        self.lua.execute("mod.SetupWaypointMeters() mod.db.waypointMeters = true secret = true")
+        self.assertEqual(self.update(), "250 yds")
+        self.lua.execute("secret = false text.shown = false")
+        self.assertEqual(self.update(), "250 yds")
+        self.lua.execute("text.shown = true distance = 0")
+        self.assertEqual(self.update(), "0 yds")
+
+    def test_hooked_once_and_not_without_the_frame(self):
+        self.lua.execute("mod.SetupWaypointMeters() mod.SetupWaypointMeters() mod.db.waypointMeters = true")
+        self.assertEqual(self.update(), "229 m")
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute("L = {} mod = { db = {} } Safe = {}")
+        lua.execute(NAV[NAV.index("local YARD = 0.9144"):NAV.index("function mod:NavOptions")])
+        self.assertFalse(lua.eval("mod.SetupWaypointMeters()"))
+        lua.execute("SuperTrackedFrame = {}")
+        self.assertFalse(lua.eval("mod.SetupWaypointMeters()"))
 
 
 if __name__ == "__main__":

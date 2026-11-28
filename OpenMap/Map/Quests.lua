@@ -8,13 +8,14 @@
 --
 -- In the controller view (PadView.lua) Blizzard's map is under the view, unseen, and so are its pins:
 -- every quest is OpenMap's icon there, the zone Blizzard's map is on too (with "all quests" off, only
--- that zone's). A click there tracks the quest and zooms to it, but doesn't open Blizzard's quest
--- log: nothing of Blizzard's map or quest log is changed from OpenMap's code while that view is on.
+-- that zone's). A click on an icon, in either view, zooms to the quest and makes it the focused one if
+-- it's tracked: Blizzard's quest log and its list of tracked quests aren't changed from OpenMap's code (Click).
 -- The "!" of the quests you can start there are OpenMap's icons too: the zone Blizzard's map is on, its
 -- quest lines' starts (C_QuestLine.GetAvailableQuestLines), as its own pins for them show.
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local L = ns.L
@@ -80,8 +81,7 @@ local function Enter(pin)
 			if text and not finished then GameTooltip:AddLine((_G.QUEST_DASH or "- ") .. text, 1, 1, 1, true) end
 		end
 	end
-	GameTooltip:AddLine((PadView() or (map and map.IsMaximized and map:IsMaximized())) and L["Click: track this quest and zoom to it"]
-		or L["Click: track this quest, zoom to it and show it in the quest log"], 0.6, 0.6, 0.6)
+	GameTooltip:AddLine(Gold(L["Click: zoom to this quest"]), 0.6, 0.6, 0.6)
 	GameTooltip:Show()
 	-- (the controller view: the quest's area, as Blizzard's map shows it for its own icons: PadView.lua)
 	if PadView() and mod.PadQuestArea then mod.PadQuestArea(q.id, q.map) end
@@ -165,36 +165,28 @@ local function EnterOffer(pin)
 	GameTooltip:Show()
 end
 
--- a click: the quest tracked (as Blizzard's own quest icons do), the view in on it, and on the windowed
--- map its details in the quest log beside it, opened if it was closed. Not full screen: Blizzard's
--- details call takes the map out of full screen into the windowed map with its log. Never in combat:
--- opening the log lays the window out again
+-- a click: the view in on the quest, and the quest the focused (super-tracked) one if it's tracked. It used
+-- to track the quest and open the quest log too (0.8.13, and deferred out of fights in this version's tests).
+-- Both ran Blizzard's code as OpenMap's, and what that code writes stays OpenMap's (#295, #426, #446; sato942's
+-- reading of Blizzard's Lua, PR #504):
+-- - C_QuestLog.AddQuestWatch sends QUEST_WATCH_LIST_CHANGED inside the call (a synchronous event): the
+--   objective tracker marks itself dirty from OpenMap's code, and its next updates are OpenMap's, in a fight
+--   or not (the "auras ... secret while tainted by OpenMap" errors, and a tracker that stops updating).
+-- - Opening the quest log (HandleUserActionOpenSidePanel) lays Blizzard's map window out from OpenMap's code:
+--   the kind of change that blocked Report AFK on the battleground map (#472); and the details it showed held
+--   a quest ID OpenMap's code set, which Share passed to a protected call (#426).
+-- SUPER_TRACKING_CHANGED isn't synchronous: Blizzard's code answers it as its own. A quest that isn't tracked
+-- is left so (Blizzard's own icons track before they super-track): it's tracked from the quest log.
 local ZOOM_TO = 6
 local function Click(pin)
 	local q = pin.data
 	if not q then return end
-	if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID then
-		if C_QuestLog.AddQuestWatch and not (C_QuestLog.GetQuestWatchType and C_QuestLog.GetQuestWatchType(q.id)) then
-			pcall(C_QuestLog.AddQuestWatch, q.id)
-		end
-		C_SuperTrack.SetSuperTrackedQuestID(q.id)
+	if C_SuperTrack and C_SuperTrack.SetSuperTrackedQuestID
+		and C_QuestLog.GetQuestWatchType and C_QuestLog.GetQuestWatchType(q.id) then
+		ns.OutOfCombat("quest", function() pcall(C_SuperTrack.SetSuperTrackedQuestID, q.id) end)
 	end
 	Focus()                                         -- (at once: the redraw the event asks for comes later)
 	if S.GlideToWorld then S.GlideToWorld(pin.u, pin.v, ZOOM_TO) end
-	-- (the controller view: Blizzard's quest log is left as it is, as a dungeon's map is: its details
-	-- would set the pad's buttons from OpenMap's code)
-	if PadView() then return end
-	-- (in combat with the gamepad's UI, Blizzard's quest details would set the pad's buttons from
-	-- OpenMap's code, which combat blocks: they wait, as a dungeon's map does)
-	if mod.PadWaits and mod.PadWaits() then return end
-	local log = map and map.QuestLog
-	local details = G("QuestMapFrame_ShowQuestDetails")
-	if not log or not details or (map.IsMaximized and map:IsMaximized()) then return end
-	if not log:IsShown() and not InCombatLockdown() and map.HandleUserActionOpenSidePanel then
-		map:HandleUserActionOpenSidePanel()
-		if map.SidePanelToggle and map.SidePanelToggle.Refresh then map.SidePanelToggle:Refresh() end
-	end
-	if log:IsShown() then details(q.id) end
 end
 
 -- the state mark over a pin's badge (made once: pins are pooled, and this set's are only ever quests)

@@ -9,25 +9,25 @@
  {
   "en": "%d %s %s",
   "where": [
-   "Map/News.lua:52"
+   "Map/News.lua:54"
   ]
  },
  {
   "en": "%d bosses",
   "where": [
-   "Map/Dungeons.lua:1334"
+   "Map/Dungeons.lua:1354"
   ]
  },
  {
   "en": "%d changes, newest first.",
   "where": [
-   "Map/News.lua:214"
+   "Map/News.lua:253"
   ]
  },
  {
   "en": "%d drawn",
   "where": [
-   "Map/Pins.lua:466"
+   "Map/Pins.lua:483"
   ]
  },
  {
@@ -39,43 +39,43 @@
  {
   "en": "%d notes",
   "where": [
-   "Map/Paint.lua:477"
+   "Map/Paint.lua:479"
   ]
  },
  {
   "en": "%d stops",
   "where": [
-   "Map/Flights.lua:256"
+   "Map/Flights.lua:257"
   ]
  },
  {
   "en": "%d versions",
   "where": [
-   "Map/News.lua:240"
+   "Map/News.lua:279"
   ]
  },
  {
   "en": "%s is also changing the world map. Turn off its world map options (or the addon) so the two don't fight.",
   "where": [
-   "Map/Compat.lua:193"
+   "Map/Compat.lua:209"
   ]
  },
  {
   "en": "%s shared %d map pin(s) with you:",
   "where": [
-   "Map/Pins.lua:316"
+   "Map/Pins.lua:329"
   ]
  },
  {
   "en": "(no text)",
   "where": [
-   "Map/Paint.lua:107"
+   "Map/Paint.lua:108"
   ]
  },
  {
   "en": "(placed: click to move it)",
   "where": [
-   "Map/Dungeons.lua:2157"
+   "Map/Dungeons.lua:2176"
   ]
  },
  {
@@ -87,7 +87,7 @@
  {
   "en": "(the stars in the OpenMap menu put buttons here)",
   "where": [
-   "Map/Panel.lua:585"
+   "Map/Panel.lua:612"
   ]
  },
  {
@@ -99,14 +99,14 @@
  {
   "en": "... and %d more",
   "where": [
-   "Map/Friends.lua:532",
-   "Map/Pins.lua:314"
+   "Map/Friends.lua:580",
+   "Map/Pins.lua:327"
   ]
  },
  {
   "en": "1 stop",
   "where": [
-   "Map/Flights.lua:256"
+   "Map/Flights.lua:257"
   ]
  },
  {
@@ -124,19 +124,25 @@
  {
   "en": "A bar along the map's foot: your position, and the zone and position under the cursor.",
   "where": [
-   "Map/Extras.lua:1175"
+   "Map/Extras.lua:1296"
+  ]
+ },
+ {
+  "en": "A battleground's map zooms in like the world map, and the game's minimap of it shows its detail up close (as Minimap detail is set). Off: the game's own map, as it was.",
+  "where": [
+   "Map/Battlegrounds.lua:210"
   ]
  },
  {
   "en": "A bigger brush",
   "where": [
-   "Map/Paint.lua:518"
+   "Map/Paint.lua:520"
   ]
  },
  {
   "en": "A button on the minimap's edge that opens the map and its menu (right-click: this window). Drag it round the minimap. OpenMap is in the minimap's AddOns list too.",
   "where": [
-   "Map/Launcher.lua:123"
+   "Map/Launcher.lua:124"
   ]
  },
  {
@@ -148,37 +154,43 @@
  {
   "en": "A code to copy and paste anywhere: another player adds it with their OpenMap (Pins, Import).",
   "where": [
-   "Map/Pins.lua:576"
+   "Map/Pins.lua:593"
   ]
  },
  {
   "en": "A dungeon's map has a Quests tab: with Questie, the quests for it that you can take, marked done or in your log; with Dungeon Journal or NeedRoll, a button that opens them there.",
   "where": [
-   "Map/Dungeons.lua:2306"
+   "Map/Dungeons.lua:2326"
   ]
  },
  {
   "en": "A dungeon's map lists its bosses, in the game's order, and pins where they are.",
   "where": [
-   "Map/Dungeons.lua:2299"
+   "Map/Dungeons.lua:2319"
   ]
  },
  {
   "en": "A map addon brings its own HereBeDragons (%s), which OpenMap doesn't know: its pins keep the game's own placement.",
   "where": [
-   "Map/Extras.lua:662"
+   "Map/Extras.lua:694"
   ]
  },
  {
   "en": "A pin you drop becomes the waypoint, which other addons route to (Shortest Path Forever). Off, the waypoint is left as it is: the pin's Follow sets it.",
   "where": [
-   "Map/Pins.lua:823"
+   "Map/Pins.lua:841"
   ]
  },
  {
   "en": "A pin you drop goes to your party or raid once its card is closed (those with OpenMap are asked whether to add it).",
   "where": [
-   "Map/Pins.lua:825"
+   "Map/Pins.lua:843"
+  ]
+ },
+ {
+  "en": "A pin you follow on the map sets TomTom's waypoint and arrow as well as Blizzard's.",
+  "where": [
+   "Map/Nav.lua:950"
   ]
  },
  {
@@ -190,13 +202,13 @@
  {
   "en": "A smaller brush",
   "where": [
-   "Map/Paint.lua:513"
+   "Map/Paint.lua:515"
   ]
  },
  {
   "en": "A star puts that action or setting on the map as a button of its own.",
   "where": [
-   "Map/Panel.lua:1604"
+   "Map/Panel.lua:1640"
   ]
  },
  {
@@ -208,52 +220,52 @@
  {
   "en": "Add the pins",
   "where": [
-   "Map/Pins.lua:389"
+   "Map/Pins.lua:406"
   ]
  },
  {
   "en": "Add them",
   "where": [
-   "Map/Pins.lua:298"
+   "Map/Pins.lua:311"
   ]
  },
  {
   "en": "Added %d map pin(s) from %s.",
   "where": [
-   "Map/Pins.lua:302",
-   "Map/Pins.lua:330"
+   "Map/Pins.lua:315",
+   "Map/Pins.lua:343"
   ]
  },
  {
   "en": "Added %d map pin(s) from the code.",
   "where": [
-   "Map/Pins.lua:393"
+   "Map/Pins.lua:410"
   ]
  },
  {
   "en": "Airship",
   "where": [
-   "Map/Stitch.lua:1173"
+   "Map/Stitch.lua:1196"
   ]
  },
  {
   "en": "All the notes as text, to copy and paste where they're needed.",
   "where": [
-   "Map/Paint.lua:525"
+   "Map/Paint.lua:527"
   ]
  },
  {
   "en": "Alt-click: delete it",
   "where": [
-   "Map/Pins.lua:138",
-   "Map/Pins.lua:716"
+   "Map/Pins.lua:140",
+   "Map/Pins.lua:734"
   ]
  },
  {
   "en": "Always remember",
   "where": [
-   "Map/Nav.lua:764",
-   "Map/Panel.lua:346"
+   "Map/Nav.lua:943",
+   "Map/Panel.lua:365"
   ]
  },
  {
@@ -265,13 +277,13 @@
  {
   "en": "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).",
   "where": [
-   "Map/WorldMap.lua:1893"
+   "Map/WorldMap.lua:2186"
   ]
  },
  {
   "en": "Areas you haven't explored yet: shown as they are, or hidden like Blizzard's own map (blank parchment until you get there).",
   "where": [
-   "Map/WorldMap.lua:1964"
+   "Map/WorldMap.lua:2263"
   ]
  },
  {
@@ -281,21 +293,28 @@
   ]
  },
  {
+  "en": "Arrow size",
+  "where": [
+   "Map/Panel.lua:1560",
+   "Map/WorldMap.lua:2226"
+  ]
+ },
+ {
   "en": "As a code",
   "where": [
-   "Map/Pins.lua:738"
+   "Map/Pins.lua:756"
   ]
  },
  {
   "en": "At the closest zoom, how much of the game's minimap is mixed in for detail. The painted map always leads.",
   "where": [
-   "Map/Close.lua:880"
+   "Map/Close.lua:887"
   ]
  },
  {
   "en": "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.",
   "where": [
-   "Map/Close.lua:877"
+   "Map/Close.lua:884"
   ]
  },
  {
@@ -307,45 +326,58 @@
  {
   "en": "Auto",
   "where": [
-   "Map/Panel.lua:1521"
+   "Map/Panel.lua:1551"
   ]
  },
  {
   "en": "Auto-add group's pins",
   "where": [
-   "Map/Panel.lua:356",
-   "Map/Pins.lua:826"
+   "Map/Panel.lua:375",
+   "Map/Pins.lua:844"
   ]
  },
  {
   "en": "Back",
   "where": [
-   "Map/Dungeons.lua:1143",
-   "Map/Dungeons.lua:1631"
+   "Map/Dungeons.lua:1183",
+   "Map/Dungeons.lua:1650"
   ]
  },
  {
   "en": "Back to %s",
   "where": [
-   "Map/Dungeons.lua:1143"
+   "Map/Dungeons.lua:1183"
   ]
  },
  {
   "en": "Back to the world map, where you were",
   "where": [
-   "Map/Dungeons.lua:383"
+   "Map/Dungeons.lua:393"
   ]
  },
  {
   "en": "Back to the world map, where you were (or right-click the map, or scroll out)",
   "where": [
-   "Map/Dungeons.lua:1635"
+   "Map/Dungeons.lua:1654"
   ]
  },
  {
   "en": "Bankers",
   "where": [
    "Map/Townsfolk.lua:20"
+  ]
+ },
+ {
+  "en": "Battleground",
+  "where": [
+   "Map/Nav.lua:380"
+  ]
+ },
+ {
+  "en": "Battleground maps",
+  "where": [
+   "Map/Battlegrounds.lua:208",
+   "Map/Panel.lua:265"
   ]
  },
  {
@@ -381,19 +413,19 @@
  {
   "en": "Blizzard's glow on the zone you're pointing at.",
   "where": [
-   "Map/WorldMap.lua:1868"
+   "Map/WorldMap.lua:2161"
   ]
  },
  {
   "en": "Blizzard's waypoint and its arrow on it (and TomTom's, if you use it).",
   "where": [
-   "Map/Pins.lua:529"
+   "Map/Pins.lua:546"
   ]
  },
  {
   "en": "Blue",
   "where": [
-   "Map/Pins.lua:40",
+   "Map/Pins.lua:42",
    "Map/Sketch.lua:23"
   ]
  },
@@ -401,52 +433,52 @@
   "en": "Boat",
   "where": [
    "Map/Routes.lua:208",
-   "Map/Stitch.lua:1173"
+   "Map/Stitch.lua:1196"
   ]
  },
  {
   "en": "Boat and zeppelin routes",
   "where": [
-   "Map/Panel.lua:221",
-   "Map/WorldMap.lua:1916"
+   "Map/Panel.lua:232",
+   "Map/WorldMap.lua:2209"
   ]
  },
  {
   "en": "Boat docks (click one: the other end), and boats' routes when routes are shown.",
   "where": [
-   "Map/WorldMap.lua:1920"
+   "Map/WorldMap.lua:2213"
   ]
  },
  {
   "en": "Boats",
   "where": [
-   "Map/Panel.lua:216",
-   "Map/WorldMap.lua:1919"
+   "Map/Panel.lua:227",
+   "Map/WorldMap.lua:2212"
   ]
  },
  {
   "en": "Boss places saved in OpenMapDB (worldmap, bossPlaced) once you /reload or log out; tools/map-dungeons/bosses.py --import adds them to OpenMap's data.",
   "where": [
-   "Map/Dungeons.lua:2214"
+   "Map/Dungeons.lua:2233"
   ]
  },
  {
   "en": "Bosses",
   "where": [
-   "Map/Dungeons.lua:520",
-   "Map/Dungeons.lua:1732"
+   "Map/Dungeons.lua:554",
+   "Map/Dungeons.lua:1751"
   ]
  },
  {
   "en": "Bosses, quests and loot are in the tabs at the map's edge",
   "where": [
-   "Map/Dungeons.lua:1159"
+   "Map/Dungeons.lua:1201"
   ]
  },
  {
   "en": "Brightness of the entire OpenMap map, including explored areas and the sea. Player and quest icons stay bright. 100% restores the original brightness.",
   "where": [
-   "Map/WorldMap.lua:1879"
+   "Map/WorldMap.lua:2172"
   ]
  },
  {
@@ -458,66 +490,66 @@
  {
   "en": "Brush %d",
   "where": [
-   "Map/Paint.lua:476"
+   "Map/Paint.lua:478"
   ]
  },
  {
   "en": "Buttons as edge tabs",
   "where": [
-   "Map/Panel.lua:306"
+   "Map/Panel.lua:322"
   ]
  },
  {
   "en": "Cancel",
   "where": [
-   "Map/Dungeons.lua:847",
-   "Map/Paint.lua:205"
+   "Map/Dungeons.lua:881",
+   "Map/Paint.lua:206"
   ]
  },
  {
   "en": "Caves and dungeon entrances",
   "where": [
-   "Map/Close.lua:894"
+   "Map/Close.lua:901"
   ]
  },
  {
   "en": "Caves underground",
   "where": [
-   "Map/Panel.lua:339"
+   "Map/Panel.lua:355"
   ]
  },
  {
   "en": "Center on player",
   "where": [
-   "Map/Nav.lua:763",
-   "Map/Panel.lua:346"
+   "Map/Nav.lua:942",
+   "Map/Panel.lua:365"
   ]
  },
  {
   "en": "Center on player, keep zoom",
   "where": [
-   "Map/Nav.lua:763",
-   "Map/Panel.lua:346"
+   "Map/Nav.lua:942",
+   "Map/Panel.lua:365"
   ]
  },
  {
   "en": "Center on your zone",
   "where": [
-   "Map/Nav.lua:763",
-   "Map/Panel.lua:346"
+   "Map/Nav.lua:942",
+   "Map/Panel.lua:365"
   ]
  },
  {
   "en": "Chat over the full-screen map",
   "where": [
-   "Map/Panel.lua:329",
-   "Map/Window.lua:671"
+   "Map/Panel.lua:345",
+   "Map/Window.lua:751"
   ]
  },
  {
   "en": "Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Center on your zone: open on the whole zone you're in, wherever you are in it. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area.",
   "where": [
-   "Map/Nav.lua:765"
+   "Map/Nav.lua:944"
   ]
  },
  {
@@ -541,7 +573,7 @@
  {
   "en": "Class-coloured dots for your group anywhere on the stitched map.",
   "where": [
-   "Map/Nav.lua:767"
+   "Map/Nav.lua:946"
   ]
  },
  {
@@ -553,17 +585,17 @@
  {
   "en": "ClassicUI Forever's World map option is on. It lays out the world map window itself, which is known to cause problems with OpenMap: the window can't be resized or moved, and in combat parts of the map can go missing.\n\nTurn that option off? Your interface will reload.",
   "where": [
-   "Map/Window.lua:62"
+   "Map/Window.lua:64"
   ]
  },
  {
   "en": "Clear",
   "where": [
-   "Map/Dungeons.lua:878",
-   "Map/Paint.lua:529",
-   "Map/Paint.lua:534",
-   "Map/Paint.lua:538",
-   "Map/Pins.lua:762",
+   "Map/Dungeons.lua:912",
+   "Map/Paint.lua:531",
+   "Map/Paint.lua:536",
+   "Map/Paint.lua:540",
+   "Map/Pins.lua:780",
    "Map/Sketch.lua:514",
    "Map/Sketch.lua:521",
    "Map/Sketch.lua:525"
@@ -578,312 +610,307 @@
  {
   "en": "Click the map...",
   "where": [
-   "Map/Panel.lua:872"
-  ]
- },
- {
-  "en": "Click to edit its note, follow, share or delete it",
-  "where": [
-   "Map/Pins.lua:136"
-  ]
- },
- {
-  "en": "Click to go there, right-click to edit",
-  "where": [
-   "Map/Paint.lua:385"
-  ]
- },
- {
-  "en": "Click to go there, right-click to open its card",
-  "where": [
-   "Map/Pins.lua:714"
-  ]
- },
- {
-  "en": "Click to go to the other end",
-  "where": [
-   "Map/Stitch.lua:1183"
-  ]
- },
- {
-  "en": "Click to open its map",
-  "where": [
-   "Map/Dungeons.lua:1338",
-   "Map/Stitch.lua:1177"
-  ]
- },
- {
-  "en": "Click to pick one",
-  "where": [
-   "Map/Dungeons.lua:1336"
-  ]
- },
- {
-  "en": "Click to pick one and open its map",
-  "where": [
-   "Map/Dungeons.lua:1340"
-  ]
- },
- {
-  "en": "Click to see it in NeedRoll",
-  "where": [
-   "Map/Dungeons.lua:1886"
-  ]
- },
- {
-  "en": "Click to see loot in NeedRoll",
-  "where": [
-   "Map/Dungeons.lua:1832",
-   "Map/Dungeons.lua:2062"
-  ]
- },
- {
-  "en": "Click to see what's inside",
-  "where": [
-   "Map/Dungeons.lua:1336"
-  ]
- },
- {
-  "en": "Click to see what's inside (no map of it yet)",
-  "where": [
-   "Map/Dungeons.lua:1338"
-  ]
- },
- {
-  "en": "Click to stop following it",
-  "where": [
-   "Map/Nav.lua:235"
-  ]
- },
- {
-  "en": "Click, then click another flight master: the route and its time",
-  "where": [
-   "Map/Flights.lua:288"
+   "Map/Panel.lua:899"
   ]
  },
  {
   "en": "Click, then click the map to add a map pin, with a note if you like (Ctrl-click the map does it any time). Right-click: stop following the waypoint.",
   "where": [
-   "Map/Panel.lua:156"
+   "Map/Panel.lua:167"
+  ]
+ },
+ {
+  "en": "Click: edit its note, follow, share or delete it",
+  "where": [
+   "Map/Pins.lua:138"
+  ]
+ },
+ {
+  "en": "Click: go there",
+  "where": [
+   "Map/Paint.lua:386",
+   "Map/Pins.lua:731"
+  ]
+ },
+ {
+  "en": "Click: go to the other end",
+  "where": [
+   "Map/Stitch.lua:1206"
+  ]
+ },
+ {
+  "en": "Click: open its map",
+  "where": [
+   "Map/Dungeons.lua:1358",
+   "Map/Stitch.lua:1200"
+  ]
+ },
+ {
+  "en": "Click: pick it, then click another flight master for the route and its time",
+  "where": [
+   "Map/Flights.lua:289"
+  ]
+ },
+ {
+  "en": "Click: pick one",
+  "where": [
+   "Map/Dungeons.lua:1356"
+  ]
+ },
+ {
+  "en": "Click: pick one and open its map",
+  "where": [
+   "Map/Dungeons.lua:1360"
+  ]
+ },
+ {
+  "en": "Click: see it in NeedRoll",
+  "where": [
+   "Map/Dungeons.lua:1905"
+  ]
+ },
+ {
+  "en": "Click: see its loot in NeedRoll",
+  "where": [
+   "Map/Dungeons.lua:1851",
+   "Map/Dungeons.lua:2081"
+  ]
+ },
+ {
+  "en": "Click: see what's inside",
+  "where": [
+   "Map/Dungeons.lua:1356"
+  ]
+ },
+ {
+  "en": "Click: see what's inside (no map of it yet)",
+  "where": [
+   "Map/Dungeons.lua:1358"
   ]
  },
  {
   "en": "Click: show the route",
   "where": [
-   "Map/Flights.lua:286"
+   "Map/Flights.lua:287"
+  ]
+ },
+ {
+  "en": "Click: stop following it",
+  "where": [
+   "Map/Nav.lua:289"
   ]
  },
  {
   "en": "Click: the map and its menu",
   "where": [
-   "Map/Launcher.lua:39"
+   "Map/Launcher.lua:40"
   ]
  },
  {
   "en": "Click: track this quest and zoom to it",
   "where": [
-   "Map/Quests.lua:70"
+   "Map/Quests.lua:77"
   ]
  },
  {
   "en": "Click: track this quest, zoom to it and show it in the quest log",
   "where": [
-   "Map/Quests.lua:71"
+   "Map/Quests.lua:78"
   ]
  },
  {
   "en": "Clicking a dungeon entrance opens",
   "where": [
-   "Map/Dungeons.lua:2311"
+   "Map/Dungeons.lua:2331"
   ]
  },
  {
   "en": "Close",
   "where": [
-   "Map/News.lua:306"
+   "Map/News.lua:345"
   ]
  },
  {
   "en": "Code",
   "where": [
-   "Map/Pins.lua:571"
+   "Map/Pins.lua:588"
   ]
  },
  {
   "en": "Colour",
   "where": [
-   "Map/Pins.lua:489"
+   "Map/Pins.lua:506"
   ]
  },
  {
   "en": "Colour matching",
   "where": [
-   "Map/Panel.lua:1533",
-   "Map/WorldMap.lua:1880"
+   "Map/Panel.lua:1569",
+   "Map/WorldMap.lua:2173"
   ]
  },
  {
   "en": "Coming in the next version.",
   "where": [
-   "Map/News.lua:98"
+   "Map/News.lua:100"
   ]
  },
  {
   "en": "Completed",
   "where": [
-   "Map/Dungeons.lua:1885",
-   "Map/Quests.lua:63"
+   "Map/Dungeons.lua:1904",
+   "Map/Quests.lua:70"
   ]
  },
  {
   "en": "Continent",
   "where": [
-   "Map/Nav.lua:305"
+   "Map/Nav.lua:364"
   ]
  },
  {
   "en": "Coordinates",
   "where": [
-   "Map/Extras.lua:1174",
-   "Map/Panel.lua:305"
+   "Map/Extras.lua:1295",
+   "Map/Panel.lua:321"
   ]
  },
  {
   "en": "Credits",
   "where": [
-   "Map/News.lua:94",
-   "Map/News.lua:304"
+   "Map/News.lua:96",
+   "Map/News.lua:343"
   ]
  },
  {
   "en": "Ctrl-click drops a pin",
   "where": [
-   "Map/Panel.lua:343",
-   "Map/Pins.lua:828"
+   "Map/Panel.lua:359",
+   "Map/Pins.lua:848"
   ]
  },
  {
   "en": "Ctrl-click on the map drops a pin. Turn it off if another addon drops its own pin on Ctrl-click (Map Pin Enhanced): the menu's Drop a pin still works.",
   "where": [
-   "Map/Pins.lua:829"
+   "Map/Pins.lua:849"
   ]
  },
  {
   "en": "Darken",
   "where": [
-   "Map/WorldMap.lua:1892"
+   "Map/WorldMap.lua:2185"
   ]
  },
  {
   "en": "Darken unexplored areas",
   "where": [
-   "Map/Panel.lua:287"
+   "Map/Panel.lua:303"
   ]
  },
  {
   "en": "Darkening",
   "where": [
-   "Map/Panel.lua:1535",
-   "Map/WorldMap.lua:1894"
+   "Map/Panel.lua:1571",
+   "Map/WorldMap.lua:2187"
   ]
  },
  {
   "en": "Darkening colour",
   "where": [
-   "Map/WorldMap.lua:1897"
+   "Map/WorldMap.lua:2190"
   ]
  },
  {
   "en": "Debug overlay (FPS)",
   "where": [
-   "Map/Panel.lua:365"
+   "Map/Panel.lua:384"
   ]
  },
  {
   "en": "Deepest zoom",
   "where": [
-   "Map/Panel.lua:1500",
-   "Map/WorldMap.lua:1912"
+   "Map/Panel.lua:1530",
+   "Map/WorldMap.lua:2205"
   ]
  },
  {
   "en": "Default colour",
   "where": [
-   "Map/WorldMap.lua:1906"
+   "Map/WorldMap.lua:2199"
   ]
  },
  {
   "en": "Defaults",
   "where": [
-   "Map/Panel.lua:1591",
-   "Map/Panel.lua:1594"
+   "Map/Panel.lua:1627",
+   "Map/Panel.lua:1630"
   ]
  },
  {
   "en": "Delete",
   "where": [
-   "Map/Paint.lua:206",
-   "Map/Pins.lua:581",
-   "Map/Pins.lua:771"
+   "Map/Paint.lua:207",
+   "Map/Pins.lua:598",
+   "Map/Pins.lua:789"
   ]
  },
  {
   "en": "Delete all %d map pins?",
   "where": [
-   "Map/Pins.lua:764"
+   "Map/Pins.lua:782"
   ]
  },
  {
   "en": "Delete every map pin (you're asked first). One at a time: Alt-click it.",
   "where": [
-   "Map/Pins.lua:765"
+   "Map/Pins.lua:783"
   ]
  },
  {
   "en": "Detail",
   "where": [
-   "Map/Panel.lua:1498"
+   "Map/Panel.lua:1528"
   ]
  },
  {
   "en": "Done",
   "where": [
-   "Map/Dungeons.lua:877",
-   "Map/Dungeons.lua:2143",
-   "Map/Paint.lua:542",
-   "Map/Pins.lua:579",
+   "Map/Dungeons.lua:911",
+   "Map/Dungeons.lua:2162",
+   "Map/Paint.lua:544",
+   "Map/Pins.lua:596",
    "Map/Sketch.lua:531",
    "Map/Sketch.lua:650"
   ]
  },
  {
-  "en": "Drag it anywhere round the map's edge.",
+  "en": "Drag: change its width and height. The settings scroll when needed.",
   "where": [
-   "Map/Panel.lua:706"
+   "Map/Panel.lua:1726"
   ]
  },
  {
-  "en": "Drag to change width and height. The settings scroll when needed.",
+  "en": "Drag: move it anywhere round the map's edge",
   "where": [
-   "Map/Panel.lua:1690"
-  ]
- },
- {
-  "en": "Drag to move the map",
-  "where": [
-   "Map/Window.lua:340"
-  ]
- },
- {
-  "en": "Drag to resize the map",
-  "where": [
-   "Map/Window.lua:258"
+   "Map/Panel.lua:733"
   ]
  },
  {
   "en": "Drag: move it round the minimap",
   "where": [
-   "Map/Launcher.lua:41"
+   "Map/Launcher.lua:42"
+  ]
+ },
+ {
+  "en": "Drag: move the map",
+  "where": [
+   "Map/Window.lua:403"
+  ]
+ },
+ {
+  "en": "Drag: resize the map",
+  "where": [
+   "Map/Window.lua:310"
   ]
  },
  {
@@ -895,14 +922,14 @@
  {
   "en": "Draw more",
   "where": [
-   "Map/Pins.lua:465"
+   "Map/Pins.lua:482"
   ]
  },
  {
   "en": "Draw on the map",
   "where": [
-   "Map/Pins.lua:465",
-   "Map/Pins.lua:535",
+   "Map/Pins.lua:482",
+   "Map/Pins.lua:552",
    "Map/Sketch.lua:426",
    "Map/Sketch.lua:662"
   ]
@@ -910,25 +937,31 @@
  {
   "en": "Draw on the map in ink: lines, arrows, rings and raid marks, kept for you. A map pin's card can draw on that pin.",
   "where": [
-   "Map/Panel.lua:174"
+   "Map/Panel.lua:185"
   ]
  },
  {
   "en": "Draw on the map with the pen, attached to this pin: deleting the pin takes its drawing too.",
   "where": [
-   "Map/Pins.lua:546"
+   "Map/Pins.lua:563"
   ]
  },
  {
   "en": "Draw on this dungeon's map (right-drag pans)",
   "where": [
-   "Map/Dungeons.lua:868"
+   "Map/Dungeons.lua:902"
+  ]
+ },
+ {
+  "en": "Draw your own arrow above every other addon's icons and pins on the map.",
+  "where": [
+   "Map/WorldMap.lua:2238"
   ]
  },
  {
   "en": "Drawing",
   "where": [
-   "Map/Pins.lua:534"
+   "Map/Pins.lua:551"
   ]
  },
  {
@@ -946,7 +979,7 @@
  {
   "en": "Drawing: the tray is below",
   "where": [
-   "Map/Pins.lua:466"
+   "Map/Pins.lua:483"
   ]
  },
  {
@@ -958,120 +991,120 @@
  {
   "en": "Drop a pin",
   "where": [
-   "Map/Panel.lua:155",
-   "Map/Panel.lua:1735"
+   "Map/Panel.lua:166",
+   "Map/Panel.lua:1771"
   ]
  },
  {
   "en": "Dungeon",
   "where": [
-   "Map/Dungeons.lua:572",
-   "Map/Nav.lua:312"
+   "Map/Dungeons.lua:606",
+   "Map/Nav.lua:371"
   ]
  },
  {
   "en": "Dungeon Journal",
   "where": [
-   "Map/Dungeons.lua:2308"
+   "Map/Dungeons.lua:2328"
   ]
  },
  {
   "en": "Dungeon Journal has no page for this dungeon.",
   "where": [
-   "Map/Dungeons.lua:1858"
+   "Map/Dungeons.lua:1877"
   ]
  },
  {
   "en": "Dungeon Journal has this dungeon's quests: where each one starts, what it asks and what it gives.",
   "where": [
-   "Map/Dungeons.lua:1855"
+   "Map/Dungeons.lua:1874"
   ]
  },
  {
   "en": "Dungeon and raid entrances, with their levels (click one: its map).",
   "where": [
-   "Map/WorldMap.lua:1918"
+   "Map/WorldMap.lua:2211"
   ]
  },
  {
   "en": "Dungeon bosses",
   "where": [
-   "Map/Panel.lua:253"
+   "Map/Panel.lua:269"
   ]
  },
  {
   "en": "Dungeon level ranges",
   "where": [
-   "Map/Dungeons.lua:2303"
+   "Map/Dungeons.lua:2323"
   ]
  },
  {
   "en": "Dungeon maps",
   "where": [
-   "Map/Dungeons.lua:2293",
-   "Map/Panel.lua:250"
+   "Map/Dungeons.lua:2313",
+   "Map/Panel.lua:262"
   ]
  },
  {
   "en": "Dungeon maps from the minimap",
   "where": [
-   "Map/Dungeons.lua:2300"
+   "Map/Dungeons.lua:2320"
   ]
  },
  {
   "en": "Dungeon maps inside dungeons",
   "where": [
-   "Map/Dungeons.lua:2296",
-   "Map/Panel.lua:251"
+   "Map/Dungeons.lua:2316",
+   "Map/Panel.lua:263"
   ]
  },
  {
   "en": "Dungeon maps: bosses",
   "where": [
-   "Map/Dungeons.lua:2298"
+   "Map/Dungeons.lua:2318"
   ]
  },
  {
   "en": "Dungeon maps: quests",
   "where": [
-   "Map/Dungeons.lua:2305"
+   "Map/Dungeons.lua:2325"
   ]
  },
  {
   "en": "Dungeon quests",
   "where": [
-   "Map/Panel.lua:256"
+   "Map/Panel.lua:272"
   ]
  },
  {
   "en": "Dungeon quests from",
   "where": [
-   "Map/Dungeons.lua:2307"
+   "Map/Dungeons.lua:2327"
   ]
  },
  {
   "en": "Dungeons",
   "where": [
-   "Map/Panel.lua:249"
+   "Map/Panel.lua:261"
   ]
  },
  {
   "en": "Dungeons and raids",
   "where": [
-   "Map/Panel.lua:215",
-   "Map/WorldMap.lua:1917"
+   "Map/Panel.lua:226",
+   "Map/WorldMap.lua:2210"
   ]
  },
  {
   "en": "Dungeons, boats and zeppelins only once you've explored where they are, and flight masters only once you've learned them.",
   "where": [
-   "Map/WorldMap.lua:1926"
+   "Map/WorldMap.lua:2219"
   ]
  },
  {
   "en": "Each dungeon entrance's level range under its icon, coloured for your level.",
   "where": [
-   "Map/Dungeons.lua:2304"
+   "Map/Dungeons.lua:2324"
   ]
  },
  {
@@ -1083,19 +1116,19 @@
  {
   "en": "Enhance QoL: if its Mover > World Map is on, turn it off. It and OpenMap both size the map, and the map's scale goes wrong.",
   "where": [
-   "Map/Window.lua:287"
+   "Map/Window.lua:356"
   ]
  },
  {
   "en": "Enter saves, Escape cancels",
   "where": [
-   "Map/Paint.lua:215"
+   "Map/Paint.lua:216"
   ]
  },
  {
   "en": "Entrances open Dungeon Journal",
   "where": [
-   "Map/Panel.lua:259"
+   "Map/Panel.lua:275"
   ]
  },
  {
@@ -1107,111 +1140,111 @@
  {
   "en": "Every boss gone through: Done, or Undo",
   "where": [
-   "Map/Dungeons.lua:2161"
+   "Map/Dungeons.lua:2180"
   ]
  },
  {
   "en": "Every map pin: go to one, share them, or add pins from a code someone gave you. Right-click: hide your pins on the map (this goes grey) or show them again.",
   "where": [
-   "Map/Panel.lua:167"
+   "Map/Panel.lua:178"
   ]
  },
  {
   "en": "Every note: click one to go there.",
   "where": [
-   "Map/Paint.lua:523"
+   "Map/Paint.lua:525"
   ]
  },
  {
   "en": "Every pin as a code to copy and paste anywhere.",
   "where": [
-   "Map/Pins.lua:738"
+   "Map/Pins.lua:756"
   ]
  },
  {
   "en": "Every pin at once: as a code to copy, to your party or raid, or to your guild.",
   "where": [
-   "Map/Pins.lua:734"
+   "Map/Pins.lua:752"
   ]
  },
  {
   "en": "Every pin to your guild (those with OpenMap are asked whether to add them).",
   "where": [
-   "Map/Pins.lua:740"
+   "Map/Pins.lua:758"
   ]
  },
  {
   "en": "Every pin to your party or raid (those with OpenMap are asked whether to add them).",
   "where": [
-   "Map/Pins.lua:739"
+   "Map/Pins.lua:757"
   ]
  },
  {
   "en": "Every slider back to how OpenMap comes: the deepest zoom, the minimap's detail and opacity, and those in Options.",
   "where": [
-   "Map/Panel.lua:1594"
+   "Map/Panel.lua:1630"
   ]
  },
  {
   "en": "Every slider here (and the OpenMap menu's) back to how OpenMap comes.",
   "where": [
-   "Map/WorldMap.lua:1954"
+   "Map/WorldMap.lua:2253"
   ]
  },
  {
   "en": "Everyone who reports problems and ideas on CurseForge.",
   "where": [
-   "Credits.lua:48"
+   "Credits.lua:58"
   ]
  },
  {
   "en": "Export",
   "where": [
-   "Map/Paint.lua:525"
+   "Map/Paint.lua:527"
   ]
  },
  {
   "en": "Fade icons while zooming",
   "where": [
-   "Map/Panel.lua:247"
+   "Map/Panel.lua:259"
   ]
  },
  {
   "en": "Fade while moving",
   "where": [
-   "Map/Extras.lua:1184",
-   "Map/Panel.lua:1537"
+   "Map/Extras.lua:1305",
+   "Map/Panel.lua:1573"
   ]
  },
  {
   "en": "Favourites are tabs at the window's edge, above the OpenMap tab.",
   "where": [
-   "Map/Panel.lua:505"
+   "Map/Panel.lua:529"
   ]
  },
  {
   "en": "Favourites sit in a row beside the OpenMap button, in the map's bottom-left corner.",
   "where": [
-   "Map/Panel.lua:506"
+   "Map/Panel.lua:530"
   ]
  },
  {
   "en": "Filled gaps",
   "where": [
-   "Map/WorldMap.lua:1888"
+   "Map/WorldMap.lua:2181"
   ]
  },
  {
   "en": "Find a place",
   "where": [
-   "Map/Nav.lua:395"
+   "Map/Nav.lua:460"
   ]
  },
  {
   "en": "Find me",
   "where": [
-   "Map/Panel.lua:152",
-   "Map/Panel.lua:1735"
+   "Map/Panel.lua:163",
+   "Map/Panel.lua:1771"
   ]
  },
  {
@@ -1230,145 +1263,151 @@
  {
   "en": "Fix this",
   "where": [
-   "Map/Paint.lua:26"
+   "Map/Paint.lua:27"
   ]
  },
  {
   "en": "Flight master",
   "where": [
-   "Map/Nav.lua:317"
+   "Map/Nav.lua:376"
   ]
  },
  {
   "en": "Flight masters",
   "where": [
-   "Map/Panel.lua:218",
-   "Map/WorldMap.lua:1923"
+   "Map/Panel.lua:229",
+   "Map/WorldMap.lua:2216"
   ]
  },
  {
   "en": "Floor %d",
   "where": [
-   "Map/Dungeons.lua:402"
+   "Map/Dungeons.lua:436"
   ]
  },
  {
   "en": "Floors",
   "where": [
-   "Map/Dungeons.lua:520"
+   "Map/Dungeons.lua:554"
   ]
  },
  {
   "en": "Fold your buttons away",
   "where": [
-   "Map/Panel.lua:722",
-   "Map/Panel.lua:1298"
+   "Map/Panel.lua:749",
+   "Map/Panel.lua:1325"
   ]
  },
  {
   "en": "Follow",
   "where": [
-   "Map/Pins.lua:192",
-   "Map/Pins.lua:521",
-   "Map/Pins.lua:602"
+   "Map/Pins.lua:195",
+   "Map/Pins.lua:538",
+   "Map/Pins.lua:619"
   ]
  },
  {
   "en": "Follow new pins",
   "where": [
-   "Map/Panel.lua:344",
-   "Map/Pins.lua:822"
+   "Map/Panel.lua:360",
+   "Map/Pins.lua:840"
   ]
  },
  {
   "en": "Followed (the waypoint)",
   "where": [
-   "Map/Pins.lua:135"
+   "Map/Pins.lua:137"
   ]
  },
  {
   "en": "For loot, we recommend |cffffd100NeedRoll|r, by mikebvs: what every boss drops, what you've collected, and a wishlist, made for WoW Forever.",
   "where": [
-   "Map/Dungeons.lua:1901"
+   "Map/Dungeons.lua:1920"
+  ]
+ },
+ {
+  "en": "Forever City Labels' pins on the stitched map",
+  "where": [
+   "Credits.lua:43"
   ]
  },
  {
   "en": "Friend",
   "where": [
-   "Map/Friends.lua:510"
+   "Map/Friends.lua:558"
   ]
  },
  {
   "en": "Friends and guild",
   "where": [
-   "Map/Friends.lua:669"
+   "Map/Friends.lua:717"
   ]
  },
  {
   "en": "Friends on the map",
   "where": [
-   "Map/Friends.lua:736",
-   "Map/Panel.lua:224"
+   "Map/Friends.lua:784",
+   "Map/Panel.lua:236"
   ]
  },
  {
   "en": "From %s: about %s",
   "where": [
-   "Map/Flights.lua:284"
+   "Map/Flights.lua:285"
   ]
  },
  {
   "en": "Full-screen map fills the width",
   "where": [
-   "Map/Panel.lua:328",
-   "Map/Window.lua:664"
+   "Map/Panel.lua:344",
+   "Map/Window.lua:744"
   ]
  },
  {
   "en": "Get it from CurseForge (click, then Ctrl-C):",
   "where": [
-   "Map/Dungeons.lua:1902"
+   "Map/Dungeons.lua:1921"
   ]
  },
  {
   "en": "Glide to where you are. Middle-click the map to center on you at the current zoom.",
   "where": [
-   "Map/Panel.lua:153"
+   "Map/Panel.lua:164"
   ]
  },
  {
   "en": "Gold",
   "where": [
-   "Map/Pins.lua:37",
+   "Map/Pins.lua:39",
    "Map/Sketch.lua:25"
   ]
  },
  {
   "en": "Green",
   "where": [
-   "Map/Pins.lua:39",
+   "Map/Pins.lua:41",
    "Map/Sketch.lua:24"
   ]
  },
  {
   "en": "Group",
   "where": [
-   "Map/Nav.lua:515",
-   "Map/Pins.lua:556"
+   "Map/Nav.lua:678",
+   "Map/Pins.lua:573"
   ]
  },
  {
   "en": "Guild",
   "where": [
-   "Map/Friends.lua:510",
-   "Map/Pins.lua:557"
+   "Map/Friends.lua:558",
+   "Map/Pins.lua:574"
   ]
  },
  {
   "en": "Guild members on the map",
   "where": [
-   "Map/Friends.lua:738",
-   "Map/Panel.lua:225"
+   "Map/Friends.lua:786",
+   "Map/Panel.lua:237"
   ]
  },
  {
@@ -1380,137 +1419,137 @@
  {
   "en": "Hide",
   "where": [
-   "Map/WorldMap.lua:1892",
-   "Map/WorldMap.lua:1963"
+   "Map/WorldMap.lua:2185",
+   "Map/WorldMap.lua:2262"
   ]
  },
  {
   "en": "Hide unexplored areas",
   "where": [
-   "Map/Panel.lua:287"
+   "Map/Panel.lua:303"
   ]
  },
  {
   "en": "Hide world markers in instances",
   "where": [
-   "Map/Panel.lua:226",
-   "Map/WorldMap.lua:1936"
+   "Map/Panel.lua:238",
+   "Map/WorldMap.lua:2232"
   ]
  },
  {
   "en": "Highlight the zone under the cursor",
   "where": [
-   "Map/WorldMap.lua:1867"
+   "Map/WorldMap.lua:2160"
   ]
  },
  {
   "en": "Hovering a zone shows its level range, coloured for your level, and if you know Fishing, the skill at which every cast there lands.",
   "where": [
-   "Map/Extras.lua:1177"
+   "Map/Extras.lua:1298"
   ]
  },
  {
   "en": "How dark unexplored areas are when they're darkened.",
   "where": [
-   "Map/WorldMap.lua:1896"
+   "Map/WorldMap.lua:2189"
   ]
  },
  {
-  "en": "How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours.",
+  "en": "How far each zone's borders move toward a shared palette, so mountains and borders hand over smoothly between zones. Zone interiors keep their own colours. Below 100%, the ready-made zone tiles aren't used and every zone is drawn from its own art, which costs more while zooming.",
   "where": [
-   "Map/WorldMap.lua:1882"
+   "Map/WorldMap.lua:2175"
   ]
  },
  {
   "en": "How far in (in times the whole-world view) the minimap's detail starts to mix in: lower comes in sooner, higher later; at 1x it's there from the whole world. Further out than its own tiles can be drawn, smaller copies of it show.",
   "where": [
-   "Map/Close.lua:883"
+   "Map/Close.lua:890"
   ]
  },
  {
   "en": "How far in the map zooms, in times the whole-world view (cities go half as far again). Past about 48 the art is only enlarged.",
   "where": [
-   "Map/Panel.lua:1502",
-   "Map/WorldMap.lua:1914"
+   "Map/Panel.lua:1532",
+   "Map/WorldMap.lua:2207"
   ]
  },
  {
   "en": "How far in the minimap's detail starts to mix in: lower comes in sooner, higher later.",
   "where": [
-   "Map/Panel.lua:1507"
+   "Map/Panel.lua:1537"
   ]
  },
  {
   "en": "How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it.",
   "where": [
-   "Map/Extras.lua:1186"
+   "Map/Extras.lua:1307"
   ]
  },
  {
   "en": "Icon size",
   "where": [
-   "Map/Panel.lua:1524",
-   "Map/WorldMap.lua:1930"
+   "Map/Panel.lua:1554",
+   "Map/WorldMap.lua:2223"
   ]
  },
  {
   "en": "Icons",
   "where": [
-   "Map/WorldMap.lua:1915"
+   "Map/WorldMap.lua:2208"
   ]
  },
  {
   "en": "Icons from",
   "where": [
-   "Map/Panel.lua:1518"
+   "Map/Panel.lua:1548"
   ]
  },
  {
   "en": "Icons from zoom",
   "where": [
-   "Map/WorldMap.lua:1927"
+   "Map/WorldMap.lua:2220"
   ]
  },
  {
   "en": "Idea",
   "where": [
-   "Map/Paint.lua:28"
+   "Map/Paint.lua:29"
   ]
  },
  {
   "en": "If a word reads wrong in your language, say so on CurseForge: it's fixed for the next version.",
   "where": [
-   "Credits.lua:45"
+   "Credits.lua:55"
   ]
  },
  {
   "en": "Ignore",
   "where": [
-   "Map/Pins.lua:299"
+   "Map/Pins.lua:312"
   ]
  },
  {
   "en": "Import",
   "where": [
-   "Map/Pins.lua:728"
+   "Map/Pins.lua:746"
   ]
  },
  {
   "en": "Improves performance",
   "where": [
-   "Map/Panel.lua:248"
+   "Map/Panel.lua:260"
   ]
  },
  {
   "en": "In dungeons, raids and battlegrounds, temporarily hide OpenMap's friends, guild, transport and world quest markers. Party and raid members and other addons' maps and markers stay visible. Your marker settings are kept.",
   "where": [
-   "Map/WorldMap.lua:1938"
+   "Map/WorldMap.lua:2234"
   ]
  },
  {
   "en": "In your quest log",
   "where": [
-   "Map/Dungeons.lua:1885"
+   "Map/Dungeons.lua:1904"
   ]
  },
  {
@@ -1526,75 +1565,81 @@
   ]
  },
  {
+  "en": "Inside dungeons, open the game's own map instead of OpenMap's dungeon map. Turn it back on any time: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.",
+  "where": [
+   "Map/Dungeons.lua:417"
+  ]
+ },
+ {
   "en": "Its Dungeon Journal page",
   "where": [
-   "Map/Dungeons.lua:2312"
+   "Map/Dungeons.lua:2332"
   ]
  },
  {
   "en": "Its map",
   "where": [
-   "Map/Dungeons.lua:2312"
+   "Map/Dungeons.lua:2332"
   ]
  },
  {
   "en": "Keep the pin as it is (Enter, or the X, too)",
   "where": [
-   "Map/Pins.lua:579"
+   "Map/Pins.lua:596"
   ]
  },
  {
   "en": "Keeps the chat windows on show over the map while it's full screen, to keep talking while you look.",
   "where": [
-   "Map/Window.lua:673"
+   "Map/Window.lua:753"
   ]
  },
  {
   "en": "Kept as it is. You can turn it off any time in ClassicUI Forever's options (World map).",
   "where": [
-   "Map/Window.lua:74"
+   "Map/Window.lua:76"
   ]
  },
  {
   "en": "Land no zone map covers (west of Searing Gorge, Mount Hyjal ...) shows the game's minimap of it, tinted like the zones around it, instead of blank paper.",
   "where": [
-   "Map/Close.lua:891"
+   "Map/Close.lua:898"
   ]
  },
  {
   "en": "Land no zone map covers, painted by hand in the zone maps' style from Blizzard's own art (by Santiago Reyes, used with his permission). Off: blank map paper there.",
   "where": [
-   "Map/WorldMap.lua:1889"
+   "Map/WorldMap.lua:2182"
   ]
  },
  {
   "en": "Learned",
   "where": [
-   "Map/Flights.lua:278"
+   "Map/Flights.lua:279"
   ]
  },
  {
   "en": "Learned flight paths forgotten for this character: talk to a flight master to learn the ones you have again.",
   "where": [
-   "Map/Flights.lua:347"
+   "Map/Flights.lua:348"
   ]
  },
  {
   "en": "Leatrix Maps: turn off %s there; OpenMap does the same for its map.",
   "where": [
-   "Map/Compat.lua:187"
+   "Map/Compat.lua:203"
   ]
  },
  {
   "en": "Level ranges",
   "where": [
-   "Map/Panel.lua:252"
+   "Map/Panel.lua:268"
   ]
  },
  {
   "en": "Libraries",
   "where": [
-   "Credits.lua:40"
+   "Credits.lua:50"
   ]
  },
  {
@@ -1606,33 +1651,33 @@
  {
   "en": "List",
   "where": [
-   "Map/Paint.lua:520"
+   "Map/Paint.lua:522"
   ]
  },
  {
   "en": "Load the zone in view",
   "where": [
-   "Map/Panel.lua:342",
-   "Map/WorldMap.lua:1865"
+   "Map/Panel.lua:358",
+   "Map/WorldMap.lua:2158"
   ]
  },
  {
   "en": "Look",
   "where": [
-   "Map/Panel.lua:198",
-   "Map/WorldMap.lua:1876"
+   "Map/Panel.lua:209",
+   "Map/WorldMap.lua:2169"
   ]
  },
  {
   "en": "Look into this",
   "where": [
-   "Map/Paint.lua:27"
+   "Map/Paint.lua:28"
   ]
  },
  {
   "en": "Loot",
   "where": [
-   "Map/Dungeons.lua:520"
+   "Map/Dungeons.lua:554"
   ]
  },
  {
@@ -1656,98 +1701,98 @@
  {
   "en": "Map art",
   "where": [
-   "Credits.lua:37"
+   "Credits.lua:47"
   ]
  },
  {
   "en": "Map brightness",
   "where": [
-   "Map/Panel.lua:1532",
-   "Map/WorldMap.lua:1877"
+   "Map/Panel.lua:1568",
+   "Map/WorldMap.lua:2170"
   ]
  },
  {
   "en": "Map by %s",
   "where": [
-   "Map/Dungeons.lua:259"
+   "Map/Dungeons.lua:269"
   ]
  },
  {
   "en": "Map frame rate cap",
   "where": [
-   "Map/Extras.lua:1181",
-   "Map/Panel.lua:1538"
+   "Map/Extras.lua:1302",
+   "Map/Panel.lua:1574"
   ]
  },
  {
   "en": "Map notes",
   "where": [
-   "Map/Panel.lua:361"
+   "Map/Panel.lua:380"
   ]
  },
  {
   "en": "Map notes work on the world, continent and zone maps.",
   "where": [
-   "Map/Paint.lua:602"
+   "Map/Paint.lua:604"
   ]
  },
  {
   "en": "Map notes: Ctrl-C to copy them all, then paste them where they're needed",
   "where": [
-   "Map/Paint.lua:438"
+   "Map/Paint.lua:440"
   ]
  },
  {
   "en": "Map pin",
   "where": [
-   "Map/Pins.lua:132",
-   "Map/Pins.lua:476",
-   "Map/Pins.lua:599",
-   "Map/Pins.lua:711",
+   "Map/Pins.lua:134",
+   "Map/Pins.lua:493",
+   "Map/Pins.lua:616",
+   "Map/Pins.lua:728",
    "Map/Sketch.lua:350"
   ]
  },
  {
   "en": "Map pins",
   "where": [
-   "Map/Pins.lua:663"
+   "Map/Pins.lua:680"
   ]
  },
  {
   "en": "Map pins (%d)",
   "where": [
-   "Map/Pins.lua:639"
+   "Map/Pins.lua:656"
   ]
  },
  {
   "en": "Map pins your group, guild or a player shares with you: you're asked whether to add them. Off, they're ignored.",
   "where": [
-   "Map/Pins.lua:821"
+   "Map/Pins.lua:839"
   ]
  },
  {
   "en": "Map pins your party or raid shares with you are added at once, without asking.",
   "where": [
-   "Map/Pins.lua:827"
+   "Map/Pins.lua:845"
   ]
  },
  {
   "en": "Map pins: Ctrl-C to copy, then paste them anywhere (another player's OpenMap: Pins, Import).",
   "where": [
-   "Map/Pins.lua:399"
+   "Map/Pins.lua:416"
   ]
  },
  {
   "en": "Map size",
   "where": [
-   "Map/Panel.lua:1531",
-   "Map/Window.lua:661"
+   "Map/Panel.lua:1567",
+   "Map/Window.lua:741"
   ]
  },
  {
   "en": "MapUtils also changes the world map's zoom and scale: with it and OpenMap both on, the map and Blizzard's quest areas can jump while zooming. Turn one of them off if you see that.",
   "where": [
-   "Map/Window.lua:294"
+   "Map/Window.lua:363"
   ]
  },
  {
@@ -1771,95 +1816,95 @@
  {
   "en": "Minimap",
   "where": [
-   "Map/Panel.lua:1499"
+   "Map/Panel.lua:1529"
   ]
  },
  {
   "en": "Minimap button",
   "where": [
-   "Map/Launcher.lua:122",
-   "Map/Panel.lua:314"
+   "Map/Launcher.lua:123",
+   "Map/Panel.lua:330"
   ]
  },
  {
   "en": "Minimap detail",
   "where": [
-   "Map/Close.lua:876",
-   "Map/Panel.lua:333"
+   "Map/Close.lua:883",
+   "Map/Panel.lua:349"
   ]
  },
  {
   "en": "Minimap detail from",
   "where": [
-   "Map/Panel.lua:1503"
+   "Map/Panel.lua:1533"
   ]
  },
  {
   "en": "Minimap detail from zoom",
   "where": [
-   "Map/Close.lua:881"
+   "Map/Close.lua:888"
   ]
  },
  {
   "en": "Minimap detail in major cities",
   "where": [
-   "Map/Close.lua:887",
-   "Map/Panel.lua:334"
+   "Map/Close.lua:894",
+   "Map/Panel.lua:350"
   ]
  },
  {
   "en": "Minimap detail, most opacity",
   "where": [
-   "Map/Close.lua:884"
+   "Map/Close.lua:891"
   ]
  },
  {
   "en": "Minimap in the gaps",
   "where": [
-   "Map/Panel.lua:336"
+   "Map/Panel.lua:352"
   ]
  },
  {
   "en": "Minimap in the gaps (experimental)",
   "where": [
-   "Map/Close.lua:889"
+   "Map/Close.lua:896"
   ]
  },
  {
   "en": "Minimap opacity",
   "where": [
-   "Map/Panel.lua:1508"
+   "Map/Panel.lua:1538"
   ]
  },
  {
   "en": "Minimap strength",
   "where": [
-   "Map/Close.lua:878",
-   "Map/Panel.lua:1536"
+   "Map/Close.lua:885",
+   "Map/Panel.lua:1572"
   ]
  },
  {
   "en": "More",
   "where": [
-   "Map/Panel.lua:199"
+   "Map/Panel.lua:210"
   ]
  },
  {
   "en": "Moving about",
   "where": [
-   "Map/Panel.lua:341"
+   "Map/Panel.lua:357"
   ]
  },
  {
   "en": "NeedRoll lists dungeon quests too: open it and pick this dungeon.",
   "where": [
-   "Map/Dungeons.lua:1861"
+   "Map/Dungeons.lua:1880"
   ]
  },
  {
   "en": "NeedRoll lists this dungeon's loot: what every boss drops, what you've collected, and a wishlist.",
   "where": [
-   "Map/Dungeons.lua:1896"
+   "Map/Dungeons.lua:1915"
   ]
  },
  {
@@ -1871,75 +1916,75 @@
  {
   "en": "New note",
   "where": [
-   "Map/Paint.lua:225"
+   "Map/Paint.lua:226"
   ]
  },
  {
   "en": "Newer",
   "where": [
-   "Map/News.lua:300"
+   "Map/News.lua:339"
   ]
  },
  {
   "en": "Next",
   "where": [
-   "Map/Dungeons.lua:833",
+   "Map/Dungeons.lua:867",
    "Map/Report.lua:223"
   ]
  },
  {
   "en": "No flight route from %s to %s.",
   "where": [
-   "Map/Flights.lua:214"
+   "Map/Flights.lua:215"
   ]
  },
  {
   "en": "No notes yet: paint an area on the map.",
   "where": [
-   "Map/Paint.lua:362"
+   "Map/Paint.lua:363"
   ]
  },
  {
   "en": "No pins yet: Ctrl-click the map, or the menu's Drop a pin.",
   "where": [
-   "Map/Pins.lua:680"
+   "Map/Pins.lua:697"
   ]
  },
  {
   "en": "Not in combat.",
   "where": [
    "Map/Bench.lua:348",
-   "Map/Window.lua:67"
+   "Map/Window.lua:69"
   ]
  },
  {
   "en": "Not learned",
   "where": [
-   "Map/Flights.lua:278"
+   "Map/Flights.lua:279"
   ]
  },
  {
   "en": "Not now",
   "where": [
-   "Map/Friends.lua:683"
+   "Map/Friends.lua:731"
   ]
  },
  {
   "en": "Note",
   "where": [
-   "Map/Paint.lua:226"
+   "Map/Paint.lua:227"
   ]
  },
  {
   "en": "Notes (%d)",
   "where": [
-   "Map/Paint.lua:335"
+   "Map/Paint.lua:336"
   ]
  },
  {
   "en": "Nothing drawn on it yet",
   "where": [
-   "Map/Pins.lua:466"
+   "Map/Pins.lua:483"
   ]
  },
  {
@@ -1951,20 +1996,20 @@
  {
   "en": "Off: click to turn it on",
   "where": [
-   "Map/Panel.lua:584"
+   "Map/Panel.lua:610"
   ]
  },
  {
   "en": "Older",
   "where": [
-   "Map/News.lua:302"
+   "Map/News.lua:341"
   ]
  },
  {
   "en": "On the map",
   "where": [
-   "Map/Extras.lua:1173",
-   "Map/Panel.lua:197"
+   "Map/Extras.lua:1294",
+   "Map/Panel.lua:208"
   ]
  },
  {
@@ -1976,64 +2021,64 @@
  {
   "en": "On: click to turn it off",
   "where": [
-   "Map/Panel.lua:584"
+   "Map/Panel.lua:610"
   ]
  },
  {
   "en": "Once the map stops moving, it loads the zone or continent you're looking at: its quest areas, coordinates and name, and other addons' icons for it (Questie's, GatherLite's ...). Off, the map keeps the zone it opened on.",
   "where": [
-   "Map/WorldMap.lua:1866"
+   "Map/WorldMap.lua:2159"
   ]
  },
  {
   "en": "Only for this character",
   "where": [
-   "Map/Panel.lua:294"
+   "Map/Panel.lua:310"
   ]
  },
  {
   "en": "Only places you've found",
   "where": [
-   "Map/Panel.lua:220",
-   "Map/WorldMap.lua:1925"
+   "Map/Panel.lua:231",
+   "Map/WorldMap.lua:2218"
   ]
  },
  {
   "en": "Only your guild and friends, never from a dungeon, raid or battleground. OpenMap's menu: More, Sharing.",
   "where": [
-   "Map/Friends.lua:687"
+   "Map/Friends.lua:735"
   ]
  },
  {
   "en": "Open NeedRoll",
   "where": [
-   "Map/Dungeons.lua:1862",
-   "Map/Dungeons.lua:1897"
+   "Map/Dungeons.lua:1881",
+   "Map/Dungeons.lua:1916"
   ]
  },
  {
   "en": "Open OpenMap's settings",
   "where": [
-   "Init.lua:98"
+   "Init.lua:99"
   ]
  },
  {
   "en": "Open a dungeon's map first: /openmap bosses places its bosses on it.",
   "where": [
-   "Map/Dungeons.lua:2218"
+   "Map/Dungeons.lua:2237"
   ]
  },
  {
   "en": "Open in Dungeon Journal",
   "where": [
-   "Map/Dungeons.lua:1839",
-   "Map/Dungeons.lua:1856"
+   "Map/Dungeons.lua:1858",
+   "Map/Dungeons.lua:1875"
   ]
  },
  {
   "en": "Open the world map first.",
   "where": [
-   "Map/Paint.lua:598"
+   "Map/Paint.lua:600"
   ]
  },
  {
@@ -2049,6 +2094,12 @@
   ]
  },
  {
+  "en": "OpenMap %s is out (you have %s). Update through CurseForge.",
+  "where": [
+   "Map/News.lua:417"
+  ]
+ },
+ {
   "en": "OpenMap bench: Ctrl-A, Ctrl-C to copy",
   "where": [
    "Map/Bench.lua:267"
@@ -2057,32 +2108,44 @@
  {
   "en": "OpenMap button on the map",
   "where": [
-   "Map/Launcher.lua:124",
-   "Map/Panel.lua:307"
+   "Map/Launcher.lua:125",
+   "Map/Panel.lua:323"
+  ]
+ },
+ {
+  "en": "OpenMap is free and made in spare time. To support it:",
+  "where": [
+   "Map/News.lua:182"
   ]
  },
  {
   "en": "OpenMap is in beta: draw on the map where something looks wrong (a dungeon's map too) and tell us about it.",
   "where": [
-   "Map/Panel.lua:183"
+   "Map/Panel.lua:194"
   ]
  },
  {
-  "en": "OpenMap is made by |cffe6b85cJi|r, and it's open source: join in on GitHub",
+  "en": "OpenMap is made by |cffe6b85cJi Unit (RP-PvP Horde)|r, and it's open source: join in on GitHub",
   "where": [
-   "Map/News.lua:310"
+   "Map/News.lua:349"
+  ]
+ },
+ {
+  "en": "OpenMap's dungeon maps are off inside dungeons. To turn them back on: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.",
+  "where": [
+   "Map/Dungeons.lua:407"
   ]
  },
  {
   "en": "OpenMap's icons on the map (dungeons, flight masters, boats, townsfolk, your pins ...) at this size. Questie's icons have their own size, in Questie's options.",
   "where": [
-   "Map/WorldMap.lua:1932"
+   "Map/WorldMap.lua:2225"
   ]
  },
  {
   "en": "OpenMap's icons on the map at this size: dungeons, flight masters, boats, townsfolk, your pins. Questie's icons have their own size, in Questie's options.",
   "where": [
-   "Map/Panel.lua:1528"
+   "Map/Panel.lua:1558"
   ]
  },
  {
@@ -2094,20 +2157,20 @@
  {
   "en": "OpenMap's map with the Gamepad UI (test)",
   "where": [
-   "Map/Panel.lua:331",
-   "Map/WorldMap.lua:1873"
+   "Map/Panel.lua:347",
+   "Map/WorldMap.lua:2166"
   ]
  },
  {
   "en": "OpenMap's map with the controller (test)",
   "where": [
-   "Map/WorldMap.lua:1870"
+   "Map/WorldMap.lua:2163"
   ]
  },
  {
   "en": "OpenMap's maps of dungeons and raids: Blizzard's where the client has one, the ones drawn for WoW Forever's where it has none. Off: inside a dungeon the map stays the world map, and an entrance's card opens over it instead.",
   "where": [
-   "Map/Dungeons.lua:2295"
+   "Map/Dungeons.lua:2315"
   ]
  },
  {
@@ -2119,56 +2182,56 @@
  {
   "en": "Opening the map in a dungeon shows OpenMap's map of it. To turn that off: OpenMap's menu > Dungeons > Dungeon maps inside dungeons.",
   "where": [
-   "Map/Dungeons.lua:2352"
+   "Map/Dungeons.lua:2513"
   ]
  },
  {
   "en": "Opening the map inside a dungeon or raid shows that dungeon's map. Off: the map opens there as the game's own would, and a dungeon's map still opens from its entrance on the world map. With Dungeon Journal installed, its map is left to it inside a dungeon it has a page for.",
   "where": [
-   "Map/Dungeons.lua:2297"
+   "Map/Dungeons.lua:2317"
   ]
  },
  {
   "en": "Or right-click the map, or press Escape",
   "where": [
-   "Map/Dungeons.lua:384"
+   "Map/Dungeons.lua:394"
   ]
  },
  {
   "en": "Other addons",
   "where": [
-   "API.lua:152"
+   "API.lua:168"
   ]
  },
  {
   "en": "Other addons' icons rest while zooming",
   "where": [
-   "Map/Extras.lua:1178"
+   "Map/Extras.lua:1299"
   ]
  },
  {
   "en": "Outlines and pins where you still need to go to explore each zone, for its Explore achievement; further out, how many places each zone has left.",
   "where": [
-   "Map/WorldMap.lua:1911"
+   "Map/WorldMap.lua:2204"
   ]
  },
  {
   "en": "Party and raid members",
   "where": [
-   "Map/Nav.lua:766",
-   "Map/Panel.lua:223"
+   "Map/Nav.lua:945",
+   "Map/Panel.lua:235"
   ]
  },
  {
   "en": "Paste a code of map pins here (Ctrl-V), then Add the pins.",
   "where": [
-   "Map/Pins.lua:402"
+   "Map/Pins.lua:419"
   ]
  },
  {
   "en": "Paste a code of map pins someone gave you.",
   "where": [
-   "Map/Pins.lua:728"
+   "Map/Pins.lua:746"
   ]
  },
  {
@@ -2180,27 +2243,27 @@
  {
   "en": "Pins",
   "where": [
-   "Map/Panel.lua:166",
-   "Map/Panel.lua:1735"
+   "Map/Panel.lua:177",
+   "Map/Panel.lua:1771"
   ]
  },
  {
   "en": "Pins others share with you",
   "where": [
-   "Map/Panel.lua:354",
-   "Map/Pins.lua:820"
+   "Map/Panel.lua:373",
+   "Map/Pins.lua:838"
   ]
  },
  {
   "en": "Placed by you (/openmap bosses)",
   "where": [
-   "Map/Dungeons.lua:2061"
+   "Map/Dungeons.lua:2080"
   ]
  },
  {
   "en": "Places",
   "where": [
-   "Map/Panel.lua:214"
+   "Map/Panel.lua:225"
   ]
  },
  {
@@ -2218,26 +2281,26 @@
  {
   "en": "Purple",
   "where": [
-   "Map/Pins.lua:41"
+   "Map/Pins.lua:43"
   ]
  },
  {
   "en": "Put every slider back to its default?",
   "where": [
-   "Map/WorldMap.lua:1955"
+   "Map/WorldMap.lua:2254"
   ]
  },
  {
   "en": "Put this on the map as a button",
   "where": [
-   "Map/Panel.lua:504"
+   "Map/Panel.lua:528"
   ]
  },
  {
   "en": "Quest log",
   "where": [
-   "Map/Panel.lua:178",
-   "Map/Panel.lua:1736"
+   "Map/Panel.lua:189",
+   "Map/Panel.lua:1772"
   ]
  },
  {
@@ -2249,50 +2312,50 @@
  {
   "en": "Questie icons",
   "where": [
-   "Map/Panel.lua:235"
+   "Map/Panel.lua:247"
   ]
  },
  {
   "en": "Questie lists no quests for it that you can take.",
   "where": [
-   "Map/Dungeons.lua:1869"
+   "Map/Dungeons.lua:1888"
   ]
  },
  {
   "en": "Questie's icons (and other addons' map icons) are hidden while the map zooms and back as soon as it stops. Each one is laid out again on every frame of a zoom, and with Questie's hundreds that costs a lot of frame rate.",
   "where": [
-   "Map/Extras.lua:1180"
+   "Map/Extras.lua:1301"
   ]
  },
  {
   "en": "Quests",
   "where": [
-   "Map/Dungeons.lua:520",
-   "Map/Dungeons.lua:571",
-   "Map/Dungeons.lua:1741"
+   "Map/Dungeons.lua:554",
+   "Map/Dungeons.lua:605",
+   "Map/Dungeons.lua:1760"
   ]
  },
  {
   "en": "Quests from every zone",
   "where": [
-   "Map/Panel.lua:230",
-   "Map/WorldMap.lua:1933"
+   "Map/Panel.lua:242",
+   "Map/WorldMap.lua:2229"
   ]
  },
  {
   "en": "Quill",
   "where": [
-   "Map/Panel.lua:173",
-   "Map/Panel.lua:1735"
+   "Map/Panel.lua:184",
+   "Map/Panel.lua:1771"
   ]
  },
  {
   "en": "Raid",
   "where": [
-   "Map/Dungeons.lua:1330",
-   "Map/Dungeons.lua:1378",
-   "Map/Dungeons.lua:1806",
-   "Map/Nav.lua:312"
+   "Map/Dungeons.lua:1350",
+   "Map/Dungeons.lua:1398",
+   "Map/Dungeons.lua:1825",
+   "Map/Nav.lua:371"
   ]
  },
  {
@@ -2310,15 +2373,15 @@
  {
   "en": "Rare mobs",
   "where": [
-   "Map/Panel.lua:281",
+   "Map/Panel.lua:297",
    "Map/Townsfolk.lua:37"
   ]
  },
  {
   "en": "Reading Questie's quests...",
   "where": [
-   "Map/Dungeons.lua:1744",
-   "Map/Dungeons.lua:1868"
+   "Map/Dungeons.lua:1763",
+   "Map/Dungeons.lua:1887"
   ]
  },
  {
@@ -2330,33 +2393,33 @@
  {
   "en": "Red",
   "where": [
-   "Map/Pins.lua:38",
+   "Map/Pins.lua:40",
    "Map/Sketch.lua:22"
   ]
  },
  {
   "en": "Released %s.",
   "where": [
-   "Map/News.lua:99"
+   "Map/News.lua:101"
   ]
  },
  {
   "en": "Remember while visible",
   "where": [
-   "Map/Nav.lua:764",
-   "Map/Panel.lua:347"
+   "Map/Nav.lua:943",
+   "Map/Panel.lua:366"
   ]
  },
  {
   "en": "Remove every note (click twice)",
   "where": [
-   "Map/Paint.lua:540"
+   "Map/Paint.lua:542"
   ]
  },
  {
   "en": "Reopen map (choose one)",
   "where": [
-   "Map/Panel.lua:345"
+   "Map/Panel.lua:364"
   ]
  },
  {
@@ -2368,7 +2431,7 @@
  {
   "en": "Report a problem",
   "where": [
-   "Map/Panel.lua:182",
+   "Map/Panel.lua:193",
    "Map/Report.lua:147",
    "Map/Report.lua:221"
   ]
@@ -2382,162 +2445,198 @@
  {
   "en": "Reports and ideas",
   "where": [
-   "Credits.lua:47"
+   "Credits.lua:57"
   ]
  },
  {
   "en": "Reset size and place",
   "where": [
-   "Map/Panel.lua:1589",
-   "Map/Window.lua:674"
+   "Map/Panel.lua:1625",
+   "Map/Window.lua:754"
   ]
  },
  {
   "en": "Reset sliders to defaults",
   "where": [
-   "Map/WorldMap.lua:1953"
+   "Map/WorldMap.lua:2252"
   ]
  },
  {
   "en": "Resize the OpenMap menu",
   "where": [
-   "Map/Panel.lua:1689"
+   "Map/Panel.lua:1725"
   ]
  },
  {
   "en": "Responsive ocean & border",
   "where": [
-   "Map/Panel.lua:301",
-   "Map/WorldMap.lua:1885"
+   "Map/Panel.lua:317",
+   "Map/WorldMap.lua:2178"
+  ]
+ },
+ {
+  "en": "Right-click on the map steps out to the zone or continent around it. Off, right-click is left to the map and other addons (Questie's objectives); the menu's way out still works.",
+  "where": [
+   "Map/Pins.lua:847"
+  ]
+ },
+ {
+  "en": "Right-click zooms out",
+  "where": [
+   "Map/Pins.lua:846"
+  ]
+ },
+ {
+  "en": "Right-click: %s",
+  "where": [
+   "Map/Panel.lua:113"
+  ]
+ },
+ {
+  "en": "Right-click: edit it",
+  "where": [
+   "Map/Paint.lua:387"
+  ]
+ },
+ {
+  "en": "Right-click: open its card",
+  "where": [
+   "Map/Pins.lua:732"
   ]
  },
  {
   "en": "Right-click: the options window",
   "where": [
-   "Map/Launcher.lua:40"
+   "Map/Launcher.lua:41"
   ]
  },
  {
   "en": "Save",
   "where": [
-   "Map/Paint.lua:204"
+   "Map/Paint.lua:205"
   ]
  },
  {
   "en": "Saved too (OpenMapDB: worldmap, entrances) once you /reload or log out.",
   "where": [
-   "Map/Dungeons.lua:2287"
+   "Map/Dungeons.lua:2307"
+  ]
+ },
+ {
+  "en": "Say when OpenMap has an update",
+  "where": [
+   "Map/Friends.lua:788"
   ]
  },
  {
   "en": "Scales the whole windowed map. Drag either of its bottom corners to change its width and height, and its title bar to move it.",
   "where": [
-   "Map/Window.lua:663"
+   "Map/Window.lua:743"
   ]
  },
  {
   "en": "Search, find me, map pins, the quest log, report a problem, options, and what the map shows.",
   "where": [
-   "Map/Panel.lua:705",
-   "Map/Panel.lua:1269"
+   "Map/Panel.lua:732",
+   "Map/Panel.lua:1296"
   ]
  },
  {
   "en": "See the Loot tab for loot",
   "where": [
-   "Map/Dungeons.lua:1832"
+   "Map/Dungeons.lua:1851"
   ]
  },
  {
   "en": "Send new pins to group",
   "where": [
-   "Map/Panel.lua:355",
-   "Map/Pins.lua:824"
+   "Map/Panel.lua:374",
+   "Map/Pins.lua:842"
   ]
  },
  {
   "en": "Share all",
   "where": [
-   "Map/Pins.lua:733"
+   "Map/Pins.lua:751"
   ]
  },
  {
   "en": "Share where I am",
   "where": [
-   "Map/Friends.lua:682"
+   "Map/Friends.lua:730"
   ]
  },
  {
   "en": "Share where you are",
   "where": [
-   "Map/Friends.lua:740",
-   "Map/Panel.lua:357"
+   "Map/Friends.lua:790",
+   "Map/Panel.lua:376"
   ]
  },
  {
   "en": "Share:",
   "where": [
-   "Map/Pins.lua:553"
+   "Map/Pins.lua:570"
   ]
  },
  {
   "en": "Shared by %s",
   "where": [
-   "Map/Pins.lua:134",
-   "Map/Pins.lua:600",
-   "Map/Pins.lua:713"
+   "Map/Pins.lua:136",
+   "Map/Pins.lua:617",
+   "Map/Pins.lua:730"
   ]
  },
  {
   "en": "Sharing",
   "where": [
-   "Map/Panel.lua:353"
+   "Map/Panel.lua:372"
   ]
  },
  {
   "en": "Sharing %d map pin(s) with %s (players with OpenMap are asked whether to add them).",
   "where": [
-   "Map/Pins.lua:244"
+   "Map/Pins.lua:257"
   ]
  },
  {
   "en": "Shift-click: share in chat",
   "where": [
-   "Map/Nav.lua:236",
-   "Map/Pins.lua:137",
-   "Map/Pins.lua:715"
+   "Map/Nav.lua:290",
+   "Map/Pins.lua:139",
+   "Map/Pins.lua:733"
   ]
  },
  {
   "en": "Shift-click: where it is, on NeedRoll's map",
   "where": [
-   "Map/Dungeons.lua:1833"
+   "Map/Dungeons.lua:1852"
   ]
  },
  {
   "en": "Shift-right-click: take it off the map",
   "where": [
-   "Map/Panel.lua:582"
+   "Map/Panel.lua:608"
   ]
  },
  {
   "en": "Show",
   "where": [
-   "Map/WorldMap.lua:1892",
-   "Map/WorldMap.lua:1963"
+   "Map/WorldMap.lua:2185",
+   "Map/WorldMap.lua:2262"
   ]
  },
  {
   "en": "Show or hide the quest log beside the map, for more room for the map.",
   "where": [
-   "Map/Panel.lua:179"
+   "Map/Panel.lua:190"
   ]
  },
  {
   "en": "Show places to explore",
   "where": [
-   "Map/Panel.lua:297",
-   "Map/WorldMap.lua:1909"
+   "Map/Panel.lua:313",
+   "Map/WorldMap.lua:2202"
   ]
  },
  {
@@ -2549,31 +2648,31 @@
  {
   "en": "Skip",
   "where": [
-   "Map/Dungeons.lua:2145"
+   "Map/Dungeons.lua:2164"
   ]
  },
  {
   "en": "Soften and add paper grain",
   "where": [
-   "Map/Close.lua:892"
+   "Map/Close.lua:899"
   ]
  },
  {
   "en": "Soften and paper grain",
   "where": [
-   "Map/Panel.lua:338"
+   "Map/Panel.lua:354"
   ]
  },
  {
   "en": "Somewhere in %s",
   "where": [
-   "Map/Nav.lua:517"
+   "Map/Nav.lua:680"
   ]
  },
  {
   "en": "Spirit healers",
   "where": [
-   "Map/Panel.lua:280",
+   "Map/Panel.lua:296",
    "Map/Townsfolk.lua:35"
   ]
  },
@@ -2586,26 +2685,26 @@
  {
   "en": "Stand in the portal and say which: /openmap entrance Dire Maul - East (the name as OpenMap lists it).",
   "where": [
-   "Map/Dungeons.lua:2260"
+   "Map/Dungeons.lua:2279"
   ]
  },
  {
   "en": "Stop drawing",
   "where": [
-   "Map/Pins.lua:465"
+   "Map/Pins.lua:482"
   ]
  },
  {
   "en": "Stop following",
   "where": [
-   "Map/Pins.lua:192",
-   "Map/Pins.lua:602"
+   "Map/Pins.lua:195",
+   "Map/Pins.lua:619"
   ]
  },
  {
   "en": "Sure?",
   "where": [
-   "Map/Paint.lua:537",
+   "Map/Paint.lua:539",
    "Map/Sketch.lua:524"
   ]
  },
@@ -2618,14 +2717,14 @@
  {
   "en": "Take back the last note (Ctrl-Z)",
   "where": [
-   "Map/Paint.lua:527"
+   "Map/Paint.lua:529"
   ]
  },
  {
   "en": "Take colour out",
   "where": [
-   "Map/Panel.lua:1534",
-   "Map/WorldMap.lua:1883"
+   "Map/Panel.lua:1570",
+   "Map/WorldMap.lua:2176"
   ]
  },
  {
@@ -2637,26 +2736,26 @@
  {
   "en": "Take this button off the map",
   "where": [
-   "Map/Panel.lua:504"
+   "Map/Panel.lua:528"
   ]
  },
  {
   "en": "Takes effect after a /reload.",
   "where": [
    "Init.lua:27",
-   "Map/WorldMap.lua:1635"
+   "Map/WorldMap.lua:1910"
   ]
  },
  {
   "en": "Target",
   "where": [
-   "Map/Pins.lua:558"
+   "Map/Pins.lua:575"
   ]
  },
  {
   "en": "Thank you to everyone who has made OpenMap better.",
   "where": [
-   "Map/News.lua:95"
+   "Map/News.lua:97"
   ]
  },
  {
@@ -2668,13 +2767,13 @@
  {
   "en": "That isn't a code of map pins (it starts %s).",
   "where": [
-   "Map/Pins.lua:392"
+   "Map/Pins.lua:409"
   ]
  },
  {
   "en": "That isn't available with the Gamepad UI yet.",
   "where": [
-   "Init.lua:64"
+   "Init.lua:65"
   ]
  },
  {
@@ -2686,107 +2785,114 @@
  {
   "en": "The Gamepad UI is off: OpenMap's map is back.",
   "where": [
-   "Map/WorldMap.lua:1605"
+   "Map/WorldMap.lua:1880"
   ]
  },
  {
   "en": "The Gamepad UI is on, so OpenMap leaves the world map to Blizzard: with OpenMap's map the game blocks the controller's buttons (B to close the map). Turn the Gamepad UI off for OpenMap's map.",
   "where": [
-   "Map/WorldMap.lua:1585"
+   "Map/WorldMap.lua:1860"
   ]
  },
  {
   "en": "The Gamepad UI is on: /reload so OpenMap leaves the world map to Blizzard (until then the game may block closing the map with the controller).",
   "where": [
-   "Map/WorldMap.lua:1591",
-   "Map/WorldMap.lua:1624"
+   "Map/WorldMap.lua:1866",
+   "Map/WorldMap.lua:1899"
   ]
  },
  {
   "en": "The OpenMap button and your favourites on the map. Off, the menu opens with /openmap, the minimap button or the minimap's AddOns list.",
   "where": [
-   "Map/Launcher.lua:126"
+   "Map/Launcher.lua:127"
   ]
  },
  {
   "en": "The OpenMap button is hidden. Its menu opens with /openmap, the minimap button or the minimap's AddOns list.",
   "where": [
-   "Map/Panel.lua:310"
+   "Map/Panel.lua:326"
   ]
  },
  {
   "en": "The colour unexplored areas are darkened with.",
   "where": [
-   "Map/WorldMap.lua:1905"
+   "Map/WorldMap.lua:2198"
   ]
  },
  {
   "en": "The first installed",
   "where": [
-   "Map/Dungeons.lua:2308"
+   "Map/Dungeons.lua:2328"
   ]
  },
  {
   "en": "The frame rate at most while the map is open (0: off). A big map draws many layers over the whole screen every frame; 60 halves the graphics card's work at 120 fps, for a smooth enough map. The game's own frame rate setting comes back as the map closes.",
   "where": [
-   "Map/Extras.lua:1183"
+   "Map/Extras.lua:1304"
   ]
  },
  {
   "en": "The game lists no bosses for it.",
   "where": [
-   "Map/Dungeons.lua:1837",
-   "Map/Dungeons.lua:2224"
+   "Map/Dungeons.lua:1856",
+   "Map/Dungeons.lua:2243"
+  ]
+ },
+ {
+  "en": "The game's map",
+  "where": [
+   "Map/Dungeons.lua:403",
+   "Map/Dungeons.lua:416"
   ]
  },
  {
   "en": "The map",
   "where": [
-   "Map/Panel.lua:299"
+   "Map/Panel.lua:315"
   ]
  },
  {
   "en": "The map is off.",
   "where": [
-   "Init.lua:70"
+   "Init.lua:71"
   ]
  },
  {
   "en": "The map's menu",
   "where": [
-   "Map/Panel.lua:1736"
+   "Map/Panel.lua:1772"
   ]
  },
  {
   "en": "The minimap's detail over the six major cities' own maps, at half strength at most so the city's plan leads. Off: their own maps alone.",
   "where": [
-   "Map/Close.lua:888"
+   "Map/Close.lua:895"
   ]
  },
  {
   "en": "The most the minimap's detail ever shows, at any zoom.",
   "where": [
-   "Map/Panel.lua:1513"
+   "Map/Panel.lua:1543"
   ]
  },
  {
   "en": "The most the minimap's detail ever shows, at any zoom: zooming in past where the painted map has any detail left, it takes over toward this.",
   "where": [
-   "Map/Close.lua:886"
+   "Map/Close.lua:893"
   ]
  },
  {
   "en": "The quest log can't be opened or closed in combat.",
   "where": [
-   "Map/Dungeons.lua:595",
-   "Map/Panel.lua:135",
-   "Map/Window.lua:516"
+   "Map/Dungeons.lua:629",
+   "Map/Panel.lua:146",
+   "Map/Window.lua:580"
   ]
  },
  {
   "en": "The quests in your log on the map from every zone and at any zoom. Blizzard's map shows a zone's quests only once you've zoomed in on that zone.",
   "where": [
-   "Map/WorldMap.lua:1935"
+   "Map/WorldMap.lua:2231"
   ]
  },
  {
@@ -2798,69 +2904,76 @@
  {
   "en": "The stars in the OpenMap menu put buttons here; Shift-right-click one to take it off.",
   "where": [
-   "Map/Panel.lua:723",
-   "Map/Panel.lua:1299"
+   "Map/Panel.lua:750",
+   "Map/Panel.lua:1326"
   ]
  },
  {
   "en": "The zoom (in times the whole-world view) the map's icons for places show from: dungeons, boats, zeppelins and flight masters (1: from the whole world; higher: only further in). 0 is Auto: each from its own zoom, as it comes. Townsfolk never show further out than their own; your pins, drawings and party always show.",
   "where": [
-   "Map/WorldMap.lua:1929"
+   "Map/WorldMap.lua:2222"
   ]
  },
  {
   "en": "The zoom the icons for places show from: dungeons, boats, zeppelins and flight masters. 1x: from the whole world; higher: only further in. Auto: each from its own zoom. Townsfolk never show further out than their own; your pins, drawings and party always show.",
   "where": [
-   "Map/Panel.lua:1522"
+   "Map/Panel.lua:1552"
   ]
  },
  {
   "en": "There's no map of this dungeon to show here.",
   "where": [
-   "Map/Dungeons.lua:345"
+   "Map/Dungeons.lua:355"
   ]
  },
  {
   "en": "They're also saved in WTF\\Account\\<account>\\SavedVariables\\OpenMap.lua once you /reload or log out.",
   "where": [
-   "Map/Paint.lua:458"
+   "Map/Paint.lua:460"
   ]
  },
  {
   "en": "This dungeon's loot is in the game's Adventure Guide.",
   "where": [
-   "Map/Dungeons.lua:1899"
+   "Map/Dungeons.lua:1918"
   ]
  },
  {
   "en": "This version's changes (it glows after an update until you've looked).",
   "where": [
-   "Map/Panel.lua:186"
+   "Map/Panel.lua:197"
   ]
  },
  {
   "en": "This version's changes, and the versions before.",
   "where": [
-   "Map/WorldMap.lua:1952"
+   "Map/WorldMap.lua:2251"
   ]
  },
  {
   "en": "To",
   "where": [
-   "Map/Stitch.lua:1176",
-   "Map/Stitch.lua:1182"
+   "Map/Stitch.lua:1199",
+   "Map/Stitch.lua:1205"
   ]
  },
  {
   "en": "To your group",
   "where": [
-   "Map/Pins.lua:739"
+   "Map/Pins.lua:757"
   ]
  },
  {
   "en": "To your guild",
   "where": [
-   "Map/Pins.lua:740"
+   "Map/Pins.lua:758"
+  ]
+ },
+ {
+  "en": "TomTom waypoint too",
+  "where": [
+   "Map/Nav.lua:947",
+   "Map/Panel.lua:362"
   ]
  },
  {
@@ -2872,25 +2985,25 @@
  {
   "en": "Tools",
   "where": [
-   "Map/Panel.lua:359"
+   "Map/Panel.lua:378"
   ]
  },
  {
   "en": "Townsfolk",
   "where": [
-   "Map/Panel.lua:268"
+   "Map/Panel.lua:284"
   ]
  },
  {
   "en": "Townsfolk (needs Questie)",
   "where": [
-   "Map/Panel.lua:268"
+   "Map/Panel.lua:284"
   ]
  },
  {
   "en": "Translations",
   "where": [
-   "Credits.lua:44"
+   "Credits.lua:54"
   ]
  },
  {
@@ -2902,18 +3015,18 @@
  {
   "en": "Undo",
   "where": [
-   "Map/Dungeons.lua:848",
-   "Map/Dungeons.lua:884",
-   "Map/Dungeons.lua:2144",
-   "Map/Paint.lua:527",
+   "Map/Dungeons.lua:882",
+   "Map/Dungeons.lua:918",
+   "Map/Dungeons.lua:2163",
+   "Map/Paint.lua:529",
    "Map/Sketch.lua:512"
   ]
  },
  {
   "en": "Unexplored areas",
   "where": [
-   "Map/Panel.lua:286",
-   "Map/WorldMap.lua:1890"
+   "Map/Panel.lua:302",
+   "Map/WorldMap.lua:2183"
   ]
  },
  {
@@ -2925,33 +3038,33 @@
  {
   "en": "Unreleased",
   "where": [
-   "Map/News.lua:97",
-   "Map/News.lua:257"
+   "Map/News.lua:99",
+   "Map/News.lua:296"
   ]
  },
  {
   "en": "Up close",
   "where": [
-   "Map/Close.lua:875",
-   "Map/Panel.lua:332"
+   "Map/Close.lua:882",
+   "Map/Panel.lua:348"
   ]
  },
  {
   "en": "Upcoming",
   "where": [
-   "Map/News.lua:57"
+   "Map/News.lua:59"
   ]
  },
  {
   "en": "Updated %d s ago",
   "where": [
-   "Map/Friends.lua:522"
+   "Map/Friends.lua:570"
   ]
  },
  {
   "en": "Updated to %s: see What's new in the OpenMap menu.",
   "where": [
-   "Map/News.lua:349"
+   "Map/News.lua:428"
   ]
  },
  {
@@ -2963,19 +3076,19 @@
  {
   "en": "Versions: |cffffffff%d|r",
   "where": [
-   "Map/News.lua:209"
+   "Map/News.lua:248"
   ]
  },
  {
   "en": "Waypoint",
   "where": [
-   "Map/Nav.lua:233"
+   "Map/Nav.lua:287"
   ]
  },
  {
   "en": "What the next note is: paint its area (or click) and say what's there.",
   "where": [
-   "Map/Paint.lua:509"
+   "Map/Paint.lua:511"
   ]
  },
  {
@@ -2987,51 +3100,57 @@
  {
   "en": "What's new",
   "where": [
-   "Map/Panel.lua:185",
-   "Map/WorldMap.lua:1951"
+   "Map/Panel.lua:196",
+   "Map/WorldMap.lua:2250"
   ]
  },
  {
   "en": "What's new in OpenMap",
   "where": [
-   "Map/News.lua:195"
+   "Map/News.lua:234"
+  ]
+ },
+ {
+  "en": "When a friend, guild member or group member has a newer OpenMap, a line in chat says so, once a session. Your version goes only in messages OpenMap already sends them. Off, nothing is said and your version isn't sent.",
+  "where": [
+   "Map/Friends.lua:789"
   ]
  },
  {
   "en": "When maximized, the map takes the screen's whole width instead of keeping Blizzard's shape with bars at the sides.",
   "where": [
-   "Map/Window.lua:670"
+   "Map/Window.lua:750"
   ]
  },
  {
   "en": "When reopening the map",
   "where": [
-   "Map/Nav.lua:761"
+   "Map/Nav.lua:940"
   ]
  },
  {
   "en": "Where OpenMap has one, a dungeon's map built from the game's own minimap pictures (what the minimap draws inside) instead of its drawn map. Dungeons with no other map use it anyway.",
   "where": [
-   "Map/Dungeons.lua:2302"
+   "Map/Dungeons.lua:2322"
   ]
  },
  {
   "en": "Where the Quests tab's quests come from, when you have more than one of these addons. The first installed: Questie, then Dungeon Journal, then NeedRoll.",
   "where": [
-   "Map/Dungeons.lua:2310"
+   "Map/Dungeons.lua:2330"
   ]
  },
  {
   "en": "Where you are isn't on the world map here.",
   "where": [
-   "Map/Dungeons.lua:2269",
-   "Map/Dungeons.lua:2281"
+   "Map/Dungeons.lua:2289",
+   "Map/Dungeons.lua:2301"
   ]
  },
  {
   "en": "Whispered to your target (if they have OpenMap, they're asked whether to add it).",
   "where": [
-   "Map/Pins.lua:558"
+   "Map/Pins.lua:575"
   ]
  },
  {
@@ -3049,55 +3168,55 @@
  {
   "en": "With Dungeon Journal installed, an entrance can open that dungeon's page in it instead of its map (its map still opens where Dungeon Journal has no page for it).",
   "where": [
-   "Map/Dungeons.lua:2313"
+   "Map/Dungeons.lua:2333"
   ]
  },
  {
   "en": "With Questie, Dungeon Journal or NeedRoll, this dungeon's quests are here.",
   "where": [
-   "Map/Dungeons.lua:1864"
+   "Map/Dungeons.lua:1883"
   ]
  },
  {
   "en": "With a gamepad, that map opens once you're out of combat.",
   "where": [
-   "Map/Dungeons.lua:1184"
+   "Map/Dungeons.lua:1226"
   ]
  },
  {
   "en": "With the controller, the D-pad's right opens the quest log.",
   "where": [
-   "Map/Panel.lua:131"
+   "Map/Panel.lua:142"
   ]
  },
  {
   "en": "With the game's Gamepad UI on, OpenMap draws its map over Blizzard's and leaves Blizzard's map as it is, so the controller's buttons keep working. Off: Blizzard's map while the Gamepad UI is on. Still being tried out: if something doesn't work, turn this off and /reload.",
   "where": [
-   "Map/WorldMap.lua:1875"
+   "Map/WorldMap.lua:2168"
   ]
  },
  {
   "en": "With the game's Gamepad UI on, OpenMap's map instead of Blizzard's. The controller's B and full-screen buttons on the map are OpenMap's then, so the game doesn't block them. Still being tried out: if the game blocks something, turn this off and /reload.",
   "where": [
-   "Map/WorldMap.lua:1872"
+   "Map/WorldMap.lua:2165"
   ]
  },
  {
   "en": "WoW Forever has no map of this dungeon yet.",
   "where": [
-   "Map/Dungeons.lua:344"
+   "Map/Dungeons.lua:354"
   ]
  },
  {
   "en": "World map: Blizzard's map isn't the expected kind; the seamless map is off.",
   "where": [
-   "Map/WorldMap.lua:1264"
+   "Map/WorldMap.lua:1448"
   ]
  },
  {
   "en": "World map: Blizzard's map layers aren't the expected ones; the stitched art may cover some map icons.",
   "where": [
-   "Map/WorldMap.lua:1280"
+   "Map/WorldMap.lua:1464"
   ]
  },
  {
@@ -3115,7 +3234,7 @@
  {
   "en": "You aren't on the world map here (an instance or a place it doesn't cover).",
   "where": [
-   "Map/Nav.lua:66"
+   "Map/Nav.lua:68"
   ]
  },
  {
@@ -3127,127 +3246,141 @@
  {
   "en": "Your arrow",
   "where": [
-   "Map/Panel.lua:222",
-   "Map/WorldMap.lua:1939"
+   "Map/Panel.lua:233",
+   "Map/WorldMap.lua:2235"
+  ]
+ },
+ {
+  "en": "Your arrow over everything",
+  "where": [
+   "Map/Panel.lua:234",
+   "Map/WorldMap.lua:2237"
   ]
  },
  {
   "en": "Your buttons",
   "where": [
-   "Map/Panel.lua:722",
-   "Map/Panel.lua:1298"
+   "Map/Panel.lua:749",
+   "Map/Panel.lua:1325"
   ]
  },
  {
   "en": "Your drawings",
   "where": [
-   "Map/Panel.lua:227",
+   "Map/Panel.lua:239",
    "Map/Sketch.lua:674"
   ]
  },
  {
   "en": "Your friends and guild members who use OpenMap can show on your map as a dot where they stand. Share where you are, so they see you on theirs?",
   "where": [
-   "Map/Friends.lua:674"
+   "Map/Friends.lua:722"
   ]
  },
  {
   "en": "Your friends who are online: a badge on the zone each is in, with who's there (as the friends list shows it), or a class-coloured dot where they stand for those who use OpenMap and share where they are.",
   "where": [
-   "Map/Friends.lua:737"
+   "Map/Friends.lua:785"
   ]
  },
  {
   "en": "Your guild (those with OpenMap are asked whether to add it).",
   "where": [
-   "Map/Pins.lua:557"
+   "Map/Pins.lua:574"
   ]
  },
  {
   "en": "Your guild and friends see you",
   "where": [
-   "Map/Panel.lua:358"
+   "Map/Panel.lua:377"
   ]
  },
  {
   "en": "Your guild members who are online: a badge on the zone each is in, with who's there (as the guild roster shows it), or a class-coloured dot where they stand for those who use OpenMap and share where they are.",
   "where": [
-   "Map/Friends.lua:739"
+   "Map/Friends.lua:787"
   ]
  },
  {
   "en": "Your guild, and your friends who use OpenMap, see you as a dot where you stand on their map, sent every few seconds while you move. Never from inside a dungeon, raid or battleground. Off, they see only your zone, as the friends list and guild roster show it.",
   "where": [
-   "Map/Friends.lua:741"
+   "Map/Friends.lua:791"
+  ]
+ },
+ {
+  "en": "Your own arrow on the world map at this size.",
+  "where": [
+   "Map/Panel.lua:1564",
+   "Map/WorldMap.lua:2228"
   ]
  },
  {
   "en": "Your own arrow on the world map. Off, you find your way old-school, by the land around you; your party still shows, and so does the minimap.",
   "where": [
-   "Map/WorldMap.lua:1940"
+   "Map/WorldMap.lua:2236"
   ]
  },
  {
   "en": "Your party or raid (those with OpenMap are asked whether to add it).",
   "where": [
-   "Map/Pins.lua:556"
+   "Map/Pins.lua:573"
   ]
  },
  {
   "en": "Zeppelin",
   "where": [
    "Map/Routes.lua:208",
-   "Map/Stitch.lua:1173"
+   "Map/Stitch.lua:1196"
   ]
  },
  {
   "en": "Zeppelin towers (click one: the other end), and zeppelins' routes when routes are shown.",
   "where": [
-   "Map/WorldMap.lua:1922"
+   "Map/WorldMap.lua:2215"
   ]
  },
  {
   "en": "Zeppelins",
   "where": [
-   "Map/Panel.lua:217",
-   "Map/WorldMap.lua:1921"
+   "Map/Panel.lua:228",
+   "Map/WorldMap.lua:2214"
   ]
  },
  {
   "en": "Zone",
   "where": [
-   "Map/Nav.lua:305"
+   "Map/Nav.lua:364"
   ]
  },
  {
   "en": "Zone highlight on hover",
   "where": [
-   "Map/Panel.lua:303"
+   "Map/Panel.lua:319"
   ]
  },
  {
   "en": "Zone levels",
   "where": [
-   "Map/Extras.lua:1176",
-   "Map/Panel.lua:304"
+   "Map/Extras.lua:1297",
+   "Map/Panel.lua:320"
   ]
  },
  {
   "en": "Zoom right in on a cave, mine or crypt, or a dungeon's entrance area, and its map surfaces from underground: Blizzard's own where it drew one, else the game's minimap of it. Over one, the zoom goes on past the deepest zoom.",
   "where": [
-   "Map/Close.lua:895"
+   "Map/Close.lua:902"
   ]
  },
  {
   "en": "Zoomed in, the painted map runs out of pixels: this softens it and lays paper grain over it. The softening rests while the map moves, so the map is sharp while you zoom or pan and softens a moment after it stops. Off (the default): always sharp.",
   "where": [
-   "Map/Close.lua:893"
+   "Map/Close.lua:900"
   ]
  },
  {
   "en": "Zoomed right out, the world map lies on an ocean that fills the window, in a border: the sea, compass roses, sea creatures, ships and the frame round it painted by Santiago Reyes (used with his permission), laid out for the window's shape, wide or tall. The game's own map stays in the middle. Off: no border.",
   "where": [
-   "Map/WorldMap.lua:1887"
+   "Map/WorldMap.lua:2180"
   ]
  },
  {
@@ -3257,9 +3390,15 @@
   ]
  },
  {
+  "en": "a right-click for other addons' buttons, and keys in gold in the tooltips",
+  "where": [
+   "Credits.lua:45"
+  ]
+ },
+ {
   "en": "about %s",
   "where": [
-   "Map/Flights.lua:255"
+   "Map/Flights.lua:256"
   ]
  },
  {
@@ -3269,15 +3408,22 @@
   ]
  },
  {
+  "en": "baked zone tiles for the Russian client",
+  "where": [
+   "Credits.lua:42"
+  ]
+ },
+ {
   "en": "click where it is; right-click skips",
   "where": [
-   "Map/Dungeons.lua:2159"
+   "Map/Dungeons.lua:2178"
   ]
  },
  {
   "en": "click, then Ctrl-C",
   "where": [
-   "Map/News.lua:323"
+   "Map/News.lua:173",
+   "Map/News.lua:363"
   ]
  },
  {
@@ -3289,14 +3435,14 @@
  {
   "en": "done",
   "where": [
-   "Map/Dungeons.lua:1609",
-   "Map/Dungeons.lua:1874"
+   "Map/Dungeons.lua:1628",
+   "Map/Dungeons.lua:1893"
   ]
  },
  {
   "en": "drawing",
   "where": [
-   "Map/Pins.lua:650"
+   "Map/Pins.lua:667"
   ]
  },
  {
@@ -3314,7 +3460,7 @@
  {
   "en": "followed",
   "where": [
-   "Map/Pins.lua:650"
+   "Map/Pins.lua:667"
   ]
  },
  {
@@ -3326,7 +3472,7 @@
  {
   "en": "from %d",
   "where": [
-   "Map/Dungeons.lua:1884"
+   "Map/Dungeons.lua:1903"
   ]
  },
  {
@@ -3350,8 +3496,8 @@
  {
   "en": "in your log",
   "where": [
-   "Map/Dungeons.lua:1609",
-   "Map/Dungeons.lua:1874"
+   "Map/Dungeons.lua:1628",
+   "Map/Dungeons.lua:1893"
   ]
  },
  {
@@ -3363,7 +3509,7 @@
  {
   "en": "needs flight masters you haven't learned",
   "where": [
-   "Map/Flights.lua:257"
+   "Map/Flights.lua:258"
   ]
  },
  {
@@ -3379,6 +3525,24 @@
   ]
  },
  {
+  "en": "place names and quest areas on the controller map, and it reopening as you set",
+  "where": [
+   "Credits.lua:37"
+  ]
+ },
+ {
+  "en": "quests from every zone read a few at a time",
+  "where": [
+   "Credits.lua:40"
+  ]
+ },
+ {
+  "en": "sharper middle zooms, and unexplored land darkened as one shade",
+  "where": [
+   "Credits.lua:41"
+  ]
+ },
+ {
   "en": "the controller map option turned on in combat, and B by a quest's details",
   "where": [
    "Credits.lua:33"
@@ -3386,6 +3550,12 @@
  },
  {
   "en": "the map art is the game's own",
+  "where": [
+   "Credits.lua:48"
+  ]
+ },
+ {
+  "en": "the map in combat, ClassicUI Forever's window, and Esc on a dungeon's map",
   "where": [
    "Credits.lua:38"
   ]
@@ -3400,6 +3570,12 @@
   "en": "the map's hitches while panning, found and measured with /openmap bench",
   "where": [
    "Credits.lua:19"
+  ]
+ },
+ {
+  "en": "the quest level on OpenMap's quest icons",
+  "where": [
+   "Credits.lua:36"
   ]
  },
  {
@@ -3421,6 +3597,12 @@
   ]
  },
  {
+  "en": "the zones' tiles baked in Brazilian Portuguese, less work while the map is closed or moving, and its art ready before it opens",
+  "where": [
+   "Credits.lua:39"
+  ]
+ },
+ {
   "en": "what's wrong?",
   "where": [
    "Map/Report.lua:104"
@@ -3429,13 +3611,19 @@
  {
   "en": "your group",
   "where": [
-   "Map/Pins.lua:237"
+   "Map/Pins.lua:240"
   ]
  },
  {
   "en": "your guild",
   "where": [
-   "Map/Pins.lua:237"
+   "Map/Pins.lua:240"
+  ]
+ },
+ {
+  "en": "your position read safely, the maximized dungeon map, the Stockade's map, and German",
+  "where": [
+   "Credits.lua:44"
   ]
  },
  {
@@ -3459,7 +3647,7 @@
  {
   "en": "|cffffd100Drag|r paint an area   |cffffd100Click|r a note at a point   |cffffd100Shift-drag|r add to the last   |cffffd100Click a note|r edit   |cffffd100Right-drag|r pan   |cffffd100Ctrl-Z|r undo",
   "where": [
-   "Map/Paint.lua:548"
+   "Map/Paint.lua:550"
   ]
  },
  {
@@ -3471,7 +3659,7 @@
  {
   "en": "|cffffd100Right-click|r or |cffffd100Esc|r to go back to the world map",
   "where": [
-   "Map/Dungeons.lua:1157"
+   "Map/Dungeons.lua:1199"
   ]
  },
  {
@@ -3483,7 +3671,7 @@
  {
   "en": "|cffffd100Step 1 of 2:|r draw where it's wrong (right-drag pans)",
   "where": [
-   "Map/Dungeons.lua:824"
+   "Map/Dungeons.lua:858"
   ]
  }
 ]

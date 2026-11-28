@@ -41,18 +41,53 @@ local function On() return mod.db and mod.db.explore and S.IsBuilt() end
 -- outlines or counts are made. (Not the map's pieces, S.Pieces: they're set as the map is built, at login,
 -- before the game may have sent what you've explored, and only flipped by a later exploring: a zone you'd
 -- long explored stayed unexplored here, 3/25 for the Barrens, #417 #418)
-local exploredNow = {}          -- mapID -> { key = true }, for the making in hand (Fresh empties it)
+--
+-- The game's pieces aren't always Explore.lua's: its keys are the pieces of the zones' older art (Elwynn's
+-- 1228), the achievements' own, while the game draws most zones with a newer art (2153) and lists that art's
+-- pieces: the same places, at the same offsets or a few px off, in other sizes. Matched on the whole key,
+-- Elwynn's 12 explored read 6/12 and Tirisfal's 16 read 0/16 (#445 #478). So a piece is explored when the
+-- game lists it, or one at its place, or says its own ground is explored where its pin is (a piece redrawn
+-- somewhere else: two of Alterac's, one each of Hillsbrad's, Desolace's and Stranglethorn's)
+local NEAR = 8                  -- px a piece's corner may sit from its place in the zone's other art (3 at the most, then 20 and up)
+local exploredNow = {}          -- mapID -> { key = true, at = { { x, y }, ... }, loose = { key = found } }, for the making in hand (Fresh empties it)
 local function Fresh() wipe(exploredNow) end
+local function GroundExplored(mapID, p)
+	local at = C_MapExplorationInfo.GetExploredAreaIDsAtPosition
+	if not at or not CreateVector2D then return false end
+	local ok, areas = pcall(at, mapID, CreateVector2D(p[3], p[4]))
+	if not ok or type(areas) ~= "table" then return false end
+	for _, area in ipairs(areas) do
+		for _, own in ipairs(p[2]) do
+			if area == own then return true end
+		end
+	end
+	return false
+end
 local function Unexplored(mapID, key)
 	local now = exploredNow[mapID]
 	if not now then
-		now = {}
+		now = { at = {}, loose = {} }
 		for _, info in ipairs(C_MapExplorationInfo.GetExploredMapTextures(mapID) or {}) do
 			now[info.textureWidth .. ":" .. info.textureHeight .. ":" .. info.offsetX .. ":" .. info.offsetY] = true
+			now.at[#now.at + 1] = { info.offsetX, info.offsetY }
 		end
 		exploredNow[mapID] = now
 	end
-	return not now[key]
+	if now[key] then return false end
+	local found = now.loose[key]
+	if found == nil then
+		found = false
+		local _, _, x, y = strsplit(":", key)
+		x, y = tonumber(x), tonumber(y)
+		for _, at in ipairs(now.at) do
+			if math.abs(at[1] - x) <= NEAR and math.abs(at[2] - y) <= NEAR then found = true break end
+		end
+		local z = zones[mapID]
+		local p = not found and z and DATA.pieces[z.art][key]
+		if p then found = GroundExplored(mapID, p) end
+		now.loose[key] = found
+	end
+	return not found
 end
 
 -- a zone's explored pieces and its whole count
@@ -241,14 +276,19 @@ end)
 -- the game says something was explored (or sent what you'd explored, after login): made again, at once with
 -- the map open, else as it next opens; and at the first opening of a session, what it holds by then. (Into a new
 -- subzone too: a place explored can come without that event, #422)
-local owner, pending = {}, true
+-- (the map is WorldMap.lua's, hooked from its Setup: Blizzard's map can load after this file, and a hook made
+-- here, on a map not there yet, never was: explored since, a place kept its outline and pin until a /reload)
+local owner, pending, theMap = {}, true, nil
 local function Explored()
-	if WorldMapFrame and WorldMapFrame:IsShown() and mod.db and mod.db.explore then mod.RefreshExplore() else pending = true end
+	if theMap and theMap:IsShown() and mod.db and mod.db.explore then mod.RefreshExplore() else pending = true end
 end
 ns.RegisterEvent(owner, "MAP_EXPLORATION_UPDATED", Explored)
 ns.RegisterEvent(owner, "ZONE_CHANGED", Explored)
-if WorldMapFrame then
-	WorldMapFrame:HookScript("OnShow", function()
+ns.RegisterEvent(owner, "ZONE_CHANGED_NEW_AREA", Explored)
+function mod:SetupExplore(worldMap)
+	if theMap or not worldMap then return end
+	theMap = worldMap
+	worldMap:HookScript("OnShow", function()
 		if not pending or not (mod.db and mod.db.explore) then return end
 		pending = false
 		C_Timer.After(0, function() if On() then mod.RefreshExplore() end end)

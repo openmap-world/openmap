@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local mod = ns:GetModule("worldmap")
 local L = ns.L
 
@@ -36,9 +37,9 @@ local function Tip(owner)
 	local tooltip = brokerTooltip and owner or GameTooltip
 	if not brokerTooltip then tooltip:SetOwner(owner, "ANCHOR_LEFT") end
 	tooltip:AddLine("|cff" .. ns.ACCENT .. "Open|rMap")
-	tooltip:AddLine(L["Click: the map and its menu"], 1, 1, 1)
-	tooltip:AddLine(L["Right-click: the options window"], 1, 1, 1)
-	if owner == button then tooltip:AddLine(L["Drag: move it round the minimap"], 0.6, 0.6, 0.6) end
+	tooltip:AddLine(Gold(L["Click: the map and its menu"]), 1, 1, 1)
+	tooltip:AddLine(Gold(L["Right-click: the options window"]), 1, 1, 1)
+	if owner == button then tooltip:AddLine(Gold(L["Drag: move it round the minimap"]), 0.6, 0.6, 0.6) end
 	if not brokerTooltip then tooltip:Show() end
 end
 

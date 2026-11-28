@@ -65,6 +65,7 @@ The other bakes, each a script here (run with the same `<db2 dir> <texture cache
 | `banners.py` | city banners cut from their zone's art (Orgrimmar on Durotar's) |
 | `tone.py` | each zone's colour, for the close-up minimap's tint |
 | `minimaplod.py` (after `tone.py`) | smaller copies of the minimap, for its detail from further out |
+| `battlegrounds.py <cache> <WoW folder> <out>` (no `<db2 dir>`) | previews of the battlegrounds' maps as Battlegrounds.lua draws them, whole and zoomed in (`OPENMAP_BG_MIX=0.5`: the minimap at half over all of each, to check it lies on the art and set its focus box in `tools/map-data/battlegrounds.py`) |
 
 Two read what players and contributors send from the game:
 

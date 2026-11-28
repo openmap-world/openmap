@@ -232,7 +232,7 @@ local function Build()
 	frame:SetScale(fit)
 	-- (the map window's own frame, its title bar and X)
 	local top = Look:Window(frame, L["What's new in OpenMap"] .. "  |cff998866" .. ns.version .. "|r")
-	tinsert(UISpecialFrames, "OpenMapNews")
+	ns.CloseOnEscape("OpenMapNews")
 
 	-- along the top, as the quest log's count: how many versions, how many changes
 	local changes = 0

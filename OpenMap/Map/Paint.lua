@@ -15,6 +15,7 @@
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local Look = ns.Look
@@ -382,7 +383,8 @@ local function BuildList()
 			GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 			GameTooltip:AddLine(("#%d %s · %s"):format(self.note.id, KindOf(self.note).name, ZoneName(self.note.zone)), 1, 0.82, 0)
 			if self.note.text ~= "" then GameTooltip:AddLine(self.note.text, 1, 1, 1, true) end
-			GameTooltip:AddLine(L["Click to go there, right-click to edit"], 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Click: go there"]), 0.6, 0.6, 0.6)
+			GameTooltip:AddLine(Gold(L["Right-click: edit it"]), 0.6, 0.6, 0.6)
 			GameTooltip:Show()
 		end)
 		row:SetScript("OnLeave", GameTooltip_Hide)
@@ -436,7 +438,7 @@ local function ShowExport()
 		export:EnableMouse(true)
 		-- (the map window's own frame, its title bar and X)
 		local top = Look:Window(export, L["Map notes: Ctrl-C to copy them all, then paste them where they're needed"])
-		tinsert(UISpecialFrames, "OpenMapNotesExport")
+		ns.CloseOnEscape("OpenMapNotesExport")
 		local scroll = CreateFrame("ScrollFrame", nil, export, "UIPanelScrollFrameTemplate")
 		scroll:SetPoint("TOPLEFT", 12, -12 - top)
 		scroll:SetPoint("BOTTOMRIGHT", -32, 34)

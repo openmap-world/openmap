@@ -1,5 +1,6 @@
 """A left press that wandered isn't a click (#37, #64), and a Ctrl-click with OpenMap's pins off is
-another addon's (#19): python -P tools/offline-test/press.py."""
+another addon's (#19), and a right-click on a group dot or your battleground's map is
+Blizzard's (#472): python -P tools/offline-test/press.py."""
 from pathlib import Path
 import unittest
 
@@ -60,7 +61,16 @@ class CtrlClickTests(unittest.TestCase):
             function Stitchable() return true end
             function FitZoom() return 2 end
             function GlideTo() glided = glided + 1 end
-            ns, tinsert = {}, table.insert
+            ns, tinsert = { Safe = { Value = function(v) return v end } }, table.insert
+            -- Blizzard's map: its group dots (GroupMembersPin), with the units under the cursor
+            dotUnits, mapID = {}, 1415
+            local dots = { IsShown = function() return true end,
+                GetMouseOverUnits = function() return unpack(dotUnits) end }
+            map = { GetMapID = function() return mapID end }
+            function map:EnumeratePinsByTemplate(t)
+                local done = t ~= 'GroupMembersPinTemplate'
+                return function() if not done then done = true return dots end end
+            end
         """)
         chunk = SOURCE[SOURCE.index("-- Blizzard's map-pin button (#324)"):SOURCE.index('-- our icons: a press')]
         self.lua.execute(chunk + '\n_G.OnCanvasClick = OnCanvasClick\n_G.DisarmBlizzardPin = pinBtn.Disarm\n')
@@ -93,6 +103,42 @@ class CtrlClickTests(unittest.TestCase):
         self.check("mod.db.rightClickOut = false "
                    "assert(OnCanvasClick(true, 'RightButton') == false, 'the right-click was kept from other addons') "
                    "assert(glided == 0)")
+
+    def test_right_click_on_a_group_dot_is_blizzards(self):
+        # (#472: its Report AFK menu, and its own way up the map; your own arrow under the cursor isn't a group dot)
+        self.check("dotUnits = { 'player' } assert(OnCanvasClick(true, 'RightButton') == true) assert(glided == 1)")
+        self.check("dotUnits = { 'player', 'raid7' } "
+                   "assert(OnCanvasClick(true, 'RightButton') == false, 'a right-click on a group dot was kept from Blizzard') "
+                   "assert(glided == 1)")
+        # (a left click there is still OpenMap's)
+        self.check("assert(OnCanvasClick(true, 'LeftButton') == true) assert(glided == 2)")
+
+    def test_right_click_on_the_battleground_you_are_in_is_blizzards(self):
+        self.check("""
+            mapID = 1459
+            function mod.InsideBattleground(id) return id == 1459 end
+            assert(OnCanvasClick(true, 'RightButton') == false, 'a right-click on the map of your battleground was kept')
+            assert(glided == 0)
+            mapID = 1415
+            assert(OnCanvasClick(true, 'RightButton') == true)
+        """)
+
+    def test_right_click_handler_writes_nothing_of_blizzards(self):
+        self.check("""
+            dotUnits = { 'party1' }
+            local before = {}
+            for k, v in pairs(map) do before[k] = v end
+            setmetatable(map, { __newindex = function(_, k) error('wrote map.' .. tostring(k)) end })
+            OnCanvasClick(true, 'RightButton')
+            for k, v in pairs(map) do assert(before[k] == v, k) end
+        """)
+
+    def test_registered_after_blizzards_handlers(self):
+        # (Blizzard's group dots' Report AFK handler is priority 0, called highest first: OpenMap's after it, #472)
+        import re
+        found = re.findall(r'map:AddCanvasClickHandler\(OnCanvasClick, (-?\d+)\)', SOURCE)
+        self.assertEqual(len(found), 1)
+        self.assertLess(int(found[0]), 0)
 
     def test_controller_b_still_steps_out_when_turned_off(self):
         self.check("mod.db.rightClickOut = false assert(OnCanvasClick(nil, 'RightButton') == true) assert(glided == 1)")

@@ -110,6 +110,7 @@ table CSVs, `<tex>` a texture cache. Order matters where one step reads another'
 | --- | --- | --- | --- |
 | 1 | `tools/map-data/build.py <cache>` | `Data/Reveal.lua`, `Data/Places.lua` | `ENTRANCES` (below) |
 | 2 | `tools/map-data/minimap.py <cache>` | `Data/Minimap.lua` | |
+| 2a | `tools/map-data/battlegrounds.py <cache> <WoW folder> [build]` (Forever; the build whose tables have every battleground's uiMap: 1.60.1.70959) | `Data/Battlegrounds.lua` | |
 | 3 | `tools/map-flights/flights.py <db2> OpenMap/Data/Forever/FlightData.lua` | `Data/FlightData.lua` | |
 | 4 | `tools/map-caves/build.py <cache>` (best with `OPENMAP_WOW`: it reads the caves' WMOs, `wmo.py`) | `Data/Caves.lua`, `MapCave/` | |
 | 4a | `tools/map-caves/minimap.py <cache>` (best with `OPENMAP_WOW`) | `Data/CaveMinimap.lua` | 4 |
@@ -178,8 +179,8 @@ Blizzard's, cut, masked or hand-edited; facts come from the game's tables or a c
 - **Blend modes**: `MOD` multiplies opacity too (the map turns see-through); masks
   (`MaskTexture`) and plain blends instead.
 - **A region at alpha 0 still costs its full size to draw**: hide it (`Fade` in Stitch.lua).
-- **Order of setup** in `WorldMap.lua` matters (the menu holds Nav's search box, so Nav
-  first). Each step of `Close.lua`'s view update is isolated (`Try`), so one failure
+- **Order of setup** in `WorldMap.lua` matters (Nav before the menu, which reads its
+  pieces). Each step of `Close.lua`'s view update is isolated (`Try`), so one failure
   doesn't take the rest down; failures show in `/openmap status`.
 - **Taint**: never write to Blizzard's layout tables or call protected functions; hook
   with `hooksecurefunc` or a data provider. Map switching waits out combat.

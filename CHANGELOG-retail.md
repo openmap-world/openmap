@@ -1,5 +1,47 @@
 # OpenMap changelog
 
+## v0.8.14 (2026-11-27)
+
+### New
+
+- **A right-click for other addons' buttons** (API version 5): `RegisterMenuToggle` takes `onRightClick`
+  and `rightClickTip`, so an addon's button on the map can do something of its own on a right-click,
+  and `lit` and `grey`, so its gold edge and its greying can show something other than its switch;
+  `RefreshMenuToggles()` draws the buttons again (docs/api.md). By Lvcidx0.
+- **TomTom's waypoint can be left out**: with TomTom on, "TomTom waypoint too" (OpenMap's menu > More, and
+  Options) is on as before; off, a pin you follow on the map sets only Blizzard's waypoint (#444).
+
+### Improved
+
+- **Minimap detail at every zoom**: the far right of the Minimap detail slider in the menu is now "Always",
+  and with it the map no longer flickers back to the painted map while you zoom in: the detail stays up
+  while what comes in loads.
+- **Minimap strength goes up to 100%** (it stopped at 80%).
+- **Keys in gold in the tooltips**: Click, Right-click, Shift-click, Alt-click, Drag, on the map's buttons,
+  map pins, notes, the waypoint, quests, dungeon entrances, flight masters, boats and zeppelins, the
+  minimap button and the window's corners. Each reads "Key: what it does" ("Click: open its map"). By Lvcidx0.
+
+### Known issue
+
+- Until you've moved or resized the map window in a session, it can be dragged partly off the screen.
+  `/openmap reset` brings it back.
+
+### Fixed
+
+- **The cursor's coordinates off a battleground's or dungeon's map read "--"**: over the frame round a map
+  smaller than the window, they showed the map's edge (57.6, 0.0).
+- **No quest icon left in the middle of the screen as the map closes**: another addon's icon (HereBeDragons':
+  AllTheQuests', Questie's ...) whose pin the library let go in a fight was given back to the screen, shown,
+  as the map closed or the fight ended. It's hidden now, till its addon puts it on the map again (#448). By imigu17.
+- **With Move Any, a bottom corner's resize keeps the map's top in place**: dragging a bottom resize grip lifted the
+  top of the map when Move Any anchored the window at the bottom. By puschie286.
+- **Fewer "auras ... secret while tainted by OpenMap" errors from the quest tracker in a fight**: Ctrl-click's
+  waypoint and following a pin set the game's waypoint from OpenMap's code, and in a fight the tracker's next
+  redraw failed. In a fight they're set as it ends now (#295).
+- **Fewer "blocked" errors from the map window**: OpenMap's own windows are off the game's Escape list (they
+  still close with Escape), and in a battleground or arena the map window's place, size and full-screen width
+  are left to the game (#472).
+
 ## v0.8.13 (2026-11-22)
 
 ### Fixed

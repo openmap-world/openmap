@@ -5,7 +5,8 @@
 --                only while the player is still inside the previous view
 --   waypoints    Ctrl-click the map to drop Blizzard's map pin there (and a
 --                TomTom arrow, if TomTom is on); click the pin to clear it
---   search       type a zone, city, dungeon or flight master and glide to it
+--   search       type a zone, city, dungeon or flight master and glide to it (on the
+--                window's title bar)
 --   group        party and raid members as class-coloured dots with a gold
 --                border, wherever they are on the stitched map (Blizzard's own
 --                only show on the map underneath)
@@ -15,9 +16,12 @@ local _, ns = ...
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local Look, Safe, L = ns.Look, ns.Safe, ns.L
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 
 local d = mod.defaults
 d.group = true
+d.tomtom = true      -- a waypoint followed on the map sets TomTom's too, if TomTom is on (#444)
+d.waypointMeters = false   -- Blizzard's distance to the waypoint you follow, in meters (its arrow on the screen)
 
 local map, sc
 
@@ -216,7 +220,7 @@ end
 -- the game's own calls: nothing of Blizzard's map is touched
 local zoning = false
 function mod.ZoneWaypoint()
-	if zoning or not (mod.IsStitched and mod.IsStitched()) or not map or not map:IsShown() then return end
+	if zoning or InCombatLockdown() or not (mod.IsStitched and mod.IsStitched()) or not map or not map:IsShown() then return end   -- (#295)
 	local mapID, x, y = BlizzardPin()
 	if not mapID or not x then return end
 	local info = C_Map.GetMapInfo(mapID)
@@ -252,8 +256,11 @@ function mod.OwnViewWaypoint()
 	local zx, zy = mod.FromWorld(zone, u, v)
 	if not (zx and zy and zx >= 0 and zx <= 1 and zy >= 0 and zy <= 1 and UiMapPoint) then return false end
 	zoning = true
-	local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, zx, zy))
-	if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+	-- (the waypoint itself as the fight ends: set from OpenMap's code in it, the tracker's redraw failed, #295)
+	ns.OutOfCombat("waypoint", function()
+		local ok = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(zone, zx, zy))
+		if ok and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
+	end)
 	zoning = false
 	return ok
 end
@@ -281,8 +288,8 @@ function RefreshWaypoint()
 		local info = C_Map.GetMapInfo(mapID)
 		GameTooltip:AddLine(L["Waypoint"], 1, 0.82, 0)
 		GameTooltip:AddLine(("%s  %.1f, %.1f"):format(info and info.name or "", x * 100, y * 100), 1, 1, 1)
-		GameTooltip:AddLine(L["Click to stop following it"], 0.6, 0.6, 0.6)
-		if not own then GameTooltip:AddLine(L["Shift-click: share in chat"], 0.6, 0.6, 0.6) end
+		GameTooltip:AddLine(Gold(L["Click: stop following it"]), 0.6, 0.6, 0.6)
+		if not own then GameTooltip:AddLine(Gold(L["Shift-click: share in chat"]), 0.6, 0.6, 0.6) end
 		GameTooltip:Show()
 	end)
 	pin:SetScript("OnLeave", GameTooltip_Hide)
@@ -294,7 +301,7 @@ end
 function mod.TrackPoint(mapID, x, y, title)
 	local info = C_Map.GetMapInfo(mapID)
 	local blizzard = false
-	if C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates
+	if C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates and not InCombatLockdown()   -- (#295)
 		and (not C_Map.CanSetUserWaypointOnMap or C_Map.CanSetUserWaypointOnMap(mapID)) then
 		blizzard = pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(mapID, x, y)) and BlizzardPin() ~= nil
 		if blizzard and C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true) end
@@ -302,7 +309,7 @@ function mod.TrackPoint(mapID, x, y, title)
 	mod.char.pin = not blizzard and { mapID, x, y } or nil
 	local tomtom = _G.TomTom
 	ClearTomTom()
-	if tomtom and tomtom.AddWaypoint then
+	if tomtom and tomtom.AddWaypoint and mod.db.tomtom ~= false then
 		local name = (title and title ~= "") and title or (info and info.name) or "OpenMap"
 		local ok, point = pcall(tomtom.AddWaypoint, tomtom, mapID, x, y, { title = name, from = "OpenMap" })
 		if ok then tomtomPoint = point end
@@ -329,14 +336,36 @@ function mod.SetPinMode(on)
 	if mod.OnPinMode then mod.OnPinMode(pinArmed) end
 end
 function mod.ClearPin() ClearPin() end         -- (the waypoint: no longer followed)
+function mod.SetTomTomWaypoint(on)             -- (off: the one OpenMap set goes too)
+	mod.db.tomtom = on and true or false
+	if not on then ClearTomTom() end
+end
 
 --------------------------------------------------------------------------------
 -- Search
 --------------------------------------------------------------------------------
 
-local places                    -- { name, lower, kind, u0, v0, u1, v1 } or a point (u0 == u1)
+-- What it finds: the world's continents and zones, dungeons and raids, flight masters, battlegrounds (their own
+-- map opens), boats and zeppelins, caves, the areas of each zone (Goldshire, the Crossroads ...), your map pins by
+-- their notes; and with Questie, its database's NPCs, objects and quests (a quest: where it's given and handed in),
+-- and its townsfolk by kind (Innkeepers ...: that kind turned on, Townsfolk.lua). Questie's tables are only read,
+-- through its own queries, a few hundred a frame the first time the search is used, never written.
+local places                    -- { name, lower, kind, u0, v0, u1, v1 } (u0 == u1: a point), or { pts = { { u, v } ... } },
+                                -- or { open = uiMapID }, { show = townsfolk kind }, { q = "npc" | "object" | "quest", ids }
 local box, list
-local MAX_RESULTS = 8
+local MAX_RESULTS = 12
+local PER_KIND = 4              -- (so a word that's in hundreds of NPCs' names leaves room for the rest)
+local MAX_PINGS = 40
+local CHUNK = 400               -- Questie's records indexed a frame
+-- the kinds' order in the list: places first, then what's at them
+local RANK = {}
+local function Rank(kind) return RANK[kind] or 50 end
+
+local function Entry(name, kind, e)
+	e = e or {}
+	e.name, e.lower, e.kind = name, name:lower(), kind
+	return e
+end
 
 local function Places()
 	if places then return places end
@@ -347,7 +376,25 @@ local function Places()
 		local key = kind .. name
 		if seen[key] then return end
 		seen[key] = true
-		places[#places + 1] = { name = name, lower = name:lower(), kind = kind, u0, v0, u1 or u0, v1 or v0 }
+		places[#places + 1] = Entry(name, kind, { u0, v0, u1 or u0, v1 or v0 })
+	end
+	-- several places by one name (a route's docks): one entry, every place pinged
+	local multi = {}
+	local function addAt(name, kind, u, v)
+		if not name or name == "" or not u then return end
+		local key = kind .. name
+		local e = multi[key]
+		if not e then
+			e = Entry(name, kind, { pts = {} })
+			multi[key] = e
+			places[#places + 1] = e
+		end
+		for _, p in ipairs(e.pts) do if math.abs(p[1] - u) < 1e-4 and math.abs(p[2] - v) < 1e-4 then return end end
+		e.pts[#e.pts + 1] = { u, v }
+	end
+	for i, k in ipairs({ L["Continent"], L["Zone"], L["Battleground"], L["Dungeon"], L["Raid"], L["Area"], L["Cave"],
+		L["Flight master"], L["Boat"], L["Zeppelin"], L["Airship"], L["Map pin"], L["Townsfolk"], L["NPC"], L["Quest"], L["Object"] }) do
+		RANK[k] = RANK[k] or i
 	end
 	for _, kind in ipairs({ Enum.UIMapType.Continent, Enum.UIMapType.Zone }) do
 		for _, info in ipairs(C_Map.GetMapChildrenInfo(S.WORLD, kind, true) or {}) do
@@ -355,7 +402,8 @@ local function Places()
 			if l then add(info.name, kind == Enum.UIMapType.Continent and L["Continent"] or L["Zone"], l, t, r, b) end
 		end
 	end
-	for _, g in ipairs((ns.MapPlaces or {}).instances or {}) do
+	local data = ns.MapPlaces or {}
+	for _, g in ipairs(data.instances or {}) do
 		local u, v
 		if S.EntranceAt then u, v = S.EntranceAt(g) else u, v = S.FromYards(g[1], g[2], g[3]) end   -- (Dungeons.lua)
 		if u then
@@ -366,27 +414,226 @@ local function Places()
 		local u, v = S.FromYards(node[2], node[3], node[4])
 		add(node[1], L["Flight master"], u, v)
 	end
+	-- boats, zeppelins and airships by their route ("Booty Bay - Ratchet"): both docks (Data's transports)
+	local TRANSPORT = { boat = L["Boat"], zeppelin = L["Zeppelin"], airship = L["Airship"] }
+	for _, t in ipairs(data.transports or {}) do
+		local kind = TRANSPORT[t[1]]
+		if kind then
+			addAt(t[2], kind, S.FromYards(t[3], t[4], t[5]))
+			addAt(t[2], kind, S.FromYards(t[6], t[7], t[8]))
+		end
+	end
+	-- caves (Blizzard's micro maps, Data's Caves): the middle of each
+	for _, c in pairs(ns.MapCaves or {}) do
+		addAt(c[1], L["Cave"], S.FromYards(c[2], (c[3] + c[5]) / 2, (c[4] + c[6]) / 2))
+	end
+	-- the areas of each zone, by the game's names (AreaTable): where to stand to explore them (Data's Explore), and
+	-- the painted land of WoW Forever's own (Data's GapPlaces)
+	local explore = ns.MapExplore
+	if explore and explore.pieces and mod.ToWorld and C_Map.GetAreaInfo then
+		local zoneOf = {}
+		for ach, a in pairs(explore.achievements or {}) do zoneOf[ach] = a[1] end
+		for _, pieces in pairs(explore.pieces) do
+			for _, p in pairs(pieces) do
+				local zone = zoneOf[p[1]]
+				if zone and p[3] then
+					local u, v = mod.ToWorld(zone, p[3], p[4])
+					for _, area in ipairs(p[2] or {}) do add(C_Map.GetAreaInfo(area), L["Area"], u, v) end
+				end
+			end
+		end
+	end
+	for _, g in ipairs(ns.MapGapPlaces or {}) do
+		if g[4] then add(g[2], L["Area"], g[4][1], g[4][2]) end
+	end
+	-- battlegrounds: no place on the world, their own map opens (Battlegrounds.lua)
+	for _, bg in ipairs(mod.BattlegroundPlaces and mod.BattlegroundPlaces() or {}) do
+		places[#places + 1] = Entry(bg.name, L["Battleground"], { open = bg.mapID })
+	end
+	-- townsfolk by kind, from Questie (Townsfolk.lua): found, that kind is turned on
+	if mod.TOWNSFOLK and mod.HasTownsfolk and mod.HasTownsfolk() then
+		for _, k in ipairs(mod.TOWNSFOLK) do places[#places + 1] = Entry(k.name, L["Townsfolk"], { show = k.key }) end
+	end
 	return places
 end
 
--- a marker on what was found, for a few seconds
+-- your map pins, by their notes (Pins.lua): read each time, they change
+local function PinPlaces()
+	local out = {}
+	local db = mod.db.pins
+	for _, p in ipairs(db and db.list or {}) do
+		if p.note and p.note ~= "" and p.map and mod.ToWorld then
+			local u, v = mod.ToWorld(p.map, p.x, p.y)
+			if u then out[#out + 1] = Entry(p.note, L["Map pin"], { u, v, u, v }) end
+		end
+	end
+	return out
+end
+
+-- Questie's database, if it's loaded: its NPCs', objects' and quests' names, indexed a chunk a frame
+local QUESTIE_KIND = { npc = "NPC", object = "Object", quest = "Quest" }
+local questie = { list = {}, state = nil }      -- state: nil (not begun), "building", "done", "none"
+local function QuestieDBs()
+	local loader = _G.QuestieLoader
+	if not loader or type(loader.ImportModule) ~= "function" then return end
+	local ok, db = pcall(loader.ImportModule, loader, "QuestieDB")
+	local ok2, zones = pcall(loader.ImportModule, loader, "ZoneDB")
+	if ok and ok2 and type(db) == "table" and type(zones) == "table" and db.QueryNPCSingle then return db, zones end
+end
+local ShowResults
+local function IndexQuestie()
+	if questie.state then return end
+	local QDB = QuestieDBs()
+	if not QDB or not QDB.NPCPointers then questie.state = "none" return end
+	questie.state = "building"
+	local todo = {}
+	local function queue(kind, pointers, query)
+		if type(pointers) ~= "table" or type(query) ~= "function" then return end
+		for id in pairs(pointers) do todo[#todo + 1] = { kind, id, query } end
+	end
+	queue("npc", QDB.NPCPointers, QDB.QueryNPCSingle)
+	queue("object", QDB.ObjectPointers, QDB.QueryObjectSingle)
+	queue("quest", QDB.QuestPointers, QDB.QueryQuestSingle)
+	local i, seen = 0, {}
+	local function Step()
+		local ok, err = pcall(function()
+			for _ = 1, CHUNK do
+				i = i + 1
+				local t = todo[i]
+				if not t then questie.state = "done" return end
+				local kind, id, query = t[1], t[2], t[3]
+				local name = query(id, "name")
+				-- (only what has a place: an NPC or object with spawns, a quest with someone to give it)
+				local where = query(id, kind == "quest" and "startedBy" or "spawns")
+				if type(name) == "string" and name ~= "" and type(where) == "table" and next(where) then
+					-- (one entry for every record of one name, as Questie keeps some: Spirit Healers, a quest of each
+					-- faction's: all their places)
+					local key = kind .. name
+					local e = seen[key]
+					if e then
+						e.ids[#e.ids + 1] = id
+					else
+						e = Entry(name, L[QUESTIE_KIND[kind]], { q = kind, ids = { id } })
+						seen[key] = e
+						questie.list[#questie.list + 1] = e
+					end
+				end
+			end
+		end)
+		if not ok then
+			questie.state = "done"
+			geterrorhandler()(err)
+		end
+		if box and box:HasFocus() and ShowResults then ShowResults() end
+		if questie.state == "building" then C_Timer.After(0, Step) end
+	end
+	C_Timer.After(0, Step)
+end
+mod.IndexQuestieSearch = IndexQuestie
+
+-- where a Questie record is on the world (normalized points): its spawns (an NPC that walks about, every point of
+-- its path among them: the one nearest their middle), or a quest's givers' and hand-ins'
+local WANDER = 6
+local function Spawns(QDB, ZoneDB, spawns, out, walker)
+	for areaID, coords in pairs(type(spawns) == "table" and spawns or {}) do
+		local uiMapID = ZoneDB.GetUiMapIdByAreaId and ZoneDB:GetUiMapIdByAreaId(areaID)
+		local l, r, t, b
+		if uiMapID then l, r, t, b = S.Rect(uiMapID) end
+		if l and type(coords) == "table" then
+			local pts = {}
+			for _, c in ipairs(coords) do
+				if type(c) == "table" and c[1] and c[1] >= 0 then pts[#pts + 1] = { l + c[1] / 100 * (r - l), t + c[2] / 100 * (b - t) } end
+			end
+			if walker and #pts > WANDER then
+				local su, sv = 0, 0
+				for _, p in ipairs(pts) do su, sv = su + p[1], sv + p[2] end
+				su, sv = su / #pts, sv / #pts
+				table.sort(pts, function(a, b2) return (a[1] - su) ^ 2 + (a[2] - sv) ^ 2 < (b2[1] - su) ^ 2 + (b2[2] - sv) ^ 2 end)
+				pts = { pts[1] }
+			end
+			for _, p in ipairs(pts) do out[#out + 1] = p end
+		end
+	end
+	return out
+end
+local function QuestiePoints(e)
+	local QDB, ZoneDB = QuestieDBs()
+	if not QDB then return {} end
+	local out = {}
+	local function npcs(ids) for _, id in ipairs(type(ids) == "table" and ids or {}) do Spawns(QDB, ZoneDB, QDB.QueryNPCSingle(id, "spawns"), out, true) end end
+	local function objects(ids)
+		if not QDB.QueryObjectSingle then return end
+		for _, id in ipairs(type(ids) == "table" and ids or {}) do Spawns(QDB, ZoneDB, QDB.QueryObjectSingle(id, "spawns"), out) end
+	end
+	if e.q == "npc" then
+		npcs(e.ids)
+	elseif e.q == "object" then
+		objects(e.ids)
+	elseif e.q == "quest" and QDB.QueryQuestSingle then
+		-- (Questie's startedBy: { NPCs, objects, items }; finishedBy: { NPCs, objects })
+		for _, id in ipairs(e.ids) do
+			for _, by in ipairs({ QDB.QueryQuestSingle(id, "startedBy"), QDB.QueryQuestSingle(id, "finishedBy") }) do
+				if type(by) == "table" then npcs(by[1]) objects(by[2]) end
+			end
+		end
+	end
+	-- (the same place twice, a giver who takes it in too: once)
+	local once, seenAt = {}, {}
+	for _, p in ipairs(out) do
+		local key = math.floor(p[1] * 1e5) .. ":" .. math.floor(p[2] * 1e5)
+		if not seenAt[key] then seenAt[key] = true once[#once + 1] = p end
+	end
+	return once
+end
+
+-- markers on what was found, for a few seconds
 local pingSet, pingTimer
 local PING = { atlas = "Waypoint-MapPin-Untracked", texture = "Interface\\Minimap\\Ping\\ping5", size = 30 }
-local function Ping(u, v)
+local function Ping(pts)
 	if not pingSet then return end
 	S.ClearPinSet(pingSet)
-	local pin = S.AddPin(pingSet, u, v, PING)
-	pin:EnableMouse(false)
+	for i, p in ipairs(pts) do
+		if i > MAX_PINGS then break end
+		local pin = S.AddPin(pingSet, p[1], p[2], PING)
+		pin:EnableMouse(false)
+	end
 	if pingTimer then pingTimer:Cancel() end
 	pingTimer = C_Timer.NewTimer(5, function() S.ClearPinSet(pingSet) end)
+end
+
+-- the least box several places are shown in (normalized: about a small zone's size)
+local MIN_SPAN = 0.012
+local function GoTo(pts)
+	if #pts == 0 then return false end
+	if #pts == 1 then
+		mod.Glide(pts[1][1], pts[1][2], math.max(14, select(3, mod.ViewNow()) or 1))
+	else
+		local u0, v0, u1, v1 = math.huge, math.huge, -math.huge, -math.huge
+		for _, p in ipairs(pts) do
+			u0, v0, u1, v1 = math.min(u0, p[1]), math.min(v0, p[2]), math.max(u1, p[1]), math.max(v1, p[2])
+		end
+		local du, dv = math.max(0, MIN_SPAN - (u1 - u0)) / 2, math.max(0, MIN_SPAN - (v1 - v0)) / 2
+		S.GlideToRect(u0 - du, v0 - dv, u1 + du, v1 + dv, 0.8)
+	end
+	Ping(pts)
+	return true
 end
 
 local function Go(p)
 	box:ClearFocus()
 	list:Hide()
-	if p[1] == p[3] then
-		mod.Glide(p[1], p[2], math.max(14, select(3, mod.ViewNow()) or 1))
-		Ping(p[1], p[2])
+	if p.open then
+		S.OpenMap(p.open)
+	elseif p.show then
+		mod.db.townsfolk[p.show] = true
+		if mod.RefreshTownsfolk then mod:RefreshTownsfolk() end
+		if mod.RefreshPanel then mod:RefreshPanel() end
+	elseif p.q then
+		if not GoTo(QuestiePoints(p)) then ns:Print(L["Not on the map: %s"]:format(p.name)) end
+	elseif p.pts then
+		GoTo(p.pts)
+	elseif p[1] == p[3] then
+		GoTo({ { p[1], p[2] } })
 	else
 		S.GlideToRect(p[1], p[2], p[3], p[4], 0.95)
 	end
@@ -394,20 +641,45 @@ end
 
 local function Results(text)
 	text = (text or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
-	local out = {}
-	if #text < 2 then return out end
-	for _, p in ipairs(Places()) do
-		local at = p.lower:find(text, 1, true)
-		if at then out[#out + 1] = { p, at == 1 and 0 or 1 } end
+	local found = {}
+	if #text < 2 then return found end
+	local function scan(entries)
+		for _, p in ipairs(entries) do
+			local at = p.lower:find(text, 1, true)
+			if at then found[#found + 1] = { p, at == 1 and 0 or 1 } end
+		end
 	end
-	table.sort(out, function(a, b)
+	scan(Places())
+	scan(PinPlaces())
+	scan(questie.list)
+	-- the best first (a name starting so, then the shorter), at most PER_KIND of a kind; then grouped by kind
+	table.sort(found, function(a, b)
 		if a[2] ~= b[2] then return a[2] < b[2] end
-		return #a[1].name < #b[1].name
+		if #a[1].name ~= #b[1].name then return #a[1].name < #b[1].name end
+		return a[1].name < b[1].name
+	end)
+	local out, per = {}, {}
+	for _, f in ipairs(found) do
+		local kind = f[1].kind
+		if (per[kind] or 0) < PER_KIND then
+			per[kind] = (per[kind] or 0) + 1
+			out[#out + 1] = f
+			if #out >= MAX_RESULTS then break end
+		end
+	end
+	for i, f in ipairs(out) do f[3] = i end
+	table.sort(out, function(a, b)
+		local ra, rb = Rank(a[1].kind), Rank(b[1].kind)
+		if ra ~= rb then return ra < rb end
+		return a[3] < b[3]
 	end)
 	return out
 end
+mod.SearchResults = Results
 
-local function ShowResults()
+local ROW_W = 260
+function ShowResults()
+	if not (box and list) then return end
 	local found = Results(box:GetText())
 	list.rows = list.rows or {}
 	for _, row in ipairs(list.rows) do row:Hide() end
@@ -416,13 +688,16 @@ local function ShowResults()
 		local row = list.rows[i]
 		if not row then
 			row = CreateFrame("Button", nil, list)
-			row:SetSize(220, 18)
+			row:SetSize(ROW_W, 18)
 			row:SetPoint("TOPLEFT", list.pad[1], -list.pad[2] - (i - 1) * 18)
 			row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
-			row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-			row.name:SetPoint("LEFT", 4, 0)
 			row.kind = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 			row.kind:SetPoint("RIGHT", -4, 0)
+			row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+			row.name:SetPoint("LEFT", 4, 0)
+			row.name:SetPoint("RIGHT", row.kind, "LEFT", -6, 0)
+			row.name:SetJustifyH("LEFT")
+			if row.name.SetWordWrap then row.name:SetWordWrap(false) end
 			row:SetScript("OnClick", function(self) Go(self.place) end)
 			list.rows[i] = row
 		end
@@ -436,26 +711,130 @@ local function ShowResults()
 	list.first = found[1][1]
 end
 
--- the search box, on `parent` (the map's menu), `width` wide; its results drop down below it
+-- the search box, on `parent`, `width` wide; its results drop down below it, their right edge under its
+-- (it sits at the window's right, by its buttons)
 function mod.CreateSearch(parent, width)
 	map = map or _G.WorldMapFrame
 	box = CreateFrame("EditBox", nil, parent, "SearchBoxTemplate")
-	box:SetSize(width, 22)
+	box:SetSize(width, 20)
 	box:SetAutoFocus(false)
 	if box.Instructions then box.Instructions:SetText(L["Find a place"]) end
 	list = CreateFrame("Frame", nil, parent)
-	list:SetPoint("TOPLEFT", box, "BOTTOMLEFT", -6, -2)
-	list:SetWidth(240)
+	list:SetPoint("TOPRIGHT", box, "BOTTOMRIGHT", 6, -2)
+	list:SetWidth(ROW_W + 20)
 	list:SetFrameStrata("FULLSCREEN_DIALOG")      -- (over the menu's tiles below it: they're in its strata)
 	list:EnableMouse(true)
 	list.pad = { Look:Dropdown(list) }              -- (the game's own dropdowns' look)
 	list:Hide()
-	box:HookScript("OnTextChanged", ShowResults)
+	box:HookScript("OnTextChanged", function() IndexQuestie() ShowResults() end)
+	box:HookScript("OnEditFocusGained", IndexQuestie)    -- (Questie's names indexed while you start typing)
 	box:SetScript("OnEnterPressed", function() if list:IsShown() and list.first then Go(list.first) else box:ClearFocus() end end)
 	box:HookScript("OnEscapePressed", function() list:Hide() end)
 	box:HookScript("OnEditFocusLost", function() C_Timer.After(0.2, function() if not box:HasFocus() then list:Hide() end end) end)
 	map:HookScript("OnHide", function() box:ClearFocus() list:Hide() end)
 	return box
+end
+
+-- The search on the map's title bar, left of its window buttons (Blizzard's maximize and close): there whenever
+-- OpenMap's map is, and nowhere else (Blizzard's own maps, the Gamepad UI's). As wide as the bar leaves it beside
+-- the window's title, between these. Its frames are OpenMap's own, on the map as the title bar's drag strip is
+-- (Window.lua), made out of combat; nothing of Blizzard's is written or moved
+local SEARCH_MIN, SEARCH_MAX = 90, 190
+local SEARCH_GAP = 10           -- from the title's text, and from the window's buttons
+local holder
+local function TitleText(border)
+	local c = border.TitleContainer
+	return (c and c.TitleText) or border.TitleText or (border.GetTitleText and border:GetTitleText()) or nil
+end
+local function SearchButtons(border)
+	local mm = border.MaximizeMinimizeFrame
+	if mm and mm.IsShown and mm:IsShown() then return mm end
+	return border.CloseButton
+end
+-- how wide it can be: from the title's right end to the buttons
+local function SearchWidth(border, buttons)
+	local title = TitleText(border)
+	local right = buttons and buttons.GetLeft and buttons:GetLeft()
+	if not (title and right and title.GetCenter) then return SEARCH_MAX end
+	local cx = title:GetCenter()
+	local w = title.GetStringWidth and title:GetStringWidth() or 0
+	if not cx or not w then return SEARCH_MAX end
+	local room = right - (cx + w / 2) - 2 * SEARCH_GAP
+	return math.max(SEARCH_MIN, math.min(SEARCH_MAX, math.floor(room)))
+end
+local function PlaceSearch()
+	if not holder then return end
+	local border = map.BorderFrame
+	local buttons = SearchButtons(border)
+	box:ClearAllPoints()
+	if buttons then box:SetPoint("RIGHT", buttons, "LEFT", -SEARCH_GAP, 0) else box:SetPoint("TOPRIGHT", map, "TOPRIGHT", -80, -2) end
+	local w = SearchWidth(border, buttons)
+	if math.abs((box:GetWidth() or 0) - w) > 0.5 then box:SetWidth(w) end
+	holder.placed = { map:GetWidth(), map:GetHeight(), buttons }
+end
+local function SearchShown()
+	return map:IsShown() and mod.enabled and mod.IsStitched() and not (mod.PadViewOn and mod.PadViewOn()) or false
+end
+local function RefreshSearch()
+	if not holder then return end
+	local on = SearchShown()
+	if not on and box:HasFocus() then box:ClearFocus() end
+	if not on then list:Hide() end
+	holder:SetShown(on)
+	if not on then return end
+	local p = holder.placed
+	local border = map.BorderFrame
+	if not p or p[1] ~= map:GetWidth() or p[2] ~= map:GetHeight() or p[3] ~= SearchButtons(border) then PlaceSearch() end
+end
+mod.RefreshTitleSearch = RefreshSearch
+
+function mod.SetupTitleSearch(worldMap)
+	map = map or worldMap
+	if holder or box or not worldMap or not worldMap.BorderFrame then return end
+	-- (made out of combat: the map is a protected window then)
+	if InCombatLockdown() then
+		local waiter = {}
+		ns.RegisterEvent(waiter, "PLAYER_REGEN_ENABLED", function()
+			ns.UnregisterEvent(waiter, "PLAYER_REGEN_ENABLED")
+			mod.SetupTitleSearch(worldMap)
+		end)
+		return
+	end
+	holder = CreateFrame("Frame", nil, worldMap)
+	holder:SetAllPoints(worldMap)
+	holder:EnableMouse(false)
+	-- (over the title bar's art and its drag strip, Window.lua's at the map's level + 5)
+	local border = worldMap.BorderFrame
+	local level = math.max(worldMap:GetFrameLevel() + 8, (border.GetFrameLevel and border:GetFrameLevel() or 0) + 3)
+	holder:SetFrameLevel(level)
+	mod.CreateSearch(holder, SEARCH_MAX)
+	box:SetFrameLevel(level + 1)
+	holder:Hide()
+	-- (whether OpenMap's map is up, and the window's size and buttons, checked a few times a second while the map is
+	-- open: they change with every map, full screen, the quest log, a drag of a corner)
+	local watch = CreateFrame("Frame", nil, worldMap)
+	local wait = 0
+	watch:SetScript("OnUpdate", function(_, elapsed)
+		wait = wait - elapsed
+		if wait > 0 then return end
+		wait = 0.2
+		RefreshSearch()
+	end)
+	worldMap:HookScript("OnShow", RefreshSearch)
+	RefreshSearch()
+end
+
+-- the key binding's: the map opened if it's closed, then the search typed into
+function mod.FocusSearch()
+	if not box then return end
+	local function focus()
+		RefreshSearch()
+		if holder and holder:IsShown() then box:SetFocus() box:HighlightText() end
+	end
+	if map:IsShown() then focus() return end
+	if InCombatLockdown() then return end          -- (as the menu's buttons: no opening the map in combat)
+	ToggleWorldMap()
+	C_Timer.After(0, function() if map:IsShown() then focus() end end)
 end
 
 --------------------------------------------------------------------------------
@@ -919,6 +1298,46 @@ function mod:SetupNav(worldMap)
 		rosterWait = 0.5
 		RefreshGroup()
 	end)
+	-- (the waypoint arrow's distance in meters: its frame may come later than this, so tried as the world loads too)
+	if not mod.SetupWaypointMeters() then
+		local waiter = {}
+		ns.RegisterEvent(waiter, "PLAYER_ENTERING_WORLD", function()
+			if mod.SetupWaypointMeters() then ns.UnregisterEvent(waiter, "PLAYER_ENTERING_WORLD") end
+		end)
+	end
+	mod.SetupTitleSearch(map)
+end
+
+--------------------------------------------------------------------------------
+-- The waypoint's distance in meters: Blizzard's arrow on the screen (SuperTrackedFrame) writes "123 yds" every
+-- frame (UpdateDistanceText); after it, only its text is written again, in meters. Nothing else of Blizzard's is
+-- written (not the IN_GAME_NAVIGATION_RANGE text, no field of the frame), from a secure hook; a distance the game
+-- keeps secret is left as Blizzard wrote it. A client without that method or text: nothing happens
+--------------------------------------------------------------------------------
+
+local YARD = 0.9144
+local metersHooked = false
+local function MetersText(yards)
+	local m = yards * YARD
+	if m >= 1000 then return L["%.1f km"]:format(m / 1000) end
+	return L["%d m"]:format(math.floor(m + 0.5))
+end
+mod.WaypointMetersText = MetersText
+local function Meters(frame)
+	if not mod.db.waypointMeters then return end
+	local fs = frame and frame.DistanceText
+	if not (fs and fs.IsShown and fs:IsShown() and fs.SetText) then return end
+	local yards = C_Navigation and Safe.Call(C_Navigation.GetDistance)
+	if type(yards) ~= "number" or yards <= 0 or not Safe.Finite(yards) then return end
+	fs:SetText(MetersText(yards))
+end
+function mod.SetupWaypointMeters()
+	if metersHooked then return true end
+	local frame = _G.SuperTrackedFrame
+	if type(frame) ~= "table" or type(frame.UpdateDistanceText) ~= "function" or type(frame.DistanceText) ~= "table" then return false end
+	metersHooked = true
+	hooksecurefunc(frame, "UpdateDistanceText", Meters)
+	return true
 end
 
 function mod:NavOptions(opts, get, set, off)
@@ -929,4 +1348,11 @@ function mod:NavOptions(opts, get, set, off)
 		desc = L["Choose one behavior. Center on player: always open on you. Center on player, keep zoom: open on you, at the zoom you closed the map at. Center on your zone: open on the whole zone you're in, wherever you are in it. Always remember: restore your previous position and zoom, even after changing zones. Remember while visible: restore only if your current location is inside the previous view, even across zone boundaries. Otherwise, open on you. Maps opened for a quest still show the quest's area."] }
 	opts.group = { type = "toggle", name = L["Party and raid members"], order = 35, get = get, set = set, disabled = off,
 		desc = L["Class-coloured dots for your group anywhere on the stitched map."] }
+	opts.tomtom = { type = "toggle", name = L["TomTom waypoint too"], order = 35.92, width = "full", disabled = off,
+		get = function() return mod.db.tomtom ~= false end, set = function(_, v) mod.SetTomTomWaypoint(v) end,
+		hidden = function() return not (_G.TomTom and TomTom.AddWaypoint) end,
+		desc = L["A pin you follow on the map sets TomTom's waypoint and arrow as well as Blizzard's."] }
+	opts.waypointMeters = { type = "toggle", name = L["Waypoint distance in meters"], order = 35.93, width = "full", get = get,
+		set = function(info, v) set(info, v) mod.SetupWaypointMeters() end,
+		desc = L["The distance under the game's waypoint arrow on your screen, in meters (km from 1000) instead of yards."] }
 end

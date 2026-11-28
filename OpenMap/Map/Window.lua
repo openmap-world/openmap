@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local mod = ns:GetModule("worldmap")
 local L = ns.L
 
@@ -89,6 +90,17 @@ local function Refit()
 	end
 end
 
+-- in a battleground or arena the window is Blizzard's to lay out: its place, size, full-screen width and the
+-- map's fit to it, each done again from here, left the map's scale and anchors OpenMap's, which its clicks
+-- read: Report AFK from a group member's dot was blocked (#472, found by leaving parts out). A size or place
+-- of yours, and the full-screen width, are put back outside; dragging its corners or title bar still works
+local function InPvP()
+	if not IsInInstance then return false end
+	local inside, kind = IsInInstance()
+	return inside and (kind == "pvp" or kind == "arena") or false
+end
+local function LaidByBlizzard() return InPvP() or mod.Skipped("WindowPlace") end
+
 local function UpdateSpacer()
 	if not map.UpdateSpacerFrameAnchoring then return end
 	if mod.KeepPadCursor then mod.KeepPadCursor(map.UpdateSpacerFrameAnchoring, map) else map:UpdateSpacerFrameAnchoring() end
@@ -116,7 +128,7 @@ local function OffScreen()
 end
 
 local function Apply()
-	if not map or Maximized() or ours or sizing or classicMap then return end
+	if not map or Maximized() or ours or sizing or classicMap or LaidByBlizzard() then return end
 	if Locked() then return end
 	-- (a place or size saved that isn't one, NaN or infinite, or no size at all: forgotten, or the map would
 	-- be put there every time it opens, blank: #260)
@@ -155,7 +167,7 @@ end
 -- maximized: Blizzard keeps the map art's shape (black bars at the sides on a wide
 -- screen); the stitched map is the whole world, so it takes the screen's full width
 FillScreen = function()
-	if not map or not Maximized() or classicMap then return end
+	if not map or not Maximized() or classicMap or LaidByBlizzard() then return end
 	if InCombatLockdown() then afterCombat = true return end
 	if not moveAny and math.abs((map:GetScale() or 1) - 1) > 0.001 then map:SetScale(1) end   -- (the windowed size is the window's)
 	if not mod.db.fullWidth then return end
@@ -210,12 +222,23 @@ local function FitRightGrip()
 	g:SetFrameLevel(log and 9990 or OverIcons() + 1)
 end
 
+-- (the clamp is OpenMap's change to Blizzard's window: made only once you move or size it, or OpenMap puts back a
+-- place or size you saved. Made at login, every opening of the map read OpenMap's taint on its anchor, "WorldMapFrame:
+-- SetPoint()" in the taint log: Report AFK from a group dot blocked in battlegrounds, #472)
+local clampOn = false
 local function Clamp(w, h)
-	if not map or moveAny or classicMap or InCombatLockdown() then return end
+	if not map or moveAny or classicMap or InCombatLockdown() or not clampOn then return end
 	w, h = w or map:GetWidth(), h or map:GetHeight()
 	if not (w and h) or w <= 0 then return end
 	local side = math.max(0, w - 160)
 	map:SetClampRectInsets(side, -side, -TOP_OFF, math.max(0, h - TOP_OFF - 80))
+end
+
+local function ClampOn()
+	if clampOn or not map or moveAny or classicMap or InCombatLockdown() or InPvP() or mod.Skipped("WindowClamp") then return end
+	clampOn = true
+	map:SetClampedToScreen(true)
+	Clamp()
 end
 
 local function Grip(corner)
@@ -235,6 +258,7 @@ local function Grip(corner)
 	local start
 	g:SetScript("OnMouseDown", function()
 		if Maximized() or Locked() then return end
+		ClampOn()
 		local x, y = GetCursorPosition()
 		-- (where the window is, now: not known yet, or the drag would anchor it at 0, 0, bottom left: #241)
 		local l, r, t = map:GetLeft(), map:GetRight(), map:GetTop()
@@ -283,21 +307,30 @@ local function Grip(corner)
 		local w = math.max(MIN_W, start.w + (left and -dx or dx))
 		-- (no taller least height with the quest log shown, #402: its details scroll)
 		local h = math.max(MIN_H, start.h - (y - start.y) / s)
+		local oldW, oldH = map:GetSize()
+		if w == oldW and h == oldH then return end
 		ours = true
-		if not moveAny then
+		if moveAny then
+			-- Offset the live anchor as the window grows, without triggering Move Any's SetPoint hook.
+			local point = map:GetPoint(1)
+			if point then
+				local across = point:match("LEFT") and 0 or (point:match("RIGHT") and 1 or 0.5)
+				local down = point:match("TOP") and 0 or (point:match("BOTTOM") and 1 or 0.5)
+				map:AdjustPointsOffset((across - (left and 1 or 0)) * (w - oldW), -down * (h - oldH))
+			end
+		else
 			Clamp(w, h)
 			map:ClearAllPoints()
 			-- (offsets in the map's own units, as GetLeft gives)
 			map:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", left and start.right - w or start.left, start.top)
 		end
-		-- Move Any owns the frame anchor; change dimensions only to avoid a mover fight.
 		map:SetSize(w, h)
 		ours = false
 		if mod.FollowResize then mod.FollowResize() end
 	end)
 	g:SetScript("OnEnter", function(self)
 		GameTooltip:SetOwner(self, left and "ANCHOR_LEFT" or "ANCHOR_RIGHT")
-		GameTooltip:AddLine(L["Drag to resize the map"], 1, 1, 1)
+		GameTooltip:AddLine(Gold(L["Drag: resize the map"]), 1, 1, 1)
 		GameTooltip:Show()
 	end)
 	g:SetScript("OnLeave", GameTooltip_Hide)
@@ -320,6 +353,7 @@ function mod:SetupWindow(worldMap)
 		if refitted or maxRefitted then maxRefitted = false return end
 		if not map:IsShown() or (mod.IsStitched and mod.IsStitched()) then return end
 		if InCombatLockdown() then afterCombat = true return end
+		if LaidByBlizzard() then return end
 		Refit()
 	end
 	-- (what waited out combat: the window laid out again, the question asked)
@@ -358,10 +392,11 @@ function mod:SetupWindow(worldMap)
 	if classicMap then
 		if not Maximized() then blizzardSize = { map:GetWidth(), map:GetHeight() } end
 	elseif not moveAny then
-		map:SetClampedToScreen(true)
 		-- partly off the screen: sideways and down while some of it stays on, never up (its title bar is
-		-- what moves it; /openmap reset or the Look tab's Reset size and place bring it back)
-		Clamp()
+		-- what moves it; /openmap reset or the Look tab's Reset size and place bring it back). Clamped once
+		-- you move or size it (ClampOn), not in a battleground or arena. Not at login, even with a place or size of
+		-- yours saved: clamped from here, the window's anchor was OpenMap's for the session and Report AFK from a
+		-- group dot in a battleground was blocked (#472)
 		map:HookScript("OnSizeChanged", function() Clamp() end)
 		if not Maximized() then blizzardSize = { map:GetWidth(), map:GetHeight() } end
 
@@ -376,6 +411,7 @@ function mod:SetupWindow(worldMap)
 		handle:SetScript("OnDragStart", function()
 			-- (in combat the map's protected: moving it from here is refused)
 			if Maximized() or (InCombatLockdown() and map:IsProtected()) then return end
+			ClampOn()
 			handle.moving = true
 			map:SetMovable(true)
 			map:StartMoving()
@@ -390,7 +426,7 @@ function mod:SetupWindow(worldMap)
 		handle:SetScript("OnEnter", function(self)
 			if Maximized() then return end
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
-			GameTooltip:AddLine(L["Drag to move the map"], 1, 1, 1)
+			GameTooltip:AddLine(Gold(L["Drag: move the map"]), 1, 1, 1)
 			GameTooltip:Show()
 		end)
 		handle:SetScript("OnLeave", GameTooltip_Hide)
@@ -437,7 +473,7 @@ function mod:SetupWindow(worldMap)
 		end
 	end
 	-- Both clients use the same corner grips; only their resize anchoring differs.
-	if not classicMap then grip = { Grip("BOTTOMRIGHT"), Grip("BOTTOMLEFT") } end
+	if not classicMap and not mod.Skipped("WindowGrips") then grip = { Grip("BOTTOMRIGHT"), Grip("BOTTOMLEFT") } end
 	local function Mode()
 		local max = Maximized()
 		if not max then maxRefitted = false end
@@ -483,7 +519,7 @@ function mod:SetupWindow(worldMap)
 	map:HookScript("OnShow", Mode)
 	for _, g in ipairs(grip) do g:SetFrameLevel(OverIcons() + 1) end
 	FitRightGrip()
-	SetupQuestLog()
+	if not mod.Skipped("WindowLog") then SetupQuestLog() end
 	if moveAny then
 		-- Keep the resize grip in the bottom-right corner: put the quest toggle at
 		-- the bottom of the right-hand tab rail, above the coordinate labels.
@@ -662,7 +698,7 @@ SetupQuestLog = function()
 	local logRefitQueued = false
 	local function FlushLogRefit()
 		logRefitQueued = false
-		if not Maximized() and not InCombatLockdown() and map:IsShown() and map.UpdateSpacerFrameAnchoring then
+		if not Maximized() and not InCombatLockdown() and map:IsShown() and map.UpdateSpacerFrameAnchoring and not LaidByBlizzard() then
 			UpdateSpacer()
 			Refit()
 		end

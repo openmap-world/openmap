@@ -102,7 +102,13 @@ local function PlaceAt()
 	end
 	local x, y
 	if mod.PadCursor() and map.GetNormalizedGamepadCursorPosition then x, y = map:GetNormalizedGamepadCursorPosition()
-	else x, y = map:GetNormalizedCursorPosition() end
+	else
+		-- (off the map's own art, over the frame round a map smaller than the window, a battleground's or a
+		-- dungeon's: Blizzard's position is clamped to its edge, "57.6, 0.0"; off the map, no place: "--")
+		local canvas = map.GetCanvas and map:GetCanvas()
+		if canvas and canvas.IsMouseOver and not canvas:IsMouseOver() then return mapID, -1, -1, -1, -1 end
+		x, y = map:GetNormalizedCursorPosition()
+	end
 	local info = C_Map.GetMapInfoAtPosition(mapID, x, y)
 	if info and info.mapID ~= mapID then
 		local l, r, t, b = C_Map.GetMapRectOnMap(info.mapID, mapID)
@@ -403,7 +409,9 @@ local function Lift(icon, questie)
 	local level = icon:GetFrameLevel()
 	if level > top then return end
 	icon:SetFixedFrameLevel(false)
-	icon:SetFrameLevel(questie and level - QUESTIE_BASE + top + 1 or top + 1)
+	-- (never under `top`: an icon Questie sets below QUESTIE_BASE, as its draw order can, went under OpenMap's
+	-- townsfolk, a "?" hidden by a vendor)
+	icon:SetFrameLevel(questie and top + 1 + math.max(0, level - QUESTIE_BASE) or top + 1)
 	icon:SetFixedFrameLevel(true)
 end
 local NEAR = 0.5                        -- how far round the map underneath (its widths) pins are placed (each pin

@@ -8,6 +8,7 @@ ns.MapBanners = {
 	[1454] = { 1411, 276, 7, 512, 128 },   -- Orgrimmar
 	[1458] = { 1420, 484, 484, 512, 64 },   -- Undercity
 	[1456] = { 1412, 306, 226, 256, 64 },   -- Thunder Bluff
+	[1453] = { 1429, 49, 120, 512, 128 },   -- Stormwind City
 	[1457] = { 1438, 113, 427, 512, 64 },   -- Darnassus
 }
 
@@ -16,12 +17,14 @@ ns.MapBannerHoles = {
 	[1411] = true,   -- (Orgrimmar's banner)
 	[1420] = true,   -- (Undercity's banner)
 	[1412] = true,   -- (Thunder Bluff's banner)
+	[1429] = true,   -- (Stormwind City's banner)
 	[1438] = true,   -- (Darnassus's banner)
 }
 
 -- cities whose own map is cut down to the city (Media/Textures/MapCityMask/<city>)
 ns.MapCityCuts = {
 	[1454] = true,   -- Orgrimmar
+	[1453] = true,   -- Stormwind City
 	[1458] = true,   -- Undercity
 	[1456] = true,   -- Thunder Bluff
 	[1455] = true,   -- Ironforge
@@ -30,6 +33,7 @@ ns.MapCityCuts = {
 -- ... and whose cut keeps their own name banner: their zone's banner for them goes as they come in
 ns.MapCityTitles = {
 	[1454] = true,   -- Orgrimmar
+	[1453] = true,   -- Stormwind City
 	[1458] = true,   -- Undercity
 	[1456] = true,   -- Thunder Bluff
 	[1455] = true,   -- Ironforge

@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 local _, ns = ...
+local function Gold(line) return ns.GoldKeys and ns.GoldKeys(line) or line end   -- (a tooltip's keys in gold: Panel.lua)
 local S = ns.MapStitch
 local mod = ns:GetModule("worldmap")
 local F = ns.MapFlights
@@ -283,9 +284,9 @@ local function NodeEnter(pin)
 			for _, path in ipairs(legs) do total = total + LegTime(path) end
 			GameTooltip:AddLine(ns.L["From %s: about %s"]:format(Short(F.nodes[selected][1]), Clock(total)), 1, 1, 1)
 		end
-		GameTooltip:AddLine(ns.L["Click: show the route"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(Gold(ns.L["Click: show the route"]), 0.6, 0.6, 0.6)
 	else
-		GameTooltip:AddLine(ns.L["Click, then click another flight master: the route and its time"], 0.6, 0.6, 0.6)
+		GameTooltip:AddLine(Gold(ns.L["Click: pick it, then click another flight master for the route and its time"]), 0.6, 0.6, 0.6)
 	end
 	GameTooltip:Show()
 end

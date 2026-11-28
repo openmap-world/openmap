@@ -29,6 +29,7 @@ tools/
   map-caves/      Data/Caves.lua + MapCave masks (Blizzard's cave / pre-instance maps); minimap.py:
                   Data/CaveMinimap.lua (every other cave, from the game's minimap of it)
   map-data/minimap.py  Data/Minimap.lua (the minimap tiles' file IDs)
+  map-data/battlegrounds.py  Data/Battlegrounds.lua (each battleground's map and its minimap tiles on it)
   map-grade/      Data/Grade.lua + MapBand / MapTerritory / MapCore masks
   map-textures/   edge fades, parchment grain
   map-preview/    renders the stitched map out of game; bakes MapTerritory / MapZoneLand / MapLand / MapMiniLand;
@@ -197,7 +198,12 @@ map switching in combat. Wheel and click zooms run our own animation (`Animate`,
 Blizzard's OnUpdate), so the point under the cursor stays put and the map can be dragged
 mid-zoom. While stitched, Blizzard's own art for the host map is hidden (it's under ours),
 and from the continents' zoom the hover highlight is the zone under the cursor. Other maps
-(dungeons, battlegrounds) behave as Blizzard made them.
+(dungeons, battlegrounds) behave as Blizzard made them, but for `Map/Battlegrounds.lua`: on a
+battleground's map (`Data/Battlegrounds.lua`) the canvas's zoom steps are OpenMap's (`bgMaps`), from
+its fit to a few hundred yards across, and the battleground's own minimap tiles lie over its art
+on the canvas (above Blizzard's art, under every icon), as Close.lua's look (`S.MiniTileLook`),
+through a feathered box that leaves the map's frame and portraits alone, mixed in as the world's
+Minimap detail settings say. Blizzard's map does the rest: the player, the group, flags and bases.
 
 ## The closest zoom (`Map/Close.lua`)
 
