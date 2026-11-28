@@ -43,6 +43,7 @@ ns.Credits = {
 		{ "marquesm91", L["Forever City Labels' pins on the stitched map"] },
 		{ "gOOvER", L["your position read safely, the maximized dungeon map, the Stockade's map, and German"] },
 		{ "LvcidLabs", L["a right-click for other addons' buttons, and keys in gold in the tooltips"] },
+		{ "binbuf", L["Terrain view"] },
 	} },
 	{ L["Map art"], {
 		{ "Blizzard Entertainment", L["the map art is the game's own"] },

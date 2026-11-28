@@ -37,7 +37,7 @@
  "An arrow: drag from its tail to where it points.": "Ein Pfeil: Zieht vom Ende dorthin, wohin er zeigen soll.",
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "Gebiete, die Ihr noch nicht erforscht habt: so, wie sie sind, abgedunkelt und kühler getönt (eine Zone, die Ihr noch gar nicht gefunden habt, auf jeder Zoomstufe abgedunkelt, auch auf den Kontinentkarten) oder ausgeblendet wie auf Blizzards eigener Karte (leeres Pergament, bis Ihr dort gewesen seid).",
  "Arrow": "Pfeil",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "Mischt auf der stärksten Zoomstufe die Minikarte des Spiels für Details ein (Bäume, Felsen, Gebäude). Aus: Ihr seht nur die gemalte Karte, egal wie weit Ihr hineinzoomt.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "Mischt auf der stärksten Zoomstufe die Minikarte des Spiels für Details ein (Bäume, Felsen, Gebäude). Aus: Ihr seht nur die gemalte Karte, außer die Geländeansicht ist an.",
  "Auctioneers": "Auktionatoren",
  "Auto": "Auto",
  "Back": "Zurück",
@@ -592,5 +592,9 @@
  "Not on the map: %s": "Nicht auf der Karte: %s",
  "Always": "Immer",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "Wie früh die Details der Minikarte beim Hineinzoomen eingemischt werden: weiter rechts früher. Ganz rechts, Immer: ab der ganzen Welt, bei jeder Zoomstufe.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "Wie viel der Minikarte des Spiels bei der nächsten Zoomstufe für Details eingemischt wird, nie mehr als die Minikarten-Deckkraft (das Höchste bei jeder Zoomstufe)."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "Wie viel der Minikarte des Spiels bei der nächsten Zoomstufe für Details eingemischt wird, nie mehr als die Minikarten-Deckkraft (das Höchste bei jeder Zoomstufe).",
+ "Terrain view": "Geländeansicht",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "Zeigt beim Hineinzoomen das echte Gelände des Spiels statt der gemalten Karte. Aus: Die gemalte Karte führt; beim Hineinzoomen blendet sich das Detail der Minikarte ein.",
+ "Terrain view from the whole world": "Geländeansicht aus der ganzen Welt",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "Zeigt das Gelände auch aus der ganzen Welt, nicht nur nah herangezoomt. Mit Geländeansicht an."
 }

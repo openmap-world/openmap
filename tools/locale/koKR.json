@@ -37,7 +37,7 @@
  "An arrow: drag from its tail to where it points.": "화살표: 꼬리에서 가리킬 곳까지 드래그합니다.",
  "Areas you haven't explored yet: shown as they are, darkened and cooled (and a zone you haven't found at all darkened from every zoom, the continents' too), or hidden like Blizzard's own map (blank parchment until you get there).": "아직 탐험하지 않은 지역의 표시 방식입니다: 그대로 표시, 어둡고 차가운 색으로 표시(아예 발견하지 못한 지역은 대륙 지도를 포함한 모든 확대 배율에서 어둡게 표시), 또는 블리자드 지도처럼 숨기기(도착하기 전까지 빈 양피지).",
  "Arrow": "화살표",
- "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, however far you zoom.": "최대로 확대했을 때 게임의 미니맵을 섞어 세부 묘사(숲, 바위, 건물)를 더합니다. 끄면 아무리 확대해도 그려진 지도만 보입니다.",
+ "At the closest zoom, mix in the game's minimap for detail (tree cover, rocks, buildings). Off, the painted map is all you see, unless Terrain view is on.": "가장 가까운 확대 단계에서 게임의 미니맵을 섞어 세부 묘사(수목, 바위, 건물)를 더합니다. 꺼짐: 지형 보기가 켜져 있지 않으면 그려진 지도만 보입니다.",
  "Auctioneers": "경매인",
  "Auto": "자동",
  "Back": "돌아가기",
@@ -588,5 +588,9 @@
  "Not on the map: %s": "지도에 없음: %s",
  "Always": "항상",
  "How soon the minimap's detail mixes in as you zoom in: further right, sooner. At the far right, Always: from the whole world, at every zoom.": "확대할 때 미니맵 세부가 얼마나 일찍 섞이는지: 오른쪽일수록 일찍. 맨 오른쪽, 항상: 전체 세계부터 모든 확대 수준에서.",
- "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "가장 가까운 확대에서 세부를 위해 섞는 게임 미니맵의 양으로, 미니맵 불투명도(모든 확대에서의 최대값)를 넘지 않습니다."
+ "At the closest zoom, how much of the game's minimap is mixed in for detail, never more than Minimap opacity (the most it shows at any zoom).": "가장 가까운 확대에서 세부를 위해 섞는 게임 미니맵의 양으로, 미니맵 불투명도(모든 확대에서의 최대값)를 넘지 않습니다.",
+ "Terrain view": "지형 보기",
+ "Show the game's real terrain imagery up close, instead of the painted map. Off: the painted map leads, with the minimap detail mixing in as you zoom in.": "가까이 확대했을 때 게임의 실제 지형을 그려진 지도 대신 표시합니다. 꾸짐: 그려진 지도가 우선하며, 확대하면 미니맵 세부 묘사가 섞입니다.",
+ "Terrain view from the whole world": "전체 세계에서 지형 보기",
+ "Show the terrain imagery from the whole-world view too, not only up close. With Terrain view on.": "가까이 확대했을 때뿐 아니라 전체 세계 보기에서도 지형을 표시합니다. 지형 보기가 켜져 있어야 합니다."
 }

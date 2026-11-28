@@ -1,5 +1,15 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Terrain view** (the map's menu and Options' Up close): show the game's real terrain imagery up close,
+  instead of the painted map. Off by default. "Terrain view from the whole world" (the menu's The map)
+  shows it from the whole-world view too, and can be starred onto the map's buttons like any other
+  setting. Where the imagery covers the map, the painted zones, baked tiles and colour-matched copies
+  aren't drawn under it, so the map doesn't pay for both. By binbuf.
+
 ## v0.8.14 (2026-11-27)
 
 ### New
