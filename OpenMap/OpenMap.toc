@@ -82,6 +82,7 @@ Data\Forever\Changelog.lua
 Map\Stitch.lua
 Map\Chart.lua
 Map\WorldMap.lua
+Map\Declutter.lua
 Map\Close.lua
 Map\Extras.lua
 Map\Flights.lua

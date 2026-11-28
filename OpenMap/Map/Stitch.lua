@@ -849,6 +849,19 @@ function S.AddPin(set, u, v, look, data)
 	pin.u, pin.v, pin.data, pin.look = u, v, data, look
 	Look(pin.Icon, look)
 	Look(pin.Highlight, look)
+	-- look.glow: the mouseover lift kept on (townsfolk), a copy of the icon added over it
+	if look.glow then
+		if not pin.Glow then
+			pin.Glow = pin:CreateTexture(nil, "OVERLAY")
+			pin.Glow:SetAllPoints()
+		end
+		Look(pin.Glow, look)
+		pin.Glow:SetBlendMode("ADD")
+		pin.Glow:SetAlpha(type(look.glow) == "number" and look.glow or 0.3)
+		pin.Glow:Show()
+	elseif pin.Glow then
+		pin.Glow:Hide()
+	end
 	pin.Icon:SetDesaturated(false)
 	pin.Icon:SetAlpha(1)
 	pin:SetScript("OnEnter", nil)
@@ -991,6 +1004,7 @@ local function ShowSets()
 end
 
 function S.GetPinSet(key) return sets[key] end
+function S.PinSets() return sets end   -- (every set by key: Declutter.lua)
 
 -- A temporary visibility filter, independent of each set's saved choice and refreshes.
 function S.SetWorldPinsHidden(hidden)

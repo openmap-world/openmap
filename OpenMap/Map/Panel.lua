@@ -290,7 +290,12 @@ local function Rows()
 			function() return db.townsfolk[key] end, function(v) db.townsfolk[key] = v mod:RefreshTownsfolk() end)
 	end
 	if folkDB and client.townsfolk ~= false then
+		local profHead
 		for _, k in ipairs(mod.TOWNSFOLK or {}) do
+			if k.prof and not profHead then
+				profHead = true
+				rows[#rows + 1] = { L["Profession trainers"] }
+			end
 			if not k.rare and k.key ~= "spirit" then rows[#rows + 1] = folk(k.name, k.key) end
 		end
 		rows[#rows + 1] = folk(L["Spirit healers"], "spirit")
@@ -299,6 +304,15 @@ local function Rows()
 	-- the look
 	-- (darkened or hidden; neither ticked: shown as they are. Darkened takes the colour-matched zones' land
 	-- masks, which retail's data has none of: hidden only, there)
+	-- icons over one another (Declutter.lua): kept apart by hiding the less important, or moving them
+	-- beside each other first
+	rows[#rows + 1] = { L["Overlapping icons"] }
+	rows[#rows + 1] = row(L["Townsfolk icons never cover another icon"], "declutter", Icon("Ability_Hunter_Pathfinding"),
+		function() return db.declutter ~= "off" end,
+		function(v) db.declutter = v and "hide" or "off" if S.Declutter then S.Declutter() end end)
+	rows[#rows + 1] = row(L["Move them beside it instead of hiding them"], "declutterMove", Icon("Ability_Rogue_Sprint"),
+		function() return db.declutter == "move" end,
+		function(v) db.declutter = v and "move" or "hide" if S.Declutter then S.Declutter() end end)
 	rows[#rows + 1] = { L["Unexplored areas"], tab = "look" }
 	for _, mode in ipairs({ { "dim", L["Darken unexplored areas"], "Spell_Shadow_Twilight" }, { "hide", L["Hide unexplored areas"], "Ability_Vanish" } }) do
 		if mode[1] ~= "dim" or ns.MapGrade then   -- (darkening needs its zones' land masks: not retail's)

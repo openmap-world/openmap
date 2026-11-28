@@ -54,6 +54,7 @@ Data\Retail\Changelog.lua
 # The map
 Map\Stitch.lua
 Map\WorldMap.lua
+Map\Declutter.lua
 Map\Close.lua
 Map\Extras.lua
 Map\Flights.lua

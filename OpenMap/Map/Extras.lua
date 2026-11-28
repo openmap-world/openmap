@@ -1308,3 +1308,12 @@ function mod:ExtraOptions(opts, get, set, off)
 		get = get, set = setApply, disabled = off,
 		desc = ns.L["How much the map fades while you walk or ride, so you can see where you're going. 0% keeps it solid. It never fades while the mouse is over it."] }
 end
+
+-- other addons' icons on the stitched map (Questie's ...), each passed to fn: Declutter.lua keeps
+-- OpenMap's own icons from under them
+function S.ForeignPins(fn)
+	if not map then return end
+	for template in pairs(pinTemplates) do
+		for pin in map:EnumeratePinsByTemplate(template) do fn(pin) end
+	end
+end
