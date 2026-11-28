@@ -130,6 +130,7 @@ WOW_API = {
     "IsInGuild", "UnitIsPlayer", "GetUnitName", "UnitName", "Ambiguate", "ToggleWorldMap",
     "UnitRace", "GetLocale", "PlaySound", "IsInInstance", "GetInstanceInfo",
     "GetNormalizedRealmName", "GetRealmName", "GetNumGuildMembers", "GetGuildRosterInfo", "BNGetNumFriends", "GetAchievementInfo",
+    "GetFileIDFromPath",
 }
 
 

@@ -1,5 +1,26 @@
 # OpenMap changelog
 
+## Unreleased
+
+### New
+
+- **Trainers by profession**: the townsfolk's profession trainers are split into the twelve professions, each
+  with its own icon and its own switch (OpenMap's menu > Townsfolk, under Profession trainers); pet trainers are a
+  kind of their own, and class trainers show your class's icon. Trainers of riding, weapons and the like are under
+  Other trainers. Profession trainers turned on before are all turned on.
+- **Ammo vendors**: the NPCs who sell arrows or bullets, from Questie's item vendors (every level of ammo), with
+  their icon lit.
+- **Overlapping icons**: townsfolk icons no longer cover another icon. Once the map stops moving, a townsfolk icon
+  that would sit on a more important one is hidden, or, with "Move them beside it instead of hiding them", moved
+  beside its place first. Dungeons, flight masters, boats, quests, your pins and other addons' icons stay where
+  they are. To turn it off: OpenMap's menu > Townsfolk icons never cover another icon.
+
+### Improved
+
+- **Townsfolk sooner after login**: while Questie's database loads, the townsfolk are tried every 2 s (30 times)
+  instead of every 5 s (12 times).
+- Each trainer's subname is read once per NPC, not once per trainer kind.
+
 ## v0.8.14 (2026-11-27)
 
 ### New
