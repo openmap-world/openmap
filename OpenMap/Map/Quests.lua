@@ -25,8 +25,8 @@ local function G(name) return _G[name] end
 mod.defaults.allQuests = true   -- the quests in your log from every zone (off: Blizzard's, the zone's own map only)
 
 local BADGE = { atlas = "UI-QuestPoi-QuestNumber", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 22 }
-local IN_PROGRESS = { atlas = "Quest-In-Progress-Icon-yellow", texture = "Interface\\GossipFrame\\IncompleteQuestIcon" }
-local TURN_IN = { atlas = "UI-QuestPoi-QuestBangTurnIn", texture = "Interface\\GossipFrame\\ActiveQuestIcon" }
+local IN_PROGRESS = { atlas = "Quest-In-Progress-Icon-yellow", texture = "Interface\\GossipFrame\\IncompleteQuestIcon", size = 16 }
+local TURN_IN = { atlas = "UI-QuestIcon-TurnIn-Normal", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 16 }
 local FOCUSED = { atlas = "UI-QuestPoi-QuestNumber-SuperTracked", texture = "Interface\\GossipFrame\\ActiveQuestIcon", size = 22 }
 local OFFER = { atlas = "QuestNormal", texture = "Interface\\GossipFrame\\AvailableQuestIcon", size = 22 }
 local SAME = 0.002              -- world (normalized): one quest's icons this close are one
@@ -39,6 +39,13 @@ local dirty = false             -- a refresh is wanted (Soon)
 local waiting = false           -- ... and on its timer
 local reading                   -- the zones being read: { list, at, found, seen, ids, ... } (RefreshQuests)
 local lastRead                  -- the last reading, for /openmap status: { zones, ms, frames, worst }
+
+-- Match the dimensions Blizzard uses for each layer of its quest pins. Dots and
+-- turn-in marks have different proportions, even when they share the same badge.
+local function SizeFromAtlas(region, look)
+	local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(look.atlas)
+	region:SetSize(info and info.width or look.size, info and info.height or look.size)
+end
 
 -- the controller view is the map now (Blizzard's under it, unseen)
 -- (and the own view in a fight, OwnView.lua: Blizzard's quest pins under it, unseen)
@@ -91,10 +98,38 @@ end
 local focusTint                 -- (a client without the gold atlas: the badge tinted gold instead)
 local drawn = {}                -- the quests' icons up now (Draw)
 local focusedPin                -- the one of them in the focused look (Focus)
+
+-- Keep the stitched pins ready. Blizzard changes its pins as the host changes, while the
+-- quest scan finishes later. Leave the host's pins to Blizzard in the same frame.
+local function UpdateOwnership()
+	if not drawn[1] or not map:IsShown() then return end
+	local pad = PadView()
+	local zoneOnly = pad and mod.db.allQuests == false and map:GetMapID()
+	local host = not pad and mod.HostMap() or nil
+	local native, continent, l, r, t, b
+	if host then
+		local info = C_Map.GetMapInfo(host)
+		continent = info and info.mapType == Enum.UIMapType.Continent
+		l, r, t, b = S.Rect(host)
+		native = {}
+		for pin in map:EnumeratePinsByTemplate("QuestPinTemplate") do
+			local id = pin:GetQuestID()
+			if id then native[id] = true end
+		end
+	end
+	for _, pin in ipairs(drawn) do
+		local q = pin.data
+		local inHost = l and pin.u >= l and pin.u <= r and pin.v >= t and pin.v <= b
+		local owned = host and (q.map == host or native[q.id] and (continent or inHost))
+		pin:SetShown(not owned and (not zoneOnly or q.map == zoneOnly))
+	end
+end
+
 -- one icon in a look: the badge, or the focused quest's gold one
 local function Style(pin, on)
 	local look = on and FOCUSED or BADGE
 	pin.look = look
+	SizeFromAtlas(pin, look)
 	S.Look(pin.Icon, look)
 	S.Look(pin.Highlight, look)
 	if on and focusTint then pin.Icon:SetVertexColor(1, 0.82, 0) else pin.Icon:SetVertexColor(1, 1, 1) end
@@ -160,9 +195,9 @@ local function Mark(pin, complete)
 		pin.questMark = pin:CreateTexture(nil, "OVERLAY")
 		pin.questMark:SetPoint("CENTER")
 	end
-	local m, size = pin.questMark, BADGE.size * 0.6
-	m:SetSize(size, size)
-	S.Look(m, complete and TURN_IN or IN_PROGRESS)
+	local m, look = pin.questMark, complete and TURN_IN or IN_PROGRESS
+	SizeFromAtlas(m, look)
+	S.Look(m, look)
 	m:Show()
 end
 
@@ -197,16 +232,13 @@ end
 
 -- one zone's quests into the reading `r`
 local function ReadMap(r, mapID)
-	if mapID == r.host then return end
 	local have = G("HaveQuestData")
 	for _, q in ipairs(C_QuestLog.GetQuestsOnMap(mapID) or NONE) do
 		local id = q.questID
-		if id and q.x and q.y and not q.isMapIndicatorQuest and (not have or have(id))
-			and not (r.continent and id == r.tracked) then
+		if id and q.x and q.y and not q.isMapIndicatorQuest and (not have or have(id)) then
 			local u, v = mod.ToWorld(mapID, q.x, q.y)
 			local key = u and (id .. ":" .. math.floor(u / SAME) .. ":" .. math.floor(v / SAME))
-			local onHost = u and r.hostQuests[id] and r.hl and u >= r.hl and u <= r.hr and v >= r.ht and v <= r.hb
-			if key and not r.seen[key] and not onHost then
+			if key and not r.seen[key] then
 				r.seen[key] = true
 				r.ids[id] = true
 				r.found[#r.found + 1] = { u, v, id, C_QuestLog.IsComplete and C_QuestLog.IsComplete(id) or false, mapID }
@@ -226,12 +258,14 @@ local function Draw(r)
 	wipe(drawn)
 	for _, f in ipairs(r.found) do
 		local pin = S.AddPin(set, f[1], f[2], BADGE, { id = f[3], complete = f[4], map = f[5] })
+		SizeFromAtlas(pin, BADGE)
 		Mark(pin, f[4])
 		pin:SetScript("OnEnter", Enter)
 		pin:SetScript("OnLeave", Leave)
 		pin.OnClick = Click
 		drawn[#drawn + 1] = pin
 	end
+	UpdateOwnership()
 	Focus()
 	if r.pad then Offers(r.ids) end
 end
@@ -280,7 +314,10 @@ function mod:RefreshQuests()
 	dirty = false
 	reading = nil                                   -- (one under way was for how things were)
 	reader:Hide()
-	if not set and S.IsBuilt() then set = S.PinSet("quests", 1, 5) end   -- (built as the map first opens)
+	if not set and S.IsBuilt() then
+		set = S.PinSet("quests", 1, 5)
+		set.iconScale = 1                       -- (match Blizzard's badges when the host changes)
+	end
 	if not set then return end
 	if not offerSet and S.IsBuilt() then offerSet = S.PinSet("questoffers", 1, 4) end   -- (under the quests' icons)
 	-- (and as Blizzard's own quests: not with the map's Quest Objectives off, its questPOI)
@@ -307,21 +344,9 @@ function mod:RefreshQuests()
 		local zone = map and map.GetMapID and map:GetMapID()
 		list = zone and S.Rect(zone) and { zone } or NONE
 	end
-	-- the map underneath: Blizzard draws its quests (a continent, only the super-tracked one). Not under the
-	-- controller view, nor the own view in a fight: its pins are there unseen, so its quests are OpenMap's too
-	local host = not pad and mod.HostMap() or nil
-	local hostInfo = host and C_Map.GetMapInfo(host)
-	local continent = hostInfo and hostInfo.mapType == Enum.UIMapType.Continent
-	local tracked = C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.GetSuperTrackedQuestID()
-	local hostQuests = {}
-	if host and not continent then
-		for _, q in ipairs(C_QuestLog.GetQuestsOnMap(host) or NONE) do hostQuests[q.questID] = true end
-	end
-	local hl, hr, ht, hb
-	if host then hl, hr, ht, hb = S.Rect(host) end
+	UpdateOwnership()
 	-- (the zones read over the next frames, the icons put up once all are in: the reader, above)
-	reading = { list = list, at = 1, found = {}, seen = {}, ids = {}, pad = pad, host = host, hostQuests = hostQuests,
-		continent = continent, tracked = tracked, hl = hl, hr = hr, ht = ht, hb = hb, ms = 0, frames = 0, worst = 0 }
+	reading = { list = list, at = 1, found = {}, seen = {}, ids = {}, pad = pad, ms = 0, frames = 0, worst = 0 }
 	reader:Show()
 end
 
@@ -348,8 +373,12 @@ function mod:SetupQuests(worldMap)
 		if event == "CVAR_UPDATE" and cvar ~= "questPOI" then return end
 		if map:IsShown() then Soon() end
 	end)
-	hooksecurefunc(map, "OnMapChanged", Soon)
-	map:HookScript("OnShow", Soon)
+	local function MapChanged()
+		UpdateOwnership()
+		Soon()
+	end
+	hooksecurefunc(map, "OnMapChanged", MapChanged)
+	map:HookScript("OnShow", MapChanged)
 	-- (closed while its zones were being read: left there, and read as the map next opens)
 	map:HookScript("OnHide", function()
 		if reading then

@@ -1,5 +1,11 @@
 # OpenMap changelog
 
+## Unreleased
+
+### Fixed
+
+- Quest dots and question marks keep their size as you pan and zoom. OpenMap hands off to Blizzard's quest markers as soon as the underlying zone changes.
+
 ## v0.8.14 (2026-11-27)
 
 ### New

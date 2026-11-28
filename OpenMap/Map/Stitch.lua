@@ -841,7 +841,7 @@ function S.AddPin(set, u, v, look, data)
 	local size = look.size or 16
 	pin:SetParent(PinCell(set, u, v))
 	pin:SetSize(size, size)
-	pin:SetScale(S.iconScale or 1)           -- (the menu's Icon size: S.SetIconScale)
+	pin:SetScale(set.iconScale or S.iconScale or 1)
 	pin:SetFrameLevel(set.frame:GetFrameLevel())
 	pin.anchor = Anchor(u * W, v * H)
 	pin:ClearAllPoints()
@@ -998,14 +998,15 @@ function S.SetWorldPinsHidden(hidden)
 	ShowSets()
 end
 
--- the menu's Icon size: every icon of OpenMap's at this times its own size (each about its own
--- middle: it's anchored there)
+-- the menu's Icon size: pins scale around their own middle. Sets with a fixed size keep it.
 function S.SetIconScale(k)
 	k = tonumber(k) or 1
 	if k == (S.iconScale or 1) then return end
 	S.iconScale = k
 	for _, set in pairs(sets) do
-		for _, pin in ipairs(set.pins) do pin:SetScale(k) end
+		if not set.iconScale then
+			for _, pin in ipairs(set.pins) do pin:SetScale(k) end
+		end
 	end
 end
 
